@@ -1,75 +1,95 @@
 import 'package:flutter/material.dart';
 import '../models/job.dart';
 import '../models/job_status.dart';
+import '../repositories/job_repository.dart';
 import '../services/location_service.dart';
 
 class AppState extends ChangeNotifier {
+  AppState(this.repository);
 
+  final JobRepository repository;
+
+  List<Job> jobs = [];
   Job? jobAtual;
 
-  /// 📍 CONTROLE DE LOCALIZAÇÃO
   double? ultimaLatitude;
   double? ultimaLongitude;
 
   double? residenciaLat;
   double? residenciaLng;
 
-  bool permitirIniciarLonge = true; // 🔥 modo DEV
+  DateTime? ultimoCheckin;
 
-  bool podeIniciarVistoria(double distanciaMetros) {
-  if (permitirIniciarLonge) return true;
+  bool permitirIniciarLonge = true;
 
-  return distanciaMetros <= 100;
-}
+  Future<void> carregarJobs() async {
+    jobs = await repository.getJobs();
+    notifyListeners();
+  }
 
-  /// 🔥 INICIAR JOB
+  void selecionarJob(Job job) {
+    jobAtual = job;
+    notifyListeners();
+  }
+
   void iniciarJob(Job job) {
     jobAtual = job;
     notifyListeners();
   }
 
-  /// ✅ ACEITAR JOB
-  void aceitarJob() {
-    jobAtual?.status = JobStatus.aceito;
+  void aceitarJob(String jobId) {
+    final index = jobs.indexWhere((j) => j.id == jobId);
+    if (index == -1) return;
+
+    jobs[index].status = JobStatus.aceito;
     notifyListeners();
   }
 
-  /// ❌ RECUSAR JOB
   void recusarJob() {
     jobAtual?.status = JobStatus.recusado;
     notifyListeners();
   }
 
-  /// 📍 CHECK-IN
   void fazerCheckin({required bool clientePresente, String? tipoImovel}) {
     if (jobAtual == null) return;
 
     jobAtual!.clientePresente = clientePresente;
     jobAtual!.tipoImovel = tipoImovel;
     jobAtual!.status = JobStatus.emAndamento;
+    ultimoCheckin = DateTime.now();
 
     notifyListeners();
   }
 
-  /// 📋 CHECKLIST
   void salvarChecklist(List<String> itens) {
     jobAtual?.checklist = itens;
     notifyListeners();
   }
 
-  /// 📷 FOTO
   void adicionarFoto(String path) {
     jobAtual?.fotos.add(path);
     notifyListeners();
   }
 
-  /// 🏁 FINALIZAR
   void finalizarJob() {
     jobAtual?.status = JobStatus.finalizado;
     notifyListeners();
   }
 
-  /// 🚀 🔥 CÁLCULO DE DESLOCAMENTO (REGRA CORRETA)
+  bool isPrimeiraVistoriaDoDia() {
+    if (ultimoCheckin == null) return true;
+
+    final agora = DateTime.now();
+    return agora.day != ultimoCheckin!.day ||
+        agora.month != ultimoCheckin!.month ||
+        agora.year != ultimoCheckin!.year;
+  }
+
+  bool podeIniciarVistoria(double distanciaMetros) {
+    if (permitirIniciarLonge) return true;
+    return distanciaMetros <= 100;
+  }
+
   double calcularKmDeslocamento({
     required double atualLat,
     required double atualLng,
@@ -82,10 +102,8 @@ class AppState extends ChangeNotifier {
 
     final destinoLat = jobAtual!.latitude!;
     final destinoLng = jobAtual!.longitude!;
-
     final locationService = LocationService();
 
-    /// 🔁 CENÁRIO 1: VEIO DE VISTORIA ANTERIOR
     if (ultimaLatitude != null && ultimaLongitude != null) {
       return locationService.calcularDistancia(
         lat1: ultimaLatitude!,
@@ -95,25 +113,9 @@ class AppState extends ChangeNotifier {
       );
     }
 
-    /// 🧠 VERIFICA SE ESTÁ EM CASA
-    bool estaEmCasa = false;
-
-    if (residenciaLat != null && residenciaLng != null) {
-      final distanciaCasa = locationService.calcularDistancia(
-        lat1: atualLat,
-        lon1: atualLng,
-        lat2: residenciaLat!,
-        lon2: residenciaLng!,
-      );
-
-      /// raio de tolerância (100m)
-      if (distanciaCasa < 100) {
-        estaEmCasa = true;
-      }
-    }
-
-    /// 🔵 CENÁRIO 3: PRIMEIRA VISTORIA (EM CASA)
-    if (estaEmCasa && residenciaLat != null && residenciaLng != null) {
+    if (isPrimeiraVistoriaDoDia() &&
+        residenciaLat != null &&
+        residenciaLng != null) {
       return locationService.calcularDistancia(
         lat1: residenciaLat!,
         lon1: residenciaLng!,
@@ -122,8 +124,7 @@ class AppState extends ChangeNotifier {
       );
     }
 
-    /// 🟡 CENÁRIO 2: FORA (SEM VISTORIA)
-    double distanciaAtual = locationService.calcularDistancia(
+    final distanciaAtual = locationService.calcularDistancia(
       lat1: atualLat,
       lon1: atualLng,
       lat2: destinoLat,
@@ -150,7 +151,6 @@ class AppState extends ChangeNotifier {
     return distanciaAtual;
   }
 
-  /// 💾 REGISTRA DESLOCAMENTO NO JOB
   void registrarDeslocamento({
     required double atualLat,
     required double atualLng,
@@ -169,7 +169,6 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 🔁 ATUALIZA ÚLTIMA LOCALIZAÇÃO
   void atualizarUltimaLocalizacao(double lat, double lng) {
     ultimaLatitude = lat;
     ultimaLongitude = lng;

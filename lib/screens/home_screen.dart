@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../state/app_state.dart';
 import '../models/job.dart';
 import '../services/location_service.dart';
 import '../services/map_service.dart';
+import '../state/app_state.dart';
 import 'checkin_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -13,18 +13,12 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appState = Provider.of<AppState>(context);
-
-    /// 📦 JOB MOCK (fixo por enquanto)
-    final jobMock = Job(
-      id: '1',
-      endereco: 'Al. dos Pássaros, 100',
-      latitude: -23.5505,
-      longitude: -46.6333,
-    );
+    final jobs = appState.jobs;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7FA),
       bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 0,
         selectedItemColor: const Color(0xFF0D3B92),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Painel'),
@@ -36,185 +30,202 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              /// 👤 HEADER
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: jobs.isEmpty
+            ? const Center(child: CircularProgressIndicator())
+            : ListView(
+                padding: const EdgeInsets.all(20),
                 children: [
                   Row(
-                    children: const [
-                      CircleAvatar(
-                        radius: 25,
-                        backgroundImage: NetworkImage(
-                          'https://i.pravatar.cc/150?img=3',
-                        ),
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: const [
+                          CircleAvatar(
+                            radius: 25,
+                            backgroundImage: NetworkImage(
+                              'https://i.pravatar.cc/150?img=3',
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Text(
+                            'Olá, Fábio Freitas! 👋',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
-                      SizedBox(width: 12),
-                      Text(
-                        'Olá, Fábio Freitas! 👋',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Row(
+                        children: [
+                          _iconCircle(Icons.notifications_none),
+                          const SizedBox(width: 10),
+                          _iconCircle(Icons.settings_outlined),
+                        ],
                       ),
                     ],
                   ),
+                  const SizedBox(height: 30),
+                  const Text(
+                    'MEUS JOBS DE HOJE',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+
+                  ...jobs.map((job) => _jobCard(context, appState, job)),
+
+                  const SizedBox(height: 30),
+                  const Text(
+                    'NOVAS PROPOSTAS',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Text(
+                      'Feature ainda não implementada.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
                 ],
               ),
+      ),
+    );
+  }
 
-              const SizedBox(height: 30),
+  Widget _jobCard(BuildContext context, AppState appState, Job job) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: FutureBuilder(
+        future: LocationService().getCurrentLocation(),
+        builder: (context, snapshot) {
+          String distanciaTexto = 'Calculando distância...';
+          bool podeIniciar = appState.permitirIniciarLonge;
 
+          if (snapshot.hasData) {
+            final pos = snapshot.data!;
+            final distancia = LocationService().calcularDistancia(
+              lat1: pos.latitude,
+              lon1: pos.longitude,
+              lat2: job.latitude ?? 0,
+              lon2: job.longitude ?? 0,
+            );
+            distanciaTexto =
+                '📍 ${(distancia / 1000).toStringAsFixed(1)} km de distância';
+            podeIniciar = appState.podeIniciarVistoria(distancia);
+          }
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: const [
+                  Icon(Icons.circle, size: 10, color: Color(0xFF0D3B92)),
+                  SizedBox(width: 8),
+                  Text(
+                    'EM ANDAMENTO',
+                    style: TextStyle(
+                      color: Color(0xFF0D3B92),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 15),
               const Text(
-                'MEUS JOBS DE HOJE',
-                style: TextStyle(
-                  color: Colors.grey,
+                'Casa em Condomínio - Res. Tamboré',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              Text(job.endereco, style: const TextStyle(color: Colors.grey)),
+              const Text('Ricardo (Prop.)',
+                  style: TextStyle(color: Colors.grey)),
+              const SizedBox(height: 10),
+              Text(
+                distanciaTexto,
+                style: const TextStyle(
+                  color: Colors.blueGrey,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-
-              const SizedBox(height: 15),
-
-              /// 📦 CARD
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Casa em Condomínio - Res. Tamboré',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    Text(jobMock.endereco,
-                        style: const TextStyle(color: Colors.grey)),
-
-                    const SizedBox(height: 10),
-
-                    /// 📍 DISTÂNCIA + BLOQUEIO
-                   FutureBuilder(
-  future: LocationService().getCurrentLocation(),
-  builder: (context, snapshot) {
-
-    /// ⏳ carregando
-    if (snapshot.connectionState == ConnectionState.waiting) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    }
-
-    /// ❌ erro (isso evita tela preta!)
-    if (snapshot.hasError) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Text(
-            'Erro ao obter localização',
-            style: TextStyle(color: Colors.red),
-          ),
-          SizedBox(height: 10),
-          Text('Verifique GPS ou permissões'),
-        ],
-      );
-    }
-
-    /// 🚫 sem dados
-    if (!snapshot.hasData) {
-      return const Text('Sem localização disponível');
-    }
-
-    final pos = snapshot.data!;
-    final locationService = LocationService();
-
-    final job = Job(
-      id: '1',
-      endereco: 'Al. dos Pássaros, 100',
-      latitude: -23.5505,
-      longitude: -46.6333,
-    );
-
-    final distancia = locationService.calcularDistancia(
-      lat1: pos.latitude,
-      lon1: pos.longitude,
-      lat2: job.latitude!,
-      lon2: job.longitude!,
-    );
-
-    final appState = Provider.of<AppState>(context, listen: false);
-    final podeIniciar = appState.podeIniciarVistoria(distancia);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '📍 ${(distancia / 1000).toStringAsFixed(1)} km de distância',
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-
-        const SizedBox(height: 20),
-
-        Row(
-          children: [
-            /// 🗺️ COMO CHEGAR
-            Expanded(
-              child: GestureDetector(
-                onTap: () async {
-                  final mapService = MapService();
-
-                  await mapService.abrirWaze(
-                    job.latitude!,
-                    job.longitude!,
-                  );
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFDCEFE6),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Center(
-                    child: Text(
-                      'COMO CHEGAR',
-                      style: TextStyle(
-                        color: Color(0xFF1B5E20),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+              const SizedBox(height: 10),
+              const Text(
+                '14:30 (Em 15 min)',
+                style: TextStyle(
+                  color: Colors.orange,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () async {
+                        if (job.latitude == null || job.longitude == null) {
+                          _mostrarErro(context, 'Localização do job não definida');
+                          return;
+                        }
 
-            const SizedBox(width: 10),
-
-            /// 🚀 INICIAR
-            Expanded(
-              child: GestureDetector(
-                onTap: podeIniciar
-                    ? () {
-                        appState.iniciarJob(job);
-
-                        appState.registrarDeslocamento(
-                          atualLat: pos.latitude,
-                          atualLng: pos.longitude,
+                        await MapService().abrirWaze(
+                          job.latitude!,
+                          job.longitude!,
                         );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDCEFE6),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Center(
+                          child: Text(
+                            'COMO CHEGAR',
+                            style: TextStyle(
+                              color: Color(0xFF1B5E20),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () async {
+                        if (!podeIniciar) {
+                          _mostrarErro(
+                            context,
+                            'Você precisa estar próximo do local da vistoria',
+                          );
+                          return;
+                        }
 
-                        appState.atualizarUltimaLocalizacao(
-                          pos.latitude,
-                          pos.longitude,
-                        );
+                        appState.selecionarJob(job);
+
+                        if (snapshot.hasData) {
+                          final pos = snapshot.data!;
+                          appState.registrarDeslocamento(
+                            atualLat: pos.latitude,
+                            atualLng: pos.longitude,
+                          );
+                        }
 
                         Navigator.push(
                           context,
@@ -222,68 +233,58 @@ class HomeScreen extends StatelessWidget {
                             builder: (_) => const CheckinScreen(),
                           ),
                         );
-                      }
-                    : () {
-                        _mostrarErro(
-                          context,
-                          'Você precisa estar próximo do local',
-                        );
                       },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  decoration: BoxDecoration(
-                    color: podeIniciar
-                        ? const Color(0xFF0D3B92)
-                        : Colors.grey,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Center(
-                    child: Text(
-                      appState.permitirIniciarLonge
-                          ? 'INICIAR (DEV)'
-                          : 'INICIAR VISTORIA',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: podeIniciar
+                              ? const Color(0xFF0D3B92)
+                              : Colors.grey.shade400,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Center(
+                          child: Text(
+                            appState.permitirIniciarLonge
+                                ? 'INICIAR (DEV)'
+                                : 'INICIAR VISTORIA',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ),
-            ),
-          ],
-        ),
-      ],
-    );
-  },
-)
-                  ],
+              if (!appState.permitirIniciarLonge && !podeIniciar) ...[
+                const SizedBox(height: 10),
+                const Text(
+                  'Aproxime-se do local para iniciar a vistoria.',
+                  style: TextStyle(color: Colors.redAccent),
                 ),
-              ),
+              ],
             ],
-          ),
-        ),
+          );
+        },
       ),
     );
   }
 
-  Widget _botaoDesabilitado() {
+  static Widget _iconCircle(IconData icon) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade300,
-        borderRadius: BorderRadius.circular(10),
+      width: 40,
+      height: 40,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
       ),
-      child: const Center(
-        child: Text(
-          'Aguardando...',
-          style: TextStyle(color: Colors.white),
-        ),
-      ),
+      child: Icon(icon, color: Color(0xFF0D3B92)),
     );
   }
 
-  void _mostrarErro(BuildContext context, String msg) {
+  static void _mostrarErro(BuildContext context, String msg) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(

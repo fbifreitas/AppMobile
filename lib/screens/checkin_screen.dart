@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../state/app_state.dart';
-import 'checklist_screen.dart';
 
 class CheckinScreen extends StatefulWidget {
   const CheckinScreen({super.key});
@@ -24,6 +24,16 @@ class _CheckinScreenState extends State<CheckinScreen> {
   @override
   Widget build(BuildContext context) {
     final appState = Provider.of<AppState>(context);
+    final job = appState.jobAtual;
+
+    if (job == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Check-in Vistoria')),
+        body: const Center(
+          child: Text('Nenhum job selecionado'),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -34,8 +44,15 @@ class _CheckinScreenState extends State<CheckinScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text(
+              job.endereco,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
 
-            /// 📍 GPS (simulado por enquanto)
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -46,18 +63,40 @@ class _CheckinScreenState extends State<CheckinScreen> {
                 children: [
                   Icon(Icons.location_on, color: Colors.green),
                   SizedBox(width: 10),
-                  Text('Você está no local da vistoria'),
+                  Text('GPS confirmado no local'),
                 ],
               ),
             ),
 
             const SizedBox(height: 20),
 
-            /// 👤 CLIENTE PRESENTE?
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {},
+                    icon: const Icon(Icons.chat_outlined),
+                    label: const Text('WhatsApp'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {},
+                    icon: const Icon(Icons.call_outlined),
+                    label: const Text('Ligar'),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
             const Text(
               'Cliente está presente?',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
+            const SizedBox(height: 10),
 
             Row(
               children: [
@@ -85,17 +124,12 @@ class _CheckinScreenState extends State<CheckinScreen> {
 
             const SizedBox(height: 20),
 
-            /// 🔥 MOSTRAR APENAS SE CLIENTE PRESENTE
             if (clientePresente == true) ...[
-
-              /// 🏠 TIPO DE IMÓVEL (NBR 14653)
               const Text(
                 'Tipo de imóvel',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
-
               const SizedBox(height: 10),
-
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
@@ -115,25 +149,63 @@ class _CheckinScreenState extends State<CheckinScreen> {
 
             const Spacer(),
 
-            /// 🔘 BOTÃO PRINCIPAL
+            if (clientePresente == true) ...[
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () {
+                    _mostrarInfo(context, 'Etapa 2 ainda será implementada.');
+                  },
+                  child: const Text('Ir para etapa 2 do check-in'),
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   if (clientePresente == null) {
-                    _showErro('Selecione se o cliente está presente');
+                    _mostrarInfo(
+                      context,
+                      'Selecione se o cliente está presente.',
+                    );
                     return;
                   }
 
-                  /// ❌ CLIENTE AUSENTE
                   if (clientePresente == false) {
-                    _showClienteAusente(appState);
+                    final confirmar = await showDialog<bool>(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        title: const Text('Cliente ausente'),
+                        content: const Text(
+                          'Deseja solicitar reagendamento da vistoria?',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Cancelar'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('Confirmar'),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (confirmar == true) {
+                      appState.recusarJob();
+                      if (mounted) {
+                        Navigator.pop(context);
+                      }
+                    }
                     return;
                   }
 
-                  /// ✅ CLIENTE PRESENTE
                   if (tipoImovel == null) {
-                    _showErro('Selecione o tipo de imóvel');
+                    _mostrarInfo(context, 'Selecione o tipo de imóvel.');
                     return;
                   }
 
@@ -142,17 +214,15 @@ class _CheckinScreenState extends State<CheckinScreen> {
                     tipoImovel: tipoImovel,
                   );
 
-                  Navigator.push(
+                  _mostrarInfo(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => const ChecklistScreen(),
-                    ),
+                    'Próximo passo: abrir câmera.',
                   );
                 },
                 child: Text(
                   clientePresente == false
-                      ? 'Encerrar / Reagendar'
-                      : 'Confirmar e abrir vistoria',
+                      ? 'Solicitar reagendamento'
+                      : 'Confirmar e abrir a câmera',
                 ),
               ),
             ),
@@ -162,8 +232,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
     );
   }
 
-  /// ⚠️ ALERTA DE ERRO
-  void _showErro(String msg) {
+  void _mostrarInfo(BuildContext context, String msg) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -173,32 +242,6 @@ class _CheckinScreenState extends State<CheckinScreen> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// ❌ CLIENTE AUSENTE (REAGENDAR)
-  void _showClienteAusente(AppState appState) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Cliente ausente'),
-        content: const Text('Deseja solicitar reagendamento?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () {
-              appState.recusarJob();
-
-              Navigator.of(context).pop(); // fecha popup
-              Navigator.of(context).popUntil((route) => route.isFirst);
-            },
-            child: const Text('Reagendar'),
           ),
         ],
       ),

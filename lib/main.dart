@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'state/app_state.dart';
+
+import 'repositories/fake_job_repository.dart';
 import 'screens/home_screen.dart';
+import 'state/app_state.dart';
 
 void main() {
   runApp(
     ChangeNotifierProvider(
-      create: (_) => AppState(),
+      create: (_) => AppState(FakeJobRepository())..carregarJobs(),
       child: const MyApp(),
     ),
   );
