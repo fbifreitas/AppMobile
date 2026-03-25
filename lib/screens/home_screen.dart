@@ -20,7 +20,7 @@ class HomeScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      bottomNavigationBar: const BottomNavigationBar(
+      bottomNavigationBar: BottomNavigationBar(
         currentIndex: 0,
         items: [
           BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Painel'),

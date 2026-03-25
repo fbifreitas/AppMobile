@@ -2,51 +2,62 @@ import 'dart:math';
 import 'package:geolocator/geolocator.dart';
 
 class LocationService {
-  /// Obtém a posição atual do usuário
-  Future<Position?> getCurrentLocation() async {
-    try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        return null;
-      }
+  Future<Position> getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
 
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) return null;
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        return null;
-      }
-
-      return await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
-    } catch (e) {
-      return null;
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      throw Exception('GPS desativado');
     }
+
+    permission = await Geolocator.checkPermission();
+
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+
+      if (permission == LocationPermission.denied) {
+        throw Exception('Permissão de localização negada');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      throw Exception('Permissão de localização negada permanentemente');
+    }
+
+    const locationSettings = LocationSettings(
+      accuracy: LocationAccuracy.high,
+    );
+
+    return await Geolocator.getCurrentPosition(
+      locationSettings: locationSettings,
+    );
   }
 
-  /// Calcula distância em metros entre duas coordenadas
   double calcularDistancia({
     required double lat1,
     required double lon1,
     required double lat2,
     required double lon2,
   }) {
-    const double R = 6371000; // raio da Terra em metros
-    double dLat = _grausParaRadianos(lat2 - lat1);
-    double dLon = _grausParaRadianos(lon2 - lon1);
+    const raioTerra = 6371000.0;
 
-    double a = sin(dLat / 2) * sin(dLat / 2) +
-        cos(_grausParaRadianos(lat1)) *
-            cos(_grausParaRadianos(lat2)) *
+    final dLat = _grausParaRad(lat2 - lat1);
+    final dLon = _grausParaRad(lon2 - lon1);
+
+    final a =
+        sin(dLat / 2) * sin(dLat / 2) +
+        cos(_grausParaRad(lat1)) *
+            cos(_grausParaRad(lat2)) *
             sin(dLon / 2) *
             sin(dLon / 2);
-    double c = 2 * atan2(sqrt(a), sqrt(1 - a));
 
-    return R * c; // distância em metros
+    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+
+    return raioTerra * c;
   }
 
-  double _grausParaRadianos(double graus) => graus * pi / 180;
+  double _grausParaRad(double graus) {
+    return graus * pi / 180;
+  }
 }

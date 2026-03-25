@@ -17,12 +17,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
   bool? clientePresente;
   String? tipoImovel;
 
-  final List<String> tipos = [
-    'Urbano',
-    'Rural',
-    'Comercial',
-    'Industrial',
-  ];
+  final List<String> tipos = ['Urbano', 'Rural', 'Comercial', 'Industrial'];
 
   @override
   Widget build(BuildContext context) {
@@ -37,9 +32,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Check-in Vistoria'),
-      ),
+      appBar: AppBar(title: const Text('Check-in Vistoria')),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -56,9 +49,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
             const SizedBox(height: 6),
             Text(
               job.endereco,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
-              ),
+              style: const TextStyle(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 20),
 
@@ -194,17 +185,18 @@ class _CheckinScreenState extends State<CheckinScreen> {
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
-                children: tipos.map((tipo) {
-                  return ChoiceChip(
-                    label: Text(tipo),
-                    selected: tipoImovel == tipo,
-                    onSelected: (_) {
-                      setState(() {
-                        tipoImovel = tipo;
-                      });
-                    },
-                  );
-                }).toList(),
+                children:
+                    tipos.map((tipo) {
+                      return ChoiceChip(
+                        label: Text(tipo),
+                        selected: tipoImovel == tipo,
+                        onSelected: (_) {
+                          setState(() {
+                            tipoImovel = tipo;
+                          });
+                        },
+                      );
+                    }).toList(),
               ),
             ],
 
@@ -233,27 +225,30 @@ class _CheckinScreenState extends State<CheckinScreen> {
                 if (clientePresente == false) {
                   final confirmar = await showDialog<bool>(
                     context: context,
-                    builder: (_) => AlertDialog(
-                      title: const Text('Cliente ausente'),
-                      content: const Text(
-                        'Deseja solicitar reagendamento da vistoria?',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: const Text('Cancelar'),
+                    builder:
+                        (_) => AlertDialog(
+                          title: const Text('Cliente ausente'),
+                          content: const Text(
+                            'Deseja solicitar reagendamento da vistoria?',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('Cancelar'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: const Text('Confirmar'),
+                            ),
+                          ],
                         ),
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, true),
-                          child: const Text('Confirmar'),
-                        ),
-                      ],
-                    ),
                   );
+
+                  if (!mounted) return;
 
                   if (confirmar == true) {
                     appState.recusarJob();
-                    if (mounted) Navigator.pop(context);
+                    Navigator.of(context).pop();
                   }
                   return;
                 }
@@ -271,9 +266,10 @@ class _CheckinScreenState extends State<CheckinScreen> {
                 _mostrarInfo(context, 'Próximo passo: abrir câmera.');
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: clientePresente == false
-                    ? AppColors.danger
-                    : AppColors.primary,
+                backgroundColor:
+                    clientePresente == false
+                        ? AppColors.danger
+                        : AppColors.primary,
               ),
               child: Text(
                 clientePresente == false
@@ -311,16 +307,17 @@ class _CheckinScreenState extends State<CheckinScreen> {
   void _mostrarInfo(BuildContext context, String msg) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Atenção'),
-        content: Text(msg),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+      builder:
+          (_) => AlertDialog(
+            title: const Text('Atenção'),
+            content: Text(msg),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 }
