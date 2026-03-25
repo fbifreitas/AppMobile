@@ -13,6 +13,14 @@ class InspectionMenuScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<InspectionState>(
       builder: (context, inspectionState, _) {
+        if (inspectionState.isRestoring) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
         final session = inspectionState.session;
 
         if (session == null) {
@@ -22,13 +30,13 @@ class InspectionMenuScreen extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: FilledButton(
-                  onPressed: () {
-                    inspectionState.startMockInspection(
+                  onPressed: () async {
+                    await inspectionState.startMockInspection(
                       tipoImovel: 'Urbano',
                       subtipoImovel: 'Apartamento',
                     );
                   },
-                  child: const Text('Iniciar vistoria mock'),
+                  child: const Text('Iniciar vistoria'),
                 ),
               ),
             ),
@@ -64,6 +72,8 @@ class InspectionMenuScreen extends StatelessWidget {
                 totalFotos: session.totalCapturedPhotos,
                 obrigatorias: session.totalRequiredPhotos,
                 gpsEnabled: session.gpsEnabled,
+                syncStatus: session.syncStatus,
+                lastSavedAt: session.lastSavedAt,
                 onToggleGps: () {
                   inspectionState.setGpsEnabled(!session.gpsEnabled);
                 },
@@ -117,6 +127,8 @@ class _HeaderCard extends StatelessWidget {
   final int totalFotos;
   final int obrigatorias;
   final bool gpsEnabled;
+  final InspectionSyncStatus syncStatus;
+  final DateTime? lastSavedAt;
   final VoidCallback onToggleGps;
 
   const _HeaderCard({
@@ -126,21 +138,27 @@ class _HeaderCard extends StatelessWidget {
     required this.totalFotos,
     required this.obrigatorias,
     required this.gpsEnabled,
+    required this.syncStatus,
+    required this.lastSavedAt,
     required this.onToggleGps,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final syncLabel = switch (syncStatus) {
+      InspectionSyncStatus.draft => 'Rascunho local',
+      InspectionSyncStatus.pendingUpload => 'Pendente de envio',
+      InspectionSyncStatus.synced => 'Sincronizado',
+      InspectionSyncStatus.uploadFailed => 'Falha no envio',
+    };
 
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(
-          alpha: 0.35,
-        ),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
@@ -159,15 +177,26 @@ class _HeaderCard extends StatelessWidget {
             '$percent% concluído • $totalFotos fotos • $obrigatorias mínimas',
             style: theme.textTheme.bodyMedium,
           ),
+          const SizedBox(height: 8),
+          Text(
+            'Status local: $syncLabel',
+            style: theme.textTheme.bodyMedium,
+          ),
+          if (lastSavedAt != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Último salvamento: $lastSavedAt',
+              style: theme.textTheme.bodySmall,
+            ),
+          ],
           const SizedBox(height: 12),
           Row(
             children: [
               Icon(
                 gpsEnabled ? Icons.location_on : Icons.location_off,
-                color:
-                    gpsEnabled
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.error,
+                color: gpsEnabled
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.error,
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -192,7 +221,10 @@ class _EnvironmentCard extends StatelessWidget {
   final InspectionEnvironmentProgress ambiente;
   final VoidCallback onOpen;
 
-  const _EnvironmentCard({required this.ambiente, required this.onOpen});
+  const _EnvironmentCard({
+    required this.ambiente,
+    required this.onOpen,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -206,14 +238,18 @@ class _EnvironmentCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
+          border: Border.all(
+            color: theme.dividerColor.withValues(alpha: 0.2),
+          ),
           color: theme.colorScheme.surface,
         ),
         child: Row(
           children: [
             CircleAvatar(
               radius: 24,
-              child: Text(ambiente.ambienteNome.characters.first.toUpperCase()),
+              child: Text(
+                ambiente.ambienteNome.characters.first.toUpperCase(),
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(

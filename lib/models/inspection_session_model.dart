@@ -13,6 +13,13 @@ enum EvidenceSource {
   gallery,
 }
 
+enum InspectionSyncStatus {
+  draft,
+  pendingUpload,
+  synced,
+  uploadFailed,
+}
+
 class GeoPointData {
   final double latitude;
   final double longitude;
@@ -39,7 +46,7 @@ class GeoPointData {
     return GeoPointData(
       latitude: (map['latitude'] as num).toDouble(),
       longitude: (map['longitude'] as num).toDouble(),
-      accuracy: (map['accuracy'] as num).toDouble(),
+      accuracy: (map['accuracy'] as num?)?.toDouble() ?? 0,
       capturedAt: DateTime.parse(map['capturedAt'] as String),
     );
   }
@@ -220,6 +227,24 @@ class InspectionEnvironmentProgress {
     };
   }
 
+  factory InspectionEnvironmentProgress.fromMap(Map<String, dynamic> map) {
+    return InspectionEnvironmentProgress(
+      ambienteId: map['ambienteId'] as String,
+      ambienteNome: map['ambienteNome'] as String,
+      minFotos: map['minFotos'] as int? ?? 1,
+      obrigatorio: map['obrigatorio'] as bool? ?? false,
+      evidencias: (map['evidencias'] as List<dynamic>? ?? const [])
+          .map((item) => PhotoEvidence.fromMap(Map<String, dynamic>.from(item)))
+          .toList(),
+      status: InspectionEnvironmentStatus.values.firstWhere(
+        (e) => e.name == map['status'],
+        orElse: () => InspectionEnvironmentStatus.pendente,
+      ),
+      suggestedAsMissingConfig: map['suggestedAsMissingConfig'] as bool? ?? false,
+      suggestedEnvironmentName: map['suggestedEnvironmentName'] as String?,
+    );
+  }
+
   factory InspectionEnvironmentProgress.fromTemplate(
     EnvironmentTemplate template,
   ) {
@@ -260,6 +285,9 @@ class InspectionSession {
   final List<InspectionEnvironmentProgress> ambientes;
   final bool gpsEnabled;
   final bool finalized;
+  final InspectionSyncStatus syncStatus;
+  final DateTime? lastSavedAt;
+  final DateTime? lastSyncedAt;
 
   const InspectionSession({
     required this.id,
@@ -271,6 +299,9 @@ class InspectionSession {
     required this.ambientes,
     required this.gpsEnabled,
     this.finalized = false,
+    this.syncStatus = InspectionSyncStatus.draft,
+    this.lastSavedAt,
+    this.lastSyncedAt,
   });
 
   factory InspectionSession.start({
@@ -291,6 +322,8 @@ class InspectionSession {
           .map(InspectionEnvironmentProgress.fromTemplate)
           .toList(),
       gpsEnabled: true,
+      syncStatus: InspectionSyncStatus.draft,
+      lastSavedAt: DateTime.now(),
     );
   }
 
@@ -304,6 +337,9 @@ class InspectionSession {
     List<InspectionEnvironmentProgress>? ambientes,
     bool? gpsEnabled,
     bool? finalized,
+    InspectionSyncStatus? syncStatus,
+    DateTime? lastSavedAt,
+    DateTime? lastSyncedAt,
   }) {
     return InspectionSession(
       id: id ?? this.id,
@@ -315,6 +351,53 @@ class InspectionSession {
       ambientes: ambientes ?? this.ambientes,
       gpsEnabled: gpsEnabled ?? this.gpsEnabled,
       finalized: finalized ?? this.finalized,
+      syncStatus: syncStatus ?? this.syncStatus,
+      lastSavedAt: lastSavedAt ?? this.lastSavedAt,
+      lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
+    );
+  }
+
+  factory InspectionSession.fromMap(Map<String, dynamic> map) {
+    final tipoImovel = map['tipoImovel'] as String? ?? 'Urbano';
+    final subtipoImovel = map['subtipoImovel'] as String? ?? 'Apartamento';
+
+    InspectionTemplate template;
+    if ((map['template']) != null) {
+      template = InspectionTemplate.fromMap(
+        Map<String, dynamic>.from(map['template'] as Map),
+      );
+    } else {
+      template = InspectionTemplateFactory.byKey(
+        tipoImovel: tipoImovel,
+        subtipoImovel: subtipoImovel,
+      );
+    }
+
+    return InspectionSession(
+      id: map['id'] as String,
+      tipoImovel: tipoImovel,
+      subtipoImovel: subtipoImovel,
+      startedAt: DateTime.parse(map['startedAt'] as String),
+      checkinGeoPoint: GeoPointData.fromMap(
+        Map<String, dynamic>.from(map['checkinGeoPoint'] as Map),
+      ),
+      template: template,
+      ambientes: (map['ambientes'] as List<dynamic>? ?? const [])
+          .map((item) =>
+              InspectionEnvironmentProgress.fromMap(Map<String, dynamic>.from(item)))
+          .toList(),
+      gpsEnabled: map['gpsEnabled'] as bool? ?? true,
+      finalized: map['finalized'] as bool? ?? false,
+      syncStatus: InspectionSyncStatus.values.firstWhere(
+        (e) => e.name == map['syncStatus'],
+        orElse: () => InspectionSyncStatus.draft,
+      ),
+      lastSavedAt: map['lastSavedAt'] != null
+          ? DateTime.tryParse(map['lastSavedAt'] as String)
+          : null,
+      lastSyncedAt: map['lastSyncedAt'] != null
+          ? DateTime.tryParse(map['lastSyncedAt'] as String)
+          : null,
     );
   }
 
@@ -418,6 +501,9 @@ class InspectionSession {
       'ambientes': ambientes.map((e) => e.toMap()).toList(),
       'gpsEnabled': gpsEnabled,
       'finalized': finalized,
+      'syncStatus': syncStatus.name,
+      'lastSavedAt': lastSavedAt?.toIso8601String(),
+      'lastSyncedAt': lastSyncedAt?.toIso8601String(),
     };
   }
 }
