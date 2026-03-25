@@ -267,8 +267,12 @@ class InspectionTemplateFactory {
         return _comercial();
       case TipoImovel.industrial:
         return _industrial();
+    
     }
+    
   }
+
+  
 
   static InspectionTemplate byKey({
     required String tipoImovel,

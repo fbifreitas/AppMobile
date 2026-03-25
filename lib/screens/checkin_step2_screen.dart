@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../config/checkin_step2_config.dart';
 import '../models/checkin_step2_model.dart';
+import '../services/checkin_photo_capture_service.dart';
+import 'inspection_menu_screen.dart';
 
 class CheckinStep2Screen extends StatefulWidget {
   final String tipoImovel;
@@ -24,6 +26,10 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
   late final CheckinStep2Config _config;
   late CheckinStep2Model _model;
   final Map<String, TextEditingController> _obsControllers = {};
+  final CheckinPhotoCaptureService _captureService = CheckinPhotoCaptureService();
+
+  bool _busy = false;
+  String? _busyFieldId;
 
   @override
   void initState() {
@@ -49,20 +55,87 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
   }
 
   Future<void> _handleCapture(CheckinStep2PhotoFieldConfig field) async {
-    setState(() {
-      _model = _model.setPhoto(
-        fieldId: field.id,
-        titulo: field.titulo,
-        imagePath:
-            'mock://${field.id}/${DateTime.now().millisecondsSinceEpoch}',
-      );
-    });
+    try {
+      setState(() {
+        _busy = true;
+        _busyFieldId = field.id;
+      });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Foto de "${field.titulo}" marcada como capturada.'),
-      ),
-    );
+      final result = await _captureService.captureFromCamera();
+
+      if (!mounted) return;
+
+      setState(() {
+        _model = _model.setPhoto(
+          fieldId: field.id,
+          titulo: field.titulo,
+          imagePath: result.path,
+          geoPoint: result.geoPoint,
+          importedFromGallery: false,
+        );
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Foto de "${field.titulo}" capturada com sucesso.')),
+      );
+    } on CheckinPhotoCaptureException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Falha ao capturar foto: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _busyFieldId = null;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleGallery(CheckinStep2PhotoFieldConfig field) async {
+    try {
+      setState(() {
+        _busy = true;
+        _busyFieldId = field.id;
+      });
+
+      final result = await _captureService.captureFromGallery();
+
+      if (!mounted) return;
+
+      setState(() {
+        _model = _model.setPhoto(
+          fieldId: field.id,
+          titulo: field.titulo,
+          imagePath: result.path,
+          geoPoint: result.geoPoint,
+          importedFromGallery: true,
+        );
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Imagem de "${field.titulo}" vinculada com sucesso.')),
+      );
+    } on CheckinPhotoCaptureException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Falha ao importar imagem: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _busyFieldId = null;
+        });
+      }
+    }
   }
 
   void _handleRemovePhoto(CheckinStep2PhotoFieldConfig field) {
@@ -71,11 +144,14 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
     });
   }
 
-  void _handleContinue() {
+  Future<void> _handleContinue() async {
     widget.onContinue?.call(_model);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Etapa 2 preenchida com sucesso.')),
+    if (!mounted) return;
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const InspectionMenuScreen()),
     );
   }
 
@@ -86,30 +162,39 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Check-in Vistoria')),
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            _buildHeader(theme),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildPhotosSection(theme),
-                    const SizedBox(height: 24),
-                    _buildDynamicOptionsSection(theme),
-                    const SizedBox(height: 32),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: _handleContinue,
-                        child: const Text('Salvar e continuar'),
-                      ),
+            Column(
+              children: [
+                _buildHeader(theme),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildPhotosSection(theme),
+                        const SizedBox(height: 24),
+                        _buildDynamicOptionsSection(theme),
+                        const SizedBox(height: 32),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton(
+                            onPressed: _busy ? null : _handleContinue,
+                            child: const Text('Salvar e continuar'),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
+            if (_busy)
+              Container(
+                color: Colors.black.withValues(alpha: 0.12),
+                child: const Center(child: CircularProgressIndicator()),
+              ),
           ],
         ),
       ),
@@ -121,9 +206,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(
-          alpha: 0.35,
-        ),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
         border: Border(
           bottom: BorderSide(color: theme.dividerColor.withValues(alpha: 0.2)),
         ),
@@ -148,9 +231,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
           const SizedBox(height: 12),
           Text(
             '${_config.subtituloTela} ${_tipo.label}',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
           Text(
@@ -170,9 +251,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
       children: [
         Text(
           'Registros fotográficos',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 12),
         ..._config.camposFotos.map(
@@ -181,7 +260,10 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
             obrigatorio: field.obrigatorio,
             capturado: _model.isPhotoCaptured(field.id),
             icon: field.icon,
+            busy: _busy && _busyFieldId == field.id,
+            photoInfo: _model.fotos[field.id],
             onCapture: () => _handleCapture(field),
+            onGallery: () => _handleGallery(field),
             onRemove: () => _handleRemovePhoto(field),
           ),
         ),
@@ -195,9 +277,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
       children: [
         Text(
           'Infraestrutura e serviços',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 12),
         ..._config.gruposOpcoes.map((grupo) {
@@ -210,10 +290,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
     );
   }
 
-  Widget _buildOptionGroupCard(
-    ThemeData theme,
-    CheckinStep2OptionGroupConfig grupo,
-  ) {
+  Widget _buildOptionGroupCard(ThemeData theme, CheckinStep2OptionGroupConfig grupo) {
     final resposta = _model.respostas[grupo.id];
 
     return Container(
@@ -229,45 +306,41 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
         children: [
           Text(
             grupo.titulo,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children:
-                grupo.opcoes.map((opcao) {
-                  final selected =
-                      resposta?.selectedOptionIds.contains(opcao.id) ?? false;
+            children: grupo.opcoes.map((opcao) {
+              final selected = resposta?.selectedOptionIds.contains(opcao.id) ?? false;
 
-                  return grupo.multiplaEscolha
-                      ? FilterChip(
-                        label: Text(opcao.label),
-                        selected: selected,
-                        onSelected: (_) {
-                          setState(() {
-                            _model = _model.toggleMultiOption(
-                              groupId: grupo.id,
-                              optionId: opcao.id,
-                            );
-                          });
-                        },
-                      )
-                      : ChoiceChip(
-                        label: Text(opcao.label),
-                        selected: selected,
-                        onSelected: (_) {
-                          setState(() {
-                            _model = _model.setSingleOption(
-                              groupId: grupo.id,
-                              optionId: opcao.id,
-                            );
-                          });
-                        },
-                      );
-                }).toList(),
+              return grupo.multiplaEscolha
+                  ? FilterChip(
+                      label: Text(opcao.label),
+                      selected: selected,
+                      onSelected: (_) {
+                        setState(() {
+                          _model = _model.toggleMultiOption(
+                            groupId: grupo.id,
+                            optionId: opcao.id,
+                          );
+                        });
+                      },
+                    )
+                  : ChoiceChip(
+                      label: Text(opcao.label),
+                      selected: selected,
+                      onSelected: (_) {
+                        setState(() {
+                          _model = _model.setSingleOption(
+                            groupId: grupo.id,
+                            optionId: opcao.id,
+                          );
+                        });
+                      },
+                    );
+            }).toList(),
           ),
           if (grupo.permiteObservacao) ...[
             const SizedBox(height: 14),
@@ -281,10 +354,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
                 border: OutlineInputBorder(),
               ),
               onChanged: (value) {
-                _model = _model.setObservacao(
-                  groupId: grupo.id,
-                  observacao: value,
-                );
+                _model = _model.setObservacao(groupId: grupo.id, observacao: value);
               },
             ),
           ],
@@ -298,22 +368,36 @@ class _PhotoCaptureCard extends StatelessWidget {
   final String titulo;
   final bool obrigatorio;
   final bool capturado;
+  final bool busy;
   final IconData icon;
+  final CheckinStep2PhotoAnswer? photoInfo;
   final VoidCallback onCapture;
+  final VoidCallback onGallery;
   final VoidCallback onRemove;
 
   const _PhotoCaptureCard({
     required this.titulo,
     required this.obrigatorio,
     required this.capturado,
+    required this.busy,
     required this.icon,
+    required this.photoInfo,
     required this.onCapture,
+    required this.onGallery,
     required this.onRemove,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    final subtitle = capturado
+        ? photoInfo?.importedFromGallery == true
+            ? 'Imagem da galeria vinculada'
+            : 'Imagem capturada'
+        : obrigatorio
+            ? 'Foto obrigatória'
+            : 'Foto opcional';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -322,67 +406,82 @@ class _PhotoCaptureCard extends StatelessWidget {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color:
-              capturado
-                  ? theme.colorScheme.primary.withValues(alpha: 0.35)
-                  : theme.dividerColor.withValues(alpha: 0.20),
+          color: capturado
+              ? theme.colorScheme.primary.withValues(alpha: 0.35)
+              : theme.dividerColor.withValues(alpha: 0.20),
         ),
       ),
-      child: Row(
+      child: Column(
         children: [
-          CircleAvatar(
-            radius: 22,
-            backgroundColor:
-                capturado
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 22,
+                backgroundColor: capturado
                     ? theme.colorScheme.primary.withValues(alpha: 0.12)
                     : theme.colorScheme.surfaceContainerHighest,
-            child: Icon(
-              capturado ? Icons.check_circle_outline : icon,
-              color:
-                  capturado ? theme.colorScheme.primary : theme.iconTheme.color,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  titulo,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+                child: Icon(
+                  capturado ? Icons.check_circle_outline : icon,
+                  color: capturado ? theme.colorScheme.primary : theme.iconTheme.color,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  capturado
-                      ? 'Imagem capturada'
-                      : obrigatorio
-                      ? 'Foto obrigatória'
-                      : 'Foto opcional',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color:
-                        capturado
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      titulo,
+                      style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: capturado
                             ? theme.colorScheme.primary
-                            : theme.textTheme.bodySmall?.color?.withValues(
-                              alpha: 0.70,
-                            ),
-                  ),
+                            : theme.textTheme.bodySmall?.color?.withValues(alpha: 0.70),
+                      ),
+                    ),
+                    if (capturado && photoInfo?.geoPoint != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Lat ${photoInfo!.geoPoint!.latitude.toStringAsFixed(5)} • Lng ${photoInfo!.geoPoint!.longitude.toStringAsFixed(5)}',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: busy ? null : onCapture,
+                  icon: const Icon(Icons.camera_alt_outlined),
+                  label: Text(busy ? 'Processando...' : capturado ? 'Refazer' : 'Capturar'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: busy ? null : onGallery,
+                  icon: const Icon(Icons.photo_library_outlined),
+                  label: const Text('Galeria'),
+                ),
+              ),
+              if (capturado) ...[
+                const SizedBox(width: 10),
+                IconButton(
+                  tooltip: 'Remover',
+                  onPressed: busy ? null : onRemove,
+                  icon: const Icon(Icons.delete_outline),
                 ),
               ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          if (capturado)
-            IconButton(
-              tooltip: 'Remover',
-              onPressed: onRemove,
-              icon: const Icon(Icons.delete_outline),
-            ),
-          FilledButton.icon(
-            onPressed: onCapture,
-            icon: const Icon(Icons.camera_alt_outlined),
-            label: Text(capturado ? 'Refazer' : 'Capturar'),
+            ],
           ),
         ],
       ),

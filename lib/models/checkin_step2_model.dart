@@ -1,16 +1,21 @@
 import '../config/checkin_step2_config.dart';
+import 'inspection_session_model.dart';
 
 class CheckinStep2PhotoAnswer {
   final String fieldId;
   final String titulo;
   final String? imagePath;
   final DateTime? capturedAt;
+  final GeoPointData? geoPoint;
+  final bool importedFromGallery;
 
   const CheckinStep2PhotoAnswer({
     required this.fieldId,
     required this.titulo,
     this.imagePath,
     this.capturedAt,
+    this.geoPoint,
+    this.importedFromGallery = false,
   });
 
   CheckinStep2PhotoAnswer copyWith({
@@ -18,12 +23,16 @@ class CheckinStep2PhotoAnswer {
     String? titulo,
     String? imagePath,
     DateTime? capturedAt,
+    GeoPointData? geoPoint,
+    bool? importedFromGallery,
   }) {
     return CheckinStep2PhotoAnswer(
       fieldId: fieldId ?? this.fieldId,
       titulo: titulo ?? this.titulo,
       imagePath: imagePath ?? this.imagePath,
       capturedAt: capturedAt ?? this.capturedAt,
+      geoPoint: geoPoint ?? this.geoPoint,
+      importedFromGallery: importedFromGallery ?? this.importedFromGallery,
     );
   }
 
@@ -35,6 +44,8 @@ class CheckinStep2PhotoAnswer {
       'titulo': titulo,
       'imagePath': imagePath,
       'capturedAt': capturedAt?.toIso8601String(),
+      'geoPoint': geoPoint?.toMap(),
+      'importedFromGallery': importedFromGallery,
     };
   }
 
@@ -46,6 +57,10 @@ class CheckinStep2PhotoAnswer {
       capturedAt: map['capturedAt'] != null
           ? DateTime.tryParse(map['capturedAt'] as String)
           : null,
+      geoPoint: map['geoPoint'] != null
+          ? GeoPointData.fromMap(Map<String, dynamic>.from(map['geoPoint'] as Map))
+          : null,
+      importedFromGallery: map['importedFromGallery'] as bool? ?? false,
     );
   }
 }
@@ -141,13 +156,17 @@ class CheckinStep2Model {
     required String fieldId,
     required String titulo,
     required String imagePath,
+    required GeoPointData geoPoint,
+    bool importedFromGallery = false,
   }) {
     final novasFotos = Map<String, CheckinStep2PhotoAnswer>.from(fotos);
     novasFotos[fieldId] = CheckinStep2PhotoAnswer(
       fieldId: fieldId,
       titulo: titulo,
       imagePath: imagePath,
-      capturedAt: DateTime.now(),
+      capturedAt: geoPoint.capturedAt,
+      geoPoint: geoPoint,
+      importedFromGallery: importedFromGallery,
     );
 
     return copyWith(fotos: novasFotos);
@@ -161,6 +180,8 @@ class CheckinStep2Model {
       novasFotos[fieldId] = fotoAtual.copyWith(
         imagePath: '',
         capturedAt: null,
+        geoPoint: null,
+        importedFromGallery: false,
       );
     }
 

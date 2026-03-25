@@ -4,12 +4,20 @@ import 'package:provider/provider.dart';
 import 'repositories/fake_job_repository.dart';
 import 'screens/home_screen.dart';
 import 'state/app_state.dart';
+import 'state/inspection_state.dart';
 import 'theme/app_colors.dart';
 
 void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => AppState(FakeJobRepository())..carregarJobs(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider<AppState>(
+          create: (_) => AppState(FakeJobRepository())..carregarJobs(),
+        ),
+        ChangeNotifierProvider<InspectionState>(
+          create: (_) => InspectionState(),
+        ),
+      ],
       child: const MyApp(),
     ),
   );
