@@ -6,6 +6,8 @@ import '../services/location_service.dart';
 import '../services/map_service.dart';
 import '../state/app_state.dart';
 import 'checkin_screen.dart';
+import 'notifications_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -58,9 +60,31 @@ class HomeScreen extends StatelessWidget {
                       ),
                       Row(
                         children: [
-                          _iconCircle(Icons.notifications_none),
+                          _iconButton(
+                            context,
+                            icon: Icons.notifications_none,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const NotificationsScreen(),
+                                ),
+                              );
+                            },
+                          ),
                           const SizedBox(width: 10),
-                          _iconCircle(Icons.settings_outlined),
+                          _iconButton(
+                            context,
+                            icon: Icons.settings_outlined,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const SettingsScreen(),
+                                ),
+                              );
+                            },
+                          ),
                         ],
                       ),
                     ],
@@ -74,9 +98,7 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 15),
-
                   ...jobs.map((job) => _jobCard(context, appState, job)),
-
                   const SizedBox(height: 30),
                   const Text(
                     'NOVAS PROPOSTAS',
@@ -116,18 +138,21 @@ class HomeScreen extends StatelessWidget {
         builder: (context, snapshot) {
           String distanciaTexto = 'Calculando distância...';
           bool podeIniciar = appState.permitirIniciarLonge;
+          double? distanciaMetros;
 
           if (snapshot.hasData) {
             final pos = snapshot.data!;
-            final distancia = LocationService().calcularDistancia(
+            distanciaMetros = LocationService().calcularDistancia(
               lat1: pos.latitude,
               lon1: pos.longitude,
               lat2: job.latitude ?? 0,
               lon2: job.longitude ?? 0,
             );
+
             distanciaTexto =
-                '📍 ${(distancia / 1000).toStringAsFixed(1)} km de distância';
-            podeIniciar = appState.podeIniciarVistoria(distancia);
+                '📍 ${(distanciaMetros / 1000).toStringAsFixed(1)} km de distância';
+
+            podeIniciar = appState.podeIniciarVistoria(distanciaMetros);
           }
 
           return Column(
@@ -147,14 +172,19 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 15),
-              const Text(
-                'Casa em Condomínio - Res. Tamboré',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Text(
+                job.titulo,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 10),
               Text(job.endereco, style: const TextStyle(color: Colors.grey)),
-              const Text('Ricardo (Prop.)',
-                  style: TextStyle(color: Colors.grey)),
+              Text(
+                job.nomeCliente,
+                style: const TextStyle(color: Colors.grey),
+              ),
               const SizedBox(height: 10),
               Text(
                 distanciaTexto,
@@ -178,7 +208,10 @@ class HomeScreen extends StatelessWidget {
                     child: GestureDetector(
                       onTap: () async {
                         if (job.latitude == null || job.longitude == null) {
-                          _mostrarErro(context, 'Localização do job não definida');
+                          _mostrarInfo(
+                            context,
+                            'Localização do job não definida.',
+                          );
                           return;
                         }
 
@@ -210,9 +243,9 @@ class HomeScreen extends StatelessWidget {
                     child: GestureDetector(
                       onTap: () async {
                         if (!podeIniciar) {
-                          _mostrarErro(
+                          _mostrarInfo(
                             context,
-                            'Você precisa estar próximo do local da vistoria',
+                            'Você precisa estar próximo do local da vistoria.',
                           );
                           return;
                         }
@@ -258,11 +291,13 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              if (!appState.permitirIniciarLonge && !podeIniciar) ...[
+              if (!appState.permitirIniciarLonge &&
+                  distanciaMetros != null &&
+                  !podeIniciar) ...[
                 const SizedBox(height: 10),
-                const Text(
-                  'Aproxime-se do local para iniciar a vistoria.',
-                  style: TextStyle(color: Colors.redAccent),
+                Text(
+                  'Aproxime-se do local para iniciar a vistoria. Distância atual: ${distanciaMetros.toStringAsFixed(0)}m',
+                  style: const TextStyle(color: Colors.redAccent),
                 ),
               ],
             ],
@@ -272,19 +307,26 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  static Widget _iconCircle(IconData icon) {
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
+  static Widget _iconButton(
+    BuildContext context, {
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: const Color(0xFF0D3B92)),
       ),
-      child: Icon(icon, color: Color(0xFF0D3B92)),
     );
   }
 
-  static void _mostrarErro(BuildContext context, String msg) {
+  static void _mostrarInfo(BuildContext context, String msg) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../services/location_service.dart';
 import '../state/app_state.dart';
 
 class CheckinScreen extends StatefulWidget {
@@ -29,9 +31,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
     if (job == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Check-in Vistoria')),
-        body: const Center(
-          child: Text('Nenhum job selecionado'),
-        ),
+        body: const Center(child: Text('Nenhum job selecionado')),
       );
     }
 
@@ -53,19 +53,56 @@ class _CheckinScreenState extends State<CheckinScreen> {
             ),
             const SizedBox(height: 20),
 
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.location_on, color: Colors.green),
-                  SizedBox(width: 10),
-                  Text('GPS confirmado no local'),
-                ],
-              ),
+            FutureBuilder(
+              future: LocationService().getCurrentLocation(),
+              builder: (context, snapshot) {
+                bool dentroDoRaio = false;
+                String texto = 'Validando GPS...';
+                Color cor = Colors.orange;
+
+                if (snapshot.hasData &&
+                    job.latitude != null &&
+                    job.longitude != null) {
+                  final pos = snapshot.data!;
+                  final distancia = LocationService().calcularDistancia(
+                    lat1: pos.latitude,
+                    lon1: pos.longitude,
+                    lat2: job.latitude!,
+                    lon2: job.longitude!,
+                  );
+
+                  dentroDoRaio = distancia <= 100;
+
+                  if (dentroDoRaio) {
+                    texto = 'GPS confirmado no local';
+                    cor = Colors.green;
+                  } else {
+                    texto =
+                        'Você ainda não está no raio do local (${distancia.toStringAsFixed(0)}m)';
+                    cor = Colors.red;
+                  }
+                }
+
+                if (snapshot.hasError) {
+                  texto = 'Erro ao validar GPS';
+                  cor = Colors.red;
+                }
+
+                return Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: cor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.location_on, color: cor),
+                      const SizedBox(width: 10),
+                      Expanded(child: Text(texto)),
+                    ],
+                  ),
+                );
+              },
             ),
 
             const SizedBox(height: 20),
@@ -74,7 +111,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () {},
+                    onPressed: () => _abrirWhatsApp(job.telefoneCliente),
                     icon: const Icon(Icons.chat_outlined),
                     label: const Text('WhatsApp'),
                   ),
@@ -82,7 +119,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () {},
+                    onPressed: () => _ligar(job.telefoneCliente),
                     icon: const Icon(Icons.call_outlined),
                     label: const Text('Ligar'),
                   ),
@@ -197,9 +234,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
 
                     if (confirmar == true) {
                       appState.recusarJob();
-                      if (mounted) {
-                        Navigator.pop(context);
-                      }
+                      if (mounted) Navigator.pop(context);
                     }
                     return;
                   }
@@ -214,10 +249,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
                     tipoImovel: tipoImovel,
                   );
 
-                  _mostrarInfo(
-                    context,
-                    'Próximo passo: abrir câmera.',
-                  );
+                  _mostrarInfo(context, 'Próximo passo: abrir câmera.');
                 },
                 child: Text(
                   clientePresente == false
@@ -230,6 +262,27 @@ class _CheckinScreenState extends State<CheckinScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _abrirWhatsApp(String? telefone) async {
+    if (telefone == null || telefone.isEmpty) return;
+
+    final somenteNumeros = telefone.replaceAll(RegExp(r'[^0-9]'), '');
+    final uri = Uri.parse('https://wa.me/55$somenteNumeros');
+
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Future<void> _ligar(String? telefone) async {
+    if (telefone == null || telefone.isEmpty) return;
+
+    final uri = Uri.parse('tel:$telefone');
+
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   void _mostrarInfo(BuildContext context, String msg) {

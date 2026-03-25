@@ -2,12 +2,15 @@ import 'job_status.dart';
 
 class Job {
   String id;
+  String titulo;
   String endereco;
   double? latitude;
   double? longitude;
 
-
   JobStatus status;
+
+  String nomeCliente;
+  String? telefoneCliente;
 
   bool clientePresente;
   String? tipoImovel;
@@ -19,12 +22,15 @@ class Job {
   double? origemLng;
   double? distanciaKm;
 
-   Job({
+  Job({
     required this.id,
+    required this.titulo,
     required this.endereco,
     this.latitude,
     this.longitude,
     this.status = JobStatus.novo,
+    this.nomeCliente = '',
+    this.telefoneCliente,
     this.clientePresente = true,
     this.tipoImovel,
     List<String>? checklist,
