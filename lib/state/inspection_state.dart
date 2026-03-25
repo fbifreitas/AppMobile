@@ -2,8 +2,15 @@ import 'package:flutter/foundation.dart';
 
 import '../models/inspection_session_model.dart';
 import '../models/inspection_template_model.dart';
+import '../services/inspection_capture_service.dart';
 
 class InspectionState extends ChangeNotifier {
+  InspectionState({
+    InspectionCaptureService? captureService,
+  }) : _captureService = captureService ?? InspectionCaptureService();
+
+  final InspectionCaptureService _captureService;
+
   InspectionSession? _session;
   String? _selectedEnvironmentId;
   String _suggestedMissingEnvironmentName = '';
@@ -17,7 +24,8 @@ class InspectionState extends ChangeNotifier {
   List<InspectionEnvironmentProgress> get ambientes =>
       _session?.ambientes ?? const [];
 
-  List<ReviewIssue> get reviewIssues => _session?.buildReviewIssues() ?? const [];
+  List<ReviewIssue> get reviewIssues =>
+      _session?.buildReviewIssues() ?? const [];
 
   void startMockInspection({
     required String tipoImovel,
@@ -40,6 +48,30 @@ class InspectionState extends ChangeNotifier {
 
     _selectedEnvironmentId = null;
     _suggestedMissingEnvironmentName = '';
+    notifyListeners();
+  }
+
+  Future<void> refreshCheckinGeoPoint() async {
+    if (_session == null) return;
+
+    final currentGeo = await _captureService.getCurrentGeoPoint();
+    _session = _session!.copyWith(
+      checkinGeoPoint: currentGeo,
+      gpsEnabled: true,
+    );
+    notifyListeners();
+  }
+
+  Future<void> validateGpsStatus() async {
+    if (_session == null) return;
+
+    try {
+      await _captureService.ensureLocationReady();
+      _session = _session!.copyWith(gpsEnabled: true);
+    } catch (_) {
+      _session = _session!.copyWith(gpsEnabled: false);
+    }
+
     notifyListeners();
   }
 
@@ -69,8 +101,7 @@ class InspectionState extends ChangeNotifier {
       return;
     }
 
-    final fakeId =
-        'missing_${DateTime.now().millisecondsSinceEpoch.toString()}';
+    final fakeId = 'missing_${DateTime.now().millisecondsSinceEpoch}';
 
     final novo = InspectionEnvironmentProgress(
       ambienteId: fakeId,
@@ -98,6 +129,61 @@ class InspectionState extends ChangeNotifier {
     return _session!.getEnvironment(_selectedEnvironmentId!);
   }
 
+  Future<void> captureEvidenceFromCamera({
+    required String ambienteId,
+    String? elementoId,
+    String? elementoNome,
+    String? material,
+    String? estadoConservacao,
+  }) async {
+    if (_session == null) return;
+
+    final ambiente = _session!.getEnvironment(ambienteId);
+    if (ambiente == null) return;
+
+    final evidence = await _captureService.captureCameraEvidence(
+      session: _session!,
+      ambienteId: ambiente.ambienteId,
+      ambienteNome: ambiente.ambienteNome,
+      elementoId: elementoId,
+      elementoNome: elementoNome,
+      material: material,
+      estadoConservacao: estadoConservacao,
+    );
+
+    _appendEvidence(ambienteId: ambienteId, evidence: evidence);
+  }
+
+  Future<void> captureEvidenceFromGallery({
+    required String ambienteId,
+    String? elementoId,
+    String? elementoNome,
+    String? material,
+    String? estadoConservacao,
+  }) async {
+    if (_session == null) return;
+    if (!_session!.template.auditRules.galleryAllowed) {
+      throw const InspectionCaptureException(
+        'A galeria está desabilitada para esta vistoria.',
+      );
+    }
+
+    final ambiente = _session!.getEnvironment(ambienteId);
+    if (ambiente == null) return;
+
+    final evidence = await _captureService.pickGalleryEvidence(
+      session: _session!,
+      ambienteId: ambiente.ambienteId,
+      ambienteNome: ambiente.ambienteNome,
+      elementoId: elementoId,
+      elementoNome: elementoNome,
+      material: material,
+      estadoConservacao: estadoConservacao,
+    );
+
+    _appendEvidence(ambienteId: ambienteId, evidence: evidence);
+  }
+
   void addMockCameraEvidence({
     required String ambienteId,
     String? elementoId,
@@ -121,7 +207,7 @@ class InspectionState extends ChangeNotifier {
       estadoConservacao: estadoConservacao,
       observacao: null,
       filePath:
-          'mock://camera/${ambienteId}/${DateTime.now().millisecondsSinceEpoch}',
+          'mock://camera/$ambienteId/${DateTime.now().millisecondsSinceEpoch}',
       source: EvidenceSource.camera,
       geoPoint: GeoPointData(
         latitude: _session!.checkinGeoPoint.latitude,
@@ -158,7 +244,7 @@ class InspectionState extends ChangeNotifier {
       estadoConservacao: null,
       observacao: null,
       filePath:
-          'mock://gallery/${ambienteId}/${DateTime.now().millisecondsSinceEpoch}',
+          'mock://gallery/$ambienteId/${DateTime.now().millisecondsSinceEpoch}',
       source: EvidenceSource.gallery,
       geoPoint: GeoPointData(
         latitude: _session!.checkinGeoPoint.latitude,
@@ -283,7 +369,8 @@ class InspectionState extends ChangeNotifier {
       return InspectionEnvironmentStatus.emAndamento;
     }
 
-    final envTemplate = _session?.template.getEnvironmentById(ambiente.ambienteId);
+    final envTemplate =
+        _session?.template.getEnvironmentById(ambiente.ambienteId);
 
     if (envTemplate == null) {
       return InspectionEnvironmentStatus.emAndamento;

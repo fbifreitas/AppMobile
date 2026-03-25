@@ -49,13 +49,12 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
   }
 
   Future<void> _handleCapture(CheckinStep2PhotoFieldConfig field) async {
-    /// Aqui fica o ponto de integração com camera/image_picker.
-    /// Por enquanto deixei um mock funcional para não travar a tela.
     setState(() {
       _model = _model.setPhoto(
         fieldId: field.id,
         titulo: field.titulo,
-        imagePath: 'mock://${field.id}/${DateTime.now().millisecondsSinceEpoch}',
+        imagePath:
+            'mock://${field.id}/${DateTime.now().millisecondsSinceEpoch}',
       );
     });
 
@@ -76,9 +75,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
     widget.onContinue?.call(_model);
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Etapa 2 preenchida com sucesso.'),
-      ),
+      const SnackBar(content: Text('Etapa 2 preenchida com sucesso.')),
     );
   }
 
@@ -87,9 +84,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Check-in Vistoria'),
-      ),
+      appBar: AppBar(title: const Text('Check-in Vistoria')),
       body: SafeArea(
         child: Column(
           children: [
@@ -126,11 +121,11 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.35),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.35,
+        ),
         border: Border(
-          bottom: BorderSide(
-            color: theme.dividerColor.withOpacity(0.2),
-          ),
+          bottom: BorderSide(color: theme.dividerColor.withValues(alpha: 0.2)),
         ),
       ),
       child: Column(
@@ -139,7 +134,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withOpacity(0.10),
+              color: theme.colorScheme.primary.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -161,7 +156,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
           Text(
             'Preencha as evidências fotográficas e as informações externas do imóvel.',
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.75),
+              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.75),
             ),
           ),
         ],
@@ -180,14 +175,16 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
           ),
         ),
         const SizedBox(height: 12),
-        ..._config.camposFotos.map((field) => _PhotoCaptureCard(
-              titulo: field.titulo,
-              obrigatorio: field.obrigatorio,
-              capturado: _model.isPhotoCaptured(field.id),
-              icon: field.icon,
-              onCapture: () => _handleCapture(field),
-              onRemove: () => _handleRemovePhoto(field),
-            )),
+        ..._config.camposFotos.map(
+          (field) => _PhotoCaptureCard(
+            titulo: field.titulo,
+            obrigatorio: field.obrigatorio,
+            capturado: _model.isPhotoCaptured(field.id),
+            icon: field.icon,
+            onCapture: () => _handleCapture(field),
+            onRemove: () => _handleRemovePhoto(field),
+          ),
+        ),
       ],
     );
   }
@@ -225,9 +222,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.dividerColor.withOpacity(0.20),
-        ),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.20)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -242,35 +237,37 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: grupo.opcoes.map((opcao) {
-              final selected = resposta?.selectedOptionIds.contains(opcao.id) ?? false;
+            children:
+                grupo.opcoes.map((opcao) {
+                  final selected =
+                      resposta?.selectedOptionIds.contains(opcao.id) ?? false;
 
-              return grupo.multiplaEscolha
-                  ? FilterChip(
-                      label: Text(opcao.label),
-                      selected: selected,
-                      onSelected: (_) {
-                        setState(() {
-                          _model = _model.toggleMultiOption(
-                            groupId: grupo.id,
-                            optionId: opcao.id,
-                          );
-                        });
-                      },
-                    )
-                  : ChoiceChip(
-                      label: Text(opcao.label),
-                      selected: selected,
-                      onSelected: (_) {
-                        setState(() {
-                          _model = _model.setSingleOption(
-                            groupId: grupo.id,
-                            optionId: opcao.id,
-                          );
-                        });
-                      },
-                    );
-            }).toList(),
+                  return grupo.multiplaEscolha
+                      ? FilterChip(
+                        label: Text(opcao.label),
+                        selected: selected,
+                        onSelected: (_) {
+                          setState(() {
+                            _model = _model.toggleMultiOption(
+                              groupId: grupo.id,
+                              optionId: opcao.id,
+                            );
+                          });
+                        },
+                      )
+                      : ChoiceChip(
+                        label: Text(opcao.label),
+                        selected: selected,
+                        onSelected: (_) {
+                          setState(() {
+                            _model = _model.setSingleOption(
+                              groupId: grupo.id,
+                              optionId: opcao.id,
+                            );
+                          });
+                        },
+                      );
+                }).toList(),
           ),
           if (grupo.permiteObservacao) ...[
             const SizedBox(height: 14),
@@ -325,23 +322,24 @@ class _PhotoCaptureCard extends StatelessWidget {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: capturado
-              ? theme.colorScheme.primary.withOpacity(0.35)
-              : theme.dividerColor.withOpacity(0.20),
+          color:
+              capturado
+                  ? theme.colorScheme.primary.withValues(alpha: 0.35)
+                  : theme.dividerColor.withValues(alpha: 0.20),
         ),
       ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 22,
-            backgroundColor: capturado
-                ? theme.colorScheme.primary.withOpacity(0.12)
-                : theme.colorScheme.surfaceContainerHighest,
+            backgroundColor:
+                capturado
+                    ? theme.colorScheme.primary.withValues(alpha: 0.12)
+                    : theme.colorScheme.surfaceContainerHighest,
             child: Icon(
               capturado ? Icons.check_circle_outline : icon,
-              color: capturado
-                  ? theme.colorScheme.primary
-                  : theme.iconTheme.color,
+              color:
+                  capturado ? theme.colorScheme.primary : theme.iconTheme.color,
             ),
           ),
           const SizedBox(width: 12),
@@ -360,12 +358,15 @@ class _PhotoCaptureCard extends StatelessWidget {
                   capturado
                       ? 'Imagem capturada'
                       : obrigatorio
-                          ? 'Foto obrigatória'
-                          : 'Foto opcional',
+                      ? 'Foto obrigatória'
+                      : 'Foto opcional',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: capturado
-                        ? theme.colorScheme.primary
-                        : theme.textTheme.bodySmall?.color?.withOpacity(0.70),
+                    color:
+                        capturado
+                            ? theme.colorScheme.primary
+                            : theme.textTheme.bodySmall?.color?.withValues(
+                              alpha: 0.70,
+                            ),
                   ),
                 ),
               ],

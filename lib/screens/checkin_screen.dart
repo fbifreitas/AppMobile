@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../screens/checkin_step2_screen.dart';
 import '../services/location_service.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
@@ -17,17 +18,24 @@ class _CheckinScreenState extends State<CheckinScreen> {
   bool? clientePresente;
   String? tipoImovel;
 
-  final List<String> tipos = ['Urbano', 'Rural', 'Comercial', 'Industrial'];
+  final List<String> tipos = const [
+    'Urbano',
+    'Rural',
+    'Comercial',
+    'Industrial',
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final appState = Provider.of<AppState>(context);
+    final appState = context.watch<AppState>();
     final job = appState.jobAtual;
 
     if (job == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Check-in Vistoria')),
-        body: const Center(child: Text('Nenhum job selecionado')),
+        body: const Center(
+          child: Text('Nenhum job selecionado'),
+        ),
       );
     }
 
@@ -52,7 +60,6 @@ class _CheckinScreenState extends State<CheckinScreen> {
               style: const TextStyle(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 20),
-
             FutureBuilder(
               future: LocationService().getCurrentLocation(),
               builder: (context, snapshot) {
@@ -113,9 +120,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
                 );
               },
             ),
-
             const SizedBox(height: 20),
-
             Row(
               children: [
                 Expanded(
@@ -135,9 +140,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
                 ),
               ],
             ),
-
             const SizedBox(height: 24),
-
             const Text(
               'Cliente está presente?',
               style: TextStyle(
@@ -146,7 +149,6 @@ class _CheckinScreenState extends State<CheckinScreen> {
               ),
             ),
             const SizedBox(height: 10),
-
             Row(
               children: [
                 ChoiceChip(
@@ -170,9 +172,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
                 ),
               ],
             ),
-
             const SizedBox(height: 24),
-
             if (clientePresente == true) ...[
               const Text(
                 'Tipo de imóvel',
@@ -185,102 +185,108 @@ class _CheckinScreenState extends State<CheckinScreen> {
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
-                children:
-                    tipos.map((tipo) {
-                      return ChoiceChip(
-                        label: Text(tipo),
-                        selected: tipoImovel == tipo,
-                        onSelected: (_) {
-                          setState(() {
-                            tipoImovel = tipo;
-                          });
-                        },
-                      );
-                    }).toList(),
+                children: tipos.map((tipo) {
+                  return ChoiceChip(
+                    label: Text(tipo),
+                    selected: tipoImovel == tipo,
+                    onSelected: (_) {
+                      setState(() {
+                        tipoImovel = tipo;
+                      });
+                    },
+                  );
+                }).toList(),
               ),
             ],
-
             const Spacer(),
-
             if (clientePresente == true) ...[
               OutlinedButton(
-                onPressed: () {
-                  _mostrarInfo(context, 'Etapa 2 ainda será implementada.');
-                },
+                onPressed: tipoImovel == null
+                    ? null
+                    : () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => CheckinStep2Screen(
+                              tipoImovel: tipoImovel!,
+                            ),
+                          ),
+                        );
+                      },
                 child: const Text('Ir para etapa 2 do check-in'),
               ),
               const SizedBox(height: 10),
             ],
-
-            ElevatedButton(
-              onPressed: () async {
-                if (clientePresente == null) {
-                  _mostrarInfo(
-                    context,
-                    'Selecione se o cliente está presente.',
-                  );
-                  return;
-                }
-
-                if (clientePresente == false) {
-                  final confirmar = await showDialog<bool>(
-                    context: context,
-                    builder:
-                        (_) => AlertDialog(
-                          title: const Text('Cliente ausente'),
-                          content: const Text(
-                            'Deseja solicitar reagendamento da vistoria?',
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context, false),
-                              child: const Text('Cancelar'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.pop(context, true),
-                              child: const Text('Confirmar'),
-                            ),
-                          ],
-                        ),
-                  );
-
-                  if (!mounted) return;
-
-                  if (confirmar == true) {
-                    appState.recusarJob();
-                    Navigator.of(context).pop();
-                  }
-                  return;
-                }
-
-                if (tipoImovel == null) {
-                  _mostrarInfo(context, 'Selecione o tipo de imóvel.');
-                  return;
-                }
-
-                appState.fazerCheckin(
-                  clientePresente: true,
-                  tipoImovel: tipoImovel,
-                );
-
-                _mostrarInfo(context, 'Próximo passo: abrir câmera.');
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    clientePresente == false
-                        ? AppColors.danger
-                        : AppColors.primary,
-              ),
-              child: Text(
-                clientePresente == false
-                    ? 'Solicitar reagendamento'
-                    : 'Confirmar e abrir a câmera',
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _handleConfirm,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: clientePresente == false
+                      ? AppColors.danger
+                      : AppColors.primary,
+                ),
+                child: Text(
+                  clientePresente == false
+                      ? 'Solicitar reagendamento'
+                      : 'Confirmar e abrir a câmera',
+                ),
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _handleConfirm() async {
+    if (clientePresente == null) {
+      _mostrarInfo('Selecione se o cliente está presente.');
+      return;
+    }
+
+    if (clientePresente == false) {
+      final confirmar = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Cliente ausente'),
+          content: const Text(
+            'Deseja solicitar reagendamento da vistoria?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Confirmar'),
+            ),
+          ],
+        ),
+      );
+
+      if (!mounted) return;
+
+      if (confirmar == true) {
+        final navigator = Navigator.of(context);
+        context.read<AppState>().recusarJob();
+        navigator.pop();
+      }
+      return;
+    }
+
+    if (tipoImovel == null) {
+      _mostrarInfo('Selecione o tipo de imóvel.');
+      return;
+    }
+
+    context.read<AppState>().fazerCheckin(
+          clientePresente: true,
+          tipoImovel: tipoImovel,
+        );
+
+    _mostrarInfo('Próximo passo: abrir câmera.');
   }
 
   Future<void> _abrirWhatsApp(String? telefone) async {
@@ -304,20 +310,19 @@ class _CheckinScreenState extends State<CheckinScreen> {
     }
   }
 
-  void _mostrarInfo(BuildContext context, String msg) {
-    showDialog(
+  void _mostrarInfo(String msg) {
+    showDialog<void>(
       context: context,
-      builder:
-          (_) => AlertDialog(
-            title: const Text('Atenção'),
-            content: Text(msg),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
-            ],
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Atenção'),
+        content: Text(msg),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('OK'),
           ),
+        ],
+      ),
     );
   }
 }

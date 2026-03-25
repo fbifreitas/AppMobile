@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../state/inspection_state.dart';
 import '../models/inspection_session_model.dart';
+import '../state/inspection_state.dart';
 import 'camera_flow_screen.dart';
 import 'inspection_review_screen.dart';
 
@@ -138,16 +138,20 @@ class _HeaderCard extends StatelessWidget {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.35),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.35,
+        ),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('$tipoImovel • $subtipoImovel',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              )),
+          Text(
+            '$tipoImovel • $subtipoImovel',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: 12),
           LinearProgressIndicator(value: percent / 100),
           const SizedBox(height: 8),
@@ -160,9 +164,10 @@ class _HeaderCard extends StatelessWidget {
             children: [
               Icon(
                 gpsEnabled ? Icons.location_on : Icons.location_off,
-                color: gpsEnabled
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.error,
+                color:
+                    gpsEnabled
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.error,
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -187,10 +192,7 @@ class _EnvironmentCard extends StatelessWidget {
   final InspectionEnvironmentProgress ambiente;
   final VoidCallback onOpen;
 
-  const _EnvironmentCard({
-    required this.ambiente,
-    required this.onOpen,
-  });
+  const _EnvironmentCard({required this.ambiente, required this.onOpen});
 
   @override
   Widget build(BuildContext context) {
@@ -204,16 +206,14 @@ class _EnvironmentCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: theme.dividerColor.withOpacity(0.2)),
+          border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
           color: theme.colorScheme.surface,
         ),
         child: Row(
           children: [
             CircleAvatar(
               radius: 24,
-              child: Text(
-                ambiente.ambienteNome.characters.first.toUpperCase(),
-              ),
+              child: Text(ambiente.ambienteNome.characters.first.toUpperCase()),
             ),
             const SizedBox(width: 12),
             Expanded(
