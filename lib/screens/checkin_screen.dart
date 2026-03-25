@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../services/location_service.dart';
 import '../state/app_state.dart';
+import '../theme/app_colors.dart';
 
 class CheckinScreen extends StatefulWidget {
   const CheckinScreen({super.key});
@@ -45,10 +46,18 @@ class _CheckinScreenState extends State<CheckinScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
+              job.titulo,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
               job.endereco,
               style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+                color: AppColors.textSecondary,
               ),
             ),
             const SizedBox(height: 20),
@@ -56,9 +65,9 @@ class _CheckinScreenState extends State<CheckinScreen> {
             FutureBuilder(
               future: LocationService().getCurrentLocation(),
               builder: (context, snapshot) {
-                bool dentroDoRaio = false;
                 String texto = 'Validando GPS...';
-                Color cor = Colors.orange;
+                Color cor = AppColors.warning;
+                Color fundo = AppColors.warningLight;
 
                 if (snapshot.hasData &&
                     job.latitude != null &&
@@ -71,34 +80,43 @@ class _CheckinScreenState extends State<CheckinScreen> {
                     lon2: job.longitude!,
                   );
 
-                  dentroDoRaio = distancia <= 100;
-
-                  if (dentroDoRaio) {
+                  if (distancia <= 100) {
                     texto = 'GPS confirmado no local';
-                    cor = Colors.green;
+                    cor = AppColors.success;
+                    fundo = AppColors.successLight;
                   } else {
                     texto =
                         'Você ainda não está no raio do local (${distancia.toStringAsFixed(0)}m)';
-                    cor = Colors.red;
+                    cor = AppColors.danger;
+                    fundo = AppColors.dangerLight;
                   }
                 }
 
                 if (snapshot.hasError) {
                   texto = 'Erro ao validar GPS';
-                  cor = Colors.red;
+                  cor = AppColors.danger;
+                  fundo = AppColors.dangerLight;
                 }
 
                 return Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: cor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    color: fundo,
+                    borderRadius: BorderRadius.circular(14),
                   ),
                   child: Row(
                     children: [
                       Icon(Icons.location_on, color: cor),
                       const SizedBox(width: 10),
-                      Expanded(child: Text(texto)),
+                      Expanded(
+                        child: Text(
+                          texto,
+                          style: TextStyle(
+                            color: cor,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 );
@@ -127,11 +145,14 @@ class _CheckinScreenState extends State<CheckinScreen> {
               ],
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
             const Text(
               'Cliente está presente?',
-              style: TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
             ),
             const SizedBox(height: 10),
 
@@ -159,12 +180,15 @@ class _CheckinScreenState extends State<CheckinScreen> {
               ],
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
             if (clientePresente == true) ...[
               const Text(
                 'Tipo de imóvel',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
               ),
               const SizedBox(height: 10),
               Wrap(
@@ -187,75 +211,74 @@ class _CheckinScreenState extends State<CheckinScreen> {
             const Spacer(),
 
             if (clientePresente == true) ...[
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () {
-                    _mostrarInfo(context, 'Etapa 2 ainda será implementada.');
-                  },
-                  child: const Text('Ir para etapa 2 do check-in'),
-                ),
+              OutlinedButton(
+                onPressed: () {
+                  _mostrarInfo(context, 'Etapa 2 ainda será implementada.');
+                },
+                child: const Text('Ir para etapa 2 do check-in'),
               ),
               const SizedBox(height: 10),
             ],
 
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () async {
-                  if (clientePresente == null) {
-                    _mostrarInfo(
-                      context,
-                      'Selecione se o cliente está presente.',
-                    );
-                    return;
-                  }
+            ElevatedButton(
+              onPressed: () async {
+                if (clientePresente == null) {
+                  _mostrarInfo(
+                    context,
+                    'Selecione se o cliente está presente.',
+                  );
+                  return;
+                }
 
-                  if (clientePresente == false) {
-                    final confirmar = await showDialog<bool>(
-                      context: context,
-                      builder: (_) => AlertDialog(
-                        title: const Text('Cliente ausente'),
-                        content: const Text(
-                          'Deseja solicitar reagendamento da vistoria?',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, false),
-                            child: const Text('Cancelar'),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, true),
-                            child: const Text('Confirmar'),
-                          ),
-                        ],
+                if (clientePresente == false) {
+                  final confirmar = await showDialog<bool>(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      title: const Text('Cliente ausente'),
+                      content: const Text(
+                        'Deseja solicitar reagendamento da vistoria?',
                       ),
-                    );
-
-                    if (confirmar == true) {
-                      appState.recusarJob();
-                      if (mounted) Navigator.pop(context);
-                    }
-                    return;
-                  }
-
-                  if (tipoImovel == null) {
-                    _mostrarInfo(context, 'Selecione o tipo de imóvel.');
-                    return;
-                  }
-
-                  appState.fazerCheckin(
-                    clientePresente: true,
-                    tipoImovel: tipoImovel,
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('Cancelar'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text('Confirmar'),
+                        ),
+                      ],
+                    ),
                   );
 
-                  _mostrarInfo(context, 'Próximo passo: abrir câmera.');
-                },
-                child: Text(
-                  clientePresente == false
-                      ? 'Solicitar reagendamento'
-                      : 'Confirmar e abrir a câmera',
-                ),
+                  if (confirmar == true) {
+                    appState.recusarJob();
+                    if (mounted) Navigator.pop(context);
+                  }
+                  return;
+                }
+
+                if (tipoImovel == null) {
+                  _mostrarInfo(context, 'Selecione o tipo de imóvel.');
+                  return;
+                }
+
+                appState.fazerCheckin(
+                  clientePresente: true,
+                  tipoImovel: tipoImovel,
+                );
+
+                _mostrarInfo(context, 'Próximo passo: abrir câmera.');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: clientePresente == false
+                    ? AppColors.danger
+                    : AppColors.primary,
+              ),
+              child: Text(
+                clientePresente == false
+                    ? 'Solicitar reagendamento'
+                    : 'Confirmar e abrir a câmera',
               ),
             ),
           ],
