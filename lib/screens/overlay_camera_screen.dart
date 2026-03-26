@@ -7,7 +7,7 @@ import 'inspection_review_screen.dart';
 
 class OverlayCameraCaptureResult {
   final String filePath;
-  final String contextoInicial;
+  final String? macroLocal;
   final String ambiente;
   final String? elemento;
   final String? material;
@@ -19,25 +19,23 @@ class OverlayCameraCaptureResult {
 
   const OverlayCameraCaptureResult({
     required this.filePath,
-    required this.contextoInicial,
     required this.ambiente,
     required this.capturedAt,
     required this.latitude,
     required this.longitude,
     required this.accuracy,
+    this.macroLocal,
     this.elemento,
     this.material,
     this.estado,
   });
 
-  GeoPointData toGeoPointData() {
-    return GeoPointData(
-      latitude: latitude,
-      longitude: longitude,
-      accuracy: accuracy,
-      capturedAt: capturedAt,
-    );
-  }
+  GeoPointData toGeoPointData() => GeoPointData(
+        latitude: latitude,
+        longitude: longitude,
+        accuracy: accuracy,
+        capturedAt: capturedAt,
+      );
 }
 
 class OverlayCameraScreen extends StatefulWidget {
@@ -45,9 +43,10 @@ class OverlayCameraScreen extends StatefulWidget {
   final String tipoImovel;
   final String subtipoImovel;
   final bool singleCaptureMode;
-  final String? contextoInicial;
+  final String? preselectedMacroLocal;
   final String? initialAmbiente;
   final String? initialElemento;
+  final bool cameFromCheckinStep1;
 
   const OverlayCameraScreen({
     super.key,
@@ -55,9 +54,10 @@ class OverlayCameraScreen extends StatefulWidget {
     required this.tipoImovel,
     required this.subtipoImovel,
     this.singleCaptureMode = false,
-    this.contextoInicial,
+    this.preselectedMacroLocal,
     this.initialAmbiente,
     this.initialElemento,
+    this.cameFromCheckinStep1 = false,
   });
 
   @override
@@ -70,7 +70,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   bool _capturing = false;
   String? _error;
 
-  late String _contextoInicial;
+  String? _macroLocal;
   String? _ambiente;
   String? _elemento;
   String? _material;
@@ -78,89 +78,78 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
 
   final List<OverlayCameraCaptureResult> _captures = [];
 
-  static const List<String> _contextos = [
-    'Rua',
-    'Área externa',
-    'Área interna',
-  ];
+  static const List<String> _macroLocais = ['Rua', 'Área externa', 'Área interna'];
 
-  static const Map<String, List<String>> _ambientesPorContexto = {
-    'Rua': [
-      'Fachada',
-      'Logradouro',
-      'Número',
-      'Portão / acesso',
-      'Entorno',
-    ],
-    'Área externa': [
-      'Garagem',
-      'Quintal',
-      'Jardim',
-      'Condomínio',
-      'Área comum externa',
-      'Corredor externo',
-    ],
-    'Área interna': [
-      'Sala',
-      'Quarto',
-      'Cozinha',
-      'Banheiro',
-      'Área de serviço',
-      'Corredor',
-      'Sacada',
-      'Garagem interna',
-    ],
+  static const Map<String, List<String>> _ambientesPorMacroLocal = {
+    'Rua': ['Fachada', 'Logradouro', 'Número', 'Portão / acesso', 'Entorno'],
+    'Área externa': ['Garagem', 'Quintal', 'Jardim', 'Condomínio', 'Área comum externa'],
+    'Área interna': ['Sala', 'Quarto', 'Cozinha', 'Banheiro', 'Área de serviço', 'Corredor', 'Sacada'],
   };
 
   static const Map<String, List<String>> _elementosPorAmbiente = {
     'Fachada': ['Visão geral', 'Porta', 'Portão', 'Número'],
-    'Logradouro': ['Visão geral', 'Calçada', 'Rua', 'Acesso'],
+    'Logradouro': ['Visão geral', 'Calçada', 'Rua'],
     'Número': ['Identificação', 'Detalhe'],
     'Portão / acesso': ['Portão', 'Interfone', 'Acesso'],
-    'Entorno': ['Visão geral', 'Rua', 'Vizinho'],
+    'Entorno': ['Visão geral', 'Rua'],
     'Garagem': ['Piso', 'Parede', 'Portão', 'Teto'],
     'Quintal': ['Piso', 'Parede', 'Cobertura'],
     'Jardim': ['Piso', 'Paisagismo'],
     'Condomínio': ['Entrada', 'Portaria', 'Área comum'],
     'Área comum externa': ['Piso', 'Parede', 'Cobertura'],
-    'Corredor externo': ['Piso', 'Parede', 'Teto'],
-    'Sala': ['Piso', 'Parede', 'Teto', 'Janela', 'Porta'],
-    'Quarto': ['Piso', 'Parede', 'Teto', 'Janela', 'Porta'],
+    'Sala': ['Piso', 'Parede', 'Teto', 'Porta', 'Janela'],
+    'Quarto': ['Piso', 'Parede', 'Teto', 'Porta', 'Janela'],
     'Cozinha': ['Piso', 'Parede', 'Teto', 'Bancada'],
     'Banheiro': ['Piso', 'Parede', 'Teto', 'Louças e metais'],
     'Área de serviço': ['Piso', 'Parede', 'Teto', 'Tanque'],
     'Corredor': ['Piso', 'Parede', 'Teto'],
     'Sacada': ['Piso', 'Parede', 'Guarda-corpo'],
-    'Garagem interna': ['Piso', 'Parede', 'Teto', 'Portão'],
   };
 
-  static const List<String> _materiais = [
-    'Cerâmico',
-    'Porcelanato',
-    'Pintura',
-    'Azulejo',
-    'Madeira',
-    'Metal',
-    'Vidro',
-    'Concreto',
-  ];
+  static const Map<String, List<String>> _materiaisPorElemento = {
+    'Piso': ['Cerâmico', 'Porcelanato', 'Madeira', 'Concreto'],
+    'Parede': ['Pintura', 'Azulejo', 'Concreto'],
+    'Teto': ['Pintura', 'Gesso', 'Concreto'],
+    'Porta': ['Madeira', 'Metal', 'Vidro'],
+    'Janela': ['Vidro', 'Alumínio', 'Madeira'],
+    'Bancada': ['Granito', 'Mármore', 'Concreto'],
+    'Louças e metais': ['Cerâmica', 'Metal'],
+    'Portão': ['Metal', 'Madeira'],
+    'Número': ['Metal', 'Pintura'],
+    'Calçada': ['Concreto', 'Cerâmico'],
+    'Rua': ['Asfalto', 'Concreto'],
+    'Acesso': ['Metal', 'Concreto'],
+    'Interfone': ['Metal', 'Plástico'],
+    'Cobertura': ['Telha', 'Concreto'],
+    'Guarda-corpo': ['Metal', 'Vidro'],
+    'Tanque': ['Cerâmica', 'Concreto'],
+  };
 
-  static const List<String> _estados = [
-    'Novo',
-    'Bom',
-    'Regular',
-    'Ruim',
-    'Péssimo',
-  ];
+  static const List<String> _estados = ['Novo', 'Bom', 'Regular', 'Ruim', 'Péssimo'];
+
+  List<String> get _ambientesAtuais {
+    if (_macroLocal == null) return const [];
+    return _ambientesPorMacroLocal[_macroLocal] ?? const [];
+  }
+
+  List<String> get _elementosAtuais {
+    if (_ambiente == null) return const [];
+    return _elementosPorAmbiente[_ambiente] ?? const [];
+  }
+
+  List<String> get _materiaisAtuais {
+    if (_elemento == null) return const [];
+    return _materiaisPorElemento[_elemento] ?? const [];
+  }
+
+  bool get _showMacroLocalSelector =>
+      !widget.cameFromCheckinStep1 || widget.preselectedMacroLocal == null;
 
   @override
   void initState() {
     super.initState();
-    _contextoInicial = widget.contextoInicial ?? _contextos.first;
-    _ambiente = widget.initialAmbiente ??
-        (_ambientesPorContexto[_contextoInicial]?.isNotEmpty == true
-            ? _ambientesPorContexto[_contextoInicial]!.first
-            : null);
+    _macroLocal = widget.preselectedMacroLocal;
+    _ambiente = widget.initialAmbiente;
     _elemento = widget.initialElemento;
     _setup();
   }
@@ -169,11 +158,11 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     try {
       await _ensureLocationReady();
       final cameras = await availableCameras();
-      final backCamera = cameras.where((c) => c.lensDirection == CameraLensDirection.back);
-      final selectedCamera = backCamera.isNotEmpty ? backCamera.first : cameras.first;
+      final back = cameras.where((c) => c.lensDirection == CameraLensDirection.back);
+      final selected = back.isNotEmpty ? back.first : cameras.first;
 
       final controller = CameraController(
-        selectedCamera,
+        selected,
         ResolutionPreset.high,
         enableAudio: false,
       );
@@ -199,8 +188,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   }
 
   Future<void> _ensureLocationReady() async {
-    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
+    if (!await Geolocator.isLocationServiceEnabled()) {
       throw Exception('Ative o GPS do aparelho.');
     }
 
@@ -215,16 +203,39 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     }
   }
 
-  List<String> get _ambientesAtuais =>
-      _ambientesPorContexto[_contextoInicial] ?? const [];
+  void _selectMacroLocal(String value) {
+    setState(() {
+      _macroLocal = value;
+      _ambiente = null;
+      _elemento = null;
+      _material = null;
+      _estado = null;
+    });
+  }
 
-  List<String> get _elementosAtuais =>
-      _elementosPorAmbiente[_ambiente] ?? const [];
+  void _selectAmbiente(String value) {
+    setState(() {
+      _ambiente = value;
+      _elemento = null;
+      _material = null;
+      _estado = null;
+    });
+  }
+
+  void _selectElemento(String value) {
+    setState(() {
+      _elemento = value;
+      _material = null;
+      _estado = null;
+    });
+  }
 
   Future<void> _capture() async {
     if (_controller == null || !_controller!.value.isInitialized) return;
     if (_ambiente == null || _ambiente!.trim().isEmpty) {
-      _showSnack('Selecione o ambiente em "Onde estou?" antes de capturar.');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecione "Onde estou?" antes de capturar.')),
+      );
       return;
     }
 
@@ -238,9 +249,11 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
 
       final file = await _controller!.takePicture();
 
+      if (!mounted) return;
+
       final result = OverlayCameraCaptureResult(
         filePath: file.path,
-        contextoInicial: _contextoInicial,
+        macroLocal: _macroLocal,
         ambiente: _ambiente!,
         elemento: _elemento,
         material: _material,
@@ -251,48 +264,37 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
         accuracy: position.accuracy,
       );
 
-      if (!mounted) return;
-
       if (widget.singleCaptureMode) {
         Navigator.of(context).pop(result);
         return;
       }
 
-      setState(() {
-        _captures.add(result);
-      });
+      setState(() => _captures.add(result));
 
-      _showSnack('Foto adicionada ao lote. Toque em Finalizar para revisar.');
-    } catch (e) {
-      if (!mounted) return;
-      _showSnack('Falha ao capturar imagem: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Foto adicionada ao lote.')),
+      );
     } finally {
-      if (mounted) {
-        setState(() => _capturing = false);
-      }
+      if (mounted) setState(() => _capturing = false);
     }
   }
 
   void _finalizeBatch() {
     if (_captures.isEmpty) {
-      _showSnack('Capture pelo menos uma foto antes de finalizar.');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Capture pelo menos uma foto antes de finalizar.')),
+      );
       return;
     }
 
-    Navigator.of(context).push(
+    Navigator.push(
+      context,
       MaterialPageRoute(
         builder: (_) => InspectionReviewScreen(
           captures: _captures,
-          tipoImovel: widget.tipoImovel,
-          subtipoImovel: widget.subtipoImovel,
+          tipoImovel: '${widget.tipoImovel} • ${widget.subtipoImovel}',
         ),
       ),
-    );
-  }
-
-  void _showSnack(String text) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(text)),
     );
   }
 
@@ -304,8 +306,6 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     if (_initializing) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -324,11 +324,21 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       );
     }
 
+    final resumo = [
+      if (_macroLocal != null) _macroLocal!,
+      if (_ambiente != null) _ambiente!,
+      if (_elemento != null) _elemento!,
+      if (_material != null) _material!,
+      if (_estado != null) _estado!,
+    ].join(' > ');
+
     return Scaffold(
       body: Stack(
         children: [
           Positioned.fill(
-            child: _controller == null ? const SizedBox.shrink() : CameraPreview(_controller!),
+            child: _controller == null
+                ? const SizedBox.shrink()
+                : CameraPreview(_controller!),
           ),
           Positioned(
             top: 0,
@@ -338,7 +348,94 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
               bottom: false,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(10, 8, 10, 0),
-                child: _buildTopOverlay(theme),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        _glassButton(
+                          icon: Icons.arrow_back_ios_new,
+                          onTap: () => Navigator.of(context).pop(),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.55),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Text(
+                            widget.title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        _glassButton(
+                          icon: Icons.checklist_outlined,
+                          onTap: widget.singleCaptureMode ? null : _finalizeBatch,
+                        ),
+                      ],
+                    ),
+                    if (_showMacroLocalSelector) ...[
+                      const SizedBox(height: 8),
+                      _carouselCard(
+                        title: 'Onde estou?',
+                        values: _macroLocais,
+                        selected: _macroLocal,
+                        onSelect: _selectMacroLocal,
+                      ),
+                    ],
+                    if (_macroLocal != null) ...[
+                      const SizedBox(height: 8),
+                      _carouselCard(
+                        title: _showMacroLocalSelector
+                            ? 'Onde estou, exatamente?'
+                            : 'Onde estou?',
+                        values: _ambientesAtuais,
+                        selected: _ambiente,
+                        onSelect: _selectAmbiente,
+                      ),
+                    ],
+                    if (_ambiente != null) ...[
+                      const SizedBox(height: 8),
+                      _carouselCard(
+                        title: 'Elemento',
+                        values: _elementosAtuais,
+                        selected: _elemento,
+                        onSelect: _selectElemento,
+                      ),
+                    ],
+                    if (_elemento != null && _materiaisAtuais.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      _carouselCard(
+                        title: 'Material',
+                        values: _materiaisAtuais,
+                        selected: _material,
+                        onSelect: (value) {
+                          setState(() {
+                            _material = value;
+                            _estado = null;
+                          });
+                        },
+                      ),
+                    ],
+                    if (_elemento != null &&
+                        (_materiaisAtuais.isEmpty || _material != null)) ...[
+                      const SizedBox(height: 8),
+                      _carouselCard(
+                        title: 'Estado',
+                        values: _estados,
+                        selected: _estado,
+                        onSelect: (value) {
+                          setState(() => _estado = value);
+                        },
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -350,7 +447,80 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
               top: false,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
-                child: _buildBottomOverlay(theme),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        'Capturas no lote: ${_captures.length}${resumo.isEmpty ? '' : ' • $resumo'}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 11,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        _circleAction(
+                          icon: Icons.photo_library_outlined,
+                          onTap: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Galeria permanece no fluxo atual.')),
+                            );
+                          },
+                        ),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: _capturing ? null : _capture,
+                          child: Container(
+                            width: 82,
+                            height: 82,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white.withValues(alpha: 0.96),
+                              border: Border.all(
+                                color: Colors.black.withValues(alpha: 0.18),
+                                width: 3,
+                              ),
+                            ),
+                            alignment: Alignment.center,
+                            child: _capturing
+                                ? const SizedBox(
+                                    width: 26,
+                                    height: 26,
+                                    child: CircularProgressIndicator(strokeWidth: 3),
+                                  )
+                                : Container(
+                                    width: 60,
+                                    height: 60,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.white,
+                                      border: Border.all(color: Colors.black12, width: 2),
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        const Spacer(),
+                        _circleAction(
+                          icon: Icons.fact_check_outlined,
+                          onTap: widget.singleCaptureMode
+                              ? () => Navigator.of(context).pop()
+                              : _finalizeBatch,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -359,179 +529,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     );
   }
 
-  Widget _buildTopOverlay(ThemeData theme) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            _glassButton(
-              icon: Icons.arrow_back_ios_new,
-              onTap: () => Navigator.of(context).pop(),
-            ),
-            const Spacer(),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.50),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Text(
-                widget.title,
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-            const Spacer(),
-            _glassButton(
-              icon: Icons.checklist_outlined,
-              onTap: widget.singleCaptureMode ? null : _finalizeBatch,
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        _carouselCard(
-          theme,
-          title: 'Contexto inicial',
-          values: _contextos,
-          selected: _contextoInicial,
-          onSelect: (value) {
-            setState(() {
-              _contextoInicial = value;
-              final novosAmbientes = _ambientesPorContexto[_contextoInicial] ?? const [];
-              _ambiente = novosAmbientes.isNotEmpty ? novosAmbientes.first : null;
-              _elemento = null;
-            });
-          },
-        ),
-        const SizedBox(height: 8),
-        _carouselCard(
-          theme,
-          title: 'Onde estou?',
-          values: _ambientesAtuais,
-          selected: _ambiente,
-          onSelect: (value) {
-            setState(() {
-              _ambiente = value;
-              _elemento = null;
-            });
-          },
-        ),
-        const SizedBox(height: 8),
-        _carouselCard(
-          theme,
-          title: 'Elemento',
-          values: _elementosAtuais,
-          selected: _elemento,
-          onSelect: (value) {
-            setState(() {
-              _elemento = value;
-            });
-          },
-        ),
-        const SizedBox(height: 8),
-        _carouselCard(
-          theme,
-          title: 'Material',
-          values: _materiais,
-          selected: _material,
-          onSelect: (value) {
-            setState(() {
-              _material = value;
-            });
-          },
-        ),
-        const SizedBox(height: 8),
-        _carouselCard(
-          theme,
-          title: 'Estado',
-          values: _estados,
-          selected: _estado,
-          onSelect: (value) {
-            setState(() {
-              _estado = value;
-            });
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBottomOverlay(ThemeData theme) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.45),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Text(
-            'Capturas no lote: ${_captures.length} • ${_contextoInicial} > ${_ambiente ?? '-'}${_elemento != null ? ' > ${_elemento!}' : ''}',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              fontSize: 12,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            _circleAction(
-              icon: Icons.photo_library_outlined,
-              onTap: () => _showSnack('Galeria permanece no fluxo atual.'),
-            ),
-            const Spacer(),
-            GestureDetector(
-              onTap: _capturing ? null : _capture,
-              child: Container(
-                width: 82,
-                height: 82,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.96),
-                  border: Border.all(
-                    color: Colors.black.withValues(alpha: 0.15),
-                    width: 3,
-                  ),
-                ),
-                alignment: Alignment.center,
-                child: _capturing
-                    ? const SizedBox(
-                        width: 26,
-                        height: 26,
-                        child: CircularProgressIndicator(strokeWidth: 3),
-                      )
-                    : Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white,
-                          border: Border.all(color: Colors.black12, width: 2),
-                        ),
-                      ),
-              ),
-            ),
-            const Spacer(),
-            _circleAction(
-              icon: Icons.fact_check_outlined,
-              onTap: widget.singleCaptureMode ? () => Navigator.of(context).pop() : _finalizeBatch,
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _carouselCard(
-    ThemeData theme, {
+  Widget _carouselCard({
     required String title,
     required List<String> values,
     required String? selected,
@@ -541,7 +539,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.48),
+        color: Colors.black.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -549,7 +547,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
         children: [
           Text(
             title,
-            style: theme.textTheme.labelLarge?.copyWith(
+            style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w700,
               fontSize: 12,
@@ -562,25 +560,26 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
               scrollDirection: Axis.horizontal,
               itemCount: values.length,
               separatorBuilder: (_, __) => const SizedBox(width: 6),
-              itemBuilder: (context, index) {
+              itemBuilder: (_, index) {
                 final value = values[index];
                 final isSelected = value == selected;
                 return ChoiceChip(
                   label: Text(value),
                   selected: isSelected,
                   onSelected: (_) => onSelect(value),
-                  labelStyle: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
+                  labelStyle: TextStyle(
+                    color: isSelected ? Colors.black : Colors.white,
+                    fontWeight: FontWeight.w700,
                     fontSize: 11,
                   ),
-                  selectedColor: const Color(0xFF16A34A),
-                  backgroundColor: Colors.white.withValues(alpha: 0.12),
+                  selectedColor: const Color(0xFFFFE082),
+                  backgroundColor: const Color(0xFF2B2B2B),
                   side: BorderSide(
                     color: isSelected
-                        ? const Color(0xFF16A34A)
-                        : Colors.white.withValues(alpha: 0.18),
+                        ? const Color(0xFFFFE082)
+                        : Colors.white.withValues(alpha: 0.22),
                   ),
+                  showCheckmark: false,
                 );
               },
             ),
@@ -601,11 +600,11 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
         width: 42,
         height: 42,
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.40),
+          color: Colors.black.withValues(alpha: 0.50),
           borderRadius: BorderRadius.circular(14),
         ),
         alignment: Alignment.center,
-        child: Icon(icon, color: Colors.white),
+        child: Icon(icon, color: Colors.white, size: 20),
       ),
     );
   }
@@ -622,10 +621,10 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
         height: 50,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.black.withValues(alpha: 0.38),
+          color: Colors.black.withValues(alpha: 0.50),
         ),
         alignment: Alignment.center,
-        child: Icon(icon, color: Colors.white),
+        child: Icon(icon, color: Colors.white, size: 22),
       ),
     );
   }

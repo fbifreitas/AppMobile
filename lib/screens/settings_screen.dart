@@ -28,12 +28,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final appState = context.read<AppState>();
     _nomeController = TextEditingController(text: appState.usuarioNomeCompleto);
     _enderecoController = TextEditingController(text: appState.enderecoBase);
-    _latController = TextEditingController(
-      text: appState.residenciaLat?.toString() ?? '',
-    );
-    _lngController = TextEditingController(
-      text: appState.residenciaLng?.toString() ?? '',
-    );
+    _latController = TextEditingController(text: appState.residenciaLat?.toString() ?? '');
+    _lngController = TextEditingController(text: appState.residenciaLng?.toString() ?? '');
   }
 
   @override
@@ -56,23 +52,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final lat = pos.latitude;
       final lng = pos.longitude;
 
-      final configuredLat =
-          double.tryParse(_latController.text.replaceAll(',', '.'));
-      final configuredLng =
-          double.tryParse(_lngController.text.replaceAll(',', '.'));
+      final configuredLat = double.tryParse(_latController.text.replaceAll(',', '.'));
+      final configuredLng = double.tryParse(_lngController.text.replaceAll(',', '.'));
 
       String? comparison;
       if (configuredLat != null && configuredLng != null) {
-        final distanceMeters = LocationService().calcularDistancia(
+        final d = LocationService().calcularDistancia(
           lat1: lat,
           lon1: lng,
           lat2: configuredLat,
           lon2: configuredLng,
         );
-
-        comparison = distanceMeters < 1000
-            ? 'Diferença entre localização atual e configurada: ${distanceMeters.toStringAsFixed(0)}m'
-            : 'Diferença entre localização atual e configurada: ${(distanceMeters / 1000).toStringAsFixed(2)} km';
+        comparison = d < 1000
+            ? 'Diferença entre localização atual e configurada: ${d.toStringAsFixed(0)}m'
+            : 'Diferença entre localização atual e configurada: ${(d / 1000).toStringAsFixed(2)} km';
       }
 
       if (!mounted) return;
@@ -87,9 +80,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _comparisonText = 'Não foi possível ler a localização atual: $e';
       });
     } finally {
-      if (mounted) {
-        setState(() => _loadingCurrentLocation = false);
-      }
+      if (mounted) setState(() => _loadingCurrentLocation = false);
     }
   }
 
@@ -108,82 +99,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Text(
-            'Modo desenvolvedor',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-          ),
+          const Text('Modo desenvolvedor', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Permitir iniciar longe do local'),
-            subtitle: const Text(
-              'Quando desligado, o botão de vistoria depende da distância real até o imóvel.',
-            ),
+            subtitle: const Text('Quando desligado, o botão de vistoria depende da distância real até o imóvel.'),
             value: appState.permitirIniciarLonge,
-            onChanged: (value) {
-              appState.setPermitirIniciarLonge(value);
-            },
+            onChanged: (value) => appState.setPermitirIniciarLonge(value),
           ),
           const Divider(height: 28),
-          const Text(
-            'Meus dados',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-          ),
+          const Text('Meus dados', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
-          TextField(
-            controller: _nomeController,
-            decoration: const InputDecoration(
-              labelText: 'Nome completo do usuário',
-              border: OutlineInputBorder(),
-            ),
-          ),
+          TextField(controller: _nomeController, decoration: const InputDecoration(labelText: 'Nome completo do usuário', border: OutlineInputBorder())),
           const SizedBox(height: 12),
-          TextField(
-            controller: _enderecoController,
-            decoration: const InputDecoration(
-              labelText: 'Meu endereço base',
-              border: OutlineInputBorder(),
-            ),
-          ),
+          TextField(controller: _enderecoController, decoration: const InputDecoration(labelText: 'Meu endereço base', border: OutlineInputBorder())),
           const SizedBox(height: 12),
-          TextField(
-            controller: _latController,
-            keyboardType: const TextInputType.numberWithOptions(
-              decimal: true,
-              signed: true,
-            ),
-            decoration: const InputDecoration(
-              labelText: 'Latitude configurada',
-              border: OutlineInputBorder(),
-            ),
-          ),
+          TextField(controller: _latController, keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), decoration: const InputDecoration(labelText: 'Latitude configurada', border: OutlineInputBorder())),
           const SizedBox(height: 12),
-          TextField(
-            controller: _lngController,
-            keyboardType: const TextInputType.numberWithOptions(
-              decimal: true,
-              signed: true,
-            ),
-            decoration: const InputDecoration(
-              labelText: 'Longitude configurada',
-              border: OutlineInputBorder(),
-            ),
-          ),
+          TextField(controller: _lngController, keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true), decoration: const InputDecoration(labelText: 'Longitude configurada', border: OutlineInputBorder())),
           const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: _loadingCurrentLocation ? null : _readCurrentLocation,
-                  icon: const Icon(Icons.my_location),
-                  label: Text(
-                    _loadingCurrentLocation
-                        ? 'Lendo...'
-                        : 'Ler localização do celular',
-                  ),
-                ),
-              ),
-            ],
+          FilledButton.icon(
+            onPressed: _loadingCurrentLocation ? null : _readCurrentLocation,
+            icon: const Icon(Icons.my_location),
+            label: Text(_loadingCurrentLocation ? 'Lendo...' : 'Ler localização do celular'),
           ),
           if (_currentLat != null && _currentLng != null) ...[
             const SizedBox(height: 12),
@@ -192,10 +131,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
-                color: Theme.of(context)
-                    .colorScheme
-                    .surfaceContainerHighest
-                    .withValues(alpha: 0.35),
+                color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -205,10 +141,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Text('Longitude atual: $_currentLng'),
                   if (_comparisonText != null) ...[
                     const SizedBox(height: 8),
-                    Text(
-                      _comparisonText!,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
+                    Text(_comparisonText!, style: const TextStyle(fontWeight: FontWeight.w700)),
                   ],
                   const SizedBox(height: 10),
                   OutlinedButton(

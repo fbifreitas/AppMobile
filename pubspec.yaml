@@ -25,4 +25,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
+  assets:
+    - assets/config/menu_update_package_v1.json

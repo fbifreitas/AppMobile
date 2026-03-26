@@ -6,27 +6,26 @@ import 'overlay_camera_screen.dart';
 class InspectionReviewScreen extends StatelessWidget {
   final List<OverlayCameraCaptureResult> captures;
   final String tipoImovel;
-  final String subtipoImovel;
 
   const InspectionReviewScreen({
     super.key,
     this.captures = const [],
     this.tipoImovel = 'Urbano',
-    this.subtipoImovel = 'Apartamento',
   });
 
   @override
   Widget build(BuildContext context) {
     final grouped = <String, List<OverlayCameraCaptureResult>>{};
     for (final item in captures) {
-      final key = '${item.contextoInicial} > ${item.ambiente}';
+      final key = [
+        if (item.macroLocal != null) item.macroLocal!,
+        item.ambiente,
+      ].join(' > ');
       grouped.putIfAbsent(key, () => []).add(item);
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Review da vistoria'),
-      ),
+      appBar: AppBar(title: const Text('Review da vistoria')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -39,24 +38,15 @@ class InspectionReviewScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '$tipoImovel > $subtipoImovel',
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
-                ),
+                Text(tipoImovel, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
                 const SizedBox(height: 6),
-                Text(
-                  'Fotos registradas: ${captures.length}',
-                  style: const TextStyle(fontSize: 12),
-                ),
+                Text('Fotos registradas: ${captures.length}', style: const TextStyle(fontSize: 12)),
                 const SizedBox(height: 6),
                 Text(
                   captures.isEmpty
                       ? 'Nenhuma foto foi enviada para o review ainda.'
                       : 'Revise o lote antes de seguir para o checkout.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).textTheme.bodySmall?.color,
-                  ),
+                  style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
                 ),
               ],
             ),
@@ -67,9 +57,7 @@ class InspectionReviewScreen extends StatelessWidget {
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Theme.of(context).dividerColor.withValues(alpha: 0.25),
-                ),
+                border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.25)),
               ),
               child: const Text(
                 'Review inicial disponível. Quando a câmera finalizar um lote de fotos, elas aparecerão agrupadas aqui.',
@@ -83,17 +71,12 @@ class InspectionReviewScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Theme.of(context).dividerColor.withValues(alpha: 0.25),
-                  ),
+                  border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.25)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      entry.key,
-                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
-                    ),
+                    Text(entry.key, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
                     const SizedBox(height: 8),
                     ...entry.value.map((capture) {
                       final parts = <String>[
@@ -101,18 +84,11 @@ class InspectionReviewScreen extends StatelessWidget {
                         if (capture.material != null) capture.material!,
                         if (capture.estado != null) capture.estado!,
                       ];
-
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: Row(
                           children: [
-                            const CircleAvatar(
-                              radius: 18,
-                              child: Icon(
-                                Icons.photo_camera_back_outlined,
-                                size: 18,
-                              ),
-                            ),
+                            const CircleAvatar(radius: 18, child: Icon(Icons.photo_camera_back_outlined, size: 18)),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
@@ -143,7 +119,6 @@ class InspectionReviewScreen extends StatelessWidget {
                         builder: (_) => InspectionCheckoutScreen(
                           captures: captures,
                           tipoImovel: tipoImovel,
-                          subtipoImovel: subtipoImovel,
                         ),
                       ),
                     );

@@ -51,6 +51,27 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
     super.dispose();
   }
 
+  String _defaultSubtype() {
+    switch (widget.tipoImovel.trim().toLowerCase()) {
+      case 'rural':
+        return 'Sítio';
+      case 'comercial':
+        return 'Loja';
+      case 'industrial':
+        return 'Fábrica';
+      default:
+        return 'Apartamento';
+    }
+  }
+
+  String _initialAmbienteForField(String titulo) {
+    final t = titulo.toLowerCase();
+    if (t.contains('fachada')) return 'Fachada';
+    if (t.contains('logradouro')) return 'Logradouro';
+    if (t.contains('número') || t.contains('numero')) return 'Número';
+    return 'Fachada';
+  }
+
   Future<void> _handleCapture(CheckinStep2PhotoFieldConfig field) async {
     try {
       setState(() {
@@ -64,10 +85,11 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
           builder: (_) => OverlayCameraScreen(
             title: field.titulo,
             tipoImovel: widget.tipoImovel,
-            subtipoImovel: 'Apartamento',
+            subtipoImovel: _defaultSubtype(),
             singleCaptureMode: true,
-            contextoInicial: 'Rua',
+            preselectedMacroLocal: 'Rua',
             initialAmbiente: _initialAmbienteForField(field.titulo),
+            cameFromCheckinStep1: false,
           ),
         ),
       );
@@ -97,14 +119,6 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
     }
   }
 
-  String _initialAmbienteForField(String titulo) {
-    final t = titulo.toLowerCase();
-    if (t.contains('fachada')) return 'Fachada';
-    if (t.contains('logradouro')) return 'Logradouro';
-    if (t.contains('número') || t.contains('numero')) return 'Número';
-    return 'Fachada';
-  }
-
   Future<void> _handleContinue() async {
     widget.onContinue?.call(_model);
 
@@ -116,9 +130,9 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
         builder: (_) => OverlayCameraScreen(
           title: 'COLETA',
           tipoImovel: widget.tipoImovel,
-          subtipoImovel: 'Apartamento',
-          contextoInicial: 'Rua',
-          initialAmbiente: 'Fachada',
+          subtipoImovel: _defaultSubtype(),
+          preselectedMacroLocal: null,
+          cameFromCheckinStep1: false,
         ),
       ),
     );
@@ -364,8 +378,11 @@ class _PhotoCaptureCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
-    final subtitle = capturado ? 'Imagem capturada' : obrigatorio ? 'Foto obrigatória' : 'Foto opcional';
+    final subtitle = capturado
+        ? 'Imagem capturada'
+        : obrigatorio
+            ? 'Foto obrigatória'
+            : 'Foto opcional';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),

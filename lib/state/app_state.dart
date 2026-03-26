@@ -21,7 +21,6 @@ class AppState extends ChangeNotifier {
 
   String enderecoBase =
       'Apartamento - Condominio Spazio Belem, Av. Alvaro Ramos, 760 Apto 102, Fabio Freitas (Prop.)';
-
   String usuarioNomeCompleto = 'Fábio Freitas';
 
   DateTime? ultimoCheckin;
@@ -33,8 +32,9 @@ class AppState extends ChangeNotifier {
   }
 
   String get primeiroNome {
-    final parts = usuarioNomeCompleto.trim().split(RegExp(r'\s+'));
-    return parts.isEmpty ? 'Usuário' : parts.first;
+    final nome = usuarioNomeCompleto.trim();
+    if (nome.isEmpty) return 'Usuário';
+    return nome.split(RegExp(r'\s+')).first;
   }
 
   void setUsuarioNomeCompleto(String value) {
@@ -92,14 +92,6 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool isPrimeiraVistoriaDoDia() {
-    if (ultimoCheckin == null) return true;
-    final agora = DateTime.now();
-    return agora.day != ultimoCheckin!.day ||
-        agora.month != ultimoCheckin!.month ||
-        agora.year != ultimoCheckin!.year;
-  }
-
   bool podeIniciarVistoria(double distanciaMetros) {
     if (permitirIniciarLonge) return true;
     return distanciaMetros <= 100;
@@ -111,8 +103,9 @@ class AppState extends ChangeNotifier {
   }
 
   void setEnderecoBase(String value) {
-    if (value.trim().isEmpty) return;
-    enderecoBase = value.trim();
+    final endereco = value.trim();
+    if (endereco.isEmpty) return;
+    enderecoBase = endereco;
     notifyListeners();
   }
 
@@ -122,6 +115,12 @@ class AppState extends ChangeNotifier {
   }) {
     residenciaLat = lat;
     residenciaLng = lng;
+    notifyListeners();
+  }
+
+  void atualizarUltimaLocalizacao(double lat, double lng) {
+    ultimaLatitude = lat;
+    ultimaLongitude = lng;
     notifyListeners();
   }
 
@@ -135,54 +134,12 @@ class AppState extends ChangeNotifier {
       return 0;
     }
 
-    final destinoLat = jobAtual!.latitude!;
-    final destinoLng = jobAtual!.longitude!;
-    final locationService = LocationService();
-
-    if (ultimaLatitude != null && ultimaLongitude != null) {
-      return locationService.calcularDistancia(
-        lat1: ultimaLatitude!,
-        lon1: ultimaLongitude!,
-        lat2: destinoLat,
-        lon2: destinoLng,
-      );
-    }
-
-    if (isPrimeiraVistoriaDoDia() &&
-        residenciaLat != null &&
-        residenciaLng != null) {
-      return locationService.calcularDistancia(
-        lat1: residenciaLat!,
-        lon1: residenciaLng!,
-        lat2: destinoLat,
-        lon2: destinoLng,
-      );
-    }
-
-    final distanciaAtual = locationService.calcularDistancia(
+    return LocationService().calcularDistancia(
       lat1: atualLat,
       lon1: atualLng,
-      lat2: destinoLat,
-      lon2: destinoLng,
+      lat2: jobAtual!.latitude!,
+      lon2: jobAtual!.longitude!,
     );
-
-    double? distanciaResidencia;
-    if (residenciaLat != null && residenciaLng != null) {
-      distanciaResidencia = locationService.calcularDistancia(
-        lat1: residenciaLat!,
-        lon1: residenciaLng!,
-        lat2: destinoLat,
-        lon2: destinoLng,
-      );
-    }
-
-    if (distanciaResidencia != null) {
-      return distanciaAtual < distanciaResidencia
-          ? distanciaAtual
-          : distanciaResidencia;
-    }
-
-    return distanciaAtual;
   }
 
   void registrarDeslocamento({
@@ -197,12 +154,6 @@ class AppState extends ChangeNotifier {
     jobAtual!.origemLat = atualLat;
     jobAtual!.origemLng = atualLng;
     jobAtual!.distanciaKm = distancia / 1000;
-    notifyListeners();
-  }
-
-  void atualizarUltimaLocalizacao(double lat, double lng) {
-    ultimaLatitude = lat;
-    ultimaLongitude = lng;
     notifyListeners();
   }
 }

@@ -18,10 +18,18 @@ class CheckinScreen extends StatefulWidget {
 class _CheckinScreenState extends State<CheckinScreen> {
   bool? clientePresente;
   String? tipoImovel;
-  String? contextoInicial;
-  final bool _busy = false;
+  String? subtipoImovel;
+  String? porOndeComecar;
 
   final List<String> tipos = const ['Urbano', 'Rural', 'Comercial', 'Industrial'];
+
+  final Map<String, List<String>> subtiposPorTipo = const {
+    'Urbano': ['Apartamento', 'Casa', 'Sobrado', 'Terreno'],
+    'Rural': ['Sítio', 'Chácara', 'Fazenda'],
+    'Comercial': ['Loja', 'Sala comercial', 'Galpão'],
+    'Industrial': ['Fábrica', 'Armazém', 'Planta industrial'],
+  };
+
   final List<String> contextos = const ['Rua', 'Área externa', 'Área interna'];
 
   @override
@@ -35,6 +43,8 @@ class _CheckinScreenState extends State<CheckinScreen> {
         body: const Center(child: Text('Nenhum job selecionado')),
       );
     }
+
+    final subtipos = tipoImovel == null ? const <String>[] : (subtiposPorTipo[tipoImovel] ?? const <String>[]);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Check-in Vistoria')),
@@ -158,13 +168,37 @@ class _CheckinScreenState extends State<CheckinScreen> {
                   return ChoiceChip(
                     label: Text(tipo),
                     selected: tipoImovel == tipo,
-                    onSelected: (_) => setState(() => tipoImovel = tipo),
+                    onSelected: (_) {
+                      setState(() {
+                        tipoImovel = tipo;
+                        subtipoImovel = null;
+                      });
+                    },
                   );
                 }).toList(),
               ),
+              if (tipoImovel != null) ...[
+                const SizedBox(height: 16),
+                const Text(
+                  'Subtipo',
+                  style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.textPrimary, fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: subtipos.map((subtipo) {
+                    return ChoiceChip(
+                      label: Text(subtipo),
+                      selected: subtipoImovel == subtipo,
+                      onSelected: (_) => setState(() => subtipoImovel = subtipo),
+                    );
+                  }).toList(),
+                ),
+              ],
               const SizedBox(height: 16),
               const Text(
-                'Por onde você quer começar?',
+                'Por onde deseja começar?',
                 style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.textPrimary, fontSize: 13),
               ),
               const SizedBox(height: 8),
@@ -174,8 +208,8 @@ class _CheckinScreenState extends State<CheckinScreen> {
                 children: contextos.map((ctx) {
                   return ChoiceChip(
                     label: Text(ctx),
-                    selected: contextoInicial == ctx,
-                    onSelected: (_) => setState(() => contextoInicial = ctx),
+                    selected: porOndeComecar == ctx,
+                    onSelected: (_) => setState(() => porOndeComecar = ctx),
                   );
                 }).toList(),
               ),
@@ -183,14 +217,18 @@ class _CheckinScreenState extends State<CheckinScreen> {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
-                  onPressed: tipoImovel == null ? null : () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => CheckinStep2Screen(tipoImovel: tipoImovel!),
-                      ),
-                    );
-                  },
+                  onPressed: tipoImovel == null
+                      ? null
+                      : () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => CheckinStep2Screen(
+                                tipoImovel: tipoImovel!,
+                              ),
+                            ),
+                          );
+                        },
                   child: const Text('Ir para etapa 2 do check-in', style: TextStyle(fontSize: 13)),
                 ),
               ),
@@ -210,12 +248,10 @@ class _CheckinScreenState extends State<CheckinScreen> {
   }
 
   Future<void> _handleConfirm() async {
-    if (clientePresente != true || tipoImovel == null || contextoInicial == null) {
-      _mostrarInfo('Preencha presença, tipo de imóvel e por onde deseja começar.');
+    if (clientePresente != true || tipoImovel == null || subtipoImovel == null || porOndeComecar == null) {
+      _mostrarInfo('Preencha presença, tipo, subtipo e por onde deseja começar.');
       return;
     }
-
-    final ambientes = _ambientesPorContexto(contextoInicial!);
 
     if (!mounted) return;
 
@@ -225,38 +261,12 @@ class _CheckinScreenState extends State<CheckinScreen> {
         builder: (_) => OverlayCameraScreen(
           title: 'COLETA',
           tipoImovel: tipoImovel!,
-          subtipoImovel: _defaultSubtype(tipoImovel!),
-          contextoInicial: contextoInicial!,
-          initialAmbiente: ambientes.first,
+          subtipoImovel: subtipoImovel!,
+          preselectedMacroLocal: porOndeComecar,
+          cameFromCheckinStep1: true,
         ),
       ),
     );
-  }
-
-  List<String> _ambientesPorContexto(String contexto) {
-    switch (contexto) {
-      case 'Rua':
-        return const ['Fachada', 'Logradouro', 'Número', 'Portão / acesso'];
-      case 'Área externa':
-        return const ['Garagem', 'Quintal', 'Condomínio', 'Área comum externa'];
-      case 'Área interna':
-        return const ['Sala', 'Quarto', 'Cozinha', 'Banheiro'];
-      default:
-        return const ['Fachada'];
-    }
-  }
-
-  String _defaultSubtype(String tipo) {
-    switch (tipo.trim().toLowerCase()) {
-      case 'rural':
-        return 'Sítio';
-      case 'comercial':
-        return 'Loja';
-      case 'industrial':
-        return 'Fábrica';
-      default:
-        return 'Apartamento';
-    }
   }
 
   Future<void> _abrirWhatsApp(String? telefone) async {

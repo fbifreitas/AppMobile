@@ -5,19 +5,17 @@ import 'overlay_camera_screen.dart';
 class InspectionCheckoutScreen extends StatelessWidget {
   final List<OverlayCameraCaptureResult> captures;
   final String tipoImovel;
-  final String subtipoImovel;
 
   const InspectionCheckoutScreen({
     super.key,
     required this.captures,
     required this.tipoImovel,
-    required this.subtipoImovel,
   });
 
   @override
   Widget build(BuildContext context) {
     final total = captures.length;
-    final externos = captures.where((c) => c.contextoInicial != 'Área interna').length;
+    final externos = captures.where((c) => c.macroLocal != 'Área interna').length;
     final internos = total - externos;
 
     return Scaffold(
@@ -34,10 +32,7 @@ class InspectionCheckoutScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '$tipoImovel > $subtipoImovel',
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
-                ),
+                Text(tipoImovel, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
                 const SizedBox(height: 6),
                 Text('Total de fotos: $total', style: const TextStyle(fontSize: 12)),
                 Text('Externas: $externos', style: const TextStyle(fontSize: 12)),
@@ -46,19 +41,14 @@ class InspectionCheckoutScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Próximas evoluções desta tela',
-            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
-          ),
+          const Text('Próximas evoluções desta tela', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
           const SizedBox(height: 8),
           const Text('• Exibir pendências obrigatórias', style: TextStyle(fontSize: 12)),
           const Text('• Confirmar consistência do lote antes de encerrar', style: TextStyle(fontSize: 12)),
           const Text('• Iniciar sincronização / fila pendente', style: TextStyle(fontSize: 12)),
           const SizedBox(height: 20),
           FilledButton(
-            onPressed: () {
-              Navigator.popUntil(context, (route) => route.isFirst);
-            },
+            onPressed: () => Navigator.popUntil(context, (route) => route.isFirst),
             child: const Text('Encerrar fluxo'),
           ),
         ],
