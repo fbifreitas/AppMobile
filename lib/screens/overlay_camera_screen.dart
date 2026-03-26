@@ -458,7 +458,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                         title: 'Material',
                         values: _materiaisAtuais,
                         selected: _material,
-                        onSelect: (value) {
+                        onSelect: (value) async {
                           setState(() {
                             _material = value;
                             _estado = null;
@@ -473,7 +473,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                         title: 'Estado',
                         values: _estados,
                         selected: _estado,
-                        onSelect: (value) {
+                        onSelect: (value) async {
                           setState(() => _estado = value);
                         },
                       ),

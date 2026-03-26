@@ -87,6 +87,9 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
   }
 
   Future<void> _handleCapture(CheckinStep2PhotoFieldConfig field) async {
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
     try {
       setState(() {
         _busy = true;
@@ -98,8 +101,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
         value: field.id,
       );
 
-      final result = await Navigator.push<OverlayCameraCaptureResult>(
-        context,
+      final result = await navigator.push<OverlayCameraCaptureResult>(
         MaterialPageRoute(
           builder: (_) => OverlayCameraScreen(
             title: field.titulo,
@@ -126,7 +128,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
         );
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(content: Text('Foto de "${field.titulo}" capturada com sucesso.')),
       );
     } finally {
