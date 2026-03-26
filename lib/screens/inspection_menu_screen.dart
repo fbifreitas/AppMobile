@@ -55,7 +55,7 @@ class InspectionMenuScreen extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const InspectionReviewScreen(),
+                      builder: (_) => InspectionReviewScreen(),
                     ),
                   );
                 },
@@ -107,7 +107,7 @@ class InspectionMenuScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const InspectionReviewScreen(),
+                  builder: (_) => InspectionReviewScreen(),
                 ),
               );
             },

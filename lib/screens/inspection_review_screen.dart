@@ -1,334 +1,187 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
-import '../models/inspection_session_model.dart';
-import '../models/inspection_template_model.dart';
-import '../state/inspection_state.dart';
-import 'camera_flow_screen.dart';
+import 'overlay_camera_screen.dart';
 
 class InspectionReviewScreen extends StatelessWidget {
-  const InspectionReviewScreen({super.key});
+  final List<OverlayCameraCaptureResult> captures;
+  final String tipoImovel;
+  final String subtipoImovel;
+
+  const InspectionReviewScreen({
+    super.key,
+    this.captures = const [],
+    this.tipoImovel = 'Urbano',
+    this.subtipoImovel = 'Apartamento',
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<InspectionState>(
-      builder: (context, inspectionState, _) {
-        final session = inspectionState.session;
+    final grouped = <String, List<OverlayCameraCaptureResult>>{};
+    for (final item in captures) {
+      final key = '${item.contextoInicial} > ${item.ambiente}';
+      grouped.putIfAbsent(key, () => []).add(item);
+    }
 
-        if (session == null) {
-          return const Scaffold(
-            body: Center(child: Text('Nenhuma vistoria ativa.')),
-          );
-        }
-
-        final issues = inspectionState.reviewIssues;
-        final blockingIssues = issues.where((item) => item.blocking).toList();
-        final nonBlockingIssues =
-            issues.where((item) => !item.blocking).toList();
-
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('Revisão da Vistoria'),
-          ),
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Review da vistoria'),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: Theme.of(context)
+                  .colorScheme
+                  .surfaceContainerHighest
+                  .withValues(alpha: 0.35),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _SummaryCard(session: session),
-                const SizedBox(height: 20),
-                if (blockingIssues.isNotEmpty) ...[
-                  Text(
-                    'Pendências obrigatórias',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 12),
-                  ...blockingIssues.map(
-                    (issue) => _IssueCard(
-                      issue: issue,
-                      onEdit: () {
-                        inspectionState.selectEnvironment(issue.ambienteId);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const CameraFlowScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
-                if (nonBlockingIssues.isNotEmpty) ...[
-                  Text(
-                    'Ajustes recomendados',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 12),
-                  ...nonBlockingIssues.map(
-                    (issue) => _IssueCard(
-                      issue: issue,
-                      onEdit: () {
-                        inspectionState.selectEnvironment(issue.ambienteId);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const CameraFlowScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
                 Text(
-                  'Ambientes',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                  '$tipoImovel > $subtipoImovel',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                  ),
                 ),
-                const SizedBox(height: 12),
-                ...session.ambientes.map(
-                  (ambiente) => _ReviewEnvironmentCard(
-                    ambiente: ambiente,
-                    template: session.template.getEnvironmentById(
-                      ambiente.ambienteId,
+                const SizedBox(height: 6),
+                Text(
+                  'Fotos registradas: ${captures.length}',
+                  style: const TextStyle(fontSize: 13),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  captures.isEmpty
+                      ? 'Nenhuma foto foi enviada para o review ainda.'
+                      : 'Tudo que for obrigatório deve aparecer aqui para o usuário revisar, completar ou confirmar.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).textTheme.bodySmall?.color,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (captures.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Theme.of(context).dividerColor.withValues(alpha: 0.25),
+                ),
+              ),
+              child: const Text(
+                'Review inicial disponível. Quando a câmera finalizar um lote de fotos, elas aparecerão agrupadas aqui.',
+                style: TextStyle(fontSize: 12),
+              ),
+            )
+          else
+            ...grouped.entries.map((entry) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Theme.of(context)
+                        .dividerColor
+                        .withValues(alpha: 0.25),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      entry.key,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                      ),
                     ),
-                    onEdit: () {
-                      inspectionState.selectEnvironment(ambiente.ambienteId);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const CameraFlowScreen(),
+                    const SizedBox(height: 8),
+                    ...entry.value.map((capture) {
+                      final parts = <String>[
+                        if (capture.elemento != null) capture.elemento!,
+                        if (capture.material != null) capture.material!,
+                        if (capture.estado != null) capture.estado!,
+                      ];
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          children: [
+                            const CircleAvatar(
+                              radius: 18,
+                              child: Icon(
+                                Icons.photo_camera_back_outlined,
+                                size: 18,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                parts.isEmpty
+                                    ? 'Sem classificação detalhada'
+                                    : parts.join(' • '),
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ),
+                            Text(
+                              '${capture.capturedAt.hour.toString().padLeft(2, '0')}:${capture.capturedAt.minute.toString().padLeft(2, '0')}',
+                              style: const TextStyle(fontSize: 11),
+                            ),
+                          ],
                         ),
                       );
-                    },
-                  ),
+                    }),
+                  ],
                 ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: session.canFinalize
-                        ? () async {
-                            await inspectionState.finalizeInspection();
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Vistoria finalizada e salva localmente como pendente de envio.',
-                                ),
-                              ),
-                            );
-                          }
-                        : null,
-                    child: const Text('Finalizar vistoria'),
-                  ),
-                ),
-              ],
+              );
+            }),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: Colors.orange.withValues(alpha: 0.10),
+              border: Border.all(color: Colors.orange.withValues(alpha: 0.25)),
             ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _SummaryCard extends StatelessWidget {
-  final InspectionSession session;
-
-  const _SummaryCard({
-    required this.session,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final percent = (session.progressPercent * 100).round();
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        color: Theme.of(context)
-            .colorScheme
-            .surfaceContainerHighest
-            .withValues(alpha: 0.35),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '${session.tipoImovel} • ${session.subtipoImovel}',
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 8),
-          Text('Início: ${session.startedAt}'),
-          const SizedBox(height: 8),
-          LinearProgressIndicator(value: percent / 100),
-          const SizedBox(height: 8),
-          Text('$percent% concluído'),
-          const SizedBox(height: 8),
-          Text(
-            session.gpsEnabled ? 'GPS ativo' : 'GPS desligado',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Status de sincronização: ${session.syncStatus.name}',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _IssueCard extends StatelessWidget {
-  final ReviewIssue issue;
-  final VoidCallback onEdit;
-
-  const _IssueCard({
-    required this.issue,
-    required this.onEdit,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: issue.blocking
-              ? theme.colorScheme.error.withValues(alpha: 0.35)
-              : theme.dividerColor.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            issue.blocking ? Icons.error_outline : Icons.info_outline,
-            color: issue.blocking ? theme.colorScheme.error : null,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
+            child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  issue.title,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+                  'Pendências para próxima etapa',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
                 ),
-                const SizedBox(height: 4),
-                Text(issue.description),
+                SizedBox(height: 6),
+                Text(
+                  '• Destacar itens obrigatórios faltantes por ambiente',
+                  style: TextStyle(fontSize: 12),
+                ),
+                Text(
+                  '• Permitir editar classificação de cada foto',
+                  style: TextStyle(fontSize: 12),
+                ),
+                Text(
+                  '• Permitir tirar novas fotos a partir do review',
+                  style: TextStyle(fontSize: 12),
+                ),
               ],
             ),
           ),
-          TextButton(
-            onPressed: onEdit,
-            child: const Text('Editar'),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: () {
+              Navigator.popUntil(context, (route) => route.isFirst);
+            },
+            child: const Text('Concluir review'),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ReviewEnvironmentCard extends StatelessWidget {
-  final InspectionEnvironmentProgress ambiente;
-  final EnvironmentTemplate? template;
-  final VoidCallback onEdit;
-
-  const _ReviewEnvironmentCard({
-    required this.ambiente,
-    required this.template,
-    required this.onEdit,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final mandatoryElements = template?.elementos
-            .where((e) => e.obrigatorioParaConclusao)
-            .toList() ??
-        const <ElementTemplate>[];
-
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  ambiente.ambienteNome,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleSmall
-                      ?.copyWith(fontWeight: FontWeight.w700),
-                ),
-              ),
-              TextButton(
-                onPressed: onEdit,
-                child: const Text('Editar'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text('${ambiente.totalFotos}/${ambiente.minFotos} foto(s) mínimas'),
-          const SizedBox(height: 10),
-          if (mandatoryElements.isNotEmpty) ...[
-            Text(
-              'Elementos obrigatórios',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: mandatoryElements.map((element) {
-                final covered = ambiente.evidencias.any(
-                  (e) => e.elementoId == element.id,
-                );
-
-                return Chip(
-                  label: Text(element.nome),
-                  avatar: Icon(
-                    covered
-                        ? Icons.check_circle_outline
-                        : Icons.pending_outlined,
-                    size: 18,
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
         ],
       ),
     );

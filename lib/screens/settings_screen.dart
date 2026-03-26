@@ -54,7 +54,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             contentPadding: EdgeInsets.zero,
             title: const Text('Permitir iniciar longe do local'),
             subtitle: const Text(
-              'Quando ligado, o botão da vistoria fica liberado mesmo fora do raio do imóvel.',
+              'Quando desligado, o botão de vistoria depende da distância real até o imóvel.',
             ),
             value: appState.permitirIniciarLonge,
             onChanged: (value) {
@@ -63,7 +63,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const Divider(height: 32),
           const Text(
-            'Dados mockados do vistoriador',
+            'Meus dados',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
@@ -99,26 +99,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               final lng = double.tryParse(_lngController.text.replaceAll(',', '.'));
 
               appState.setEnderecoBase(_enderecoController.text.trim());
-              appState.setResidencia(
-                lat: lat,
-                lng: lng,
-              );
+              appState.setResidencia(lat: lat, lng: lng);
 
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Configurações atualizadas.')),
               );
             },
             child: const Text('Salvar configurações'),
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            'Comportamento da distância',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'A distância é calculada com a geolocalização atual do aparelho. '
-            'A tela também atualiza a localização ao abrir e ao puxar para atualizar.',
           ),
         ],
       ),

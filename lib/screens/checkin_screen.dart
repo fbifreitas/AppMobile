@@ -19,52 +19,10 @@ class _CheckinScreenState extends State<CheckinScreen> {
   bool? clientePresente;
   String? tipoImovel;
   String? contextoInicial;
-  bool _busy = false;
+  final bool _busy = false;
 
-  final List<String> tipos = const [
-    'Urbano',
-    'Rural',
-    'Comercial',
-    'Industrial',
-  ];
-
-  static const String contextoRua = 'Rua';
-  static const String contextoAreaExterna = 'Área externa';
-  static const String contextoAreaInterna = 'Área interna';
-
-  List<String> _ambientesParaContexto(String context) {
-    switch (context) {
-      case contextoRua:
-        return const [
-          'Fachada',
-          'Logradouro',
-          'Número',
-          'Condomínio',
-          'Portão / Acesso',
-        ];
-      case contextoAreaExterna:
-        return const [
-          'Garagem',
-          'Quintal',
-          'Jardim',
-          'Corredor lateral',
-          'Área comum externa',
-          'Portão interno',
-        ];
-      case contextoAreaInterna:
-        return const [
-          'Sala',
-          'Quarto',
-          'Cozinha',
-          'Banheiro',
-          'Área de serviço',
-          'Corredor',
-          'Sacada',
-        ];
-      default:
-        return const ['Fachada'];
-    }
-  }
+  final List<String> tipos = const ['Urbano', 'Rural', 'Comercial', 'Industrial'];
+  final List<String> contextos = const ['Rua', 'Área externa', 'Área interna'];
 
   @override
   Widget build(BuildContext context) {
@@ -81,346 +39,230 @@ class _CheckinScreenState extends State<CheckinScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Check-in Vistoria')),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                job.titulo,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+          children: [
+            Text(
+              job.titulo,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
               ),
-              const SizedBox(height: 6),
-              Text(
-                '${job.endereco} • ${job.nomeCliente}',
-                style: const TextStyle(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 20),
-              FutureBuilder(
-                future: LocationService().getCurrentLocation(),
-                builder: (context, snapshot) {
-                  String texto = 'Validando GPS...';
-                  Color cor = AppColors.warning;
-                  Color fundo = AppColors.warningLight;
+            ),
+            const SizedBox(height: 4),
+            Text(
+              job.endereco,
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            ),
+            const SizedBox(height: 16),
+            FutureBuilder(
+              future: LocationService().getCurrentLocation(),
+              builder: (context, snapshot) {
+                String texto = 'Validando GPS...';
+                Color cor = AppColors.warning;
+                Color fundo = AppColors.warningLight;
 
-                  if (snapshot.hasData &&
-                      job.latitude != null &&
-                      job.longitude != null) {
-                    final pos = snapshot.data!;
-                    final distancia = LocationService().calcularDistancia(
-                      lat1: pos.latitude,
-                      lon1: pos.longitude,
-                      lat2: job.latitude!,
-                      lon2: job.longitude!,
-                    );
-
-                    if (distancia <= 100) {
-                      texto = 'GPS confirmado no local';
-                      cor = AppColors.success;
-                      fundo = AppColors.successLight;
-                    } else {
-                      texto =
-                          'Você ainda não está no raio do local (${distancia.toStringAsFixed(0)}m)';
-                      cor = AppColors.danger;
-                      fundo = AppColors.dangerLight;
-                    }
-                  }
-
-                  if (snapshot.hasError) {
-                    texto = 'Erro ao validar GPS';
+                if (snapshot.hasData && job.latitude != null && job.longitude != null) {
+                  final pos = snapshot.data!;
+                  final distancia = LocationService().calcularDistancia(
+                    lat1: pos.latitude,
+                    lon1: pos.longitude,
+                    lat2: job.latitude!,
+                    lon2: job.longitude!,
+                  );
+                  if (distancia <= 100) {
+                    texto = 'GPS confirmado no local';
+                    cor = AppColors.success;
+                    fundo = AppColors.successLight;
+                  } else {
+                    texto = 'Você ainda não está no raio do local (${distancia.toStringAsFixed(0)}m)';
                     cor = AppColors.danger;
                     fundo = AppColors.dangerLight;
                   }
+                }
 
-                  return Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: fundo,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.location_on, color: cor),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            texto,
-                            style: TextStyle(
-                              color: cor,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
+                return Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: fundo,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.location_on, color: cor, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          texto,
+                          style: TextStyle(color: cor, fontWeight: FontWeight.w700, fontSize: 12),
                         ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _busy ? null : () => _abrirWhatsApp(job.telefoneCliente),
-                      icon: const Icon(Icons.chat_outlined),
-                      label: const Text('WhatsApp'),
-                    ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _busy ? null : () => _ligar(job.telefoneCliente),
-                      icon: const Icon(Icons.call_outlined),
-                      label: const Text('Ligar'),
-                    ),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _abrirWhatsApp(job.telefoneCliente),
+                    icon: const Icon(Icons.chat_outlined, size: 18),
+                    label: const Text('WhatsApp', style: TextStyle(fontSize: 13)),
                   ),
-                ],
-              ),
-              const SizedBox(height: 24),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _ligar(job.telefoneCliente),
+                    icon: const Icon(Icons.call_outlined, size: 18),
+                    label: const Text('Ligar', style: TextStyle(fontSize: 13)),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            const Text(
+              'Cliente está presente?',
+              style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.textPrimary, fontSize: 13),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: [
+                ChoiceChip(
+                  label: const Text('Sim'),
+                  selected: clientePresente == true,
+                  onSelected: (_) => setState(() => clientePresente = true),
+                ),
+                ChoiceChip(
+                  label: const Text('Não'),
+                  selected: clientePresente == false,
+                  onSelected: (_) => setState(() => clientePresente = false),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            if (clientePresente == true) ...[
               const Text(
-                'Cliente está presente?',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
+                'Tipo de imóvel',
+                style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.textPrimary, fontSize: 13),
               ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  ChoiceChip(
-                    label: const Text('Sim'),
-                    selected: clientePresente == true,
-                    onSelected: _busy
-                        ? null
-                        : (_) {
-                            setState(() {
-                              clientePresente = true;
-                            });
-                          },
-                  ),
-                  const SizedBox(width: 10),
-                  ChoiceChip(
-                    label: const Text('Não'),
-                    selected: clientePresente == false,
-                    onSelected: _busy
-                        ? null
-                        : (_) {
-                            setState(() {
-                              clientePresente = false;
-                            });
-                          },
-                  ),
-                ],
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: tipos.map((tipo) {
+                  return ChoiceChip(
+                    label: Text(tipo),
+                    selected: tipoImovel == tipo,
+                    onSelected: (_) => setState(() => tipoImovel = tipo),
+                  );
+                }).toList(),
               ),
-              const SizedBox(height: 24),
-              if (clientePresente == true) ...[
-                const Text(
-                  'Tipo de imóvel',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: tipos.map((tipo) {
-                    return ChoiceChip(
-                      label: Text(tipo),
-                      selected: tipoImovel == tipo,
-                      onSelected: _busy
-                          ? null
-                          : (_) {
-                              setState(() {
-                                tipoImovel = tipo;
-                              });
-                            },
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  'Por onde você quer começar?',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: const [
-                    contextoRua,
-                    contextoAreaExterna,
-                    contextoAreaInterna,
-                  ].map((item) {
-                    return ChoiceChip(
-                      label: Text(item),
-                      selected: false,
-                    );
-                  }).toList(),
-                ),
-              ],
-              if (clientePresente == true)
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    _contextChip(contextoRua),
-                    _contextChip(contextoAreaExterna),
-                    _contextChip(contextoAreaInterna),
-                  ],
-                ),
-              const Spacer(),
-              if (clientePresente == true) ...[
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: _busy || tipoImovel == null
-                        ? null
-                        : () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => CheckinStep2Screen(
-                                  tipoImovel: tipoImovel!,
-                                ),
-                              ),
-                            );
-                          },
-                    child: const Text('Ir para etapa 2 do check-in'),
-                  ),
-                ),
-                const SizedBox(height: 10),
-              ],
+              const SizedBox(height: 16),
+              const Text(
+                'Por onde você quer começar?',
+                style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.textPrimary, fontSize: 13),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: contextos.map((ctx) {
+                  return ChoiceChip(
+                    label: Text(ctx),
+                    selected: contextoInicial == ctx,
+                    onSelected: (_) => setState(() => contextoInicial = ctx),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _busy ? null : _handleConfirm,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: clientePresente == false
-                        ? AppColors.danger
-                        : AppColors.primary,
-                  ),
-                  child: Text(
-                    _busy
-                        ? 'Abrindo câmera...'
-                        : clientePresente == false
-                            ? 'Solicitar reagendamento'
-                            : 'Confirmar e abrir a câmera',
-                  ),
+                child: OutlinedButton(
+                  onPressed: tipoImovel == null ? null : () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CheckinStep2Screen(tipoImovel: tipoImovel!),
+                      ),
+                    );
+                  },
+                  child: const Text('Ir para etapa 2 do check-in', style: TextStyle(fontSize: 13)),
                 ),
               ),
+              const SizedBox(height: 8),
             ],
-          ),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _handleConfirm,
+                child: const Text('Confirmar e abrir a câmera', style: TextStyle(fontSize: 13)),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _contextChip(String label) {
-    return ChoiceChip(
-      label: Text(label),
-      selected: contextoInicial == label,
-      onSelected: _busy
-          ? null
-          : (_) {
-              setState(() {
-                contextoInicial = label;
-              });
-            },
+  Future<void> _handleConfirm() async {
+    if (clientePresente != true || tipoImovel == null || contextoInicial == null) {
+      _mostrarInfo('Preencha presença, tipo de imóvel e por onde deseja começar.');
+      return;
+    }
+
+    final ambientes = _ambientesPorContexto(contextoInicial!);
+
+    if (!mounted) return;
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => OverlayCameraScreen(
+          title: 'COLETA',
+          tipoImovel: tipoImovel!,
+          subtipoImovel: _defaultSubtype(tipoImovel!),
+          contextoInicial: contextoInicial!,
+          initialAmbiente: ambientes.first,
+        ),
+      ),
     );
   }
 
-  Future<void> _handleConfirm() async {
-    if (clientePresente == null) {
-      _mostrarInfo('Selecione se o cliente está presente.');
-      return;
+  List<String> _ambientesPorContexto(String contexto) {
+    switch (contexto) {
+      case 'Rua':
+        return const ['Fachada', 'Logradouro', 'Número', 'Portão / acesso'];
+      case 'Área externa':
+        return const ['Garagem', 'Quintal', 'Condomínio', 'Área comum externa'];
+      case 'Área interna':
+        return const ['Sala', 'Quarto', 'Cozinha', 'Banheiro'];
+      default:
+        return const ['Fachada'];
     }
+  }
 
-    if (clientePresente == false) {
-      final confirmar = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Cliente ausente'),
-          content: const Text(
-            'Deseja solicitar reagendamento da vistoria?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Confirmar'),
-            ),
-          ],
-        ),
-      );
-
-      if (!mounted) return;
-
-      if (confirmar == true) {
-        final navigator = Navigator.of(context);
-        context.read<AppState>().recusarJob();
-        navigator.pop();
-      }
-      return;
-    }
-
-    if (tipoImovel == null) {
-      _mostrarInfo('Selecione o tipo de imóvel.');
-      return;
-    }
-
-    if (contextoInicial == null) {
-      _mostrarInfo('Escolha por onde você quer começar: Rua, Área externa ou Área interna.');
-      return;
-    }
-
-    try {
-      setState(() => _busy = true);
-
-      context.read<AppState>().fazerCheckin(
-            clientePresente: true,
-            tipoImovel: tipoImovel,
-          );
-
-      if (!mounted) return;
-
-      await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => OverlayCameraScreen(
-            title: 'COLETA',
-            ambientes: _ambientesParaContexto(contextoInicial!),
-            initialAmbiente: _ambientesParaContexto(contextoInicial!).first,
-          ),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      _mostrarInfo('Falha ao abrir a câmera do check-in: $e');
-    } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
+  String _defaultSubtype(String tipo) {
+    switch (tipo.trim().toLowerCase()) {
+      case 'rural':
+        return 'Sítio';
+      case 'comercial':
+        return 'Loja';
+      case 'industrial':
+        return 'Fábrica';
+      default:
+        return 'Apartamento';
     }
   }
 
   Future<void> _abrirWhatsApp(String? telefone) async {
     if (telefone == null || telefone.isEmpty) return;
-
     final somenteNumeros = telefone.replaceAll(RegExp(r'[^0-9]'), '');
     final uri = Uri.parse('https://wa.me/55$somenteNumeros');
-
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
@@ -428,9 +270,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
 
   Future<void> _ligar(String? telefone) async {
     if (telefone == null || telefone.isEmpty) return;
-
     final uri = Uri.parse('tel:$telefone');
-
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }

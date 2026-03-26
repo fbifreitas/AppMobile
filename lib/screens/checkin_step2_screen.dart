@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../config/checkin_step2_config.dart';
 import '../models/checkin_step2_model.dart';
-import '../screens/overlay_camera_screen.dart';
-import '../services/checkin_photo_capture_service.dart';
-import '../models/inspection_session_model.dart';
+import 'overlay_camera_screen.dart';
 
 class CheckinStep2Screen extends StatefulWidget {
   final String tipoImovel;
@@ -27,18 +25,9 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
   late final CheckinStep2Config _config;
   late CheckinStep2Model _model;
   final Map<String, TextEditingController> _obsControllers = {};
-  final CheckinPhotoCaptureService _captureService = CheckinPhotoCaptureService();
 
   bool _busy = false;
   String? _busyFieldId;
-
-  static const List<String> _ambientesRua = [
-    'Fachada',
-    'Logradouro',
-    'Número',
-    'Condomínio',
-    'Portão / Acesso',
-  ];
 
   @override
   void initState() {
@@ -62,14 +51,6 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
     super.dispose();
   }
 
-  String _initialAmbienteForField(String titulo) {
-    final t = titulo.toLowerCase();
-    if (t.contains('fachada')) return 'Fachada';
-    if (t.contains('logradouro')) return 'Logradouro';
-    if (t.contains('número') || t.contains('numero')) return 'Número';
-    return 'Fachada';
-  }
-
   Future<void> _handleCapture(CheckinStep2PhotoFieldConfig field) async {
     try {
       setState(() {
@@ -82,7 +63,10 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
         MaterialPageRoute(
           builder: (_) => OverlayCameraScreen(
             title: field.titulo,
-            ambientes: _ambientesRua,
+            tipoImovel: widget.tipoImovel,
+            subtipoImovel: 'Apartamento',
+            singleCaptureMode: true,
+            contextoInicial: 'Rua',
             initialAmbiente: _initialAmbienteForField(field.titulo),
           ),
         ),
@@ -103,11 +87,6 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Foto de "${field.titulo}" capturada com sucesso.')),
       );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Falha ao capturar foto: $e')),
-      );
     } finally {
       if (mounted) {
         setState(() {
@@ -118,49 +97,12 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
     }
   }
 
-  Future<void> _handleGallery(CheckinStep2PhotoFieldConfig field) async {
-    try {
-      setState(() {
-        _busy = true;
-        _busyFieldId = field.id;
-      });
-
-      final result = await _captureService.captureFromGallery();
-
-      if (!mounted) return;
-
-      setState(() {
-        _model = _model.setPhoto(
-          fieldId: field.id,
-          titulo: field.titulo,
-          imagePath: result.path,
-          geoPoint: result.geoPoint,
-          importedFromGallery: true,
-        );
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Imagem de "${field.titulo}" vinculada com sucesso.')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Falha ao importar imagem: $e')),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _busy = false;
-          _busyFieldId = null;
-        });
-      }
-    }
-  }
-
-  void _handleRemovePhoto(CheckinStep2PhotoFieldConfig field) {
-    setState(() {
-      _model = _model.removePhoto(field.id);
-    });
+  String _initialAmbienteForField(String titulo) {
+    final t = titulo.toLowerCase();
+    if (t.contains('fachada')) return 'Fachada';
+    if (t.contains('logradouro')) return 'Logradouro';
+    if (t.contains('número') || t.contains('numero')) return 'Número';
+    return 'Fachada';
   }
 
   Future<void> _handleContinue() async {
@@ -171,9 +113,11 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => const OverlayCameraScreen(
+        builder: (_) => OverlayCameraScreen(
           title: 'COLETA',
-          ambientes: _ambientesRua,
+          tipoImovel: widget.tipoImovel,
+          subtipoImovel: 'Apartamento',
+          contextoInicial: 'Rua',
           initialAmbiente: 'Fachada',
         ),
       ),
@@ -194,19 +138,22 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
                 _buildHeader(theme),
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildPhotosSection(theme),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 20),
                         _buildDynamicOptionsSection(theme),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 24),
                         SizedBox(
                           width: double.infinity,
                           child: FilledButton(
                             onPressed: _busy ? null : _handleContinue,
-                            child: const Text('Confirmar e abrir a câmera'),
+                            child: const Text(
+                              'Confirmar e abrir a câmera',
+                              style: TextStyle(fontSize: 13),
+                            ),
                           ),
                         ),
                       ],
@@ -229,7 +176,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
   Widget _buildHeader(ThemeData theme) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
         border: Border(
@@ -250,19 +197,20 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
               style: theme.textTheme.labelLarge?.copyWith(
                 color: theme.colorScheme.primary,
                 fontWeight: FontWeight.w700,
+                fontSize: 12,
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text(
             '${_config.subtituloTela} ${_tipo.label}',
-            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
           Text(
-            'Preencha as evidências fotográficas e as informações externas do imóvel.',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.75),
+            'Preencha as evidências externas do imóvel.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.75),
             ),
           ),
         ],
@@ -276,9 +224,9 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
       children: [
         Text(
           'Registros fotográficos',
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         ..._config.camposFotos.map(
           (field) => _PhotoCaptureCard(
             titulo: field.titulo,
@@ -288,8 +236,6 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
             busy: _busy && _busyFieldId == field.id,
             photoInfo: _model.fotos[field.id],
             onCapture: () => _handleCapture(field),
-            onGallery: () => _handleGallery(field),
-            onRemove: () => _handleRemovePhoto(field),
           ),
         ),
       ],
@@ -302,12 +248,12 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
       children: [
         Text(
           'Infraestrutura e serviços',
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         ..._config.gruposOpcoes.map((grupo) {
           return Padding(
-            padding: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.only(bottom: 12),
             child: _buildOptionGroupCard(theme, grupo),
           );
         }),
@@ -315,25 +261,33 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
     );
   }
 
-  Widget _buildOptionGroupCard(ThemeData theme, CheckinStep2OptionGroupConfig grupo) {
+  Widget _buildOptionGroupCard(
+    ThemeData theme,
+    CheckinStep2OptionGroupConfig grupo,
+  ) {
     final resposta = _model.respostas[grupo.id];
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.20)),
+        border: Border.all(
+          color: theme.dividerColor.withValues(alpha: 0.20),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             grupo.titulo,
-            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -368,14 +322,13 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
             }).toList(),
           ),
           if (grupo.permiteObservacao) ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             TextField(
               controller: _obsControllers[grupo.id],
               minLines: 2,
-              maxLines: 4,
+              maxLines: 3,
               decoration: const InputDecoration(
                 labelText: 'Observações',
-                hintText: 'Descreva detalhes relevantes deste item',
                 border: OutlineInputBorder(),
               ),
               onChanged: (value) {
@@ -397,8 +350,6 @@ class _PhotoCaptureCard extends StatelessWidget {
   final IconData icon;
   final CheckinStep2PhotoAnswer? photoInfo;
   final VoidCallback onCapture;
-  final VoidCallback onGallery;
-  final VoidCallback onRemove;
 
   const _PhotoCaptureCard({
     required this.titulo,
@@ -408,25 +359,17 @@ class _PhotoCaptureCard extends StatelessWidget {
     required this.icon,
     required this.photoInfo,
     required this.onCapture,
-    required this.onGallery,
-    required this.onRemove,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    final subtitle = capturado
-        ? photoInfo?.importedFromGallery == true
-            ? 'Imagem da galeria vinculada'
-            : 'Imagem capturada'
-        : obrigatorio
-            ? 'Foto obrigatória'
-            : 'Foto opcional';
+    final subtitle = capturado ? 'Imagem capturada' : obrigatorio ? 'Foto obrigatória' : 'Foto opcional';
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
@@ -436,91 +379,44 @@ class _PhotoCaptureCard extends StatelessWidget {
               : theme.dividerColor.withValues(alpha: 0.20),
         ),
       ),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: capturado
-                    ? theme.colorScheme.primary.withValues(alpha: 0.12)
-                    : theme.colorScheme.surfaceContainerHighest,
-                child: Icon(
-                  capturado ? Icons.check_circle_outline : icon,
-                  color: capturado ? theme.colorScheme.primary : theme.iconTheme.color,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      titulo,
-                      style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: capturado
-                            ? theme.colorScheme.primary
-                            : theme.textTheme.bodySmall?.color?.withValues(alpha: 0.70),
-                      ),
-                    ),
-                    if (capturado && photoInfo?.geoPoint != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        'Lat ${photoInfo!.geoPoint!.latitude.toStringAsFixed(5)} • Lng ${photoInfo!.geoPoint!.longitude.toStringAsFixed(5)}',
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: capturado
+                ? theme.colorScheme.primary.withValues(alpha: 0.12)
+                : theme.colorScheme.surfaceContainerHighest,
+            child: Icon(
+              capturado ? Icons.check_circle_outline : icon,
+              color: capturado ? theme.colorScheme.primary : theme.iconTheme.color,
+            ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: busy ? null : onCapture,
-                  icon: const Icon(Icons.camera_alt_outlined),
-                  label: Text(busy ? 'Processando...' : capturado ? 'Refazer' : 'Capturar'),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  titulo,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: busy ? null : onGallery,
-                  icon: const Icon(Icons.photo_library_outlined),
-                  label: const Text('Galeria'),
-                ),
-              ),
-              if (capturado) ...[
-                const SizedBox(width: 10),
-                IconButton(
-                  tooltip: 'Remover',
-                  onPressed: busy ? null : onRemove,
-                  icon: const Icon(Icons.delete_outline),
-                ),
+                const SizedBox(height: 4),
+                Text(subtitle, style: theme.textTheme.bodySmall),
               ],
-            ],
+            ),
+          ),
+          FilledButton(
+            onPressed: busy ? null : onCapture,
+            child: Text(
+              capturado ? 'Refazer' : 'Capturar',
+              style: const TextStyle(fontSize: 12),
+            ),
           ),
         ],
       ),
-    );
-  }
-}
-
-extension on OverlayCameraCaptureResult {
-  GeoPointData toGeoPointData() {
-    return GeoPointData(
-      latitude: latitude,
-      longitude: longitude,
-      accuracy: accuracy,
-      capturedAt: capturedAt,
     );
   }
 }
