@@ -10,12 +10,44 @@ import 'checkin_screen.dart';
 import 'notifications_screen.dart';
 import 'settings_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  late Future<void> _bootFuture;
+  final LocationService _locationService = LocationService();
+
+  @override
+  void initState() {
+    super.initState();
+    _bootFuture = _refreshUserLocation();
+  }
+
+  Future<void> _refreshUserLocation() async {
+    final appState = context.read<AppState>();
+    try {
+      final pos = await _locationService.getCurrentLocation();
+      appState.atualizarUltimaLocalizacao(pos.latitude, pos.longitude);
+    } catch (_) {
+      // mantém a home funcional mesmo sem GPS
+    }
+  }
+
+  Future<void> _manualRefresh() async {
+    await _refreshUserLocation();
+    if (!mounted) return;
+    setState(() {
+      _bootFuture = Future.value();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final appState = Provider.of<AppState>(context);
+    final appState = context.watch<AppState>();
     final jobs = appState.jobs;
 
     return Scaffold(
@@ -25,16 +57,20 @@ class HomeScreen extends StatelessWidget {
         items: [
           BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Painel'),
           BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Vistorias'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
-            label: 'Agenda',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Agenda'),
         ],
       ),
       body: SafeArea(
-        child: jobs.isEmpty
-            ? const Center(child: CircularProgressIndicator())
-            : ListView(
+        child: FutureBuilder<void>(
+          future: _bootFuture,
+          builder: (context, _) {
+            if (jobs.isEmpty) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            return RefreshIndicator(
+              onRefresh: _manualRefresh,
+              child: ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
                   _buildHeader(context),
@@ -59,55 +95,35 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Feature ainda não implementada',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'Aqui vamos evoluir o fluxo de aceitar propostas com gesto deslizante.',
-                          style: TextStyle(color: AppColors.textSecondary),
-                        ),
-                      ],
-                    ),
-                  ),
+                  ..._buildProposalCards(),
                 ],
               ),
+            );
+          },
+        ),
       ),
     );
   }
 
   Widget _buildHeader(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(
-          children: [
-            CircleAvatar(
-              radius: 25,
-              backgroundImage: NetworkImage(
-                'https://i.pravatar.cc/150?img=3',
-              ),
-            ),
-            SizedBox(width: 12),
-            Column(
+        const CircleAvatar(
+          radius: 25,
+          backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=3'),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+              children: const [
                 Text(
                   'Olá, Fábio Freitas! 👋',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -117,35 +133,35 @@ class HomeScreen extends StatelessWidget {
                 SizedBox(height: 2),
                 Text(
                   'Seu painel operacional de hoje',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: AppColors.textSecondary),
                 ),
               ],
             ),
-          ],
+          ),
         ),
+        const SizedBox(width: 8),
         Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             _circleIconButton(
               icon: Icons.notifications_none,
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const NotificationsScreen(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const NotificationsScreen()),
                 );
               },
               badge: '3',
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             _circleIconButton(
               icon: Icons.settings_outlined,
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const SettingsScreen(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
                 );
               },
             ),
@@ -155,10 +171,89 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  List<Widget> _buildProposalCards() {
+    final propostas = const [
+      {
+        'valor': 'R\$ 150,00',
+        'resumo': '2.5 km • Apto Padrão',
+      },
+      {
+        'valor': 'R\$ 220,00',
+        'resumo': '4.1 km • Casa',
+      },
+    ];
+
+    return propostas.map((item) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    item['valor']!,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+                Text(
+                  item['resumo']!,
+                  style: const TextStyle(color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Container(
+              height: 52,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 54,
+                    margin: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  const Expanded(
+                    child: Center(
+                      child: Text(
+                        'DESLIZE PARA ACEITAR',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }).toList();
+  }
+
   Widget _jobCard(BuildContext context, AppState appState, Job job) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(18),
@@ -166,13 +261,13 @@ class HomeScreen extends StatelessWidget {
         boxShadow: const [
           BoxShadow(
             color: Color(0x0D000000),
-            blurRadius: 14,
-            offset: Offset(0, 6),
+            blurRadius: 10,
+            offset: Offset(0, 4),
           ),
         ],
       ),
       child: FutureBuilder(
-        future: LocationService().getCurrentLocation(),
+        future: _locationService.getCurrentLocation(),
         builder: (context, snapshot) {
           String distanciaTexto = 'Calculando distância...';
           bool podeIniciar = appState.permitirIniciarLonge;
@@ -180,16 +275,14 @@ class HomeScreen extends StatelessWidget {
 
           if (snapshot.hasData) {
             final pos = snapshot.data!;
-            distanciaMetros = LocationService().calcularDistancia(
+            distanciaMetros = _locationService.calcularDistancia(
               lat1: pos.latitude,
               lon1: pos.longitude,
               lat2: job.latitude ?? 0,
               lon2: job.longitude ?? 0,
             );
-
             distanciaTexto =
-                '📍 ${(distanciaMetros / 1000).toStringAsFixed(1)} km de distância';
-
+                '${(distanciaMetros / 1000).toStringAsFixed(1)} km de distância';
             podeIniciar = appState.podeIniciarVistoria(distanciaMetros);
           }
 
@@ -216,75 +309,70 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
               Text(
                 job.titulo,
                 style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
                   color: AppColors.textPrimary,
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Text(
                 job.endereco,
                 style: const TextStyle(color: AppColors.textSecondary),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Text(
                 job.nomeCliente,
                 style: const TextStyle(color: AppColors.textSecondary),
               ),
               const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  distanciaTexto,
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700,
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      distanciaTexto,
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.warningLight,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  '14:30 (Em 15 min)',
-                  style: TextStyle(
-                    color: AppColors.warning,
-                    fontWeight: FontWeight.w800,
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.warningLight,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      '14:30 (Em 15 min)',
+                      style: TextStyle(
+                        color: AppColors.warning,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 14),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () async {
                         if (job.latitude == null || job.longitude == null) {
-                          _mostrarInfo(
-                            context,
-                            'Localização do job não definida.',
-                          );
+                          _mostrarInfo(context, 'Localização do job não definida.');
                           return;
                         }
-
                         await MapService().abrirWaze(
                           job.latitude!,
                           job.longitude!,
@@ -323,9 +411,8 @@ class HomeScreen extends StatelessWidget {
                         );
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: podeIniciar
-                            ? AppColors.primary
-                            : Colors.grey.shade400,
+                        backgroundColor:
+                            podeIniciar ? AppColors.primary : Colors.grey.shade400,
                       ),
                       child: Text(
                         appState.permitirIniciarLonge
@@ -373,9 +460,6 @@ class HomeScreen extends StatelessWidget {
               shape: BoxShape.circle,
               border: Border.all(color: AppColors.border),
             ),
-            child: const Icon(Icons.circle, color: Colors.transparent),
-          ),
-          Positioned.fill(
             child: Icon(icon, color: AppColors.primary),
           ),
           if (badge != null)
@@ -383,10 +467,7 @@ class HomeScreen extends StatelessWidget {
               top: -4,
               right: -2,
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 6,
-                  vertical: 2,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: AppColors.danger,
                   borderRadius: BorderRadius.circular(10),

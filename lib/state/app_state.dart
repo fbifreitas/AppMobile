@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../models/job.dart';
 import '../models/job_status.dart';
 import '../repositories/job_repository.dart';
@@ -11,15 +12,13 @@ class AppState extends ChangeNotifier {
 
   List<Job> jobs = [];
   Job? jobAtual;
-
   double? ultimaLatitude;
   double? ultimaLongitude;
-
-  double? residenciaLat;
-  double? residenciaLng;
-
+  double? residenciaLat = -23.5614;
+  double? residenciaLng = -46.6559;
+  String enderecoBase =
+      'Apartamento - Condominio Spazio Belem, Av. Alvaro Ramos, 760 Apto 102, Fabio Freitas (Prop.)';
   DateTime? ultimoCheckin;
-
   bool permitirIniciarLonge = true;
 
   Future<void> carregarJobs() async {
@@ -40,7 +39,6 @@ class AppState extends ChangeNotifier {
   void aceitarJob(String jobId) {
     final index = jobs.indexWhere((j) => j.id == jobId);
     if (index == -1) return;
-
     jobs[index].status = JobStatus.aceito;
     notifyListeners();
   }
@@ -52,17 +50,17 @@ class AppState extends ChangeNotifier {
 
   void fazerCheckin({required bool clientePresente, String? tipoImovel}) {
     if (jobAtual == null) return;
-
     jobAtual!.clientePresente = clientePresente;
     jobAtual!.tipoImovel = tipoImovel;
     jobAtual!.status = JobStatus.emAndamento;
     ultimoCheckin = DateTime.now();
-
     notifyListeners();
   }
 
-  void salvarChecklist(List<String> itens) {
-    jobAtual?.checklist = itens;
+  void salvarChecklist(List<dynamic> itens) {
+    jobAtual?.checklist = List<String>.from(
+      itens.map((item) => item.toString()),
+    );
     notifyListeners();
   }
 
@@ -78,7 +76,6 @@ class AppState extends ChangeNotifier {
 
   bool isPrimeiraVistoriaDoDia() {
     if (ultimoCheckin == null) return true;
-
     final agora = DateTime.now();
     return agora.day != ultimoCheckin!.day ||
         agora.month != ultimoCheckin!.month ||
@@ -90,13 +87,31 @@ class AppState extends ChangeNotifier {
     return distanciaMetros <= 100;
   }
 
+  void setPermitirIniciarLonge(bool value) {
+    permitirIniciarLonge = value;
+    notifyListeners();
+  }
+
+  void setEnderecoBase(String value) {
+    if (value.trim().isEmpty) return;
+    enderecoBase = value.trim();
+    notifyListeners();
+  }
+
+  void setResidencia({
+    required double? lat,
+    required double? lng,
+  }) {
+    residenciaLat = lat;
+    residenciaLng = lng;
+    notifyListeners();
+  }
+
   double calcularKmDeslocamento({
     required double atualLat,
     required double atualLng,
   }) {
-    if (jobAtual == null ||
-        jobAtual!.latitude == null ||
-        jobAtual!.longitude == null) {
+    if (jobAtual == null || jobAtual!.latitude == null || jobAtual!.longitude == null) {
       return 0;
     }
 
@@ -113,9 +128,7 @@ class AppState extends ChangeNotifier {
       );
     }
 
-    if (isPrimeiraVistoriaDoDia() &&
-        residenciaLat != null &&
-        residenciaLng != null) {
+    if (isPrimeiraVistoriaDoDia() && residenciaLat != null && residenciaLng != null) {
       return locationService.calcularDistancia(
         lat1: residenciaLat!,
         lon1: residenciaLng!,
@@ -132,7 +145,6 @@ class AppState extends ChangeNotifier {
     );
 
     double? distanciaResidencia;
-
     if (residenciaLat != null && residenciaLng != null) {
       distanciaResidencia = locationService.calcularDistancia(
         lat1: residenciaLat!,
@@ -143,9 +155,7 @@ class AppState extends ChangeNotifier {
     }
 
     if (distanciaResidencia != null) {
-      return distanciaAtual < distanciaResidencia
-          ? distanciaAtual
-          : distanciaResidencia;
+      return distanciaAtual < distanciaResidencia ? distanciaAtual : distanciaResidencia;
     }
 
     return distanciaAtual;
@@ -156,16 +166,13 @@ class AppState extends ChangeNotifier {
     required double atualLng,
   }) {
     if (jobAtual == null) return;
-
     final distancia = calcularKmDeslocamento(
       atualLat: atualLat,
       atualLng: atualLng,
     );
-
     jobAtual!.origemLat = atualLat;
     jobAtual!.origemLng = atualLng;
     jobAtual!.distanciaKm = distancia / 1000;
-
     notifyListeners();
   }
 
