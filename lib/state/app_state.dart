@@ -12,17 +12,35 @@ class AppState extends ChangeNotifier {
 
   List<Job> jobs = [];
   Job? jobAtual;
+
   double? ultimaLatitude;
   double? ultimaLongitude;
+
   double? residenciaLat = -23.5614;
   double? residenciaLng = -46.6559;
+
   String enderecoBase =
       'Apartamento - Condominio Spazio Belem, Av. Alvaro Ramos, 760 Apto 102, Fabio Freitas (Prop.)';
+
+  String usuarioNomeCompleto = 'Fábio Freitas';
+
   DateTime? ultimoCheckin;
   bool permitirIniciarLonge = true;
 
   Future<void> carregarJobs() async {
     jobs = await repository.getJobs();
+    notifyListeners();
+  }
+
+  String get primeiroNome {
+    final parts = usuarioNomeCompleto.trim().split(RegExp(r'\s+'));
+    return parts.isEmpty ? 'Usuário' : parts.first;
+  }
+
+  void setUsuarioNomeCompleto(String value) {
+    final nome = value.trim();
+    if (nome.isEmpty) return;
+    usuarioNomeCompleto = nome;
     notifyListeners();
   }
 
@@ -111,7 +129,9 @@ class AppState extends ChangeNotifier {
     required double atualLat,
     required double atualLng,
   }) {
-    if (jobAtual == null || jobAtual!.latitude == null || jobAtual!.longitude == null) {
+    if (jobAtual == null ||
+        jobAtual!.latitude == null ||
+        jobAtual!.longitude == null) {
       return 0;
     }
 
@@ -128,7 +148,9 @@ class AppState extends ChangeNotifier {
       );
     }
 
-    if (isPrimeiraVistoriaDoDia() && residenciaLat != null && residenciaLng != null) {
+    if (isPrimeiraVistoriaDoDia() &&
+        residenciaLat != null &&
+        residenciaLng != null) {
       return locationService.calcularDistancia(
         lat1: residenciaLat!,
         lon1: residenciaLng!,
@@ -155,7 +177,9 @@ class AppState extends ChangeNotifier {
     }
 
     if (distanciaResidencia != null) {
-      return distanciaAtual < distanciaResidencia ? distanciaAtual : distanciaResidencia;
+      return distanciaAtual < distanciaResidencia
+          ? distanciaAtual
+          : distanciaResidencia;
     }
 
     return distanciaAtual;

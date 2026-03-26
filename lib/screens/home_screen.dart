@@ -72,7 +72,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       backgroundColor: AppColors.background,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 0,
-        items: [
+        items: const [
           BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Painel'),
           BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Vistorias'),
           BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Agenda'),
@@ -86,39 +86,39 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 child: ListView(
                   padding: const EdgeInsets.all(20),
                   children: [
-                    _buildHeader(context),
-                    const SizedBox(height: 24),
+                    _buildHeader(context, appState),
+                    const SizedBox(height: 22),
                     const Text(
                       'MEUS JOBS DE HOJE',
                       style: TextStyle(
                         color: AppColors.textSecondary,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.8,
-                        fontSize: 14,
+                        fontSize: 13,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     ...jobs.map((job) => _jobCard(context, appState, job)),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 18),
                     const Text(
                       'NOVAS PROPOSTAS',
                       style: TextStyle(
                         color: AppColors.textSecondary,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.8,
-                        fontSize: 14,
+                        fontSize: 13,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     ..._buildProposalCards(),
                     if (_loadingLocation) ...[
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                       const Center(
                         child: Text(
                           'Atualizando localização...',
                           style: TextStyle(
                             color: AppColors.textSecondary,
-                            fontSize: 12,
+                            fontSize: 11,
                           ),
                         ),
                       ),
@@ -130,39 +130,39 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, AppState appState) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const CircleAvatar(
-          radius: 24,
+          radius: 22,
           backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=3'),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 10),
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.only(top: 2),
+            padding: const EdgeInsets.only(top: 1),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
-                  'Olá, Fábio Freitas! 👋',
+                  'Olá, ${appState.primeiroNome}! 👋',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 18,
+                  style: const TextStyle(
+                    fontSize: 17,
                     fontWeight: FontWeight.bold,
                     color: AppColors.textPrimary,
                   ),
                 ),
-                SizedBox(height: 2),
-                Text(
+                const SizedBox(height: 2),
+                const Text(
                   'Seu painel operacional de hoje',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: AppColors.textSecondary,
-                    fontSize: 13,
+                    fontSize: 12,
                   ),
                 ),
               ],
@@ -218,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return propostas.map((item) {
       return Container(
         margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(18),
@@ -233,7 +233,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   child: Text(
                     item['valor']!,
                     style: const TextStyle(
-                      fontSize: 17,
+                      fontSize: 16,
                       fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary,
                     ),
@@ -243,23 +243,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   item['resumo']!,
                   style: const TextStyle(
                     color: AppColors.textSecondary,
-                    fontSize: 12,
+                    fontSize: 11,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 3),
             Text(
               'Expira em ${item['tempo']}',
               style: const TextStyle(
                 color: AppColors.warning,
                 fontWeight: FontWeight.w700,
-                fontSize: 12,
+                fontSize: 11,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Container(
-              height: 50,
+              height: 46,
               decoration: BoxDecoration(
                 color: AppColors.primary,
                 borderRadius: BorderRadius.circular(18),
@@ -267,11 +267,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               child: Row(
                 children: [
                   Container(
-                    width: 52,
+                    width: 48,
                     margin: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                   ),
                   const Expanded(
@@ -281,7 +281,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w800,
-                          fontSize: 13,
+                          fontSize: 12,
                         ),
                       ),
                     ),
@@ -304,7 +304,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(18),
@@ -312,8 +312,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         boxShadow: const [
           BoxShadow(
             color: Color(0x0D000000),
-            blurRadius: 10,
-            offset: Offset(0, 4),
+            blurRadius: 8,
+            offset: Offset(0, 3),
           ),
         ],
       ),
@@ -323,39 +323,40 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           Row(
             children: [
               Container(
-                width: 10,
-                height: 10,
+                width: 9,
+                height: 9,
                 decoration: const BoxDecoration(
                   color: AppColors.primary,
                   shape: BoxShape.circle,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 7),
               const Text(
                 'EM ANDAMENTO',
                 style: TextStyle(
                   color: AppColors.primary,
                   fontWeight: FontWeight.w800,
-                  fontSize: 13,
+                  fontSize: 12,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(
             job.titulo,
             style: const TextStyle(
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: FontWeight.w800,
               color: AppColors.textPrimary,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             job.endereco,
             style: const TextStyle(
               color: AppColors.textSecondary,
-              fontSize: 12,
+              fontSize: 11,
+              height: 1.15,
             ),
           ),
           const SizedBox(height: 2),
@@ -363,47 +364,48 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             job.nomeCliente,
             style: const TextStyle(
               color: AppColors.textSecondary,
-              fontSize: 12,
+              fontSize: 11,
+              height: 1.15,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 9),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: 7,
+            runSpacing: 7,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
                   color: AppColors.primaryLight,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(11),
                 ),
                 child: Text(
                   distanciaTexto,
                   style: const TextStyle(
                     color: AppColors.primary,
                     fontWeight: FontWeight.w700,
-                    fontSize: 13,
+                    fontSize: 12,
                   ),
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
                   color: AppColors.warningLight,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(11),
                 ),
                 child: const Text(
                   '14:30 (Em 15 min)',
                   style: TextStyle(
                     color: AppColors.warning,
                     fontWeight: FontWeight.w800,
-                    fontSize: 13,
+                    fontSize: 12,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
@@ -417,11 +419,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   },
                   child: const Text(
                     'COMO CHEGAR',
-                    style: TextStyle(fontSize: 13),
+                    style: TextStyle(fontSize: 12),
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: ElevatedButton(
                   onPressed: () async {
@@ -458,7 +460,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     appState.permitirIniciarLonge
                         ? 'INICIAR (DEV)'
                         : 'INICIAR VISTORIA',
-                    style: const TextStyle(fontSize: 13),
+                    style: const TextStyle(fontSize: 12),
                   ),
                 ),
               ),
@@ -467,13 +469,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           if (!appState.permitirIniciarLonge &&
               distanciaMetros != null &&
               !podeIniciar) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Text(
-              'Aproxime-se do local para iniciar a vistoria. Distância atual: ${distanciaMetros.toStringAsFixed(0)}m',
+              'Aproxime-se do local para iniciar. Distância atual: ${distanciaMetros.toStringAsFixed(0)}m',
               style: const TextStyle(
                 color: AppColors.danger,
                 fontWeight: FontWeight.w600,
-                fontSize: 12,
+                fontSize: 11,
               ),
             ),
           ],
@@ -505,7 +507,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       return '${distanceMeters.toStringAsFixed(0)} m de distância';
     }
     return '${(distanceMeters / 1000).toStringAsFixed(1)} km de distância';
-    }
+  }
 
   static Widget _circleIconButton({
     required IconData icon,
@@ -518,14 +520,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         clipBehavior: Clip.none,
         children: [
           Container(
-            width: 42,
-            height: 42,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: AppColors.surface,
               shape: BoxShape.circle,
               border: Border.all(color: AppColors.border),
             ),
-            child: Icon(icon, color: AppColors.primary),
+            child: Icon(icon, color: AppColors.primary, size: 20),
           ),
           if (badge != null)
             Positioned(
@@ -541,7 +543,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   badge,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 10,
+                    fontSize: 9,
                     fontWeight: FontWeight.bold,
                   ),
                 ),

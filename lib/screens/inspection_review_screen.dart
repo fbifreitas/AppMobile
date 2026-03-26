@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'inspection_checkout_screen.dart';
 import 'overlay_camera_screen.dart';
 
 class InspectionReviewScreen extends StatelessWidget {
@@ -33,31 +34,25 @@ class InspectionReviewScreen extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
-              color: Theme.of(context)
-                  .colorScheme
-                  .surfaceContainerHighest
-                  .withValues(alpha: 0.35),
+              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   '$tipoImovel > $subtipoImovel',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 14,
-                  ),
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'Fotos registradas: ${captures.length}',
-                  style: const TextStyle(fontSize: 13),
+                  style: const TextStyle(fontSize: 12),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   captures.isEmpty
                       ? 'Nenhuma foto foi enviada para o review ainda.'
-                      : 'Tudo que for obrigatório deve aparecer aqui para o usuário revisar, completar ou confirmar.',
+                      : 'Revise o lote antes de seguir para o checkout.',
                   style: TextStyle(
                     fontSize: 12,
                     color: Theme.of(context).textTheme.bodySmall?.color,
@@ -89,9 +84,7 @@ class InspectionReviewScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: Theme.of(context)
-                        .dividerColor
-                        .withValues(alpha: 0.25),
+                    color: Theme.of(context).dividerColor.withValues(alpha: 0.25),
                   ),
                 ),
                 child: Column(
@@ -99,10 +92,7 @@ class InspectionReviewScreen extends StatelessWidget {
                   children: [
                     Text(
                       entry.key,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 14,
-                      ),
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
                     ),
                     const SizedBox(height: 8),
                     ...entry.value.map((capture) {
@@ -126,9 +116,7 @@ class InspectionReviewScreen extends StatelessWidget {
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                parts.isEmpty
-                                    ? 'Sem classificação detalhada'
-                                    : parts.join(' • '),
+                                parts.isEmpty ? 'Sem classificação detalhada' : parts.join(' • '),
                                 style: const TextStyle(fontSize: 12),
                               ),
                             ),
@@ -145,42 +133,22 @@ class InspectionReviewScreen extends StatelessWidget {
               );
             }),
           const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              color: Colors.orange.withValues(alpha: 0.10),
-              border: Border.all(color: Colors.orange.withValues(alpha: 0.25)),
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Pendências para próxima etapa',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
-                ),
-                SizedBox(height: 6),
-                Text(
-                  '• Destacar itens obrigatórios faltantes por ambiente',
-                  style: TextStyle(fontSize: 12),
-                ),
-                Text(
-                  '• Permitir editar classificação de cada foto',
-                  style: TextStyle(fontSize: 12),
-                ),
-                Text(
-                  '• Permitir tirar novas fotos a partir do review',
-                  style: TextStyle(fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
           FilledButton(
-            onPressed: () {
-              Navigator.popUntil(context, (route) => route.isFirst);
-            },
-            child: const Text('Concluir review'),
+            onPressed: captures.isEmpty
+                ? null
+                : () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => InspectionCheckoutScreen(
+                          captures: captures,
+                          tipoImovel: tipoImovel,
+                          subtipoImovel: subtipoImovel,
+                        ),
+                      ),
+                    );
+                  },
+            child: const Text('Ir para checkout'),
           ),
         ],
       ),
