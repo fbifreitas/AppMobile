@@ -241,7 +241,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       if (widget.initialAmbiente == null && suggestedContext?.ambiente != null) {
         ambiente = suggestedContext!.ambiente!;
         contextSuggestionSummary =
-            'Contexto sugerido com base no histórico: ${macroLocal}${ambiente == null ? '' : ' • $ambiente'}';
+    'Contexto sugerido com base no histórico: $macroLocal • $ambiente';
       }
     }
 
