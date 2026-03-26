@@ -370,6 +370,9 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
 
       if (!mounted) return;
 
+      final navigator = Navigator.of(context);
+      final messenger = ScaffoldMessenger.of(context);
+
       final result = OverlayCameraCaptureResult(
         filePath: file.path,
         macroLocal: _macroLocal,
@@ -393,13 +396,15 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       );
 
       if (widget.singleCaptureMode) {
-        Navigator.of(context).pop(result);
+        navigator.pop(result);
         return;
       }
 
+      if (!mounted) return;
+
       setState(() => _captures.add(result));
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Foto adicionada ao lote.')),
       );
     } finally {

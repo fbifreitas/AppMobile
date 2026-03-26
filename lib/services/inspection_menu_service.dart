@@ -46,7 +46,7 @@ class _PredictionEntry {
   });
 
   factory _PredictionEntry.fromJson(Map<String, dynamic> json) {
-    Map<String, int> _intMap(Object? value) {
+    Map<String, int> intMap(Object? value) {
       final map = Map<String, dynamic>.from(value as Map? ?? const {});
       return map.map((key, val) => MapEntry(key, (val as num).toInt()));
     }
@@ -56,9 +56,9 @@ class _PredictionEntry {
       lastUsedAt: json['lastUsedAt'] != null
           ? DateTime.tryParse(json['lastUsedAt'] as String)
           : null,
-      elementos: _intMap(json['elementos']),
-      materiais: _intMap(json['materiais']),
-      estados: _intMap(json['estados']),
+      elementos: intMap(json['elementos']),
+      materiais: intMap(json['materiais']),
+      estados: intMap(json['estados']),
     );
   }
 
