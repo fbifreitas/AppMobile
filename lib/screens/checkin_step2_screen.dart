@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../config/checkin_step2_config.dart';
 import '../models/checkin_step2_model.dart';
+import '../services/inspection_menu_service.dart';
 import 'overlay_camera_screen.dart';
 
 class CheckinStep2Screen extends StatefulWidget {
@@ -25,8 +26,12 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
   late final CheckinStep2Config _config;
   late CheckinStep2Model _model;
   final Map<String, TextEditingController> _obsControllers = {};
+  final InspectionMenuService _menuService = InspectionMenuService.instance;
+
+  List<CheckinStep2PhotoFieldConfig> _camposFotosOrdenados = [];
 
   bool _busy = false;
+  bool _loadingMenus = true;
   String? _busyFieldId;
 
   @override
@@ -35,12 +40,29 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
     _tipo = TipoImovelExtension.fromString(widget.tipoImovel);
     _config = CheckinStep2Configs.byTipo(_tipo);
     _model = widget.initialData ?? CheckinStep2Model.empty(_tipo);
+    _camposFotosOrdenados = List<CheckinStep2PhotoFieldConfig>.from(_config.camposFotos);
 
     for (final grupo in _config.gruposOpcoes) {
       _obsControllers[grupo.id] = TextEditingController(
         text: _model.respostas[grupo.id]?.observacao ?? '',
       );
     }
+
+    _prepareMenus();
+  }
+
+  Future<void> _prepareMenus() async {
+    final ordered = await _menuService.sortPhotoFields(
+      tipoImovel: _tipo,
+      defaults: _config.camposFotos,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _camposFotosOrdenados = ordered;
+      _loadingMenus = false;
+    });
   }
 
   @override
@@ -64,20 +86,17 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
     }
   }
 
-  String _initialAmbienteForField(String titulo) {
-    final t = titulo.toLowerCase();
-    if (t.contains('fachada')) return 'Fachada';
-    if (t.contains('logradouro')) return 'Logradouro';
-    if (t.contains('número') || t.contains('numero')) return 'Número';
-    return 'Fachada';
-  }
-
   Future<void> _handleCapture(CheckinStep2PhotoFieldConfig field) async {
     try {
       setState(() {
         _busy = true;
         _busyFieldId = field.id;
       });
+
+      await _menuService.registerUsage(
+        scope: 'checkin_step2.${_tipo.name}.field',
+        value: field.id,
+      );
 
       final result = await Navigator.push<OverlayCameraCaptureResult>(
         context,
@@ -87,8 +106,9 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
             tipoImovel: widget.tipoImovel,
             subtipoImovel: _defaultSubtype(),
             singleCaptureMode: true,
-            preselectedMacroLocal: 'Rua',
-            initialAmbiente: _initialAmbienteForField(field.titulo),
+            preselectedMacroLocal: field.cameraMacroLocal,
+            initialAmbiente: field.cameraAmbiente,
+            initialElemento: field.cameraElementoInicial,
             cameFromCheckinStep1: false,
           ),
         ),
@@ -163,7 +183,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
                         SizedBox(
                           width: double.infinity,
                           child: FilledButton(
-                            onPressed: _busy ? null : _handleContinue,
+                            onPressed: (_busy || _loadingMenus) ? null : _handleContinue,
                             child: const Text(
                               'Confirmar e abrir a câmera',
                               style: TextStyle(fontSize: 13),
@@ -176,7 +196,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
                 ),
               ],
             ),
-            if (_busy)
+            if (_busy || _loadingMenus)
               Container(
                 color: Colors.black.withValues(alpha: 0.12),
                 child: const Center(child: CircularProgressIndicator()),
@@ -241,7 +261,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
           style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 10),
-        ..._config.camposFotos.map(
+        ..._camposFotosOrdenados.map(
           (field) => _PhotoCaptureCard(
             titulo: field.titulo,
             obrigatorio: field.obrigatorio,

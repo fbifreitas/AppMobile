@@ -1,491 +1,647 @@
 {
   "meta": {
-    "packageVersion": 1,
-    "packageName": "menu_ranking_package",
+    "packageVersion": 2,
+    "packageName": "inspection_menu_v2",
     "publishedAt": "2026-03-26T12:00:00Z",
-    "minAppVersion": "1.0.0",
-    "schemaVersion": "1.0.0",
-    "mergeStrategy": "replace_catalog_keep_local_usage",
-    "checksum": "optional"
-  },
-  "featureFlags": {
-    "enableLocalRanking": true,
-    "enableRecencyBoost": true,
-    "enableTelemetryV2": false,
-    "enablePredictionV3": false
+    "schemaVersion": "2.0.0"
   },
   "rankingPolicy": {
-    "editorialWeight": 0.70,
-    "localUsageWeight": 0.20,
-    "recencyWeight": 0.10,
+    "editorialWeight": 0.72,
+    "localUsageWeight": 0.18,
+    "recencyWeight": 0.1,
     "minUsesToReorder": 3,
-    "maxRisePerCycle": 2,
-    "pinnedTopAlwaysFirst": true,
-    "pinnedBottomAlwaysLast": true,
     "decayDays": 30
   },
-  "catalog": {
-    "nodes": [
-      {
-        "id": "local_fachada",
-        "type": "local",
-        "label": "Fachada",
-        "active": true,
-        "parentId": null,
-        "tags": ["externo"],
-        "allowedPropertyTypes": ["urbano", "comercial", "industrial", "rural", "apartamento"],
-        "allowedStages": ["checkin_step2"],
-        "manualOrder": 1,
-        "baseScore": 100,
-        "pinnedTop": true,
-        "pinnedBottom": false
-      },
-      {
-        "id": "local_logradouro",
-        "type": "local",
-        "label": "Logradouro",
-        "active": true,
-        "parentId": null,
-        "tags": ["externo"],
-        "allowedPropertyTypes": ["urbano", "comercial", "industrial", "rural", "apartamento"],
-        "allowedStages": ["checkin_step2"],
-        "manualOrder": 2,
-        "baseScore": 95,
-        "pinnedTop": true,
-        "pinnedBottom": false
-      },
-      {
-        "id": "local_acesso",
-        "type": "local",
-        "label": "Acesso ao imóvel",
-        "active": true,
-        "parentId": null,
-        "tags": ["externo"],
-        "allowedPropertyTypes": ["urbano", "comercial", "industrial", "rural", "apartamento"],
-        "allowedStages": ["checkin_step2"],
-        "manualOrder": 3,
-        "baseScore": 92,
-        "pinnedTop": true,
-        "pinnedBottom": false
-      },
-      {
-        "id": "local_entorno",
-        "type": "local",
-        "label": "Entorno",
-        "active": true,
-        "parentId": null,
-        "tags": ["externo"],
-        "allowedPropertyTypes": ["urbano", "comercial", "industrial", "rural", "apartamento"],
-        "allowedStages": ["checkin_step2"],
-        "manualOrder": 4,
-        "baseScore": 90,
-        "pinnedTop": true,
-        "pinnedBottom": false
-      },
-      {
-        "id": "local_lateral",
-        "type": "local",
-        "label": "Lateral externa",
-        "active": true,
-        "parentId": null,
-        "tags": ["externo"],
-        "allowedPropertyTypes": ["urbano", "comercial", "industrial", "rural"],
-        "allowedStages": ["checkin_step2"],
-        "manualOrder": 5,
-        "baseScore": 70,
-        "pinnedTop": false,
-        "pinnedBottom": false
-      },
-      {
-        "id": "local_fundos",
-        "type": "local",
-        "label": "Fundos externos",
-        "active": true,
-        "parentId": null,
-        "tags": ["externo"],
-        "allowedPropertyTypes": ["urbano", "comercial", "industrial", "rural"],
-        "allowedStages": ["checkin_step2"],
-        "manualOrder": 6,
-        "baseScore": 65,
-        "pinnedTop": false,
-        "pinnedBottom": false
-      },
-      {
-        "id": "local_garagem",
-        "type": "local",
-        "label": "Garagem / estacionamento",
-        "active": true,
-        "parentId": null,
-        "tags": ["externo"],
-        "allowedPropertyTypes": ["urbano", "comercial", "industrial", "apartamento"],
-        "allowedStages": ["checkin_step2"],
-        "manualOrder": 7,
-        "baseScore": 60,
-        "pinnedTop": false,
-        "pinnedBottom": false
-      },
-      {
-        "id": "local_outro",
-        "type": "local",
-        "label": "Outro local",
-        "active": true,
-        "parentId": null,
-        "tags": ["externo", "interno"],
-        "allowedPropertyTypes": ["urbano", "comercial", "industrial", "rural", "apartamento"],
-        "allowedStages": ["checkin_step2", "vistoria_interna"],
-        "manualOrder": 998,
-        "baseScore": 1,
-        "pinnedTop": false,
-        "pinnedBottom": true
-      },
-      {
-        "id": "local_ambiente_nao_existe",
-        "type": "local",
-        "label": "Ambiente não existe",
-        "active": true,
-        "parentId": null,
-        "tags": ["interno"],
-        "allowedPropertyTypes": ["urbano", "comercial", "industrial", "rural", "apartamento"],
-        "allowedStages": ["vistoria_interna"],
-        "manualOrder": 999,
-        "baseScore": 1,
-        "pinnedTop": false,
-        "pinnedBottom": true
-      },
-
-      {
-        "id": "el_visao_geral_fachada",
-        "type": "element",
-        "label": "Visão geral",
-        "active": true,
-        "parentId": "local_fachada",
-        "allowedPropertyTypes": ["urbano", "comercial", "industrial", "rural", "apartamento"],
-        "allowedStages": ["checkin_step2"],
-        "manualOrder": 1,
-        "baseScore": 100,
-        "pinnedTop": true,
-        "pinnedBottom": false
-      },
-      {
-        "id": "el_numero_fachada",
-        "type": "element",
-        "label": "Número",
-        "active": true,
-        "parentId": "local_fachada",
-        "allowedPropertyTypes": ["urbano", "comercial", "industrial", "apartamento"],
-        "allowedStages": ["checkin_step2"],
-        "manualOrder": 2,
-        "baseScore": 95,
-        "pinnedTop": false,
-        "pinnedBottom": false
-      },
-      {
-        "id": "el_porta_fachada",
-        "type": "element",
-        "label": "Porta",
-        "active": true,
-        "parentId": "local_fachada",
-        "allowedPropertyTypes": ["urbano", "comercial", "industrial"],
-        "allowedStages": ["checkin_step2"],
-        "manualOrder": 3,
-        "baseScore": 80,
-        "pinnedTop": false,
-        "pinnedBottom": false
-      },
-      {
-        "id": "el_portao_fachada",
-        "type": "element",
-        "label": "Portão",
-        "active": true,
-        "parentId": "local_fachada",
-        "allowedPropertyTypes": ["urbano", "comercial", "industrial", "rural"],
-        "allowedStages": ["checkin_step2"],
-        "manualOrder": 4,
-        "baseScore": 78,
-        "pinnedTop": false,
-        "pinnedBottom": false
-      },
-      {
-        "id": "el_janela_fachada",
-        "type": "element",
-        "label": "Janela",
-        "active": true,
-        "parentId": "local_fachada",
-        "allowedPropertyTypes": ["urbano", "comercial", "industrial", "apartamento"],
-        "allowedStages": ["checkin_step2"],
-        "manualOrder": 5,
-        "baseScore": 70,
-        "pinnedTop": false,
-        "pinnedBottom": false
-      },
-      {
-        "id": "el_interfone_acesso",
-        "type": "element",
-        "label": "Interfone",
-        "active": true,
-        "parentId": "local_acesso",
-        "allowedPropertyTypes": ["urbano", "comercial", "apartamento"],
-        "allowedStages": ["checkin_step2"],
-        "manualOrder": 3,
-        "baseScore": 75,
-        "pinnedTop": false,
-        "pinnedBottom": false
-      },
-      {
-        "id": "el_visao_geral_acesso",
-        "type": "element",
-        "label": "Visão geral",
-        "active": true,
-        "parentId": "local_acesso",
-        "allowedPropertyTypes": ["urbano", "comercial", "industrial", "rural", "apartamento"],
-        "allowedStages": ["checkin_step2"],
-        "manualOrder": 1,
-        "baseScore": 100,
-        "pinnedTop": true,
-        "pinnedBottom": false
-      },
-      {
-        "id": "el_portao_acesso",
-        "type": "element",
-        "label": "Portão",
-        "active": true,
-        "parentId": "local_acesso",
-        "allowedPropertyTypes": ["urbano", "comercial", "industrial", "rural", "apartamento"],
-        "allowedStages": ["checkin_step2"],
-        "manualOrder": 2,
-        "baseScore": 90,
-        "pinnedTop": false,
-        "pinnedBottom": false
-      },
-      {
-        "id": "el_numero_acesso",
-        "type": "element",
-        "label": "Número",
-        "active": true,
-        "parentId": "local_acesso",
-        "allowedPropertyTypes": ["urbano", "comercial", "industrial", "apartamento"],
-        "allowedStages": ["checkin_step2"],
-        "manualOrder": 4,
-        "baseScore": 70,
-        "pinnedTop": false,
-        "pinnedBottom": false
-      },
-      {
-        "id": "el_visao_geral_logradouro",
-        "type": "element",
-        "label": "Visão geral",
-        "active": true,
-        "parentId": "local_logradouro",
-        "allowedPropertyTypes": ["urbano", "comercial", "industrial", "rural", "apartamento"],
-        "allowedStages": ["checkin_step2"],
-        "manualOrder": 1,
-        "baseScore": 100,
-        "pinnedTop": true,
-        "pinnedBottom": false
-      },
-      {
-        "id": "el_calcada_logradouro",
-        "type": "element",
-        "label": "Calçada",
-        "active": true,
-        "parentId": "local_logradouro",
-        "allowedPropertyTypes": ["urbano", "comercial", "industrial", "apartamento"],
-        "allowedStages": ["checkin_step2"],
-        "manualOrder": 2,
-        "baseScore": 82,
-        "pinnedTop": false,
-        "pinnedBottom": false
-      },
-      {
-        "id": "el_rua_via_logradouro",
-        "type": "element",
-        "label": "Rua / via",
-        "active": true,
-        "parentId": "local_logradouro",
-        "allowedPropertyTypes": ["urbano", "comercial", "industrial", "rural", "apartamento"],
-        "allowedStages": ["checkin_step2"],
-        "manualOrder": 3,
-        "baseScore": 80,
-        "pinnedTop": false,
-        "pinnedBottom": false
-      },
-      {
-        "id": "el_pavimentacao_logradouro",
-        "type": "element",
-        "label": "Pavimentação",
-        "active": true,
-        "parentId": "local_logradouro",
-        "allowedPropertyTypes": ["urbano", "comercial", "industrial", "apartamento"],
-        "allowedStages": ["checkin_step2"],
-        "manualOrder": 4,
-        "baseScore": 70,
-        "pinnedTop": false,
-        "pinnedBottom": false
-      },
-      {
-        "id": "el_visao_geral_entorno",
-        "type": "element",
-        "label": "Visão geral",
-        "active": true,
-        "parentId": "local_entorno",
-        "allowedPropertyTypes": ["urbano", "comercial", "industrial", "rural", "apartamento"],
-        "allowedStages": ["checkin_step2"],
-        "manualOrder": 1,
-        "baseScore": 100,
-        "pinnedTop": true,
-        "pinnedBottom": false
-      },
-      {
-        "id": "el_condicao_rua_entorno",
-        "type": "element",
-        "label": "Condição da rua",
-        "active": true,
-        "parentId": "local_entorno",
-        "allowedPropertyTypes": ["urbano", "comercial", "industrial", "rural", "apartamento"],
-        "allowedStages": ["checkin_step2"],
-        "manualOrder": 2,
-        "baseScore": 80,
-        "pinnedTop": false,
-        "pinnedBottom": false
-      },
-      {
-        "id": "el_area_risco_entorno",
-        "type": "element",
-        "label": "Área de risco aparente",
-        "active": true,
-        "parentId": "local_entorno",
-        "allowedPropertyTypes": ["urbano", "comercial", "industrial", "rural", "apartamento"],
-        "allowedStages": ["checkin_step2"],
-        "manualOrder": 3,
-        "baseScore": 65,
-        "pinnedTop": false,
-        "pinnedBottom": false
-      },
-      {
-        "id": "el_outro_elemento_fachada",
-        "type": "element",
-        "label": "Outro elemento",
-        "active": true,
-        "parentId": "local_fachada",
-        "allowedPropertyTypes": ["urbano", "comercial", "industrial", "rural", "apartamento"],
-        "allowedStages": ["checkin_step2"],
-        "manualOrder": 999,
-        "baseScore": 1,
-        "pinnedTop": false,
-        "pinnedBottom": true
-      },
-      {
-        "id": "el_outro_elemento_acesso",
-        "type": "element",
-        "label": "Outro elemento",
-        "active": true,
-        "parentId": "local_acesso",
-        "allowedPropertyTypes": ["urbano", "comercial", "industrial", "rural", "apartamento"],
-        "allowedStages": ["checkin_step2"],
-        "manualOrder": 999,
-        "baseScore": 1,
-        "pinnedTop": false,
-        "pinnedBottom": true
-      },
-      {
-        "id": "el_outro_elemento_logradouro",
-        "type": "element",
-        "label": "Outro elemento",
-        "active": true,
-        "parentId": "local_logradouro",
-        "allowedPropertyTypes": ["urbano", "comercial", "industrial", "rural", "apartamento"],
-        "allowedStages": ["checkin_step2"],
-        "manualOrder": 999,
-        "baseScore": 1,
-        "pinnedTop": false,
-        "pinnedBottom": true
-      },
-      {
-        "id": "el_outro_elemento_entorno",
-        "type": "element",
-        "label": "Outro elemento",
-        "active": true,
-        "parentId": "local_entorno",
-        "allowedPropertyTypes": ["urbano", "comercial", "industrial", "rural", "apartamento"],
-        "allowedStages": ["checkin_step2"],
-        "manualOrder": 999,
-        "baseScore": 1,
-        "pinnedTop": false,
-        "pinnedBottom": true
-      }
-    ]
-  },
-  "scopes": [
-    {
-      "id": "checkin_step2.urbano",
-      "stage": "checkin_step2",
-      "propertyType": "urbano",
-      "availableLocals": [
-        "local_fachada",
-        "local_logradouro",
-        "local_acesso",
-        "local_entorno",
-        "local_lateral",
-        "local_fundos",
-        "local_garagem",
-        "local_outro"
-      ]
-    },
-    {
-      "id": "checkin_step2.apartamento",
-      "stage": "checkin_step2",
-      "propertyType": "apartamento",
-      "availableLocals": [
-        "local_fachada",
-        "local_logradouro",
-        "local_acesso",
-        "local_entorno",
-        "local_garagem",
-        "local_outro"
-      ]
-    },
-    {
-      "id": "checkin_step2.comercial",
-      "stage": "checkin_step2",
-      "propertyType": "comercial",
-      "availableLocals": [
-        "local_fachada",
-        "local_logradouro",
-        "local_acesso",
-        "local_entorno",
-        "local_lateral",
-        "local_fundos",
-        "local_garagem",
-        "local_outro"
-      ]
-    },
-    {
-      "id": "checkin_step2.rural",
-      "stage": "checkin_step2",
-      "propertyType": "rural",
-      "availableLocals": [
-        "local_fachada",
-        "local_logradouro",
-        "local_acesso",
-        "local_entorno",
-        "local_lateral",
-        "local_fundos",
-        "local_outro"
+  "step2": {
+    "photoFieldOrder": {
+      "urbano": [
+        "fachada",
+        "logradouro",
+        "acesso_imovel"
+      ],
+      "rural": [
+        "acesso_principal",
+        "entrada_propriedade",
+        "identificacao_area"
+      ],
+      "comercial": [
+        "fachada_comercial",
+        "logradouro_comercial",
+        "acesso_comercial"
+      ],
+      "industrial": [
+        "acesso_industrial",
+        "fachada_industrial",
+        "identificacao_industrial"
       ]
     }
-  ],
-  "telemetryPolicy": {
-    "version": "v2-prepared",
-    "enabled": false,
-    "captureSelectionPosition": true,
-    "captureSelectionTimeMs": true,
-    "capturePhotoConfirmation": true,
-    "captureCancelAction": true
   },
-  "predictionPolicy": {
-    "version": "v3-prepared",
-    "enabled": false,
-    "mode": "server_assisted",
-    "fallbackMode": "editorial_only"
+  "camera": {
+    "propertyTypes": {
+      "urbano": {
+        "macroLocals": [
+          {
+            "label": "Rua",
+            "baseScore": 100,
+            "pinnedTop": true,
+            "ambientes": [
+              {
+                "label": "Fachada",
+                "baseScore": 100,
+                "elements": [
+                  {
+                    "label": "Visão geral",
+                    "baseScore": 100,
+                    "pinnedTop": true
+                  },
+                  {
+                    "label": "Número",
+                    "baseScore": 95
+                  },
+                  {
+                    "label": "Porta",
+                    "baseScore": 84
+                  },
+                  {
+                    "label": "Portão",
+                    "baseScore": 82
+                  },
+                  {
+                    "label": "Janela",
+                    "baseScore": 74
+                  },
+                  {
+                    "label": "Interfone",
+                    "baseScore": 68
+                  },
+                  {
+                    "label": "Outro elemento",
+                    "baseScore": 1,
+                    "pinnedBottom": true
+                  }
+                ]
+              },
+              {
+                "label": "Logradouro",
+                "baseScore": 96,
+                "elements": [
+                  {
+                    "label": "Visão geral",
+                    "baseScore": 100,
+                    "pinnedTop": true
+                  },
+                  {
+                    "label": "Calçada",
+                    "baseScore": 90
+                  },
+                  {
+                    "label": "Rua / via",
+                    "baseScore": 88
+                  },
+                  {
+                    "label": "Pavimentação",
+                    "baseScore": 82
+                  },
+                  {
+                    "label": "Placa de rua",
+                    "baseScore": 72
+                  },
+                  {
+                    "label": "Outro elemento",
+                    "baseScore": 1,
+                    "pinnedBottom": true
+                  }
+                ]
+              },
+              {
+                "label": "Acesso ao imóvel",
+                "baseScore": 94,
+                "elements": [
+                  {
+                    "label": "Visão geral",
+                    "baseScore": 100,
+                    "pinnedTop": true
+                  },
+                  {
+                    "label": "Portão",
+                    "baseScore": 92
+                  },
+                  {
+                    "label": "Número",
+                    "baseScore": 88
+                  },
+                  {
+                    "label": "Interfone",
+                    "baseScore": 84
+                  },
+                  {
+                    "label": "Porta",
+                    "baseScore": 78
+                  },
+                  {
+                    "label": "Rampa",
+                    "baseScore": 58
+                  },
+                  {
+                    "label": "Escada",
+                    "baseScore": 52
+                  },
+                  {
+                    "label": "Outro elemento",
+                    "baseScore": 1,
+                    "pinnedBottom": true
+                  }
+                ]
+              },
+              {
+                "label": "Entorno",
+                "baseScore": 80,
+                "elements": [
+                  {
+                    "label": "Visão geral",
+                    "baseScore": 100,
+                    "pinnedTop": true
+                  },
+                  {
+                    "label": "Condição da rua",
+                    "baseScore": 86
+                  },
+                  {
+                    "label": "Imóvel vizinho",
+                    "baseScore": 72
+                  },
+                  {
+                    "label": "Vegetação",
+                    "baseScore": 64
+                  },
+                  {
+                    "label": "Outro elemento",
+                    "baseScore": 1,
+                    "pinnedBottom": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "label": "Área externa",
+            "baseScore": 74,
+            "ambientes": [
+              {
+                "label": "Lateral externa",
+                "baseScore": 84,
+                "elements": [
+                  {
+                    "label": "Visão geral",
+                    "baseScore": 100
+                  },
+                  {
+                    "label": "Parede lateral",
+                    "baseScore": 84
+                  },
+                  {
+                    "label": "Corredor lateral",
+                    "baseScore": 76
+                  },
+                  {
+                    "label": "Outro elemento",
+                    "baseScore": 1,
+                    "pinnedBottom": true
+                  }
+                ]
+              },
+              {
+                "label": "Fundos externos",
+                "baseScore": 78,
+                "elements": [
+                  {
+                    "label": "Visão geral",
+                    "baseScore": 100
+                  },
+                  {
+                    "label": "Quintal",
+                    "baseScore": 84
+                  },
+                  {
+                    "label": "Muro",
+                    "baseScore": 78
+                  },
+                  {
+                    "label": "Cobertura",
+                    "baseScore": 68
+                  },
+                  {
+                    "label": "Outro elemento",
+                    "baseScore": 1,
+                    "pinnedBottom": true
+                  }
+                ]
+              },
+              {
+                "label": "Garagem / estacionamento",
+                "baseScore": 72,
+                "elements": [
+                  {
+                    "label": "Visão geral",
+                    "baseScore": 100
+                  },
+                  {
+                    "label": "Piso",
+                    "baseScore": 82
+                  },
+                  {
+                    "label": "Portão",
+                    "baseScore": 78
+                  },
+                  {
+                    "label": "Cobertura",
+                    "baseScore": 70
+                  },
+                  {
+                    "label": "Outro elemento",
+                    "baseScore": 1,
+                    "pinnedBottom": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "label": "Área interna",
+            "baseScore": 60,
+            "ambientes": [
+              {
+                "label": "Sala",
+                "baseScore": 88,
+                "elements": [
+                  {
+                    "label": "Visão geral",
+                    "baseScore": 100
+                  },
+                  {
+                    "label": "Piso",
+                    "baseScore": 86
+                  },
+                  {
+                    "label": "Parede",
+                    "baseScore": 80
+                  },
+                  {
+                    "label": "Teto",
+                    "baseScore": 78
+                  },
+                  {
+                    "label": "Porta",
+                    "baseScore": 74
+                  },
+                  {
+                    "label": "Janela",
+                    "baseScore": 72
+                  }
+                ]
+              },
+              {
+                "label": "Cozinha",
+                "baseScore": 82,
+                "elements": [
+                  {
+                    "label": "Visão geral",
+                    "baseScore": 100
+                  },
+                  {
+                    "label": "Piso",
+                    "baseScore": 84
+                  },
+                  {
+                    "label": "Parede",
+                    "baseScore": 82
+                  },
+                  {
+                    "label": "Bancada",
+                    "baseScore": 78
+                  }
+                ]
+              },
+              {
+                "label": "Banheiro",
+                "baseScore": 80,
+                "elements": [
+                  {
+                    "label": "Visão geral",
+                    "baseScore": 100
+                  },
+                  {
+                    "label": "Piso",
+                    "baseScore": 84
+                  },
+                  {
+                    "label": "Parede",
+                    "baseScore": 82
+                  },
+                  {
+                    "label": "Louças e metais",
+                    "baseScore": 80
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "rural": {
+        "macroLocals": [
+          {
+            "label": "Rua",
+            "baseScore": 100,
+            "ambientes": [
+              {
+                "label": "Acesso principal",
+                "baseScore": 100,
+                "elements": [
+                  {
+                    "label": "Visão geral",
+                    "baseScore": 100
+                  },
+                  {
+                    "label": "Porteira",
+                    "baseScore": 90
+                  },
+                  {
+                    "label": "Estrada de acesso",
+                    "baseScore": 88
+                  }
+                ]
+              },
+              {
+                "label": "Entrada da propriedade",
+                "baseScore": 94,
+                "elements": [
+                  {
+                    "label": "Visão geral",
+                    "baseScore": 100
+                  },
+                  {
+                    "label": "Porteira",
+                    "baseScore": 92
+                  },
+                  {
+                    "label": "Cerca",
+                    "baseScore": 80
+                  }
+                ]
+              },
+              {
+                "label": "Identificação / referência",
+                "baseScore": 88,
+                "elements": [
+                  {
+                    "label": "Visão geral",
+                    "baseScore": 100
+                  },
+                  {
+                    "label": "Placa",
+                    "baseScore": 86
+                  },
+                  {
+                    "label": "Número",
+                    "baseScore": 72
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "label": "Área externa",
+            "baseScore": 76,
+            "ambientes": [
+              {
+                "label": "Curral",
+                "baseScore": 80,
+                "elements": [
+                  {
+                    "label": "Visão geral",
+                    "baseScore": 100
+                  },
+                  {
+                    "label": "Cerca",
+                    "baseScore": 82
+                  },
+                  {
+                    "label": "Cocho",
+                    "baseScore": 74
+                  }
+                ]
+              },
+              {
+                "label": "Galpão",
+                "baseScore": 78,
+                "elements": [
+                  {
+                    "label": "Visão geral",
+                    "baseScore": 100
+                  },
+                  {
+                    "label": "Estrutura",
+                    "baseScore": 84
+                  },
+                  {
+                    "label": "Cobertura",
+                    "baseScore": 82
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "comercial": {
+        "macroLocals": [
+          {
+            "label": "Rua",
+            "baseScore": 100,
+            "ambientes": [
+              {
+                "label": "Fachada",
+                "baseScore": 100,
+                "elements": [
+                  {
+                    "label": "Visão geral",
+                    "baseScore": 100
+                  },
+                  {
+                    "label": "Letreiro",
+                    "baseScore": 92
+                  },
+                  {
+                    "label": "Porta",
+                    "baseScore": 84
+                  },
+                  {
+                    "label": "Vitrine",
+                    "baseScore": 80
+                  },
+                  {
+                    "label": "Número",
+                    "baseScore": 74
+                  }
+                ]
+              },
+              {
+                "label": "Logradouro",
+                "baseScore": 94,
+                "elements": [
+                  {
+                    "label": "Visão geral",
+                    "baseScore": 100
+                  },
+                  {
+                    "label": "Calçada",
+                    "baseScore": 90
+                  },
+                  {
+                    "label": "Rua / via",
+                    "baseScore": 86
+                  }
+                ]
+              },
+              {
+                "label": "Acesso principal",
+                "baseScore": 92,
+                "elements": [
+                  {
+                    "label": "Visão geral",
+                    "baseScore": 100
+                  },
+                  {
+                    "label": "Porta",
+                    "baseScore": 90
+                  },
+                  {
+                    "label": "Portão",
+                    "baseScore": 80
+                  },
+                  {
+                    "label": "Interfone",
+                    "baseScore": 74
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "label": "Área externa",
+            "baseScore": 72,
+            "ambientes": [
+              {
+                "label": "Estacionamento",
+                "baseScore": 82,
+                "elements": [
+                  {
+                    "label": "Visão geral",
+                    "baseScore": 100
+                  },
+                  {
+                    "label": "Piso",
+                    "baseScore": 82
+                  },
+                  {
+                    "label": "Sinalização",
+                    "baseScore": 78
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "industrial": {
+        "macroLocals": [
+          {
+            "label": "Rua",
+            "baseScore": 100,
+            "ambientes": [
+              {
+                "label": "Acesso principal",
+                "baseScore": 100,
+                "elements": [
+                  {
+                    "label": "Visão geral",
+                    "baseScore": 100
+                  },
+                  {
+                    "label": "Portão",
+                    "baseScore": 94
+                  },
+                  {
+                    "label": "Guarita",
+                    "baseScore": 82
+                  }
+                ]
+              },
+              {
+                "label": "Fachada / portaria",
+                "baseScore": 96,
+                "elements": [
+                  {
+                    "label": "Visão geral",
+                    "baseScore": 100
+                  },
+                  {
+                    "label": "Portaria",
+                    "baseScore": 88
+                  },
+                  {
+                    "label": "Letreiro",
+                    "baseScore": 84
+                  }
+                ]
+              },
+              {
+                "label": "Número / identificação",
+                "baseScore": 90,
+                "elements": [
+                  {
+                    "label": "Visão geral",
+                    "baseScore": 100
+                  },
+                  {
+                    "label": "Número",
+                    "baseScore": 94
+                  },
+                  {
+                    "label": "Placa",
+                    "baseScore": 86
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "label": "Área externa",
+            "baseScore": 76,
+            "ambientes": [
+              {
+                "label": "Pátio externo",
+                "baseScore": 84,
+                "elements": [
+                  {
+                    "label": "Visão geral",
+                    "baseScore": 100
+                  },
+                  {
+                    "label": "Piso",
+                    "baseScore": 84
+                  },
+                  {
+                    "label": "Pátio de manobra",
+                    "baseScore": 80
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
   }
 }
