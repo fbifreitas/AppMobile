@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../screens/checkin_capture_screen.dart';
 import '../screens/checkin_step2_screen.dart';
-import '../screens/inspection_menu_screen.dart';
 import '../services/location_service.dart';
 import '../state/app_state.dart';
 import '../state/inspection_state.dart';
@@ -83,7 +83,8 @@ class _CheckinScreenState extends State<CheckinScreen> {
                       cor = AppColors.success;
                       fundo = AppColors.successLight;
                     } else {
-                      texto = 'Você ainda não está no raio do local (${distancia.toStringAsFixed(0)}m)';
+                      texto =
+                          'Você ainda não está no raio do local (${distancia.toStringAsFixed(0)}m)';
                       cor = AppColors.danger;
                       fundo = AppColors.dangerLight;
                     }
@@ -277,11 +278,16 @@ class _CheckinScreenState extends State<CheckinScreen> {
 
       await Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const InspectionMenuScreen()),
+        MaterialPageRoute(
+          builder: (_) => const CheckinCaptureScreen(
+            titulo: 'Câmera do Check-in — Etapa 1',
+            descricao: 'Registre a evidência inicial do check-in antes de seguir para a vistoria.',
+          ),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
-      _mostrarInfo('Falha ao abrir a vistoria: $e');
+      _mostrarInfo('Falha ao abrir a câmera do check-in: $e');
     } finally {
       if (mounted) {
         setState(() => _busy = false);

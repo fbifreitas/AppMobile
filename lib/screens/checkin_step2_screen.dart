@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../config/checkin_step2_config.dart';
 import '../models/checkin_step2_model.dart';
 import '../services/checkin_photo_capture_service.dart';
-import 'inspection_menu_screen.dart';
+import 'checkin_capture_screen.dart';
 
 class CheckinStep2Screen extends StatefulWidget {
   final String tipoImovel;
@@ -80,7 +80,9 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
       );
     } on CheckinPhotoCaptureException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -122,7 +124,9 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
       );
     } on CheckinPhotoCaptureException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -151,7 +155,12 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
 
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const InspectionMenuScreen()),
+      MaterialPageRoute(
+        builder: (_) => const CheckinCaptureScreen(
+          titulo: 'Câmera do Check-in — Etapa 2',
+          descricao: 'Registre a evidência complementar da etapa 2 antes de seguir para a vistoria.',
+        ),
+      ),
     );
   }
 
