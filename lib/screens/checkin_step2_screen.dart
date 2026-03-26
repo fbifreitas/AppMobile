@@ -4,6 +4,7 @@ import '../config/checkin_step2_config.dart';
 import '../models/checkin_step2_model.dart';
 import '../screens/overlay_camera_screen.dart';
 import '../services/checkin_photo_capture_service.dart';
+import '../models/inspection_session_model.dart';
 
 class CheckinStep2Screen extends StatefulWidget {
   final String tipoImovel;
@@ -31,6 +32,14 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
   bool _busy = false;
   String? _busyFieldId;
 
+  static const List<String> _ambientesRua = [
+    'Fachada',
+    'Logradouro',
+    'Número',
+    'Condomínio',
+    'Portão / Acesso',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -53,6 +62,14 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
     super.dispose();
   }
 
+  String _initialAmbienteForField(String titulo) {
+    final t = titulo.toLowerCase();
+    if (t.contains('fachada')) return 'Fachada';
+    if (t.contains('logradouro')) return 'Logradouro';
+    if (t.contains('número') || t.contains('numero')) return 'Número';
+    return 'Fachada';
+  }
+
   Future<void> _handleCapture(CheckinStep2PhotoFieldConfig field) async {
     try {
       setState(() {
@@ -60,16 +77,25 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
         _busyFieldId = field.id;
       });
 
-      final result = await _captureService.captureFromCamera();
+      final result = await Navigator.push<OverlayCameraCaptureResult>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OverlayCameraScreen(
+            title: field.titulo,
+            ambientes: _ambientesRua,
+            initialAmbiente: _initialAmbienteForField(field.titulo),
+          ),
+        ),
+      );
 
-      if (!mounted) return;
+      if (!mounted || result == null) return;
 
       setState(() {
         _model = _model.setPhoto(
           fieldId: field.id,
           titulo: field.titulo,
-          imagePath: result.path,
-          geoPoint: result.geoPoint,
+          imagePath: result.filePath,
+          geoPoint: result.toGeoPointData(),
           importedFromGallery: false,
         );
       });
@@ -147,7 +173,8 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
       MaterialPageRoute(
         builder: (_) => const OverlayCameraScreen(
           title: 'COLETA',
-          ambientes: ['Fachada', 'Logradouro', 'Número', 'Entorno'],
+          ambientes: _ambientesRua,
+          initialAmbiente: 'Fachada',
         ),
       ),
     );
@@ -441,6 +468,13 @@ class _PhotoCaptureCard extends StatelessWidget {
                             : theme.textTheme.bodySmall?.color?.withValues(alpha: 0.70),
                       ),
                     ),
+                    if (capturado && photoInfo?.geoPoint != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Lat ${photoInfo!.geoPoint!.latitude.toStringAsFixed(5)} • Lng ${photoInfo!.geoPoint!.longitude.toStringAsFixed(5)}',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -476,6 +510,17 @@ class _PhotoCaptureCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+extension on OverlayCameraCaptureResult {
+  GeoPointData toGeoPointData() {
+    return GeoPointData(
+      latitude: latitude,
+      longitude: longitude,
+      accuracy: accuracy,
+      capturedAt: capturedAt,
     );
   }
 }

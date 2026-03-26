@@ -18,9 +18,53 @@ class CheckinScreen extends StatefulWidget {
 class _CheckinScreenState extends State<CheckinScreen> {
   bool? clientePresente;
   String? tipoImovel;
+  String? contextoInicial;
   bool _busy = false;
 
-  final List<String> tipos = const ['Urbano', 'Rural', 'Comercial', 'Industrial'];
+  final List<String> tipos = const [
+    'Urbano',
+    'Rural',
+    'Comercial',
+    'Industrial',
+  ];
+
+  static const String contextoRua = 'Rua';
+  static const String contextoAreaExterna = 'Área externa';
+  static const String contextoAreaInterna = 'Área interna';
+
+  List<String> _ambientesParaContexto(String context) {
+    switch (context) {
+      case contextoRua:
+        return const [
+          'Fachada',
+          'Logradouro',
+          'Número',
+          'Condomínio',
+          'Portão / Acesso',
+        ];
+      case contextoAreaExterna:
+        return const [
+          'Garagem',
+          'Quintal',
+          'Jardim',
+          'Corredor lateral',
+          'Área comum externa',
+          'Portão interno',
+        ];
+      case contextoAreaInterna:
+        return const [
+          'Sala',
+          'Quarto',
+          'Cozinha',
+          'Banheiro',
+          'Área de serviço',
+          'Corredor',
+          'Sacada',
+        ];
+      default:
+        return const ['Fachada'];
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +95,10 @@ class _CheckinScreenState extends State<CheckinScreen> {
                 ),
               ),
               const SizedBox(height: 6),
-              Text(job.endereco, style: const TextStyle(color: AppColors.textSecondary)),
+              Text(
+                '${job.endereco} • ${job.nomeCliente}',
+                style: const TextStyle(color: AppColors.textSecondary),
+              ),
               const SizedBox(height: 20),
               FutureBuilder(
                 future: LocationService().getCurrentLocation(),
@@ -60,7 +107,9 @@ class _CheckinScreenState extends State<CheckinScreen> {
                   Color cor = AppColors.warning;
                   Color fundo = AppColors.warningLight;
 
-                  if (snapshot.hasData && job.latitude != null && job.longitude != null) {
+                  if (snapshot.hasData &&
+                      job.latitude != null &&
+                      job.longitude != null) {
                     final pos = snapshot.data!;
                     final distancia = LocationService().calcularDistancia(
                       lat1: pos.latitude,
@@ -74,7 +123,8 @@ class _CheckinScreenState extends State<CheckinScreen> {
                       cor = AppColors.success;
                       fundo = AppColors.successLight;
                     } else {
-                      texto = 'Você ainda não está no raio do local (${distancia.toStringAsFixed(0)}m)';
+                      texto =
+                          'Você ainda não está no raio do local (${distancia.toStringAsFixed(0)}m)';
                       cor = AppColors.danger;
                       fundo = AppColors.dangerLight;
                     }
@@ -99,7 +149,10 @@ class _CheckinScreenState extends State<CheckinScreen> {
                         Expanded(
                           child: Text(
                             texto,
-                            style: TextStyle(color: cor, fontWeight: FontWeight.w700),
+                            style: TextStyle(
+                              color: cor,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                       ],
@@ -130,7 +183,10 @@ class _CheckinScreenState extends State<CheckinScreen> {
               const SizedBox(height: 24),
               const Text(
                 'Cliente está presente?',
-                style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
               ),
               const SizedBox(height: 10),
               Row(
@@ -138,13 +194,25 @@ class _CheckinScreenState extends State<CheckinScreen> {
                   ChoiceChip(
                     label: const Text('Sim'),
                     selected: clientePresente == true,
-                    onSelected: _busy ? null : (_) => setState(() => clientePresente = true),
+                    onSelected: _busy
+                        ? null
+                        : (_) {
+                            setState(() {
+                              clientePresente = true;
+                            });
+                          },
                   ),
                   const SizedBox(width: 10),
                   ChoiceChip(
                     label: const Text('Não'),
                     selected: clientePresente == false,
-                    onSelected: _busy ? null : (_) => setState(() => clientePresente = false),
+                    onSelected: _busy
+                        ? null
+                        : (_) {
+                            setState(() {
+                              clientePresente = false;
+                            });
+                          },
                   ),
                 ],
               ),
@@ -152,7 +220,10 @@ class _CheckinScreenState extends State<CheckinScreen> {
               if (clientePresente == true) ...[
                 const Text(
                   'Tipo de imóvel',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
                 const SizedBox(height: 10),
                 Wrap(
@@ -162,11 +233,50 @@ class _CheckinScreenState extends State<CheckinScreen> {
                     return ChoiceChip(
                       label: Text(tipo),
                       selected: tipoImovel == tipo,
-                      onSelected: _busy ? null : (_) => setState(() => tipoImovel = tipo),
+                      onSelected: _busy
+                          ? null
+                          : (_) {
+                              setState(() {
+                                tipoImovel = tipo;
+                              });
+                            },
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Por onde você quer começar?',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: const [
+                    contextoRua,
+                    contextoAreaExterna,
+                    contextoAreaInterna,
+                  ].map((item) {
+                    return ChoiceChip(
+                      label: Text(item),
+                      selected: false,
                     );
                   }).toList(),
                 ),
               ],
+              if (clientePresente == true)
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _contextChip(contextoRua),
+                    _contextChip(contextoAreaExterna),
+                    _contextChip(contextoAreaInterna),
+                  ],
+                ),
               const Spacer(),
               if (clientePresente == true) ...[
                 SizedBox(
@@ -178,7 +288,9 @@ class _CheckinScreenState extends State<CheckinScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => CheckinStep2Screen(tipoImovel: tipoImovel!),
+                                builder: (_) => CheckinStep2Screen(
+                                  tipoImovel: tipoImovel!,
+                                ),
                               ),
                             );
                           },
@@ -192,7 +304,9 @@ class _CheckinScreenState extends State<CheckinScreen> {
                 child: ElevatedButton(
                   onPressed: _busy ? null : _handleConfirm,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: clientePresente == false ? AppColors.danger : AppColors.primary,
+                    backgroundColor: clientePresente == false
+                        ? AppColors.danger
+                        : AppColors.primary,
                   ),
                   child: Text(
                     _busy
@@ -210,6 +324,20 @@ class _CheckinScreenState extends State<CheckinScreen> {
     );
   }
 
+  Widget _contextChip(String label) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: contextoInicial == label,
+      onSelected: _busy
+          ? null
+          : (_) {
+              setState(() {
+                contextoInicial = label;
+              });
+            },
+    );
+  }
+
   Future<void> _handleConfirm() async {
     if (clientePresente == null) {
       _mostrarInfo('Selecione se o cliente está presente.');
@@ -221,7 +349,9 @@ class _CheckinScreenState extends State<CheckinScreen> {
         context: context,
         builder: (dialogContext) => AlertDialog(
           title: const Text('Cliente ausente'),
-          content: const Text('Deseja solicitar reagendamento da vistoria?'),
+          content: const Text(
+            'Deseja solicitar reagendamento da vistoria?',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
@@ -250,8 +380,14 @@ class _CheckinScreenState extends State<CheckinScreen> {
       return;
     }
 
+    if (contextoInicial == null) {
+      _mostrarInfo('Escolha por onde você quer começar: Rua, Área externa ou Área interna.');
+      return;
+    }
+
     try {
       setState(() => _busy = true);
+
       context.read<AppState>().fazerCheckin(
             clientePresente: true,
             tipoImovel: tipoImovel,
@@ -262,9 +398,10 @@ class _CheckinScreenState extends State<CheckinScreen> {
       await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => const OverlayCameraScreen(
+          builder: (_) => OverlayCameraScreen(
             title: 'COLETA',
-            ambientes: ['Fachada', 'Entrada', 'Logradouro', 'Número'],
+            ambientes: _ambientesParaContexto(contextoInicial!),
+            initialAmbiente: _ambientesParaContexto(contextoInicial!).first,
           ),
         ),
       );
@@ -280,8 +417,10 @@ class _CheckinScreenState extends State<CheckinScreen> {
 
   Future<void> _abrirWhatsApp(String? telefone) async {
     if (telefone == null || telefone.isEmpty) return;
+
     final somenteNumeros = telefone.replaceAll(RegExp(r'[^0-9]'), '');
     final uri = Uri.parse('https://wa.me/55$somenteNumeros');
+
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
@@ -289,7 +428,9 @@ class _CheckinScreenState extends State<CheckinScreen> {
 
   Future<void> _ligar(String? telefone) async {
     if (telefone == null || telefone.isEmpty) return;
+
     final uri = Uri.parse('tel:$telefone');
+
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }

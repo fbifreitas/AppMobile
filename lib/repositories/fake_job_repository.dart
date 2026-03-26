@@ -18,11 +18,11 @@ class FakeJobRepository implements JobRepository {
       ),
       Job(
         id: '2',
-        titulo: 'Apartamento Padrão - Jardins',
-        endereco: 'Av. Brasil, 500',
+        titulo: 'Apartamento - Condominio Spazio Belem',
+        endereco: 'Av. Alvaro Ramos, 760 Apto 102',
         latitude: -23.5614,
         longitude: -46.6559,
-        nomeCliente: 'Fernanda (Prop.)',
+        nomeCliente: 'Fabio Freitas (Prop.)',
         telefoneCliente: '11988888888',
       ),
     ];
