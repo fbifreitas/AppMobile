@@ -83,6 +83,8 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   List<String> _macroLocais = const [];
   List<String> _ambientesAtuais = const [];
   List<String> _elementosAtuais = const [];
+  List<String> _recentElementos = const [];
+  PredictedSelection? _predictedSelection;
 
   final List<OverlayCameraCaptureResult> _captures = [];
 
@@ -110,6 +112,22 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   List<String> get _materiaisAtuais {
     if (_elemento == null) return const [];
     return _materiaisPorElemento[_elemento] ?? const [];
+  }
+
+  List<String> _materiaisForElement(String? elemento) {
+    if (elemento == null) return const [];
+    return _materiaisPorElemento[elemento] ?? const [];
+  }
+
+  String? get _predictionSummary {
+    final prediction = _predictedSelection;
+    if (prediction == null || !prediction.hasAnyValue) return null;
+    final parts = <String>[];
+    if (prediction.elemento != null) parts.add(prediction.elemento!);
+    if (prediction.material != null) parts.add(prediction.material!);
+    if (prediction.estado != null) parts.add(prediction.estado!);
+    if (parts.isEmpty) return null;
+    return 'Sugestão com base em ${prediction.captures} captura(s): ${parts.join(' • ')}';
   }
 
   bool get _showMacroLocalSelector => widget.preselectedMacroLocal == null;
@@ -196,9 +214,60 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
             ambiente: ambiente,
           );
 
+    final recentElementos = (macroLocal == null || ambiente == null)
+        ? const <String>[]
+        : await _menuService.getRecentElementSuggestions(
+            propertyType: widget.tipoImovel,
+            macroLocal: macroLocal,
+            ambiente: ambiente,
+            availableElementos: elementos,
+          );
+
     String? elemento = _elemento;
     if (elemento != null && !elementos.contains(elemento)) {
       elemento = elementos.isNotEmpty ? elementos.first : null;
+    }
+
+    PredictedSelection? prediction;
+    if (macroLocal != null && ambiente != null) {
+      prediction = await _menuService.getPrediction(
+        propertyType: widget.tipoImovel,
+        macroLocal: macroLocal,
+        ambiente: ambiente,
+        availableElementos: elementos,
+        availableMateriais: _materiaisForElement(elemento),
+        availableEstados: _estados,
+      );
+    }
+
+    if (elemento == null && widget.initialElemento == null && prediction?.elemento != null) {
+      final candidate = prediction!.elemento!;
+      if (elementos.contains(candidate)) {
+        elemento = candidate;
+      }
+    }
+
+    String? material = _material;
+    final materiaisDisponiveis = _materiaisForElement(elemento);
+    if (material != null && !materiaisDisponiveis.contains(material)) {
+      material = null;
+    }
+    if (material == null && prediction?.material != null) {
+      final candidate = prediction!.material!;
+      if (materiaisDisponiveis.contains(candidate)) {
+        material = candidate;
+      }
+    }
+
+    String? estado = _estado;
+    if (estado != null && !_estados.contains(estado)) {
+      estado = null;
+    }
+    if (estado == null && prediction?.estado != null) {
+      final candidate = prediction!.estado!;
+      if (_estados.contains(candidate)) {
+        estado = candidate;
+      }
     }
 
     if (!mounted) return;
@@ -207,9 +276,13 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       _macroLocais = macroLocals;
       _ambientesAtuais = ambientes;
       _elementosAtuais = elementos;
+      _recentElementos = recentElementos;
+      _predictedSelection = prediction;
       _macroLocal = macroLocal;
       _ambiente = ambiente;
       _elemento = elemento;
+      _material = material;
+      _estado = estado;
       _loadingMenus = false;
     });
   }
@@ -308,6 +381,15 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
         latitude: position.latitude,
         longitude: position.longitude,
         accuracy: position.accuracy,
+      );
+
+      await _menuService.registerCaptureProfile(
+        propertyType: widget.tipoImovel,
+        macroLocal: _macroLocal,
+        ambiente: _ambiente!,
+        elemento: _elemento,
+        material: _material,
+        estado: _estado,
       );
 
       if (widget.singleCaptureMode) {
@@ -448,6 +530,19 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                       _carouselCard(
                         title: 'Elemento fotografado',
                         values: _elementosAtuais,
+                        selected: _elemento,
+                        onSelect: _selectElemento,
+                      ),
+                    ],
+                    if (_predictionSummary != null) ...[
+                      const SizedBox(height: 8),
+                      _hintCard(_predictionSummary!),
+                    ],
+                    if (_recentElementos.isNotEmpty && _ambiente != null) ...[
+                      const SizedBox(height: 8),
+                      _quickSuggestionCard(
+                        title: 'Mais usados neste contexto',
+                        values: _recentElementos,
                         selected: _elemento,
                         onSelect: _selectElemento,
                       ),
@@ -608,6 +703,84 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
           shape: BoxShape.circle,
         ),
         child: Icon(icon, color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _hintCard(String text) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          fontSize: 11,
+        ),
+      ),
+    );
+  }
+
+  Widget _quickSuggestionCard({
+    required String title,
+    required List<String> values,
+    required String? selected,
+    required Future<void> Function(String value) onSelect,
+  }) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.45),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 11,
+              ),
+            ),
+            ...values.map(
+              (value) {
+                final active = value == selected;
+                return GestureDetector(
+                  onTap: () => onSelect(value),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: active
+                          ? Colors.white
+                          : Colors.white.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Text(
+                      value,
+                      style: TextStyle(
+                        color: active ? Colors.black87 : Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

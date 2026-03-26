@@ -30,17 +30,79 @@ class _UsageEntry {
       };
 }
 
+class _PredictionEntry {
+  int captures;
+  DateTime? lastUsedAt;
+  Map<String, int> elementos;
+  Map<String, int> materiais;
+  Map<String, int> estados;
+
+  _PredictionEntry({
+    required this.captures,
+    required this.lastUsedAt,
+    required this.elementos,
+    required this.materiais,
+    required this.estados,
+  });
+
+  factory _PredictionEntry.fromJson(Map<String, dynamic> json) {
+    Map<String, int> _intMap(Object? value) {
+      final map = Map<String, dynamic>.from(value as Map? ?? const {});
+      return map.map((key, val) => MapEntry(key, (val as num).toInt()));
+    }
+
+    return _PredictionEntry(
+      captures: (json['captures'] as num?)?.toInt() ?? 0,
+      lastUsedAt: json['lastUsedAt'] != null
+          ? DateTime.tryParse(json['lastUsedAt'] as String)
+          : null,
+      elementos: _intMap(json['elementos']),
+      materiais: _intMap(json['materiais']),
+      estados: _intMap(json['estados']),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'captures': captures,
+        'lastUsedAt': lastUsedAt?.toIso8601String(),
+        'elementos': elementos,
+        'materiais': materiais,
+        'estados': estados,
+      };
+}
+
+class PredictedSelection {
+  final String? elemento;
+  final String? material;
+  final String? estado;
+  final int captures;
+
+  const PredictedSelection({
+    this.elemento,
+    this.material,
+    this.estado,
+    required this.captures,
+  });
+
+  bool get hasAnyValue =>
+      (elemento != null && elemento!.trim().isNotEmpty) ||
+      (material != null && material!.trim().isNotEmpty) ||
+      (estado != null && estado!.trim().isNotEmpty);
+}
+
 class InspectionMenuService {
   InspectionMenuService._();
 
   static final InspectionMenuService instance = InspectionMenuService._();
 
   static const String _assetPath = 'assets/config/menu_update_package_v1.json';
-  static const String _usageKey = 'inspection_menu_usage_v2_1';
+  static const String _usageKey = 'inspection_menu_usage_v3';
+  static const String _predictionKey = 'inspection_menu_prediction_v3';
 
   InspectionMenuPackage? _package;
   Future<void>? _loading;
   Map<String, _UsageEntry> _usage = {};
+  Map<String, _PredictionEntry> _prediction = {};
 
   Future<void> ensureLoaded() {
     return _loading ??= _load();
@@ -66,8 +128,20 @@ class InspectionMenuService {
           ),
         );
       }
+
+      final rawPrediction = prefs.getString(_predictionKey);
+      if (rawPrediction != null && rawPrediction.trim().isNotEmpty) {
+        final decoded = jsonDecode(rawPrediction) as Map<String, dynamic>;
+        _prediction = decoded.map(
+          (key, value) => MapEntry(
+            key,
+            _PredictionEntry.fromJson(Map<String, dynamic>.from(value as Map)),
+          ),
+        );
+      }
     } catch (_) {
       _usage = {};
+      _prediction = {};
     }
   }
 
@@ -83,12 +157,141 @@ class InspectionMenuService {
     );
     entry.count += 1;
     entry.lastUsedAt = DateTime.now();
+    await _persistUsage();
+  }
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _usageKey,
-      jsonEncode(_usage.map((key, value) => MapEntry(key, value.toJson()))),
+  Future<void> registerCaptureProfile({
+    required String propertyType,
+    String? macroLocal,
+    required String ambiente,
+    String? elemento,
+    String? material,
+    String? estado,
+  }) async {
+    await ensureLoaded();
+
+    final predictionPolicy = _package?.predictionPolicy ?? const PredictionPolicyConfig.fallback();
+    final featureFlags = _package?.featureFlags ?? const FeatureFlagsConfig.fallback();
+    if (!featureFlags.enablePredictionV3 || !predictionPolicy.enabled) {
+      return;
+    }
+
+    final key = _predictionContextKey(
+      propertyType: propertyType,
+      macroLocal: macroLocal,
+      ambiente: ambiente,
     );
+
+    final entry = _prediction.putIfAbsent(
+      key,
+      () => _PredictionEntry(
+        captures: 0,
+        lastUsedAt: null,
+        elementos: {},
+        materiais: {},
+        estados: {},
+      ),
+    );
+
+    entry.captures += 1;
+    entry.lastUsedAt = DateTime.now();
+
+    if (elemento != null && elemento.trim().isNotEmpty) {
+      entry.elementos.update(elemento, (value) => value + 1, ifAbsent: () => 1);
+    }
+    if (material != null && material.trim().isNotEmpty) {
+      entry.materiais.update(material, (value) => value + 1, ifAbsent: () => 1);
+    }
+    if (estado != null && estado.trim().isNotEmpty) {
+      entry.estados.update(estado, (value) => value + 1, ifAbsent: () => 1);
+    }
+
+    await _persistPrediction();
+  }
+
+  Future<PredictedSelection?> getPrediction({
+    required String propertyType,
+    String? macroLocal,
+    required String ambiente,
+    List<String> availableElementos = const [],
+    List<String> availableMateriais = const [],
+    List<String> availableEstados = const [],
+  }) async {
+    await ensureLoaded();
+
+    final predictionPolicy = _package?.predictionPolicy ?? const PredictionPolicyConfig.fallback();
+    final featureFlags = _package?.featureFlags ?? const FeatureFlagsConfig.fallback();
+    if (!featureFlags.enablePredictionV3 || !predictionPolicy.enabled) {
+      return null;
+    }
+
+    final entry = _prediction[_predictionContextKey(
+      propertyType: propertyType,
+      macroLocal: macroLocal,
+      ambiente: ambiente,
+    )];
+
+    if (entry == null) return null;
+    if (entry.captures < predictionPolicy.minContextCaptures) return null;
+    if (entry.lastUsedAt != null) {
+      final days = DateTime.now().difference(entry.lastUsedAt!).inDays;
+      if (days > predictionPolicy.recencyWindowDays) return null;
+    }
+
+    final elemento = predictionPolicy.autoSelectElemento
+        ? _pickBest(entry.elementos, allowed: availableElementos)
+        : null;
+    final material = predictionPolicy.autoSelectMaterial
+        ? _pickBest(entry.materiais, allowed: availableMateriais)
+        : null;
+    final estado = predictionPolicy.autoSelectEstado
+        ? _pickBest(entry.estados, allowed: availableEstados)
+        : null;
+
+    final prediction = PredictedSelection(
+      elemento: elemento,
+      material: material,
+      estado: estado,
+      captures: entry.captures,
+    );
+
+    return prediction.hasAnyValue ? prediction : null;
+  }
+
+  Future<List<String>> getRecentElementSuggestions({
+    required String propertyType,
+    String? macroLocal,
+    required String ambiente,
+    List<String> availableElementos = const [],
+  }) async {
+    await ensureLoaded();
+
+    final predictionPolicy = _package?.predictionPolicy ?? const PredictionPolicyConfig.fallback();
+    final featureFlags = _package?.featureFlags ?? const FeatureFlagsConfig.fallback();
+    if (!featureFlags.enableRecentSuggestionsV3) {
+      return const <String>[];
+    }
+
+    final entry = _prediction[_predictionContextKey(
+      propertyType: propertyType,
+      macroLocal: macroLocal,
+      ambiente: ambiente,
+    )];
+    if (entry == null) return const <String>[];
+
+    final allowedSet = availableElementos.toSet();
+    final sorted = entry.elementos.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    final results = <String>[];
+    for (final item in sorted) {
+      if (allowedSet.isNotEmpty && !allowedSet.contains(item.key)) continue;
+      if (!results.contains(item.key)) {
+        results.add(item.key);
+      }
+      if (results.length >= predictionPolicy.maxRecentSuggestions) break;
+    }
+    return results;
   }
 
   Future<List<CheckinStep2PhotoFieldConfig>> sortPhotoFields({
@@ -242,6 +445,46 @@ class InspectionMenuService {
   }
 
   String _usageCompoundKey(String scope, String value) => '$scope::$value';
+
+  String _predictionContextKey({
+    required String propertyType,
+    String? macroLocal,
+    required String ambiente,
+  }) {
+    final normalizedType = propertyType.trim().toLowerCase();
+    final normalizedMacro = (macroLocal ?? '').trim().toLowerCase();
+    final normalizedAmbiente = ambiente.trim().toLowerCase();
+    return 'prediction::$normalizedType::$normalizedMacro::$normalizedAmbiente';
+  }
+
+  String? _pickBest(Map<String, int> counts, {List<String> allowed = const []}) {
+    if (counts.isEmpty) return null;
+    final allowedSet = allowed.toSet();
+    final entries = counts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    for (final entry in entries) {
+      if (allowedSet.isEmpty || allowedSet.contains(entry.key)) {
+        return entry.key;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _persistUsage() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _usageKey,
+      jsonEncode(_usage.map((key, value) => MapEntry(key, value.toJson()))),
+    );
+  }
+
+  Future<void> _persistPrediction() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _predictionKey,
+      jsonEncode(_prediction.map((key, value) => MapEntry(key, value.toJson()))),
+    );
+  }
 
   List<MacroLocalOption> _fallbackMacroLocals(String propertyType) {
     switch (propertyType.trim().toLowerCase()) {
