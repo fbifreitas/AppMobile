@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../config/checkin_step2_config.dart';
 import '../models/checkin_step2_model.dart';
-import '../screens/overlay_camera_screen.dart';
 import '../services/checkin_photo_capture_service.dart';
+import 'checkin_capture_screen.dart';
 
 class CheckinStep2Screen extends StatefulWidget {
   final String tipoImovel;
@@ -34,6 +34,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
   @override
   void initState() {
     super.initState();
+
     _tipo = TipoImovelExtension.fromString(widget.tipoImovel);
     _config = CheckinStep2Configs.byTipo(_tipo);
     _model = widget.initialData ?? CheckinStep2Model.empty(_tipo);
@@ -77,6 +78,11 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Foto de "${field.titulo}" capturada com sucesso.')),
       );
+    } on CheckinPhotoCaptureException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -116,6 +122,11 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Imagem de "${field.titulo}" vinculada com sucesso.')),
       );
+    } on CheckinPhotoCaptureException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -145,9 +156,9 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => const OverlayCameraScreen(
-          title: 'COLETA',
-          ambientes: ['Fachada', 'Logradouro', 'Número', 'Entorno'],
+        builder: (_) => const CheckinCaptureScreen(
+          titulo: 'Câmera do Check-in — Etapa 2',
+          descricao: 'Registre a evidência complementar da etapa 2 antes de seguir para a vistoria.',
         ),
       ),
     );
@@ -179,7 +190,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
                           width: double.infinity,
                           child: FilledButton(
                             onPressed: _busy ? null : _handleContinue,
-                            child: const Text('Confirmar e abrir a câmera'),
+                            child: const Text('Salvar e continuar'),
                           ),
                         ),
                       ],
@@ -441,6 +452,13 @@ class _PhotoCaptureCard extends StatelessWidget {
                             : theme.textTheme.bodySmall?.color?.withValues(alpha: 0.70),
                       ),
                     ),
+                    if (capturado && photoInfo?.geoPoint != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Lat ${photoInfo!.geoPoint!.latitude.toStringAsFixed(5)} • Lng ${photoInfo!.geoPoint!.longitude.toStringAsFixed(5)}',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
                   ],
                 ),
               ),

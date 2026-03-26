@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../screens/checkin_capture_screen.dart';
 import '../screens/checkin_step2_screen.dart';
-import '../screens/overlay_camera_screen.dart';
 import '../services/location_service.dart';
 import '../state/app_state.dart';
+import '../state/inspection_state.dart';
 import '../theme/app_colors.dart';
 
 class CheckinScreen extends StatefulWidget {
@@ -20,7 +21,12 @@ class _CheckinScreenState extends State<CheckinScreen> {
   String? tipoImovel;
   bool _busy = false;
 
-  final List<String> tipos = const ['Urbano', 'Rural', 'Comercial', 'Industrial'];
+  final List<String> tipos = const [
+    'Urbano',
+    'Rural',
+    'Comercial',
+    'Industrial',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +57,10 @@ class _CheckinScreenState extends State<CheckinScreen> {
                 ),
               ),
               const SizedBox(height: 6),
-              Text(job.endereco, style: const TextStyle(color: AppColors.textSecondary)),
+              Text(
+                job.endereco,
+                style: const TextStyle(color: AppColors.textSecondary),
+              ),
               const SizedBox(height: 20),
               FutureBuilder(
                 future: LocationService().getCurrentLocation(),
@@ -74,7 +83,8 @@ class _CheckinScreenState extends State<CheckinScreen> {
                       cor = AppColors.success;
                       fundo = AppColors.successLight;
                     } else {
-                      texto = 'Você ainda não está no raio do local (${distancia.toStringAsFixed(0)}m)';
+                      texto =
+                          'Você ainda não está no raio do local (${distancia.toStringAsFixed(0)}m)';
                       cor = AppColors.danger;
                       fundo = AppColors.dangerLight;
                     }
@@ -192,11 +202,12 @@ class _CheckinScreenState extends State<CheckinScreen> {
                 child: ElevatedButton(
                   onPressed: _busy ? null : _handleConfirm,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: clientePresente == false ? AppColors.danger : AppColors.primary,
+                    backgroundColor:
+                        clientePresente == false ? AppColors.danger : AppColors.primary,
                   ),
                   child: Text(
                     _busy
-                        ? 'Abrindo câmera...'
+                        ? 'Abrindo...'
                         : clientePresente == false
                             ? 'Solicitar reagendamento'
                             : 'Confirmar e abrir a câmera',
@@ -252,9 +263,15 @@ class _CheckinScreenState extends State<CheckinScreen> {
 
     try {
       setState(() => _busy = true);
+
       context.read<AppState>().fazerCheckin(
             clientePresente: true,
             tipoImovel: tipoImovel,
+          );
+
+      await context.read<InspectionState>().startMockInspection(
+            tipoImovel: tipoImovel!,
+            subtipoImovel: _defaultSubtype(tipoImovel!),
           );
 
       if (!mounted) return;
@@ -262,9 +279,9 @@ class _CheckinScreenState extends State<CheckinScreen> {
       await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => const OverlayCameraScreen(
-            title: 'COLETA',
-            ambientes: ['Fachada', 'Entrada', 'Logradouro', 'Número'],
+          builder: (_) => const CheckinCaptureScreen(
+            titulo: 'Câmera do Check-in — Etapa 1',
+            descricao: 'Registre a evidência inicial do check-in antes de seguir para a vistoria.',
           ),
         ),
       );
@@ -275,6 +292,20 @@ class _CheckinScreenState extends State<CheckinScreen> {
       if (mounted) {
         setState(() => _busy = false);
       }
+    }
+  }
+
+  String _defaultSubtype(String tipo) {
+    switch (tipo.trim().toLowerCase()) {
+      case 'rural':
+        return 'Sítio';
+      case 'comercial':
+        return 'Loja';
+      case 'industrial':
+        return 'Fábrica';
+      case 'urbano':
+      default:
+        return 'Apartamento';
     }
   }
 
