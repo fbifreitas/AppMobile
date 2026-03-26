@@ -83,8 +83,10 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   List<String> _macroLocais = const [];
   List<String> _ambientesAtuais = const [];
   List<String> _elementosAtuais = const [];
+  List<String> _recentAmbientes = const [];
   List<String> _recentElementos = const [];
   PredictedSelection? _predictedSelection;
+  String? _contextSuggestionSummary;
 
   final List<OverlayCameraCaptureResult> _captures = [];
 
@@ -178,16 +180,33 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   }
 
   Future<void> _reloadMenus({bool initialLoad = false}) async {
-    setState(() => _loadingMenus = true);
+    if (mounted) {
+      setState(() => _loadingMenus = true);
+    }
 
     final macroLocals = await _menuService.getMacroLocals(
       propertyType: widget.tipoImovel,
     );
 
     String? macroLocal = _macroLocal;
+    String? contextSuggestionSummary;
+
     if (macroLocal == null && !_showMacroLocalSelector && widget.preselectedMacroLocal != null) {
       macroLocal = widget.preselectedMacroLocal;
     }
+
+    if ((macroLocal == null || macroLocal.trim().isEmpty) && _showMacroLocalSelector) {
+      final suggestedContext = await _menuService.getSuggestedContext(
+        propertyType: widget.tipoImovel,
+        availableMacroLocals: macroLocals,
+      );
+
+      if (suggestedContext?.macroLocal != null) {
+        macroLocal = suggestedContext!.macroLocal!;
+        contextSuggestionSummary = 'Área da foto sugerida com base no histórico: $macroLocal';
+      }
+    }
+
     if (macroLocal != null && !macroLocals.contains(macroLocal)) {
       macroLocal = macroLocals.isNotEmpty ? macroLocals.first : null;
     }
@@ -199,10 +218,34 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
             macroLocal: macroLocal,
           );
 
+    final recentAmbientes = macroLocal == null
+        ? const <String>[]
+        : await _menuService.getRecentAmbienteSuggestions(
+            propertyType: widget.tipoImovel,
+            macroLocal: macroLocal,
+            availableAmbientes: ambientes,
+          );
+
     String? ambiente = _ambiente;
     if (ambiente != null && !ambientes.contains(ambiente)) {
-      ambiente = ambientes.isNotEmpty ? ambientes.first : null;
-    } else if (initialLoad && ambiente == null && ambientes.isNotEmpty && !_showMacroLocalSelector) {
+      ambiente = null;
+    }
+
+    if ((ambiente == null || ambiente.trim().isEmpty) && macroLocal != null) {
+      final suggestedContext = await _menuService.getSuggestedContext(
+        propertyType: widget.tipoImovel,
+        macroLocal: macroLocal,
+        availableAmbientes: ambientes,
+      );
+
+      if (widget.initialAmbiente == null && suggestedContext?.ambiente != null) {
+        ambiente = suggestedContext!.ambiente!;
+        contextSuggestionSummary =
+            'Contexto sugerido com base no histórico: ${macroLocal}${ambiente == null ? '' : ' • $ambiente'}';
+      }
+    }
+
+    if (initialLoad && ambiente == null && ambientes.isNotEmpty && !_showMacroLocalSelector) {
       ambiente = ambientes.first;
     }
 
@@ -276,8 +319,10 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       _macroLocais = macroLocals;
       _ambientesAtuais = ambientes;
       _elementosAtuais = elementos;
+      _recentAmbientes = recentAmbientes;
       _recentElementos = recentElementos;
       _predictedSelection = prediction;
+      _contextSuggestionSummary = contextSuggestionSummary;
       _macroLocal = macroLocal;
       _ambiente = ambiente;
       _elemento = elemento;
@@ -526,6 +571,19 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                       _carouselCard(
                         title: 'Local da foto',
                         values: _ambientesAtuais,
+                        selected: _ambiente,
+                        onSelect: _selectAmbiente,
+                      ),
+                    ],
+                    if (_contextSuggestionSummary != null) ...[
+                      const SizedBox(height: 8),
+                      _hintCard(_contextSuggestionSummary!),
+                    ],
+                    if (_recentAmbientes.isNotEmpty && _macroLocal != null) ...[
+                      const SizedBox(height: 8),
+                      _quickSuggestionCard(
+                        title: 'Locais mais usados nesta área',
+                        values: _recentAmbientes,
                         selected: _ambiente,
                         onSelect: _selectAmbiente,
                       ),

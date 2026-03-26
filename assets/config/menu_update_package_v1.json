@@ -1,9 +1,9 @@
 {
   "meta": {
-    "packageVersion": 3,
-    "packageName": "inspection_menu_v3",
-    "publishedAt": "2026-03-26T18:00:00Z",
-    "schemaVersion": "3.0.0"
+    "packageVersion": 4,
+    "packageName": "inspection_menu_v4",
+    "publishedAt": "2026-03-26T21:30:00Z",
+    "schemaVersion": "4.0.0"
   },
   "rankingPolicy": {
     "editorialWeight": 0.72,
@@ -646,7 +646,9 @@
   },
   "featureFlags": {
     "enablePredictionV3": true,
-    "enableRecentSuggestionsV3": true
+    "enableRecentSuggestionsV3": true,
+    "enableContextBootstrapV4": true,
+    "enableRecentAmbienteSuggestionsV4": true
   },
   "predictionPolicy": {
     "enabled": true,
@@ -655,6 +657,8 @@
     "autoSelectElemento": true,
     "autoSelectMaterial": true,
     "autoSelectEstado": true,
-    "maxRecentSuggestions": 3
+    "maxRecentSuggestions": 3,
+    "minContextSuggestionCaptures": 2,
+    "maxRecentAmbienteSuggestions": 3
   }
 }

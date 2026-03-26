@@ -90,6 +90,22 @@ class PredictedSelection {
       (estado != null && estado!.trim().isNotEmpty);
 }
 
+class SuggestedCameraContext {
+  final String? macroLocal;
+  final String? ambiente;
+  final int confidenceSignals;
+
+  const SuggestedCameraContext({
+    this.macroLocal,
+    this.ambiente,
+    required this.confidenceSignals,
+  });
+
+  bool get hasValue =>
+      (macroLocal != null && macroLocal!.trim().isNotEmpty) ||
+      (ambiente != null && ambiente!.trim().isNotEmpty);
+}
+
 class InspectionMenuService {
   InspectionMenuService._();
 
@@ -206,7 +222,119 @@ class InspectionMenuService {
       entry.estados.update(estado, (value) => value + 1, ifAbsent: () => 1);
     }
 
+    _registerConfirmedUsage(
+      propertyType: propertyType,
+      macroLocal: macroLocal,
+      ambiente: ambiente,
+      elemento: elemento,
+      material: material,
+      estado: estado,
+    );
+
     await _persistPrediction();
+    await _persistUsage();
+  }
+
+
+  Future<String?> getSuggestedMacroLocal({
+    required String propertyType,
+    List<String> availableMacroLocals = const [],
+  }) async {
+    await ensureLoaded();
+
+    final featureFlags = _package?.featureFlags ?? const FeatureFlagsConfig.fallback();
+    final predictionPolicy = _package?.predictionPolicy ?? const PredictionPolicyConfig.fallback();
+    if (!featureFlags.enableContextBootstrapV4) {
+      return null;
+    }
+
+    return _topConfirmedValue(
+      scope: 'camera_confirmed.${propertyType.toLowerCase()}.macro',
+      allowed: availableMacroLocals,
+      minCount: predictionPolicy.minContextSuggestionCaptures,
+    );
+  }
+
+  Future<String?> getSuggestedAmbiente({
+    required String propertyType,
+    required String macroLocal,
+    List<String> availableAmbientes = const [],
+  }) async {
+    await ensureLoaded();
+
+    final featureFlags = _package?.featureFlags ?? const FeatureFlagsConfig.fallback();
+    final predictionPolicy = _package?.predictionPolicy ?? const PredictionPolicyConfig.fallback();
+    if (!featureFlags.enableContextBootstrapV4) {
+      return null;
+    }
+
+    return _topConfirmedValue(
+      scope: 'camera_confirmed.${propertyType.toLowerCase()}.$macroLocal.ambiente',
+      allowed: availableAmbientes,
+      minCount: predictionPolicy.minContextSuggestionCaptures,
+    );
+  }
+
+  Future<List<String>> getRecentAmbienteSuggestions({
+    required String propertyType,
+    required String macroLocal,
+    List<String> availableAmbientes = const [],
+  }) async {
+    await ensureLoaded();
+
+    final featureFlags = _package?.featureFlags ?? const FeatureFlagsConfig.fallback();
+    final predictionPolicy = _package?.predictionPolicy ?? const PredictionPolicyConfig.fallback();
+    if (!featureFlags.enableRecentAmbienteSuggestionsV4) {
+      return const <String>[];
+    }
+
+    return _topConfirmedValues(
+      scope: 'camera_confirmed.${propertyType.toLowerCase()}.$macroLocal.ambiente',
+      allowed: availableAmbientes,
+      limit: predictionPolicy.maxRecentAmbienteSuggestions,
+    );
+  }
+
+  Future<SuggestedCameraContext?> getSuggestedContext({
+    required String propertyType,
+    List<String> availableMacroLocals = const [],
+    String? macroLocal,
+    List<String> availableAmbientes = const [],
+  }) async {
+    await ensureLoaded();
+
+    String? resolvedMacro = macroLocal;
+    var confidenceSignals = 0;
+
+    if (resolvedMacro == null || resolvedMacro.trim().isEmpty) {
+      resolvedMacro = await getSuggestedMacroLocal(
+        propertyType: propertyType,
+        availableMacroLocals: availableMacroLocals,
+      );
+      if (resolvedMacro != null) {
+        confidenceSignals += 1;
+      }
+    }
+
+    String? ambiente;
+    if (resolvedMacro != null && resolvedMacro.trim().isNotEmpty) {
+      ambiente = await getSuggestedAmbiente(
+        propertyType: propertyType,
+        macroLocal: resolvedMacro,
+        availableAmbientes: availableAmbientes,
+      );
+      if (ambiente != null) {
+        confidenceSignals += 1;
+      }
+    }
+
+    final suggestion = SuggestedCameraContext(
+      macroLocal: resolvedMacro,
+      ambiente: ambiente,
+      confidenceSignals: confidenceSignals,
+    );
+
+    return suggestion.hasValue ? suggestion : null;
   }
 
   Future<PredictedSelection?> getPrediction({
@@ -468,6 +596,117 @@ class InspectionMenuService {
       }
     }
     return null;
+  }
+
+
+  void _registerConfirmedUsage({
+    required String propertyType,
+    String? macroLocal,
+    required String ambiente,
+    String? elemento,
+    String? material,
+    String? estado,
+  }) {
+    final normalizedType = propertyType.toLowerCase();
+
+    if (macroLocal != null && macroLocal.trim().isNotEmpty) {
+      _incrementUsage(
+        scope: 'camera_confirmed.$normalizedType.macro',
+        value: macroLocal,
+      );
+
+      _incrementUsage(
+        scope: 'camera_confirmed.$normalizedType.$macroLocal.ambiente',
+        value: ambiente,
+      );
+    }
+
+    if (elemento != null && elemento.trim().isNotEmpty && macroLocal != null && macroLocal.trim().isNotEmpty) {
+      _incrementUsage(
+        scope: 'camera_confirmed.$normalizedType.$macroLocal.$ambiente.elemento',
+        value: elemento,
+      );
+    }
+
+    if (material != null && material.trim().isNotEmpty && elemento != null && elemento.trim().isNotEmpty) {
+      _incrementUsage(
+        scope: 'camera_confirmed.$normalizedType.$macroLocal.$ambiente.$elemento.material',
+        value: material,
+      );
+    }
+
+    if (estado != null && estado.trim().isNotEmpty && elemento != null && elemento.trim().isNotEmpty) {
+      _incrementUsage(
+        scope: 'camera_confirmed.$normalizedType.$macroLocal.$ambiente.$elemento.estado',
+        value: estado,
+      );
+    }
+  }
+
+  void _incrementUsage({
+    required String scope,
+    required String value,
+  }) {
+    final key = _usageCompoundKey(scope, value);
+    final entry = _usage.putIfAbsent(
+      key,
+      () => _UsageEntry(count: 0, lastUsedAt: null),
+    );
+    entry.count += 1;
+    entry.lastUsedAt = DateTime.now();
+  }
+
+  String? _topConfirmedValue({
+    required String scope,
+    List<String> allowed = const [],
+    required int minCount,
+  }) {
+    final values = _topConfirmedValues(scope: scope, allowed: allowed, limit: 1);
+    if (values.isEmpty) {
+      return null;
+    }
+
+    final key = _usageCompoundKey(scope, values.first);
+    final entry = _usage[key];
+    if (entry == null || entry.count < minCount) {
+      return null;
+    }
+
+    return values.first;
+  }
+
+  List<String> _topConfirmedValues({
+    required String scope,
+    List<String> allowed = const [],
+    required int limit,
+  }) {
+    final prefix = '$scope::';
+    final allowedSet = allowed.toSet();
+    final entries = _usage.entries
+        .where((entry) => entry.key.startsWith(prefix))
+        .where((entry) {
+          if (allowedSet.isEmpty) {
+            return true;
+          }
+          final value = entry.key.substring(prefix.length);
+          return allowedSet.contains(value);
+        })
+        .toList()
+      ..sort((a, b) {
+        final countCompare = b.value.count.compareTo(a.value.count);
+        if (countCompare != 0) {
+          return countCompare;
+        }
+
+        final aDate = a.value.lastUsedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final bDate = b.value.lastUsedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return bDate.compareTo(aDate);
+      });
+
+    return entries
+        .take(limit)
+        .map((entry) => entry.key.substring(prefix.length))
+        .toList();
   }
 
   Future<void> _persistUsage() async {

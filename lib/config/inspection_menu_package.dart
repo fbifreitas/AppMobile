@@ -3,22 +3,31 @@ import 'dart:convert';
 class FeatureFlagsConfig {
   final bool enablePredictionV3;
   final bool enableRecentSuggestionsV3;
+  final bool enableContextBootstrapV4;
+  final bool enableRecentAmbienteSuggestionsV4;
 
   const FeatureFlagsConfig({
     required this.enablePredictionV3,
     required this.enableRecentSuggestionsV3,
+    required this.enableContextBootstrapV4,
+    required this.enableRecentAmbienteSuggestionsV4,
   });
 
   factory FeatureFlagsConfig.fromJson(Map<String, dynamic> json) {
     return FeatureFlagsConfig(
       enablePredictionV3: json['enablePredictionV3'] as bool? ?? true,
       enableRecentSuggestionsV3: json['enableRecentSuggestionsV3'] as bool? ?? true,
+      enableContextBootstrapV4: json['enableContextBootstrapV4'] as bool? ?? true,
+      enableRecentAmbienteSuggestionsV4:
+          json['enableRecentAmbienteSuggestionsV4'] as bool? ?? true,
     );
   }
 
   const FeatureFlagsConfig.fallback()
       : enablePredictionV3 = true,
-        enableRecentSuggestionsV3 = true;
+        enableRecentSuggestionsV3 = true,
+        enableContextBootstrapV4 = true,
+        enableRecentAmbienteSuggestionsV4 = true;
 }
 
 class RankingPolicyConfig {
@@ -62,6 +71,8 @@ class PredictionPolicyConfig {
   final bool autoSelectMaterial;
   final bool autoSelectEstado;
   final int maxRecentSuggestions;
+  final int minContextSuggestionCaptures;
+  final int maxRecentAmbienteSuggestions;
 
   const PredictionPolicyConfig({
     required this.enabled,
@@ -71,6 +82,8 @@ class PredictionPolicyConfig {
     required this.autoSelectMaterial,
     required this.autoSelectEstado,
     required this.maxRecentSuggestions,
+    required this.minContextSuggestionCaptures,
+    required this.maxRecentAmbienteSuggestions,
   });
 
   factory PredictionPolicyConfig.fromJson(Map<String, dynamic> json) {
@@ -82,6 +95,8 @@ class PredictionPolicyConfig {
       autoSelectMaterial: json['autoSelectMaterial'] as bool? ?? true,
       autoSelectEstado: json['autoSelectEstado'] as bool? ?? true,
       maxRecentSuggestions: json['maxRecentSuggestions'] ?? 3,
+      minContextSuggestionCaptures: json['minContextSuggestionCaptures'] ?? 2,
+      maxRecentAmbienteSuggestions: json['maxRecentAmbienteSuggestions'] ?? 3,
     );
   }
 
@@ -92,7 +107,9 @@ class PredictionPolicyConfig {
         autoSelectElemento = true,
         autoSelectMaterial = true,
         autoSelectEstado = true,
-        maxRecentSuggestions = 3;
+        maxRecentSuggestions = 3,
+        minContextSuggestionCaptures = 2,
+        maxRecentAmbienteSuggestions = 3;
 }
 
 class RankedMenuOption {
