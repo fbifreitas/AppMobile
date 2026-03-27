@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../config/checkin_step2_config.dart';
 import '../models/checkin_step2_model.dart';
 import '../services/inspection_menu_service.dart';
+import '../services/voice_input_service.dart';
+import '../widgets/voice_selector_sheet.dart';
+import '../widgets/voice_text_field.dart';
 import 'overlay_camera_screen.dart';
 
 class CheckinStep2Screen extends StatefulWidget {
@@ -27,6 +30,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
   late CheckinStep2Model _model;
   final Map<String, TextEditingController> _obsControllers = {};
   final InspectionMenuService _menuService = InspectionMenuService.instance;
+  final VoiceInputService _voiceService = VoiceInputService();
 
   List<CheckinStep2PhotoFieldConfig> _camposFotosOrdenados = [];
 
@@ -70,6 +74,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
     for (final controller in _obsControllers.values) {
       controller.dispose();
     }
+    _voiceService.dispose();
     super.dispose();
   }
 
@@ -158,6 +163,53 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
         ),
       ),
     );
+  }
+
+
+  Future<void> _selectGroupOptionByVoice(CheckinStep2OptionGroupConfig grupo) async {
+    final labels = grupo.opcoes.map((opcao) => opcao.label).toList();
+    if (labels.isEmpty) return;
+
+    final respostaAtual = _model.respostas[grupo.id];
+    final selectedLabel = (!grupo.multiplaEscolha &&
+            respostaAtual != null &&
+            respostaAtual.selectedOptionIds.isNotEmpty)
+        ? grupo.opcoes
+            .firstWhere(
+              (opcao) => opcao.id == respostaAtual.selectedOptionIds.first,
+              orElse: () => grupo.opcoes.first,
+            )
+            .label
+        : null;
+
+    final selected = await VoiceSelectorSheet.open(
+      context,
+      voiceService: _voiceService,
+      options: labels,
+      title: grupo.titulo,
+      currentValue: selectedLabel,
+    );
+
+    if (selected == null || !mounted) return;
+
+    final option = grupo.opcoes.firstWhere(
+      (opcao) => opcao.label == selected,
+      orElse: () => grupo.opcoes.first,
+    );
+
+    setState(() {
+      if (grupo.multiplaEscolha) {
+        _model = _model.toggleMultiOption(
+          groupId: grupo.id,
+          optionId: option.id,
+        );
+      } else {
+        _model = _model.setSingleOption(
+          groupId: grupo.id,
+          optionId: option.id,
+        );
+      }
+    });
   }
 
   @override
@@ -316,12 +368,23 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            grupo.titulo,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-              fontSize: 13,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  grupo.titulo,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Selecionar por voz',
+                onPressed: () => _selectGroupOptionByVoice(grupo),
+                icon: const Icon(Icons.mic_none, size: 18),
+              ),
+            ],
           ),
           const SizedBox(height: 10),
           Wrap(
@@ -359,14 +422,13 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
           ),
           if (grupo.permiteObservacao) ...[
             const SizedBox(height: 12),
-            TextField(
-              controller: _obsControllers[grupo.id],
+            VoiceTextField(
+              controller: _obsControllers[grupo.id]!,
+              labelText: 'Observações',
               minLines: 2,
               maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Observações',
-                border: OutlineInputBorder(),
-              ),
+              voiceService: _voiceService,
+              helperText: 'Toque no microfone para ditar a observação.',
               onChanged: (value) {
                 _model = _model.setObservacao(groupId: grupo.id, observacao: value);
               },
@@ -396,6 +458,7 @@ class _PhotoCaptureCard extends StatelessWidget {
     required this.photoInfo,
     required this.onCapture,
   });
+
 
   @override
   Widget build(BuildContext context) {

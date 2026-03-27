@@ -4,6 +4,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../screens/checkin_step2_screen.dart';
 import '../screens/overlay_camera_screen.dart';
+import '../services/voice_input_service.dart';
+import '../widgets/voice_selector_sheet.dart';
 import '../services/location_service.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
@@ -31,6 +33,13 @@ class _CheckinScreenState extends State<CheckinScreen> {
   };
 
   final List<String> contextos = const ['Rua', 'Área externa', 'Área interna'];
+  final VoiceInputService _voiceService = VoiceInputService();
+
+  @override
+  void dispose() {
+    _voiceService.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -134,9 +143,9 @@ class _CheckinScreenState extends State<CheckinScreen> {
               ],
             ),
             const SizedBox(height: 18),
-            const Text(
-              'Cliente está presente?',
-              style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.textPrimary, fontSize: 13),
+            _buildSectionTitle(
+              label: 'Cliente está presente?',
+              onVoiceTap: _selectClientePresenteByVoice,
             ),
             const SizedBox(height: 8),
             Wrap(
@@ -156,9 +165,9 @@ class _CheckinScreenState extends State<CheckinScreen> {
             ),
             const SizedBox(height: 18),
             if (clientePresente == true) ...[
-              const Text(
-                'Tipo de imóvel',
-                style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.textPrimary, fontSize: 13),
+              _buildSectionTitle(
+                label: 'Tipo de imóvel',
+                onVoiceTap: _selectTipoByVoice,
               ),
               const SizedBox(height: 8),
               Wrap(
@@ -179,9 +188,9 @@ class _CheckinScreenState extends State<CheckinScreen> {
               ),
               if (tipoImovel != null) ...[
                 const SizedBox(height: 16),
-                const Text(
-                  'Subtipo',
-                  style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.textPrimary, fontSize: 13),
+                _buildSectionTitle(
+                  label: 'Subtipo',
+                  onVoiceTap: _selectSubtipoByVoice,
                 ),
                 const SizedBox(height: 8),
                 Wrap(
@@ -197,9 +206,9 @@ class _CheckinScreenState extends State<CheckinScreen> {
                 ),
               ],
               const SizedBox(height: 16),
-              const Text(
-                'Por onde deseja começar?',
-                style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.textPrimary, fontSize: 13),
+              _buildSectionTitle(
+                label: 'Por onde deseja começar?',
+                onVoiceTap: _selectContextoByVoice,
               ),
               const SizedBox(height: 8),
               Wrap(
@@ -245,6 +254,88 @@ class _CheckinScreenState extends State<CheckinScreen> {
         ),
       ),
     );
+  }
+
+
+  Widget _buildSectionTitle({
+    required String label,
+    required Future<void> Function() onVoiceTap,
+  }) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+              fontSize: 13,
+            ),
+          ),
+        ),
+        IconButton(
+          tooltip: 'Selecionar por voz',
+          onPressed: onVoiceTap,
+          icon: const Icon(Icons.mic_none, size: 18),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _selectClientePresenteByVoice() async {
+    final selected = await VoiceSelectorSheet.open(
+      context,
+      voiceService: _voiceService,
+      options: const ['Sim', 'Não'],
+      title: 'Cliente está presente?',
+      currentValue: clientePresente == null ? null : (clientePresente! ? 'Sim' : 'Não'),
+    );
+    if (selected == null || !mounted) return;
+    setState(() => clientePresente = selected == 'Sim');
+  }
+
+  Future<void> _selectTipoByVoice() async {
+    final selected = await VoiceSelectorSheet.open(
+      context,
+      voiceService: _voiceService,
+      options: tipos,
+      title: 'Tipo de imóvel',
+      currentValue: tipoImovel,
+    );
+    if (selected == null || !mounted) return;
+    setState(() {
+      tipoImovel = selected;
+      subtipoImovel = null;
+    });
+  }
+
+  Future<void> _selectSubtipoByVoice() async {
+    final subtipos = tipoImovel == null ? const <String>[] : (subtiposPorTipo[tipoImovel] ?? const <String>[]);
+    if (subtipos.isEmpty) {
+      _mostrarInfo('Selecione o tipo de imóvel antes do subtipo.');
+      return;
+    }
+    final selected = await VoiceSelectorSheet.open(
+      context,
+      voiceService: _voiceService,
+      options: subtipos,
+      title: 'Subtipo',
+      currentValue: subtipoImovel,
+    );
+    if (selected == null || !mounted) return;
+    setState(() => subtipoImovel = selected);
+  }
+
+  Future<void> _selectContextoByVoice() async {
+    final selected = await VoiceSelectorSheet.open(
+      context,
+      voiceService: _voiceService,
+      options: contextos,
+      title: 'Por onde deseja começar?',
+      currentValue: porOndeComecar,
+    );
+    if (selected == null || !mounted) return;
+    setState(() => porOndeComecar = selected);
   }
 
   Future<void> _handleConfirm() async {

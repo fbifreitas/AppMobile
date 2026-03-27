@@ -11,6 +11,7 @@ class VoiceTextField extends StatefulWidget {
   final String localeId;
   final String? helperText;
   final String? hintText;
+  final ValueChanged<String>? onChanged;
 
   const VoiceTextField({
     super.key,
@@ -22,6 +23,7 @@ class VoiceTextField extends StatefulWidget {
     this.localeId = 'pt_BR',
     this.helperText,
     this.hintText,
+    this.onChanged,
   });
 
   @override
@@ -47,6 +49,7 @@ class _VoiceTextFieldState extends State<VoiceTextField> {
     widget.controller.selection = TextSelection.fromPosition(
       TextPosition(offset: widget.controller.text.length),
     );
+    widget.onChanged?.call(widget.controller.text);
   }
 
   @override
@@ -55,6 +58,7 @@ class _VoiceTextFieldState extends State<VoiceTextField> {
       controller: widget.controller,
       minLines: widget.minLines,
       maxLines: widget.maxLines,
+      onChanged: widget.onChanged,
       decoration: InputDecoration(
         labelText: widget.labelText,
         hintText: widget.hintText,
