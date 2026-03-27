@@ -2,6 +2,33 @@ import 'package:flutter/foundation.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
+class VoiceInputConfig {
+  final String localeId;
+  final Duration listenFor;
+  final Duration pauseFor;
+
+  const VoiceInputConfig({
+    this.localeId = 'pt_BR',
+    this.listenFor = const Duration(seconds: 45),
+    this.pauseFor = const Duration(seconds: 8),
+  });
+
+  static const VoiceInputConfig quick = VoiceInputConfig(
+    listenFor: Duration(seconds: 20),
+    pauseFor: Duration(seconds: 4),
+  );
+
+  static const VoiceInputConfig standard = VoiceInputConfig(
+    listenFor: Duration(seconds: 45),
+    pauseFor: Duration(seconds: 8),
+  );
+
+  static const VoiceInputConfig long = VoiceInputConfig(
+    listenFor: Duration(seconds: 60),
+    pauseFor: Duration(seconds: 10),
+  );
+}
+
 class VoiceInputService {
   final SpeechToText _speech = SpeechToText();
   bool _initialized = false;
@@ -22,8 +49,8 @@ class VoiceInputService {
 
   Future<String?> listenOnce({
     String localeId = 'pt_BR',
-    Duration listenFor = const Duration(seconds: 20),
-    Duration pauseFor = const Duration(seconds: 4),
+    Duration listenFor = const Duration(seconds: 45),
+    Duration pauseFor = const Duration(seconds: 8),
   }) async {
     final ok = await initialize();
     if (!ok) return null;
@@ -48,6 +75,14 @@ class VoiceInputService {
 
     final output = recognized.trim();
     return output.isEmpty ? null : output;
+  }
+
+  Future<String?> listenWithConfig(VoiceInputConfig config) {
+    return listenOnce(
+      localeId: config.localeId,
+      listenFor: config.listenFor,
+      pauseFor: config.pauseFor,
+    );
   }
 
   Future<void> stop() async {
