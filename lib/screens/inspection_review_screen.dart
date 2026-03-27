@@ -3,9 +3,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../config/checkin_step2_config.dart';
+import '../services/voice_command_catalog_service.dart';
+import '../services/voice_command_parser_service.dart';
 import '../services/voice_input_service.dart';
+import '../widgets/voice_action_bar.dart';
 import '../widgets/voice_text_field.dart';
-import '../widgets/voice_selector_sheet.dart';
 import 'overlay_camera_screen.dart';
 
 class InspectionReviewScreen extends StatefulWidget {
@@ -26,51 +28,23 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   late final List<_EditableCapture> _items;
   final TextEditingController _observacaoController = TextEditingController();
   final VoiceInputService _voiceService = VoiceInputService();
+  final VoiceCommandParserService _voiceCommandParser = VoiceCommandParserService();
+  final VoiceCommandCatalogService _voiceCommandCatalog = const VoiceCommandCatalogService();
   bool _reviewConfirmed = false;
+  String? _expandedSubtype;
 
   static const _elementos = <String>[
-    'Visão geral',
-    'Número',
-    'Porta',
-    'Portão',
-    'Janela',
-    'Piso',
-    'Parede',
-    'Teto',
-    'Outro',
+    'Visão geral', 'Número', 'Porta', 'Portão', 'Janela', 'Piso', 'Parede', 'Teto', 'Outro',
   ];
-
   static const _materiais = <String>[
-    'Alvenaria',
-    'Metal',
-    'Madeira',
-    'Vidro',
-    'Cerâmica',
-    'Concreto',
-    'Outro',
+    'Alvenaria', 'Metal', 'Madeira', 'Vidro', 'Cerâmica', 'Concreto', 'Outro',
   ];
-
   static const _estados = <String>[
-    'Bom',
-    'Regular',
-    'Ruim',
-    'Necessita reparo',
-    'Não se aplica',
+    'Bom', 'Regular', 'Ruim', 'Necessita reparo', 'Não se aplica',
   ];
-
   static const _ambientes = <String>[
-    'Fachada',
-    'Logradouro',
-    'Acesso ao imóvel',
-    'Entorno',
-    'Sala de Estar',
-    'Sala',
-    'Dormitório',
-    'Cozinha',
-    'Banheiro',
-    'Área de serviço',
-    'Áreas Comuns',
-    'Garagem',
+    'Fachada', 'Logradouro', 'Acesso ao imóvel', 'Entorno', 'Sala de Estar', 'Sala',
+    'Dormitório', 'Cozinha', 'Banheiro', 'Área de serviço', 'Áreas Comuns', 'Garagem',
     'Outro ambiente',
   ];
 
@@ -94,17 +68,13 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     final checkinStatuses = _buildCheckinRequirements();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Menu de vistoria'),
-      ),
+      appBar: AppBar(title: const Text('Menu de vistoria')),
       bottomNavigationBar: SafeArea(
         minimum: const EdgeInsets.fromLTRB(16, 8, 16, 14),
         child: SizedBox(
           height: 54,
           child: FilledButton.icon(
-            onPressed: _reviewConfirmed
-                ? () => _finishInspection(context, summary.totalPending)
-                : null,
+            onPressed: _reviewConfirmed ? () => _finishInspection(context, summary.totalPending) : null,
             icon: const Icon(Icons.flag_outlined, size: 18),
             label: const Text(
               'FINALIZAR VISTORIA',
@@ -117,6 +87,15 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
         children: [
           _buildProgressCard(context, summary),
+          const SizedBox(height: 12),
+          VoiceActionBar(
+            voiceService: _voiceService,
+            parserService: _voiceCommandParser,
+            commands: _voiceCommandCatalog.reviewCommands(),
+            title: 'Comandos rápidos por voz',
+            subtitle: 'Ex.: finalizar vistoria, aceitar sugestões, abrir subtipo cozinha.',
+            onCommand: _handleReviewVoiceCommand,
+          ),
           const SizedBox(height: 18),
           if (checkinStatuses.isNotEmpty) ...[
             Text(
@@ -150,6 +129,12 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: _NodeCard(
                   group: group,
+                  initiallyExpanded: _expandedSubtype == group.title,
+                  onExpansionChanged: (expanded) {
+                    setState(() {
+                      _expandedSubtype = expanded ? group.title : null;
+                    });
+                  },
                   onChanged: () => setState(() {}),
                   onApplySubtype: () => _applySubtype(group),
                   onApplySimilar: (source) => _applySimilar(group, source),
@@ -164,22 +149,80 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     );
   }
 
-  Widget _buildProgressCard(BuildContext context, _ReviewSummary summary) {
-    final progress = summary.total == 0
-        ? 0.0
-        : (summary.classified / summary.total).clamp(0.0, 1.0);
+  Future<void> _handleReviewVoiceCommand(VoiceCommandMatch match) async {
+    switch (match.commandId) {
+      case 'finalizar_vistoria':
+        if (!_reviewConfirmed) {
+          setState(() => _reviewConfirmed = true);
+        }
+        await _finishInspection(context, _buildSummary().totalPending);
+        return;
+      case 'aceitar_sugestoes':
+        if (_expandedSubtype == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Abra um subtipo antes de usar este comando.')),
+          );
+          return;
+        }
+        final group = _buildGroups().where((g) => g.title == _expandedSubtype).firstOrNull;
+        if (group == null) return;
+        _acceptSuggestions(group);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Sugestões aceitas em $_expandedSubtype.')),
+        );
+        return;
+      case 'aplicar_ao_subtipo':
+        if (_expandedSubtype == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Abra um subtipo antes de usar este comando.')),
+          );
+          return;
+        }
+        final group = _buildGroups().where((g) => g.title == _expandedSubtype).firstOrNull;
+        if (group == null) return;
+        _applySubtype(group);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Classificação aplicada ao subtipo $_expandedSubtype.')),
+        );
+        return;
+      case 'aplicar_aos_semelhantes':
+        if (_expandedSubtype == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Abra um subtipo antes de usar este comando.')),
+          );
+          return;
+        }
+        final group = _buildGroups().where((g) => g.title == _expandedSubtype).firstOrNull;
+        if (group == null || group.items.isEmpty) return;
+        _applySimilar(group, group.items.first);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Classificação aplicada aos semelhantes em $_expandedSubtype.')),
+        );
+        return;
+      case 'abrir_subtipo':
+        final subtipo = match.entities['subtipo'];
+        if (subtipo == null || subtipo.trim().isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Fale o nome do subtipo para abrir.')),
+          );
+          return;
+        }
+        setState(() => _expandedSubtype = subtipo);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Subtipo $subtipo aberto para revisão.')),
+        );
+        return;
+    }
+  }
 
+  Widget _buildProgressCard(BuildContext context, _ReviewSummary summary) {
+    final progress = summary.total == 0 ? 0.0 : (summary.classified / summary.total).clamp(0.0, 1.0);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context)
-            .colorScheme
-            .surfaceContainerHighest
-            .withValues(alpha: 0.32),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.32),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.10),
-        ),
+        border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.10)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -190,16 +233,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _MetricChip(
-                label: 'Fotos',
-                value: '${summary.total}',
-                color: Colors.blueGrey,
-              ),
-              _MetricChip(
-                label: 'Concluídas',
-                value: '${summary.classified}',
-                color: Colors.green,
-              ),
+              _MetricChip(label: 'Fotos', value: '${summary.total}', color: Colors.blueGrey),
+              _MetricChip(label: 'Concluídas', value: '${summary.classified}', color: Colors.green),
               _MetricChip(
                 label: 'Pendências',
                 value: '${summary.totalPending}',
@@ -210,10 +245,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
           const SizedBox(height: 16),
           ClipRRect(
             borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              minHeight: 10,
-              value: progress,
-            ),
+            child: LinearProgressIndicator(minHeight: 10, value: progress),
           ),
           const SizedBox(height: 10),
           Text(
@@ -231,10 +263,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context)
-            .colorScheme
-            .surfaceContainerHighest
-            .withValues(alpha: 0.24),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.24),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
@@ -265,11 +294,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
               style: TextStyle(fontSize: 13),
             ),
             value: _reviewConfirmed,
-            onChanged: (value) {
-              setState(() {
-                _reviewConfirmed = value ?? false;
-              });
-            },
+            onChanged: (value) => setState(() => _reviewConfirmed = value ?? false),
           ),
           if (summary.totalPending > 0)
             Padding(
@@ -308,28 +333,21 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       final key = item.ambiente.trim().isEmpty ? 'Sem subtipo' : item.ambiente;
       map.putIfAbsent(key, () => <_EditableCapture>[]).add(item);
     }
-
     final groups = map.entries.map((entry) {
       final items = entry.value;
-      final pending = items.where((e) => e.status == _PhotoStatus.pending).length;
-      final suggested = items.where((e) => e.status == _PhotoStatus.suggested).length;
-      final classified = items.where((e) => e.status == _PhotoStatus.classified).length;
-
       return _NodeGroup(
         title: entry.key,
         items: items,
-        pending: pending,
-        suggested: suggested,
-        classified: classified,
+        pending: items.where((e) => e.status == _PhotoStatus.pending).length,
+        suggested: items.where((e) => e.status == _PhotoStatus.suggested).length,
+        classified: items.where((e) => e.status == _PhotoStatus.classified).length,
       );
     }).toList();
-
     groups.sort((a, b) {
       if (a.pending != b.pending) return b.pending.compareTo(a.pending);
       if (a.suggested != b.suggested) return b.suggested.compareTo(a.suggested);
       return a.title.compareTo(b.title);
     });
-
     return groups;
   }
 
@@ -337,25 +355,16 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     final tipo = TipoImovelExtension.fromString(widget.tipoImovel);
     final config = CheckinStep2Configs.byTipo(tipo);
 
-    return config.camposFotos
-        .where((campo) => campo.obrigatorio)
-        .map((campo) {
-          final hasEvidence = _items.any((item) {
-            final sameAmbiente = item.ambiente.trim().toLowerCase() ==
-                campo.cameraAmbiente.trim().toLowerCase();
-            final sameElemento = campo.cameraElementoInicial == null
-                ? true
-                : (item.elemento?.trim().toLowerCase() ==
-                    campo.cameraElementoInicial!.trim().toLowerCase());
-            return sameAmbiente && sameElemento;
-          });
-
-          return _CheckinRequirementStatus(
-            field: campo,
-            isDone: hasEvidence,
-          );
-        })
-        .toList();
+    return config.camposFotos.where((campo) => campo.obrigatorio).map((campo) {
+      final hasEvidence = _items.any((item) {
+        final sameAmbiente = item.ambiente.trim().toLowerCase() == campo.cameraAmbiente.trim().toLowerCase();
+        final sameElemento = campo.cameraElementoInicial == null
+            ? true
+            : (item.elemento?.trim().toLowerCase() == campo.cameraElementoInicial!.trim().toLowerCase());
+        return sameAmbiente && sameElemento;
+      });
+      return _CheckinRequirementStatus(field: campo, isDone: hasEvidence);
+    }).toList();
   }
 
   Future<void> _captureMissingRequirement(_CheckinRequirementStatus status) async {
@@ -374,26 +383,16 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         ),
       ),
     );
-
     if (result == null || !mounted) return;
-
-    setState(() {
-      _items.add(_EditableCapture.fromCapture(result));
-    });
-
+    setState(() => _items.add(_EditableCapture.fromCapture(result)));
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${status.field.titulo} registrado com sucesso.'),
-      ),
+      SnackBar(content: Text('${status.field.titulo} registrado com sucesso.')),
     );
   }
 
   void _applySubtype(_NodeGroup group) {
     if (group.items.isEmpty) return;
-    final source = group.items.firstWhere(
-      (item) => item.hasAnyClassification,
-      orElse: () => group.items.first,
-    );
+    final source = group.items.firstWhere((item) => item.hasAnyClassification, orElse: () => group.items.first);
     setState(() {
       for (final item in group.items) {
         item.copyClassificationFrom(source);
@@ -405,9 +404,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   void _acceptSuggestions(_NodeGroup group) {
     setState(() {
       for (final item in group.items) {
-        if (item.status == _PhotoStatus.suggested) {
-          item.recalculateStatus(forceClassified: true);
-        }
+        if (item.status == _PhotoStatus.suggested) item.recalculateStatus(forceClassified: true);
       }
     });
   }
@@ -421,74 +418,13 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     });
   }
 
-  Future<void> _applyVoiceClassification({
-    required void Function(void Function()) setSheetState,
-    required _EditableCapture item,
-    required void Function(String? ambiente, String? elemento, String? material, String? estado) updateValues,
-  }) async {
-    final transcript = await _voiceService.listenOnce();
-    if (transcript == null || transcript.trim().isEmpty) return;
-
-    final ambiente = _matchOption(transcript, _ambientes);
-    final elemento = _matchOption(transcript, _elementos);
-    final material = _matchOption(transcript, _materiais);
-    final estado = _matchOption(transcript, _estados);
-
-    setSheetState(() {
-      updateValues(ambiente, elemento, material, estado);
-    });
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Transcrição: $transcript'),
-      ),
-    );
-  }
-
-  String? _matchOption(String transcript, List<String> options) {
-    final normalized = _normalize(transcript);
-    for (final option in options) {
-      if (normalized.contains(_normalize(option))) {
-        return option;
-      }
-    }
-    return null;
-  }
-
-  String _normalize(String input) {
-    const from = 'áàãâäéèêëíìîïóòõôöúùûüç';
-    const to = 'aaaaaeeeeiiiiooooouuuuc';
-    var result = input.toLowerCase();
-    for (var i = 0; i < from.length; i++) {
-      result = result.replaceAll(from[i], to[i]);
-    }
-    return result;
-  }
-
-  Future<String?> _selectOptionByVoice({
-    required String title,
-    required List<String> options,
-    String? currentValue,
-  }) {
-    return VoiceSelectorSheet.open(
-      context,
-      voiceService: _voiceService,
-      options: options,
-      title: title,
-      currentValue: currentValue,
-    );
-  }
-
   Future<void> _editItem(_EditableCapture item) async {
     final edited = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
       useSafeArea: true,
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.88,
-      ),
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.88),
       builder: (sheetContext) {
         String? elemento = item.elemento;
         String? material = item.material;
@@ -505,9 +441,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                   left: 16,
                   right: 16,
                   top: 4,
-                  bottom: mediaQuery.viewInsets.bottom +
-                      mediaQuery.viewPadding.bottom +
-                      16,
+                  bottom: mediaQuery.viewInsets.bottom + mediaQuery.viewPadding.bottom + 16,
                 ),
                 child: SingleChildScrollView(
                   child: Column(
@@ -521,37 +455,12 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                               fontSize: 16,
                             ),
                       ),
-                      const SizedBox(height: 8),
-                      OutlinedButton.icon(
-                        onPressed: () => _applyVoiceClassification(
-                          setSheetState: setSheetState,
-                          item: item,
-                          updateValues: (novoAmbiente, novoElemento, novoMaterial, novoEstado) {
-                            ambiente = novoAmbiente ?? ambiente;
-                            elemento = novoElemento ?? elemento;
-                            material = novoMaterial ?? material;
-                            estado = novoEstado ?? estado;
-                          },
-                        ),
-                        icon: const Icon(Icons.mic_none),
-                        label: const Text('Preencher classificação por voz'),
-                      ),
                       const SizedBox(height: 12),
                       _EditorDropdown(
                         label: 'Subtipo / Local',
                         value: _ambientes.contains(ambiente) ? ambiente : null,
                         items: _ambientes,
                         onChanged: (value) => setSheetState(() => ambiente = value),
-                        onVoiceTap: () async {
-                          final selected = await _selectOptionByVoice(
-                            title: 'Selecionar subtipo / local',
-                            options: _ambientes,
-                            currentValue: ambiente,
-                          );
-                          if (selected != null) {
-                            setSheetState(() => ambiente = selected);
-                          }
-                        },
                       ),
                       const SizedBox(height: 10),
                       _EditorDropdown(
@@ -559,16 +468,6 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                         value: _elementos.contains(elemento) ? elemento : null,
                         items: _elementos,
                         onChanged: (value) => setSheetState(() => elemento = value),
-                        onVoiceTap: () async {
-                          final selected = await _selectOptionByVoice(
-                            title: 'Selecionar elemento',
-                            options: _elementos,
-                            currentValue: elemento,
-                          );
-                          if (selected != null) {
-                            setSheetState(() => elemento = selected);
-                          }
-                        },
                       ),
                       const SizedBox(height: 10),
                       _EditorDropdown(
@@ -576,16 +475,6 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                         value: _materiais.contains(material) ? material : null,
                         items: _materiais,
                         onChanged: (value) => setSheetState(() => material = value),
-                        onVoiceTap: () async {
-                          final selected = await _selectOptionByVoice(
-                            title: 'Selecionar material',
-                            options: _materiais,
-                            currentValue: material,
-                          );
-                          if (selected != null) {
-                            setSheetState(() => material = selected);
-                          }
-                        },
                       ),
                       const SizedBox(height: 10),
                       _EditorDropdown(
@@ -593,16 +482,6 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                         value: _estados.contains(estado) ? estado : null,
                         items: _estados,
                         onChanged: (value) => setSheetState(() => estado = value),
-                        onVoiceTap: () async {
-                          final selected = await _selectOptionByVoice(
-                            title: 'Selecionar estado',
-                            options: _estados,
-                            currentValue: estado,
-                          );
-                          if (selected != null) {
-                            setSheetState(() => estado = selected);
-                          }
-                        },
                       ),
                       const SizedBox(height: 16),
                       SizedBox(
@@ -628,10 +507,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         );
       },
     );
-
-    if (edited == true && mounted) {
-      setState(() {});
-    }
+    if (edited == true && mounted) setState(() {});
   }
 
   Future<void> _finishInspection(BuildContext context, int pendingCount) async {
@@ -648,14 +524,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                   'Ainda existem $pendingCount item(ns) com pendência. Deseja finalizar a vistoria mesmo assim?',
                 ),
                 actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(dialogContext, false),
-                    child: const Text('Voltar'),
-                  ),
-                  FilledButton(
-                    onPressed: () => Navigator.pop(dialogContext, true),
-                    child: const Text('Finalizar mesmo assim'),
-                  ),
+                  TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Voltar')),
+                  FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Finalizar mesmo assim')),
                 ],
               ),
             ) ??
@@ -664,9 +534,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     if (!shouldContinue) return;
     if (!mounted) return;
 
-    messenger.showSnackBar(
-      const SnackBar(content: Text('Vistoria finalizada com sucesso.')),
-    );
+    messenger.showSnackBar(const SnackBar(content: Text('Vistoria finalizada com sucesso.')));
     navigator.popUntil((route) => route.isFirst);
   }
 }
@@ -675,33 +543,20 @@ class _CheckinRequirementCard extends StatelessWidget {
   final _CheckinRequirementStatus status;
   final VoidCallback? onCapture;
 
-  const _CheckinRequirementCard({
-    required this.status,
-    required this.onCapture,
-  });
+  const _CheckinRequirementCard({required this.status, required this.onCapture});
 
   @override
   Widget build(BuildContext context) {
     final color = status.isDone ? Colors.green : Colors.orange;
-    final subtitle = status.isDone
-        ? 'Obrigatório atendido'
-        : 'Obrigatório — pendente de captura';
-
+    final subtitle = status.isDone ? 'Obrigatório atendido' : 'Obrigatório — pendente de captura';
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
         color: Colors.white,
-        border: Border.all(
-          color: color.withValues(alpha: 0.35),
-          width: status.isDone ? 1.0 : 1.3,
-        ),
+        border: Border.all(color: color.withValues(alpha: 0.35), width: status.isDone ? 1.0 : 1.3),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
         ],
       ),
       child: Row(
@@ -717,42 +572,27 @@ class _CheckinRequirementCard extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  status.field.titulo,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                  ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(status.field.titulo, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: status.isDone ? Colors.green.shade700 : Colors.orange.shade800,
+                  fontWeight: status.isDone ? FontWeight.w600 : FontWeight.w700,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: status.isDone ? Colors.green.shade700 : Colors.orange.shade800,
-                    fontWeight: status.isDone ? FontWeight.w600 : FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ]),
           ),
           const SizedBox(width: 10),
           if (status.isDone)
-            _StatusPill(
-              status: _VisualStatus.ok,
-              label: 'OK',
-            )
+            _StatusPill(status: _VisualStatus.ok, label: 'OK')
           else
             FilledButton.tonalIcon(
               onPressed: onCapture,
               icon: const Icon(Icons.photo_camera_outlined, size: 16),
-              label: const Text(
-                'Capturar',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-              ),
+              label: const Text('Capturar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
             ),
         ],
       ),
@@ -762,6 +602,8 @@ class _CheckinRequirementCard extends StatelessWidget {
 
 class _NodeCard extends StatelessWidget {
   final _NodeGroup group;
+  final bool initiallyExpanded;
+  final ValueChanged<bool> onExpansionChanged;
   final VoidCallback onChanged;
   final VoidCallback onApplySubtype;
   final VoidCallback onAcceptSuggestions;
@@ -770,6 +612,8 @@ class _NodeCard extends StatelessWidget {
 
   const _NodeCard({
     required this.group,
+    required this.initiallyExpanded,
+    required this.onExpansionChanged,
     required this.onChanged,
     required this.onApplySubtype,
     required this.onAcceptSuggestions,
@@ -779,31 +623,19 @@ class _NodeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final status = group.pending > 0
-        ? _VisualStatus.pending
-        : group.suggested > 0
-            ? _VisualStatus.suggested
-            : _VisualStatus.ok;
-
+    final status = group.pending > 0 ? _VisualStatus.pending : group.suggested > 0 ? _VisualStatus.suggested : _VisualStatus.ok;
     final icon = _iconForSubtype(group.title);
 
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         color: Colors.white,
-        border: Border.all(
-          color: status.borderColor.withValues(alpha: 0.35),
-          width: status == _VisualStatus.pending ? 1.4 : 1.0,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.035),
-            blurRadius: 12,
-            offset: const Offset(0, 5),
-          ),
-        ],
+        border: Border.all(color: status.borderColor.withValues(alpha: 0.35), width: status == _VisualStatus.pending ? 1.4 : 1.0),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.035), blurRadius: 12, offset: const Offset(0, 5))],
       ),
       child: ExpansionTile(
+        initiallyExpanded: initiallyExpanded,
+        onExpansionChanged: onExpansionChanged,
         tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -813,38 +645,21 @@ class _NodeCard extends StatelessWidget {
             Container(
               width: 54,
               height: 54,
-              decoration: BoxDecoration(
-                color: status.iconBackground,
-                borderRadius: BorderRadius.circular(16),
-              ),
+              decoration: BoxDecoration(color: status.iconBackground, borderRadius: BorderRadius.circular(16)),
               child: Icon(icon, size: 28, color: status.iconColor),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    group.title,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    status.subtitle(group),
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: group.pending > 0 ? FontWeight.w700 : FontWeight.w500,
-                      color: status.subtitleColor,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 2,
-                  ),
-                ],
-              ),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(group.title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800), overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 4),
+                Text(
+                  status.subtitle(group),
+                  style: TextStyle(fontSize: 12, fontWeight: group.pending > 0 ? FontWeight.w700 : FontWeight.w500, color: status.subtitleColor),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
+                ),
+              ]),
             ),
           ],
         ),
@@ -906,24 +721,12 @@ class _NodeCard extends StatelessWidget {
 
   IconData _iconForSubtype(String subtype) {
     final normalized = subtype.toLowerCase();
-    if (normalized.contains('exterior') || normalized.contains('fachada')) {
-      return Icons.home_outlined;
-    }
-    if (normalized.contains('sala')) {
-      return Icons.weekend_outlined;
-    }
-    if (normalized.contains('cozinha')) {
-      return Icons.restaurant_outlined;
-    }
-    if (normalized.contains('banheiro')) {
-      return Icons.shower_outlined;
-    }
-    if (normalized.contains('área') || normalized.contains('comum')) {
-      return Icons.apartment_outlined;
-    }
-    if (normalized.contains('garagem')) {
-      return Icons.garage_outlined;
-    }
+    if (normalized.contains('exterior') || normalized.contains('fachada')) return Icons.home_outlined;
+    if (normalized.contains('sala')) return Icons.weekend_outlined;
+    if (normalized.contains('cozinha')) return Icons.restaurant_outlined;
+    if (normalized.contains('banheiro')) return Icons.shower_outlined;
+    if (normalized.contains('área') || normalized.contains('comum')) return Icons.apartment_outlined;
+    if (normalized.contains('garagem')) return Icons.garage_outlined;
     return Icons.grid_view_rounded;
   }
 }
@@ -932,71 +735,42 @@ class _ThumbCard extends StatelessWidget {
   final _EditableCapture item;
   final VoidCallback onTap;
 
-  const _ThumbCard({
-    required this.item,
-    required this.onTap,
-  });
+  const _ThumbCard({required this.item, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final status = item.status == _PhotoStatus.pending
-        ? _VisualStatus.pending
-        : item.status == _PhotoStatus.suggested
-            ? _VisualStatus.suggested
-            : _VisualStatus.ok;
-
+    final status = item.status == _PhotoStatus.pending ? _VisualStatus.pending : item.status == _PhotoStatus.suggested ? _VisualStatus.suggested : _VisualStatus.ok;
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
       child: SizedBox(
         width: 122,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              height: 92,
-              width: 122,
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: _CaptureThumbnail(filePath: item.filePath),
-                    ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          SizedBox(
+            height: 92,
+            width: 122,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: ClipRRect(borderRadius: BorderRadius.circular(16), child: _CaptureThumbnail(filePath: item.filePath)),
+                ),
+                Positioned(
+                  top: 6,
+                  left: 6,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                    decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.55), borderRadius: BorderRadius.circular(999)),
+                    child: Text(item.hourMinute, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700)),
                   ),
-                  Positioned(
-                    top: 6,
-                    left: 6,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.55),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        item.hourMinute,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-            const SizedBox(height: 6),
-            _StatusPill(status: status, label: status.shortLabel),
-            const SizedBox(height: 4),
-            Text(
-              item.shortDescription,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 6),
+          _StatusPill(status: status, label: status.shortLabel),
+          const SizedBox(height: 4),
+          Text(item.shortDescription, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600)),
+        ]),
       ),
     );
   }
@@ -1016,7 +790,6 @@ class _CaptureThumbnail extends StatelessWidget {
         child: const Center(child: Icon(Icons.broken_image_outlined, size: 28)),
       );
     }
-
     return ColoredBox(
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: Image.file(
@@ -1024,9 +797,7 @@ class _CaptureThumbnail extends StatelessWidget {
         fit: BoxFit.cover,
         alignment: Alignment.center,
         filterQuality: FilterQuality.medium,
-        errorBuilder: (_, __, ___) {
-          return const Center(child: Icon(Icons.broken_image_outlined, size: 28));
-        },
+        errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image_outlined, size: 28)),
       ),
     );
   }
@@ -1037,41 +808,17 @@ class _EditorDropdown extends StatelessWidget {
   final String? value;
   final List<String> items;
   final ValueChanged<String?> onChanged;
-  final Future<void> Function()? onVoiceTap;
 
-  const _EditorDropdown({
-    required this.label,
-    required this.value,
-    required this.items,
-    required this.onChanged,
-    this.onVoiceTap,
-  });
+  const _EditorDropdown({required this.label, required this.value, required this.items, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
     final safeValue = value != null && items.contains(value) ? value : null;
-
     return DropdownButtonFormField<String>(
       initialValue: safeValue,
       isExpanded: true,
-      decoration: InputDecoration(
-        labelText: label,
-        isDense: true,
-        border: const OutlineInputBorder(),
-        suffixIcon: onVoiceTap == null
-            ? null
-            : IconButton(
-                tooltip: 'Selecionar por voz',
-                onPressed: onVoiceTap,
-                icon: const Icon(Icons.mic_none, size: 18),
-              ),
-      ),
-      items: items
-          .map((item) => DropdownMenuItem<String>(
-                value: item,
-                child: Text(item, overflow: TextOverflow.ellipsis),
-              ))
-          .toList(),
+      decoration: InputDecoration(labelText: label, isDense: true, border: const OutlineInputBorder()),
+      items: items.map((item) => DropdownMenuItem<String>(value: item, child: Text(item, overflow: TextOverflow.ellipsis))).toList(),
       onChanged: onChanged,
     );
   }
@@ -1082,32 +829,18 @@ class _MetricChip extends StatelessWidget {
   final String value;
   final MaterialColor color;
 
-  const _MetricChip({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
+  const _MetricChip({required this.label, required this.value, required this.color});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        color: color.shade50,
-      ),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), color: color.shade50),
       child: RichText(
         text: TextSpan(
-          style: TextStyle(
-            color: color.shade800,
-            fontSize: 11,
-            fontFamily: DefaultTextStyle.of(context).style.fontFamily,
-          ),
+          style: TextStyle(color: color.shade800, fontSize: 11, fontFamily: DefaultTextStyle.of(context).style.fontFamily),
           children: [
-            TextSpan(
-              text: '$value ',
-              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
-            ),
+            TextSpan(text: '$value ', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
             TextSpan(text: label),
           ],
         ),
@@ -1120,10 +853,7 @@ class _StatusPill extends StatelessWidget {
   final _VisualStatus status;
   final String label;
 
-  const _StatusPill({
-    required this.status,
-    required this.label,
-  });
+  const _StatusPill({required this.status, required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -1135,24 +865,13 @@ class _StatusPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: status.pillBorder),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(status.icon, size: 14, color: status.pillText),
-          const SizedBox(width: 5),
-          Flexible(
-            child: Text(
-              label,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: status.pillText,
-                fontWeight: FontWeight.w800,
-                fontSize: 11,
-              ),
-            ),
-          ),
-        ],
-      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(status.icon, size: 14, color: status.pillText),
+        const SizedBox(width: 5),
+        Flexible(
+          child: Text(label, overflow: TextOverflow.ellipsis, style: TextStyle(color: status.pillText, fontWeight: FontWeight.w800, fontSize: 11)),
+        ),
+      ]),
     );
   }
 }
@@ -1160,104 +879,15 @@ class _StatusPill extends StatelessWidget {
 enum _VisualStatus { ok, suggested, pending }
 
 extension on _VisualStatus {
-  Color get borderColor {
-    switch (this) {
-      case _VisualStatus.ok:
-        return Colors.green;
-      case _VisualStatus.suggested:
-        return Colors.amber;
-      case _VisualStatus.pending:
-        return Colors.orange;
-    }
-  }
-
-  Color get iconBackground {
-    switch (this) {
-      case _VisualStatus.ok:
-        return Colors.green.shade50;
-      case _VisualStatus.suggested:
-        return Colors.amber.shade50;
-      case _VisualStatus.pending:
-        return Colors.orange.shade50;
-    }
-  }
-
-  Color get iconColor {
-    switch (this) {
-      case _VisualStatus.ok:
-        return Colors.green.shade700;
-      case _VisualStatus.suggested:
-        return Colors.amber.shade800;
-      case _VisualStatus.pending:
-        return Colors.orange.shade700;
-    }
-  }
-
-  Color get subtitleColor {
-    switch (this) {
-      case _VisualStatus.ok:
-        return Colors.green.shade700;
-      case _VisualStatus.suggested:
-        return Colors.amber.shade800;
-      case _VisualStatus.pending:
-        return Colors.orange.shade700;
-    }
-  }
-
-  Color get pillBackground {
-    switch (this) {
-      case _VisualStatus.ok:
-        return Colors.green.shade50;
-      case _VisualStatus.suggested:
-        return Colors.amber.shade50;
-      case _VisualStatus.pending:
-        return Colors.orange.shade50;
-    }
-  }
-
-  Color get pillBorder {
-    switch (this) {
-      case _VisualStatus.ok:
-        return Colors.green.shade100;
-      case _VisualStatus.suggested:
-        return Colors.amber.shade100;
-      case _VisualStatus.pending:
-        return Colors.orange.shade200;
-    }
-  }
-
-  Color get pillText {
-    switch (this) {
-      case _VisualStatus.ok:
-        return Colors.green.shade700;
-      case _VisualStatus.suggested:
-        return Colors.amber.shade800;
-      case _VisualStatus.pending:
-        return Colors.orange.shade700;
-    }
-  }
-
-  IconData get icon {
-    switch (this) {
-      case _VisualStatus.ok:
-        return Icons.check_circle_outline;
-      case _VisualStatus.suggested:
-        return Icons.auto_awesome_outlined;
-      case _VisualStatus.pending:
-        return Icons.warning_amber_rounded;
-    }
-  }
-
-  String get shortLabel {
-    switch (this) {
-      case _VisualStatus.ok:
-        return 'OK';
-      case _VisualStatus.suggested:
-        return 'Sug.';
-      case _VisualStatus.pending:
-        return 'Pend.';
-    }
-  }
+  Color get borderColor => this == _VisualStatus.ok ? Colors.green : this == _VisualStatus.suggested ? Colors.amber : Colors.orange;
+  Color get iconBackground => this == _VisualStatus.ok ? Colors.green.shade50 : this == _VisualStatus.suggested ? Colors.amber.shade50 : Colors.orange.shade50;
+  Color get iconColor => this == _VisualStatus.ok ? Colors.green.shade700 : this == _VisualStatus.suggested ? Colors.amber.shade800 : Colors.orange.shade700;
+  Color get subtitleColor => this == _VisualStatus.ok ? Colors.green.shade700 : this == _VisualStatus.suggested ? Colors.amber.shade800 : Colors.orange.shade700;
+  Color get pillBackground => this == _VisualStatus.ok ? Colors.green.shade50 : this == _VisualStatus.suggested ? Colors.amber.shade50 : Colors.orange.shade50;
+  Color get pillBorder => this == _VisualStatus.ok ? Colors.green.shade100 : this == _VisualStatus.suggested ? Colors.amber.shade100 : Colors.orange.shade200;
+  Color get pillText => this == _VisualStatus.ok ? Colors.green.shade700 : this == _VisualStatus.suggested ? Colors.amber.shade800 : Colors.orange.shade700;
+  IconData get icon => this == _VisualStatus.ok ? Icons.check_circle_outline : this == _VisualStatus.suggested ? Icons.auto_awesome_outlined : Icons.warning_amber_rounded;
+  String get shortLabel => this == _VisualStatus.ok ? 'OK' : this == _VisualStatus.suggested ? 'Sug.' : 'Pend.';
 
   String label(_NodeGroup group) {
     switch (this) {
@@ -1266,13 +896,8 @@ extension on _VisualStatus {
       case _VisualStatus.suggested:
         return 'Revisar';
       case _VisualStatus.pending:
-        final source = group.items.firstWhere(
-          (item) => item.status == _PhotoStatus.pending,
-          orElse: () => group.items.first,
-        );
-        return source.elemento?.trim().isNotEmpty == true
-            ? source.elemento!
-            : 'Pendente';
+        final source = group.items.firstWhere((item) => item.status == _PhotoStatus.pending, orElse: () => group.items.first);
+        return source.elemento?.trim().isNotEmpty == true ? source.elemento! : 'Pendente';
     }
   }
 
@@ -1283,13 +908,8 @@ extension on _VisualStatus {
       case _VisualStatus.suggested:
         return 'Existem sugestões automáticas para revisar';
       case _VisualStatus.pending:
-        final source = group.items.firstWhere(
-          (item) => item.status == _PhotoStatus.pending,
-          orElse: () => group.items.first,
-        );
-        final detail = source.elemento?.trim().isNotEmpty == true
-            ? source.elemento!
-            : 'Classificação incompleta';
+        final source = group.items.firstWhere((item) => item.status == _PhotoStatus.pending, orElse: () => group.items.first);
+        final detail = source.elemento?.trim().isNotEmpty == true ? source.elemento! : 'Classificação incompleta';
         return 'Pendente: $detail';
     }
   }
@@ -1299,10 +919,7 @@ class _CheckinRequirementStatus {
   final CheckinStep2PhotoFieldConfig field;
   final bool isDone;
 
-  const _CheckinRequirementStatus({
-    required this.field,
-    required this.isDone,
-  });
+  const _CheckinRequirementStatus({required this.field, required this.isDone});
 }
 
 class _NodeGroup {
@@ -1346,7 +963,6 @@ class _EditableCapture {
     final hasCompleteClassification = (capture.elemento?.trim().isNotEmpty ?? false) &&
         (capture.material?.trim().isNotEmpty ?? false) &&
         (capture.estado?.trim().isNotEmpty ?? false);
-
     final hasAnyClassification = (capture.elemento?.trim().isNotEmpty ?? false) ||
         (capture.material?.trim().isNotEmpty ?? false) ||
         (capture.estado?.trim().isNotEmpty ?? false);
@@ -1359,11 +975,7 @@ class _EditableCapture {
       material: capture.material,
       estado: capture.estado,
       capturedAt: capture.capturedAt,
-      status: hasCompleteClassification
-          ? _PhotoStatus.classified
-          : hasAnyClassification
-              ? _PhotoStatus.suggested
-              : _PhotoStatus.pending,
+      status: hasCompleteClassification ? _PhotoStatus.classified : hasAnyClassification ? _PhotoStatus.suggested : _PhotoStatus.pending,
     );
   }
 
@@ -1372,8 +984,7 @@ class _EditableCapture {
       (material?.trim().isNotEmpty ?? false) ||
       (estado?.trim().isNotEmpty ?? false);
 
-  String get hourMinute =>
-      '${capturedAt.hour.toString().padLeft(2, '0')}:${capturedAt.minute.toString().padLeft(2, '0')}';
+  String get hourMinute => '${capturedAt.hour.toString().padLeft(2, '0')}:${capturedAt.minute.toString().padLeft(2, '0')}';
 
   String get shortDescription {
     final parts = <String>[
@@ -1396,7 +1007,6 @@ class _EditableCapture {
     final hasCompleteClassification = (elemento?.trim().isNotEmpty ?? false) &&
         (material?.trim().isNotEmpty ?? false) &&
         (estado?.trim().isNotEmpty ?? false);
-
     final hasAnyClassification = (elemento?.trim().isNotEmpty ?? false) ||
         (material?.trim().isNotEmpty ?? false) ||
         (estado?.trim().isNotEmpty ?? false);
@@ -1405,7 +1015,6 @@ class _EditableCapture {
       status = _PhotoStatus.classified;
       return;
     }
-
     if (hasCompleteClassification) {
       status = _PhotoStatus.classified;
     } else if (hasAnyClassification) {
