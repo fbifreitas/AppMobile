@@ -3,12 +3,19 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../config/checkin_step2_config.dart';
+import '../models/technical_check_requirement_input.dart';
+import '../models/technical_evidence_input.dart';
+import '../services/inspection_technical_summary_service.dart';
+import '../widgets/inspection_technical_summary_card.dart';
+import '../widgets/technical_pending_matrix_card.dart';
+import '../widgets/technical_justification_card.dart';
 import '../services/voice_command_catalog_service.dart';
 import '../services/voice_command_parser_service.dart';
 import '../services/voice_input_service.dart';
 import '../widgets/voice_action_bar.dart';
 import '../widgets/voice_text_field.dart';
 import 'overlay_camera_screen.dart';
+import '../models/inspection_technical_summary.dart';
 
 class InspectionReviewScreen extends StatefulWidget {
   final List<OverlayCameraCaptureResult> captures;
@@ -27,6 +34,8 @@ class InspectionReviewScreen extends StatefulWidget {
 class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   late final List<_EditableCapture> _items;
   final TextEditingController _observacaoController = TextEditingController();
+  final TextEditingController _technicalJustificationController = TextEditingController();
+  final InspectionTechnicalSummaryService _technicalSummaryService = const InspectionTechnicalSummaryService();
   final VoiceInputService _voiceService = VoiceInputService();
   final VoiceCommandParserService _voiceCommandParser = VoiceCommandParserService();
   final VoiceCommandCatalogService _voiceCommandCatalog = const VoiceCommandCatalogService();
@@ -57,6 +66,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   @override
   void dispose() {
     _observacaoController.dispose();
+    _technicalJustificationController.dispose();
     _voiceService.dispose();
     super.dispose();
   }
@@ -66,6 +76,11 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     final summary = _buildSummary();
     final groups = _buildGroups();
     final checkinStatuses = _buildCheckinRequirements();
+    final technicalSummary = _technicalSummaryService.build(
+      tipoImovel: widget.tipoImovel,
+      evidences: _buildTechnicalEvidenceInputs(),
+      requirements: _buildTechnicalRequirementInputs(checkinStatuses),
+    );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Menu de vistoria')),
@@ -74,7 +89,9 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         child: SizedBox(
           height: 54,
           child: FilledButton.icon(
-            onPressed: _reviewConfirmed ? () => _finishInspection(context, summary.totalPending) : null,
+            onPressed: _reviewConfirmed && technicalSummary.canProceedWith(_technicalJustificationController.text)
+                ? () => _finishInspection(context, summary.totalPending + technicalSummary.pendingMatrix.totalBlocking)
+                : null,
             icon: const Icon(Icons.flag_outlined, size: 18),
             label: const Text(
               'FINALIZAR VISTORIA',
@@ -97,6 +114,18 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
             subtitle: 'Ex.: finalizar vistoria, aceitar sugestões, abrir subtipo cozinha.',
             onCommand: _handleReviewVoiceCommand,
           ),
+          const SizedBox(height: 18),
+          InspectionTechnicalSummaryCard(summary: technicalSummary),
+          const SizedBox(height: 12),
+          TechnicalPendingMatrixCard(matrix: technicalSummary.pendingMatrix),
+          if (technicalSummary.requiresJustification) ...[
+            const SizedBox(height: 12),
+            TechnicalJustificationCard(
+              controller: _technicalJustificationController,
+              voiceService: _voiceService,
+              onChanged: (_) => setState(() {}),
+            ),
+          ],
           const SizedBox(height: 18),
           if (checkinStatuses.isNotEmpty) ...[
             Text(
@@ -144,7 +173,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                 ),
               )),
           const SizedBox(height: 16),
-          _buildClosingCard(context, summary),
+          _buildClosingCard(context, summary, technicalSummary),
         ],
       ),
     );
@@ -216,6 +245,35 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     }
   }
 
+
+  List<TechnicalEvidenceInput> _buildTechnicalEvidenceInputs() {
+    return _items
+        .map(
+          (item) => TechnicalEvidenceInput(
+            subtipo: item.ambiente,
+            elemento: item.elemento,
+            material: item.material,
+            estado: item.estado,
+            observacao: null,
+            filePath: item.filePath,
+          ),
+        )
+        .toList();
+  }
+
+  List<TechnicalCheckRequirementInput> _buildTechnicalRequirementInputs(
+    List<_CheckinRequirementStatus> statuses,
+  ) {
+    return statuses
+        .map(
+          (item) => TechnicalCheckRequirementInput(
+            title: item.field.titulo,
+            fulfilled: item.isDone,
+          ),
+        )
+        .toList();
+  }
+
   Widget _buildProgressCard(BuildContext context, _ReviewSummary summary) {
     final progress = summary.total == 0 ? 0.0 : (summary.classified / summary.total).clamp(0.0, 1.0);
     return Container(
@@ -260,8 +318,9 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     );
   }
 
-  Widget _buildClosingCard(BuildContext context, _ReviewSummary summary) {
-    return Container(
+      Widget _buildClosingCard(BuildContext context, _ReviewSummary summary, InspectionTechnicalSummary technicalSummary,) 
+      {    
+        return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.24),
@@ -302,6 +361,20 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
               padding: const EdgeInsets.only(top: 4),
               child: Text(
                 'Atenção: ainda existem ${summary.totalPending} pendência(s).',
+                style: TextStyle(
+                  color: Colors.orange.shade800,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          if (!technicalSummary.canProceedWith(_technicalJustificationController.text))
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                technicalSummary.pendingMatrix.hasBlocking
+                    ? 'Conclusão técnica bloqueada até resolver as pendências normativas.'
+                    : 'Preencha a justificativa técnica para concluir a vistoria.',
                 style: TextStyle(
                   color: Colors.orange.shade800,
                   fontWeight: FontWeight.w700,
