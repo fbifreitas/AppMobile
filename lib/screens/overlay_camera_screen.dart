@@ -4,6 +4,8 @@ import 'package:geolocator/geolocator.dart';
 
 import '../models/inspection_session_model.dart';
 import '../services/inspection_menu_service.dart';
+import '../services/voice_input_service.dart';
+import '../widgets/voice_selector_sheet.dart';
 import 'inspection_review_screen.dart';
 
 class OverlayCameraCaptureResult {
@@ -115,6 +117,7 @@ class OverlayCameraScreen extends StatefulWidget {
 
 class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   final InspectionMenuService _menuService = InspectionMenuService.instance;
+  final VoiceInputService _voiceService = VoiceInputService();
 
   CameraController? _controller;
   bool _initializing = true;
@@ -528,8 +531,32 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   @override
   void dispose() {
     _controller?.dispose();
+    _voiceService.dispose();
     super.dispose();
   }
+
+  Future<void> _selectFromVoiceSheet({
+    required String title,
+    required List<String> values,
+    required String? selected,
+    required ValueChanged<String> onSelect,
+  }) async {
+    if (values.isEmpty) return;
+
+    final picked = await VoiceSelectorSheet.open(
+      context,
+      voiceService: _voiceService,
+      options: values,
+      title: title,
+      currentValue: selected,
+    );
+
+    if (picked == null || picked.trim().isEmpty) return;
+    if (!mounted) return;
+
+    onSelect(picked);
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -922,13 +949,33 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 11,
-                ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                  if (values.isNotEmpty)
+                    IconButton(
+                      tooltip: 'Selecionar por voz',
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                      icon: const Icon(Icons.mic_none, color: Colors.white, size: 18),
+                      onPressed: () => _selectFromVoiceSheet(
+                        title: title,
+                        values: values,
+                        selected: selected,
+                        onSelect: onSelect,
+                      ),
+                    ),
+                ],
               ),
             ),
             const SizedBox(height: 8),
