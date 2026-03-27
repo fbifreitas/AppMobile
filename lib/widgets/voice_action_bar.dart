@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../models/voice_command_usage_stat.dart';
 import '../models/voice_usage_entry.dart';
+import '../services/voice_command_insights_service.dart';
 import '../services/voice_command_parser_service.dart';
 import '../services/voice_input_service.dart';
 import '../services/voice_usage_history_service.dart';
 import 'voice_recent_usage_card.dart';
+import 'voice_top_commands_card.dart';
 
 class VoiceActionBar extends StatefulWidget {
   final VoiceInputService voiceService;
@@ -15,6 +18,8 @@ class VoiceActionBar extends StatefulWidget {
   final String subtitle;
   final String contextKey;
   final bool showRecentHistory;
+  final bool showTopCommands;
+  final String Function(String commandId)? commandLabelBuilder;
 
   const VoiceActionBar({
     super.key,
@@ -26,6 +31,8 @@ class VoiceActionBar extends StatefulWidget {
     this.title = 'Comandos por voz',
     this.subtitle = 'Toque no microfone e fale um comando curto.',
     this.showRecentHistory = true,
+    this.showTopCommands = true,
+    this.commandLabelBuilder,
   });
 
   @override
@@ -34,20 +41,29 @@ class VoiceActionBar extends StatefulWidget {
 
 class _VoiceActionBarState extends State<VoiceActionBar> {
   final VoiceUsageHistoryService _historyService = VoiceUsageHistoryService();
+  final VoiceCommandInsightsService _insightsService =
+    VoiceCommandInsightsService();
+
   bool _listening = false;
   String? _lastTranscript;
   List<VoiceUsageEntry> _recent = const <VoiceUsageEntry>[];
+  Map<String, int> _topCommands = const <String, int>{};
 
   @override
   void initState() {
     super.initState();
-    _loadRecent();
+    _loadPanels();
   }
 
-  Future<void> _loadRecent() async {
+  Future<void> _loadPanels() async {
     final recent = await _historyService.recentByContext(widget.contextKey);
+    final top = await _insightsService.commandCountMap(widget.contextKey);
+
     if (!mounted) return;
-    setState(() => _recent = recent);
+    setState(() {
+      _recent = recent;
+      _topCommands = top;
+    });
   }
 
   Future<void> _listen() async {
@@ -78,7 +94,7 @@ class _VoiceActionBarState extends State<VoiceActionBar> {
         commandId: match?.commandId,
       ),
     );
-    await _loadRecent();
+    await _loadPanels();
 
     if (match == null) {
       if (!mounted) return;
@@ -93,6 +109,15 @@ class _VoiceActionBarState extends State<VoiceActionBar> {
 
   @override
   Widget build(BuildContext context) {
+    final rankedStats = _topCommands.entries
+        .map((item) => VoiceCommandUsageStat(
+              context: widget.contextKey,
+              commandId: item.key,
+              count: item.value,
+            ))
+        .toList()
+      ..sort((a, b) => b.count.compareTo(a.count));
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -142,6 +167,12 @@ class _VoiceActionBarState extends State<VoiceActionBar> {
             VoiceRecentUsageCard(
               title: 'Uso recente da voz',
               items: _recent,
+            ),
+          if (widget.showTopCommands)
+            VoiceTopCommandsCard(
+              title: 'Comandos mais usados',
+              stats: rankedStats,
+              labelBuilder: widget.commandLabelBuilder,
             ),
         ],
       ),
