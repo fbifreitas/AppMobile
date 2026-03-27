@@ -68,7 +68,9 @@ class _VoiceSelectorSheetState extends State<VoiceSelectorSheet> {
     if (_isListening) return;
     setState(() => _isListening = true);
 
-    final transcript = await widget.voiceService.listenOnce(localeId: widget.localeId);
+    final transcript = await widget.voiceService.listenOnce(
+      localeId: widget.localeId,
+    );
 
     if (!mounted) return;
     setState(() => _isListening = false);
@@ -115,25 +117,25 @@ class _VoiceSelectorSheetState extends State<VoiceSelectorSheet> {
               ],
             ),
             Flexible(
-            child: RadioGroup<String>(
-              groupValue: _selected,
-              onChanged: (value) {
-                setState(() => _selected = value);
-              },
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemCount: widget.options.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
-                itemBuilder: (context, index) {
-                  final option = widget.options[index];
-                  return RadioListTile<String>(
-                    value: option,
-                    title: Text(option),
-                  );
+              child: RadioGroup<String>(
+                groupValue: _selected,
+                onChanged: (value) {
+                  setState(() => _selected = value);
                 },
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: widget.options.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final option = widget.options[index];
+                    return RadioListTile<String>(
+                      value: option,
+                      title: Text(option),
+                    );
+                  },
+                ),
               ),
             ),
-          ),
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,

@@ -40,9 +40,8 @@ class VoiceActionBar extends StatefulWidget {
 }
 
 class _VoiceActionBarState extends State<VoiceActionBar> {
-  final VoiceUsageHistoryService _historyService = VoiceUsageHistoryService();
-  final VoiceCommandInsightsService _insightsService =
-    VoiceCommandInsightsService();
+  final VoiceUsageHistoryService _historyService = const VoiceUsageHistoryService();
+  final VoiceCommandInsightsService _insightsService = const VoiceCommandInsightsService();
 
   bool _listening = false;
   String? _lastTranscript;

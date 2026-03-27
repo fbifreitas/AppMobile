@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/voice_usage_entry.dart';
 
 class VoiceUsageHistoryService {
+  const VoiceUsageHistoryService();
+
   static const _storageKey = 'voice_usage_history_v1';
   static const _maxEntries = 50;
 
@@ -38,6 +40,18 @@ class VoiceUsageHistoryService {
   Future<List<VoiceUsageEntry>> recentByContext(String context, {int limit = 5}) async {
     final current = await load();
     return current.where((item) => item.context == context).take(limit).toList();
+  }
+
+  Future<List<String>> recentSuccessfulCommands(String context, {int limit = 5}) async {
+    final entries = await recentByContext(context, limit: 20);
+    final commands = <String>[];
+    for (final entry in entries) {
+      if (entry.matched && entry.commandId != null && !commands.contains(entry.commandId)) {
+        commands.add(entry.commandId!);
+      }
+      if (commands.length >= limit) break;
+    }
+    return commands;
   }
 
   Future<void> clear() async {

@@ -4,9 +4,9 @@ import 'voice_usage_history_service.dart';
 class VoiceCommandInsightsService {
   final VoiceUsageHistoryService historyService;
 
-  VoiceCommandInsightsService({
-    VoiceUsageHistoryService? historyService,
-  }) : historyService = historyService ?? VoiceUsageHistoryService();
+  const VoiceCommandInsightsService({
+    this.historyService = const VoiceUsageHistoryService(),
+  });
 
   Future<List<VoiceCommandUsageStat>> topCommandsByContext(
     String context, {
