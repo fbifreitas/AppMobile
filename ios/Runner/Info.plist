@@ -47,13 +47,14 @@
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Este app precisa da sua localização para validar a presença na vistoria.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Este app precisa da sua localização para validar a presença na vistoria.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Este app precisa do microfone para capturar o áudio do vistoriador e transcrever automaticamente os campos.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Este app usa reconhecimento de fala para transcrever automaticamente o que o vistoriador disser.</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>waze</string>
 		<string>comgooglemaps</string>
 	</array>
-
 </dict>
 </plist>
