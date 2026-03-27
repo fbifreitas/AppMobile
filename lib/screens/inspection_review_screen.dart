@@ -27,6 +27,52 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   final VoiceInputService _voiceService = VoiceInputService();
   bool _reviewConfirmed = false;
 
+  static const _elementos = <String>[
+    'Visão geral',
+    'Número',
+    'Porta',
+    'Portão',
+    'Janela',
+    'Piso',
+    'Parede',
+    'Teto',
+    'Outro',
+  ];
+
+  static const _materiais = <String>[
+    'Alvenaria',
+    'Metal',
+    'Madeira',
+    'Vidro',
+    'Cerâmica',
+    'Concreto',
+    'Outro',
+  ];
+
+  static const _estados = <String>[
+    'Bom',
+    'Regular',
+    'Ruim',
+    'Necessita reparo',
+    'Não se aplica',
+  ];
+
+  static const _ambientes = <String>[
+    'Fachada',
+    'Logradouro',
+    'Acesso ao imóvel',
+    'Entorno',
+    'Sala de Estar',
+    'Sala',
+    'Dormitório',
+    'Cozinha',
+    'Banheiro',
+    'Área de serviço',
+    'Áreas Comuns',
+    'Garagem',
+    'Outro ambiente',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -107,7 +153,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                   onApplySubtype: () => _applySubtype(group),
                   onApplySimilar: (source) => _applySimilar(group, source),
                   onAcceptSuggestions: () => _acceptSuggestions(group),
-                  onEditItem: (item) => _editItem(item),
+                  onEditItem: _editItem,
                 ),
               )),
           const SizedBox(height: 16),
@@ -203,11 +249,11 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
           const SizedBox(height: 10),
           VoiceTextField(
             controller: _observacaoController,
-            voiceService: _voiceService,
             labelText: 'Observação final',
             minLines: 3,
             maxLines: 4,
-            hintText: 'Toque no microfone para ditar a observação.',
+            voiceService: _voiceService,
+            helperText: 'Toque no microfone para ditar a observação.',
           ),
           const SizedBox(height: 8),
           CheckboxListTile(
@@ -374,6 +420,51 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     });
   }
 
+  Future<void> _applyVoiceClassification({
+    required void Function(void Function()) setSheetState,
+    required _EditableCapture item,
+    required void Function(String? ambiente, String? elemento, String? material, String? estado) updateValues,
+  }) async {
+    final transcript = await _voiceService.listenOnce();
+    if (transcript == null || transcript.trim().isEmpty) return;
+
+    final ambiente = _matchOption(transcript, _ambientes);
+    final elemento = _matchOption(transcript, _elementos);
+    final material = _matchOption(transcript, _materiais);
+    final estado = _matchOption(transcript, _estados);
+
+    setSheetState(() {
+      updateValues(ambiente, elemento, material, estado);
+    });
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Transcrição: $transcript'),
+      ),
+    );
+  }
+
+  String? _matchOption(String transcript, List<String> options) {
+    final normalized = _normalize(transcript);
+    for (final option in options) {
+      if (normalized.contains(_normalize(option))) {
+        return option;
+      }
+    }
+    return null;
+  }
+
+  String _normalize(String input) {
+    const from = 'áàãâäéèêëíìîïóòõôöúùûüç';
+    const to = 'aaaaaeeeeiiiiooooouuuuc';
+    var result = input.toLowerCase();
+    for (var i = 0; i < from.length; i++) {
+      result = result.replaceAll(from[i], to[i]);
+    }
+    return result;
+  }
+
   Future<void> _editItem(_EditableCapture item) async {
     final edited = await showModalBottomSheet<bool>(
       context: context,
@@ -388,50 +479,6 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         String? material = item.material;
         String? estado = item.estado;
         String? ambiente = item.ambiente;
-        final commandController = TextEditingController();
-
-        const elementos = <String>[
-          'Visão geral',
-          'Número',
-          'Porta',
-          'Portão',
-          'Janela',
-          'Piso',
-          'Parede',
-          'Teto',
-          'Outro',
-        ];
-        const materiais = <String>[
-          'Alvenaria',
-          'Metal',
-          'Madeira',
-          'Vidro',
-          'Cerâmica',
-          'Concreto',
-          'Outro',
-        ];
-        const estados = <String>[
-          'Bom',
-          'Regular',
-          'Ruim',
-          'Necessita reparo',
-          'Não se aplica',
-        ];
-        const ambientes = <String>[
-          'Fachada',
-          'Logradouro',
-          'Acesso ao imóvel',
-          'Entorno',
-          'Sala de Estar',
-          'Sala',
-          'Dormitório',
-          'Cozinha',
-          'Banheiro',
-          'Área de serviço',
-          'Áreas Comuns',
-          'Garagem',
-          'Outro ambiente',
-        ];
 
         return StatefulBuilder(
           builder: (context, setSheetState) {
@@ -459,56 +506,47 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                               fontSize: 16,
                             ),
                       ),
-                      const SizedBox(height: 12),
-                      VoiceTextField(
-                        controller: commandController,
-                        voiceService: _voiceService,
-                        labelText: 'Comando por voz',
-                        hintText: 'Ex: fachada porta madeira bom estado',
-                        minLines: 1,
-                        maxLines: 2,
-                        onTranscriptAccepted: (text) {
-                          final parsed = _parseVoiceCommand(
-                            text: text,
-                            ambientes: ambientes,
-                            elementos: elementos,
-                            materiais: materiais,
-                            estados: estados,
-                          );
-                          setSheetState(() {
-                            ambiente = parsed.ambiente ?? ambiente;
-                            elemento = parsed.elemento ?? elemento;
-                            material = parsed.material ?? material;
-                            estado = parsed.estado ?? estado;
-                          });
-                        },
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                        onPressed: () => _applyVoiceClassification(
+                          setSheetState: setSheetState,
+                          item: item,
+                          updateValues: (novoAmbiente, novoElemento, novoMaterial, novoEstado) {
+                            ambiente = novoAmbiente ?? ambiente;
+                            elemento = novoElemento ?? elemento;
+                            material = novoMaterial ?? material;
+                            estado = novoEstado ?? estado;
+                          },
+                        ),
+                        icon: const Icon(Icons.mic_none),
+                        label: const Text('Preencher classificação por voz'),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 12),
                       _EditorDropdown(
                         label: 'Subtipo / Local',
-                        value: ambientes.contains(ambiente) ? ambiente : null,
-                        items: ambientes,
+                        value: _ambientes.contains(ambiente) ? ambiente : null,
+                        items: _ambientes,
                         onChanged: (value) => setSheetState(() => ambiente = value),
                       ),
                       const SizedBox(height: 10),
                       _EditorDropdown(
                         label: 'Elemento',
-                        value: elementos.contains(elemento) ? elemento : null,
-                        items: elementos,
+                        value: _elementos.contains(elemento) ? elemento : null,
+                        items: _elementos,
                         onChanged: (value) => setSheetState(() => elemento = value),
                       ),
                       const SizedBox(height: 10),
                       _EditorDropdown(
                         label: 'Material',
-                        value: materiais.contains(material) ? material : null,
-                        items: materiais,
+                        value: _materiais.contains(material) ? material : null,
+                        items: _materiais,
                         onChanged: (value) => setSheetState(() => material = value),
                       ),
                       const SizedBox(height: 10),
                       _EditorDropdown(
                         label: 'Estado',
-                        value: estados.contains(estado) ? estado : null,
-                        items: estados,
+                        value: _estados.contains(estado) ? estado : null,
+                        items: _estados,
                         onChanged: (value) => setSheetState(() => estado = value),
                       ),
                       const SizedBox(height: 16),
@@ -539,52 +577,6 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     if (edited == true && mounted) {
       setState(() {});
     }
-  }
-
-  _ParsedVoiceCommand _parseVoiceCommand({
-    required String text,
-    required List<String> ambientes,
-    required List<String> elementos,
-    required List<String> materiais,
-    required List<String> estados,
-  }) {
-    final normalized = text.toLowerCase();
-    String? ambiente;
-    String? elemento;
-    String? material;
-    String? estado;
-
-    for (final item in ambientes) {
-      if (normalized.contains(item.toLowerCase())) {
-        ambiente = item;
-        break;
-      }
-    }
-    for (final item in elementos) {
-      if (normalized.contains(item.toLowerCase())) {
-        elemento = item;
-        break;
-      }
-    }
-    for (final item in materiais) {
-      if (normalized.contains(item.toLowerCase())) {
-        material = item;
-        break;
-      }
-    }
-    for (final item in estados) {
-      if (normalized.contains(item.toLowerCase())) {
-        estado = item;
-        break;
-      }
-    }
-
-    return _ParsedVoiceCommand(
-      ambiente: ambiente,
-      elemento: elemento,
-      material: material,
-      estado: estado,
-    );
   }
 
   Future<void> _finishInspection(BuildContext context, int pendingCount) async {
@@ -1358,20 +1350,6 @@ class _EditableCapture {
       status = _PhotoStatus.pending;
     }
   }
-}
-
-class _ParsedVoiceCommand {
-  final String? ambiente;
-  final String? elemento;
-  final String? material;
-  final String? estado;
-
-  const _ParsedVoiceCommand({
-    this.ambiente,
-    this.elemento,
-    this.material,
-    this.estado,
-  });
 }
 
 enum _PhotoStatus { pending, suggested, classified }

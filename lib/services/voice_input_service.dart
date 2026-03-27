@@ -4,7 +4,6 @@ import 'package:speech_to_text/speech_to_text.dart';
 
 class VoiceInputService {
   final SpeechToText _speech = SpeechToText();
-
   bool _initialized = false;
 
   Future<bool> initialize() async {
@@ -27,7 +26,6 @@ class VoiceInputService {
     if (!ok) return null;
 
     String recognized = '';
-
     await _speech.listen(
       localeId: localeId,
       listenFor: listenFor,
@@ -38,19 +36,24 @@ class VoiceInputService {
       onResult: (SpeechRecognitionResult result) {
         recognized = result.recognizedWords;
       },
-  );
+    );
 
     while (_speech.isListening) {
-      await Future<void>.delayed(const Duration(milliseconds: 200));
+      await Future.delayed(const Duration(milliseconds: 200));
     }
 
-    return recognized.trim().isEmpty ? null : recognized.trim();
+    final output = recognized.trim();
+    return output.isEmpty ? null : output;
   }
 
   Future<void> stop() async {
     if (_speech.isListening) {
       await _speech.stop();
     }
+  }
+
+  Future<void> cancel() async {
+    await _speech.cancel();
   }
 
   void dispose() {
