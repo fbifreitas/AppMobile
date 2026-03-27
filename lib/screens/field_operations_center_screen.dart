@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../state/field_operation_state.dart';
 import '../widgets/field_sync_status_card.dart';
+import '../models/field_operation_sync_status.dart';
 
 class FieldOperationsCenterScreen extends StatefulWidget {
   const FieldOperationsCenterScreen({super.key});
@@ -15,7 +16,10 @@ class _FieldOperationsCenterScreenState extends State<FieldOperationsCenterScree
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => context.read<FieldOperationState>().refreshQueue());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<FieldOperationState>().refreshQueue();
+    });
   }
 
   @override
