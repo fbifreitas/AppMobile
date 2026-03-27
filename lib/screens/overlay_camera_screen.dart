@@ -713,6 +713,7 @@ VoiceActionBar(
   voiceService: _voiceService,
   parserService: _voiceCommandParser,
   commands: _voiceCommandCatalog.cameraCommands(),
+  contextKey: 'camera',
   title: 'Comandos rápidos por voz',
   subtitle: 'Ex.: capturar foto, abrir área, abrir local, abrir elemento.',
   onCommand: _handleCameraVoiceCommand,

@@ -92,6 +92,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
             voiceService: _voiceService,
             parserService: _voiceCommandParser,
             commands: _voiceCommandCatalog.reviewCommands(),
+            contextKey: 'review',
             title: 'Comandos rápidos por voz',
             subtitle: 'Ex.: finalizar vistoria, aceitar sugestões, abrir subtipo cozinha.',
             onCommand: _handleReviewVoiceCommand,

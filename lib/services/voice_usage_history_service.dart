@@ -40,18 +40,6 @@ class VoiceUsageHistoryService {
     return current.where((item) => item.context == context).take(limit).toList();
   }
 
-  Future<List<String>> recentSuccessfulCommands(String context, {int limit = 5}) async {
-    final entries = await recentByContext(context, limit: 20);
-    final commands = <String>[];
-    for (final entry in entries) {
-      if (entry.matched && entry.commandId != null && !commands.contains(entry.commandId)) {
-        commands.add(entry.commandId!);
-      }
-      if (commands.length >= limit) break;
-    }
-    return commands;
-  }
-
   Future<void> clear() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_storageKey);

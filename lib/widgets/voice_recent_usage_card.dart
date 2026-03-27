@@ -15,23 +15,14 @@ class VoiceRecentUsageCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.24),
-        ),
-        child: Text(
-          '$title: ainda não há histórico recente.',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-      );
+      return const SizedBox.shrink();
     }
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.24),
       ),
       child: Column(
@@ -44,14 +35,14 @@ class VoiceRecentUsageCard extends StatelessWidget {
                 ),
           ),
           const SizedBox(height: 8),
-          ...items.take(5).map((item) {
+          ...items.take(4).map((item) {
             final badgeColor = item.matched ? Colors.green : Colors.orange;
             return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(bottom: 6),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(999),
                       color: badgeColor.withValues(alpha: 0.12),
@@ -59,7 +50,7 @@ class VoiceRecentUsageCard extends StatelessWidget {
                     child: Text(
                       item.matched ? 'Reconhecido' : 'Sem match',
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 10,
                         fontWeight: FontWeight.w700,
                         color: badgeColor.shade700,
                       ),
