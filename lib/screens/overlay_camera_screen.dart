@@ -4,7 +4,10 @@ import 'package:geolocator/geolocator.dart';
 
 import '../models/inspection_session_model.dart';
 import '../services/inspection_menu_service.dart';
+import '../services/voice_command_catalog_service.dart';
+import '../services/voice_command_parser_service.dart';
 import '../services/voice_input_service.dart';
+import '../widgets/voice_action_bar.dart';
 import '../widgets/voice_selector_sheet.dart';
 import 'inspection_review_screen.dart';
 
@@ -118,6 +121,8 @@ class OverlayCameraScreen extends StatefulWidget {
 class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   final InspectionMenuService _menuService = InspectionMenuService.instance;
   final VoiceInputService _voiceService = VoiceInputService();
+  final VoiceCommandParserService _voiceCommandParser = VoiceCommandParserService();
+  final VoiceCommandCatalogService _voiceCommandCatalog = const VoiceCommandCatalogService();
 
   CameraController? _controller;
   bool _initializing = true;
@@ -558,6 +563,72 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   }
 
 
+
+Future<void> _handleCameraVoiceCommand(VoiceCommandMatch match) async {
+  switch (match.commandId) {
+    case 'capturar_foto':
+      await _capture();
+      return;
+    case 'abrir_area':
+      if (_showMacroLocalSelector) {
+        await _selectFromVoiceSheet(
+          title: 'Área da foto',
+          values: _macroLocais,
+          selected: _macroLocal,
+          onSelect: _selectMacroLocal,
+        );
+      }
+      return;
+    case 'abrir_local':
+      if (_macroLocal != null && _ambientesAtuais.isNotEmpty) {
+        await _selectFromVoiceSheet(
+          title: 'Local da foto',
+          values: _ambientesAtuais,
+          selected: _ambiente,
+          onSelect: _selectAmbiente,
+        );
+      }
+      return;
+    case 'abrir_elemento':
+      if (_ambiente != null && _elementosAtuais.isNotEmpty) {
+        await _selectFromVoiceSheet(
+          title: 'Elemento fotografado',
+          values: _elementosAtuais,
+          selected: _elemento,
+          onSelect: _selectElemento,
+        );
+      }
+      return;
+    case 'abrir_material':
+      if (_elemento != null && _materiaisAtuais.isNotEmpty) {
+        await _selectFromVoiceSheet(
+          title: 'Material',
+          values: _materiaisAtuais,
+          selected: _material,
+          onSelect: (value) {
+            setState(() {
+              _material = value;
+              _estado = null;
+            });
+          },
+        );
+      }
+      return;
+    case 'abrir_estado':
+      if (_elemento != null && (_materiaisAtuais.isEmpty || _material != null)) {
+        await _selectFromVoiceSheet(
+          title: 'Estado',
+          values: _estados,
+          selected: _estado,
+          onSelect: (value) {
+            setState(() => _estado = value);
+          },
+        );
+      }
+      return;
+  }
+}
+
   @override
   Widget build(BuildContext context) {
     if (_initializing || _loadingMenus) {
@@ -636,6 +707,16 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                         ),
                       ],
                     ),
+
+const SizedBox(height: 8),
+VoiceActionBar(
+  voiceService: _voiceService,
+  parserService: _voiceCommandParser,
+  commands: _voiceCommandCatalog.cameraCommands(),
+  title: 'Comandos rápidos por voz',
+  subtitle: 'Ex.: capturar foto, abrir área, abrir local, abrir elemento.',
+  onCommand: _handleCameraVoiceCommand,
+),
                     if (_showMacroLocalSelector) ...[
                       const SizedBox(height: 8),
                       _carouselCard(
