@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../config/checkin_step2_config.dart';
 import '../services/voice_input_service.dart';
 import '../widgets/voice_text_field.dart';
+import '../widgets/voice_selector_sheet.dart';
 import 'overlay_camera_screen.dart';
 
 class InspectionReviewScreen extends StatefulWidget {
@@ -465,6 +466,20 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     return result;
   }
 
+  Future<String?> _selectOptionByVoice({
+    required String title,
+    required List<String> options,
+    String? currentValue,
+  }) {
+    return VoiceSelectorSheet.open(
+      context,
+      voiceService: _voiceService,
+      options: options,
+      title: title,
+      currentValue: currentValue,
+    );
+  }
+
   Future<void> _editItem(_EditableCapture item) async {
     final edited = await showModalBottomSheet<bool>(
       context: context,
@@ -527,6 +542,16 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                         value: _ambientes.contains(ambiente) ? ambiente : null,
                         items: _ambientes,
                         onChanged: (value) => setSheetState(() => ambiente = value),
+                        onVoiceTap: () async {
+                          final selected = await _selectOptionByVoice(
+                            title: 'Selecionar subtipo / local',
+                            options: _ambientes,
+                            currentValue: ambiente,
+                          );
+                          if (selected != null) {
+                            setSheetState(() => ambiente = selected);
+                          }
+                        },
                       ),
                       const SizedBox(height: 10),
                       _EditorDropdown(
@@ -534,6 +559,16 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                         value: _elementos.contains(elemento) ? elemento : null,
                         items: _elementos,
                         onChanged: (value) => setSheetState(() => elemento = value),
+                        onVoiceTap: () async {
+                          final selected = await _selectOptionByVoice(
+                            title: 'Selecionar elemento',
+                            options: _elementos,
+                            currentValue: elemento,
+                          );
+                          if (selected != null) {
+                            setSheetState(() => elemento = selected);
+                          }
+                        },
                       ),
                       const SizedBox(height: 10),
                       _EditorDropdown(
@@ -541,6 +576,16 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                         value: _materiais.contains(material) ? material : null,
                         items: _materiais,
                         onChanged: (value) => setSheetState(() => material = value),
+                        onVoiceTap: () async {
+                          final selected = await _selectOptionByVoice(
+                            title: 'Selecionar material',
+                            options: _materiais,
+                            currentValue: material,
+                          );
+                          if (selected != null) {
+                            setSheetState(() => material = selected);
+                          }
+                        },
                       ),
                       const SizedBox(height: 10),
                       _EditorDropdown(
@@ -548,6 +593,16 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                         value: _estados.contains(estado) ? estado : null,
                         items: _estados,
                         onChanged: (value) => setSheetState(() => estado = value),
+                        onVoiceTap: () async {
+                          final selected = await _selectOptionByVoice(
+                            title: 'Selecionar estado',
+                            options: _estados,
+                            currentValue: estado,
+                          );
+                          if (selected != null) {
+                            setSheetState(() => estado = selected);
+                          }
+                        },
                       ),
                       const SizedBox(height: 16),
                       SizedBox(
@@ -982,12 +1037,14 @@ class _EditorDropdown extends StatelessWidget {
   final String? value;
   final List<String> items;
   final ValueChanged<String?> onChanged;
+  final Future<void> Function()? onVoiceTap;
 
   const _EditorDropdown({
     required this.label,
     required this.value,
     required this.items,
     required this.onChanged,
+    this.onVoiceTap,
   });
 
   @override
@@ -1001,6 +1058,13 @@ class _EditorDropdown extends StatelessWidget {
         labelText: label,
         isDense: true,
         border: const OutlineInputBorder(),
+        suffixIcon: onVoiceTap == null
+            ? null
+            : IconButton(
+                tooltip: 'Selecionar por voz',
+                onPressed: onVoiceTap,
+                icon: const Icon(Icons.mic_none, size: 18),
+              ),
       ),
       items: items
           .map((item) => DropdownMenuItem<String>(
