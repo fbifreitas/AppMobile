@@ -10,6 +10,7 @@ class VoiceTextField extends StatefulWidget {
   final VoiceInputService voiceService;
   final String localeId;
   final String? helperText;
+  final String? hintText;
 
   const VoiceTextField({
     super.key,
@@ -20,6 +21,7 @@ class VoiceTextField extends StatefulWidget {
     this.maxLines = 3,
     this.localeId = 'pt_BR',
     this.helperText,
+    this.hintText,
   });
 
   @override
@@ -55,6 +57,7 @@ class _VoiceTextFieldState extends State<VoiceTextField> {
       maxLines: widget.maxLines,
       decoration: InputDecoration(
         labelText: widget.labelText,
+        hintText: widget.hintText,
         helperText: widget.helperText,
         border: const OutlineInputBorder(),
         alignLabelWithHint: true,

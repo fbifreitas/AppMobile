@@ -8,10 +8,13 @@ class VoiceInputService {
 
   Future<bool> initialize() async {
     if (_initialized) return true;
+
     _initialized = await _speech.initialize(
       onStatus: (status) => debugPrint('speech_status: $status'),
       onError: (error) => debugPrint('speech_error: ${error.errorMsg}'),
+      debugLogging: false,
     );
+
     return _initialized;
   }
 
@@ -26,6 +29,7 @@ class VoiceInputService {
     if (!ok) return null;
 
     String recognized = '';
+
     await _speech.listen(
       localeId: localeId,
       listenFor: listenFor,
