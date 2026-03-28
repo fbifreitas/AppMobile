@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../models/operational_hub_item.dart';
 import '../services/operational_hub_registry_service.dart';
+import '../state/field_operation_state.dart';
 import '../widgets/operational_hub_grid.dart';
 import 'admin_remote_config_center_screen.dart';
 import 'assistive_intelligence_center_screen.dart';
@@ -10,9 +12,9 @@ import 'clean_code_audit_center_screen.dart';
 import 'data_governance_center_screen.dart';
 import 'field_operations_center_screen.dart';
 import 'observability_support_center_screen.dart';
+import 'operational_snapshot_export_screen.dart';
 import 'production_readiness_center_screen.dart';
 import 'quality_stability_center_screen.dart';
-import 'operational_snapshot_export_screen.dart';
 
 class OperationalHubScreen extends StatelessWidget {
   const OperationalHubScreen({super.key});
@@ -51,12 +53,16 @@ class OperationalHubScreen extends StatelessWidget {
 
   void _open(BuildContext context, OperationalHubItem item) {
     Widget destination;
+
     switch (item.id) {
       case 'checkin':
         destination = const CheckinScreen();
         break;
       case 'field_ops':
-        destination = const FieldOperationsCenterScreen();
+        destination = ChangeNotifierProvider<FieldOperationState>(
+          create: (_) => FieldOperationState.demo(),
+          child: const FieldOperationsCenterScreen(),
+        );
         break;
       case 'assistive':
         destination = const AssistiveIntelligenceCenterScreen();

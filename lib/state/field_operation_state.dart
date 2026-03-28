@@ -8,19 +8,33 @@ import '../services/field_operation_sync_engine.dart';
 import '../services/field_sync_queue_service.dart';
 
 class FieldOperationState extends ChangeNotifier {
-  final FieldSyncQueueService queueService;
-  final FieldOperationResumeService resumeService;
-  final FieldOperationSyncEngine syncEngine;
-
   FieldOperationState({
     required this.syncEngine,
     this.queueService = const FieldSyncQueueService(),
     this.resumeService = const FieldOperationResumeService(),
   });
 
-  List<FieldSyncQueueItem> queue = const <FieldSyncQueueItem>[];
+  factory FieldOperationState.demo() {
+    return FieldOperationState(
+      syncEngine: const FieldOperationSyncEngine(
+        executor: _demoExecutor,
+      ),
+    );
+  }
+
+  final FieldSyncQueueService queueService;
+  final FieldOperationResumeService resumeService;
+  final FieldOperationSyncEngine syncEngine;
+
+  List<FieldSyncQueueItem> queue = const [];
   bool syncing = false;
   DateTime? lastSyncAt;
+
+  static Future<FieldSyncExecutionResult> _demoExecutor(
+    FieldSyncQueueItem item,
+  ) async {
+    return const FieldSyncExecutionResult.success();
+  }
 
   Future<void> refreshQueue() async {
     queue = await queueService.loadQueue();
@@ -64,7 +78,12 @@ class FieldOperationState extends ChangeNotifier {
     return resumeService.loadState(jobId);
   }
 
-  int get pendingCount => queue.where((item) => item.status.isPending).length;
-  int get failedCount => queue.where((item) => item.status == FieldOperationSyncStatus.failed).length;
-  int get conflictCount => queue.where((item) => item.status == FieldOperationSyncStatus.conflict).length;
+  int get pendingCount =>
+      queue.where((item) => item.status.isPending).length;
+
+  int get failedCount =>
+      queue.where((item) => item.status == FieldOperationSyncStatus.failed).length;
+
+  int get conflictCount =>
+      queue.where((item) => item.status == FieldOperationSyncStatus.conflict).length;
 }

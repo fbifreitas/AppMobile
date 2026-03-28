@@ -12,7 +12,10 @@ class FieldSyncExecutionResult {
   final bool conflict;
   final String? message;
 
-  const FieldSyncExecutionResult.success() : success = true, conflict = false, message = null;
+  const FieldSyncExecutionResult.success()
+      : success = true,
+        conflict = false,
+        message = null;
 
   const FieldSyncExecutionResult.failure([this.message])
       : success = false,
@@ -44,6 +47,7 @@ class FieldOperationSyncEngine {
         status: FieldOperationSyncStatus.syncing,
         clearErrorMessage: true,
       );
+
       await queueService.updateItem(current);
 
       final result = await executor(current);
