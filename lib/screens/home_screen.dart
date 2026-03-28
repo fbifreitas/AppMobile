@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
-import 'checkin_screen.dart';
 import 'notifications_screen.dart';
 import 'operational_hub_screen.dart';
 import 'settings_screen.dart';
@@ -94,13 +93,15 @@ class _HomeScreenState extends State<HomeScreen> {
               else if (appState.jobs.isEmpty)
                 _buildEmptyJobsCard()
               else
-                ...appState.jobs.map((job) => _buildRichJobCard(
-                      context: context,
-                      appState: appState,
-                      titulo: job.titulo,
-                      endereco: job.endereco,
-                      cliente: job.nomeCliente,
-                    )),
+                ...appState.jobs.map(
+                  (job) => _buildRichJobCard(
+                    context: context,
+                    appState: appState,
+                    titulo: job.titulo,
+                    endereco: job.endereco,
+                    cliente: job.nomeCliente,
+                  ),
+                ),
               const SizedBox(height: 14),
               const Text(
                 'NOVAS PROPOSTAS',
