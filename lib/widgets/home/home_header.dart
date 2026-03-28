@@ -9,12 +9,14 @@ class HomeHeader extends StatelessWidget {
     required this.onNotificationsTap,
     required this.onSettingsTap,
     required this.onHubTap,
+    required this.showHubButton,
   });
 
   final String firstName;
   final VoidCallback onNotificationsTap;
   final VoidCallback onSettingsTap;
   final VoidCallback onHubTap;
+  final bool showHubButton;
 
   @override
   Widget build(BuildContext context) {
@@ -64,11 +66,13 @@ class HomeHeader extends StatelessWidget {
               icon: Icons.settings_outlined,
               onTap: onSettingsTap,
             ),
-            const SizedBox(width: 8),
-            _HeaderIconButton(
-              icon: Icons.dashboard_customize_outlined,
-              onTap: onHubTap,
-            ),
+            if (showHubButton) ...[
+              const SizedBox(width: 8),
+              _HeaderIconButton(
+                icon: Icons.dashboard_customize_outlined,
+                onTap: onHubTap,
+              ),
+            ],
           ],
         ),
       ],

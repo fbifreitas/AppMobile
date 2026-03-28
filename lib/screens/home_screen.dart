@@ -10,10 +10,7 @@ import '../services/map_service.dart';
 import '../state/app_state.dart';
 import '../widgets/home/home_header.dart';
 import '../widgets/home/jobs_section.dart';
-import '../widgets/home/location_status_card.dart';
-import '../widgets/home/operational_hub_card.dart';
 import '../widgets/home/proposals_section.dart';
-import '../widgets/home/startup_status_card.dart';
 import 'checkin_screen.dart';
 import 'notifications_screen.dart';
 import 'operational_hub_screen.dart';
@@ -188,32 +185,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 onNotificationsTap: _openNotifications,
                 onSettingsTap: _openSettings,
                 onHubTap: _openOperationalHub,
-              ),
-              const SizedBox(height: 16),
-              OperationalHubCard(onOpen: _openOperationalHub),
-              const SizedBox(height: 16),
-              StartupStatusCard(
-                isLoadingJobs: appState.isLoadingJobs,
-                jobsCount: appState.jobs.length,
-                jobsLoadError: appState.jobsLoadError,
-              ),
-              const SizedBox(height: 16),
-              LocationStatusCard(
-                loading: _locationSnapshot.loading,
-                errorMessage: _locationSnapshot.errorMessage,
-                lastSyncAt: _locationSnapshot.lastSyncAt,
-                latitude: appState.ultimaLatitude ?? _locationSnapshot.latitude,
-                longitude:
-                    appState.ultimaLongitude ?? _locationSnapshot.longitude,
-                onRefresh: _refreshLocation,
+                showHubButton: appState.developerModeEnabled,
               ),
               const SizedBox(height: 16),
               JobsSection(
                 appState: appState,
-                currentLatitude:
-                    appState.ultimaLatitude ?? _locationSnapshot.latitude,
-                currentLongitude:
-                    appState.ultimaLongitude ?? _locationSnapshot.longitude,
+                currentLatitude: appState.ultimaLatitude ?? _locationSnapshot.latitude,
+                currentLongitude: appState.ultimaLongitude ?? _locationSnapshot.longitude,
                 useDistanceMetrics: true,
                 onNavigateToJob: ({
                   required double? latitude,

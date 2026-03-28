@@ -12,6 +12,7 @@ void main() {
             onNotificationsTap: () {},
             onSettingsTap: () {},
             onHubTap: () {},
+            showHubButton: true,
           ),
         ),
       ),
@@ -22,5 +23,26 @@ void main() {
     expect(find.byIcon(Icons.notifications_none), findsOneWidget);
     expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
     expect(find.byIcon(Icons.dashboard_customize_outlined), findsOneWidget);
+  });
+
+  testWidgets('HomeHeader hides hub button when developer mode is disabled',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: HomeHeader(
+            firstName: 'Felipe',
+            onNotificationsTap: () {},
+            onSettingsTap: () {},
+            onHubTap: () {},
+            showHubButton: false,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byIcon(Icons.notifications_none), findsOneWidget);
+    expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.dashboard_customize_outlined), findsNothing);
   });
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/job.dart';
 import '../models/job_status.dart';
@@ -6,7 +7,12 @@ import '../repositories/job_repository.dart';
 import '../services/location_service.dart';
 
 class AppState extends ChangeNotifier {
-  AppState(this.repository);
+  AppState(this.repository) {
+    _loadPreferences();
+  }
+
+  static const _devModeKey = 'developer_mode_enabled';
+  static const _allowFarStartKey = 'developer_allow_far_start';
 
   final JobRepository repository;
 
@@ -21,14 +27,32 @@ class AppState extends ChangeNotifier {
 
   String enderecoBase =
       'Apartamento - Condominio Spazio Belem, Av. Alvaro Ramos, 760 Apto 102, Fabio Freitas (Prop.)';
-
   String usuarioNomeCompleto = 'Fábio Freitas';
 
   DateTime? ultimoCheckin;
+
   bool permitirIniciarLonge = true;
+  bool developerModeEnabled = false;
 
   bool isLoadingJobs = false;
   String? jobsLoadError;
+
+  Future<void> _loadPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    developerModeEnabled = prefs.getBool(_devModeKey) ?? false;
+    permitirIniciarLonge = prefs.getBool(_allowFarStartKey) ?? true;
+    notifyListeners();
+  }
+
+  Future<void> _saveDeveloperMode(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_devModeKey, value);
+  }
+
+  Future<void> _saveAllowFarStart(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_allowFarStartKey, value);
+  }
 
   Future<void> carregarJobs() async {
     if (isLoadingJobs) return;
@@ -38,15 +62,13 @@ class AppState extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await repository
-          .getJobs()
-          .timeout(const Duration(seconds: 5));
-
+      final result = await repository.getJobs().timeout(
+            const Duration(seconds: 5),
+          );
       jobs = List<Job>.from(result);
     } catch (_) {
       jobs = [];
-      jobsLoadError =
-          'Não foi possível carregar as vistorias no momento. Tente novamente.';
+      jobsLoadError = 'Não foi possível carregar as vistorias no momento. Tente novamente.';
     } finally {
       isLoadingJobs = false;
       notifyListeners();
@@ -100,8 +122,8 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void salvarChecklist(List<String> itens) {
-    jobAtual?.checklist = List.from(
+  void salvarChecklist(List itens) {
+    jobAtual?.checklist = List<String>.from(
       itens.map((item) => item.toString()),
     );
     notifyListeners();
@@ -122,9 +144,23 @@ class AppState extends ChangeNotifier {
     return distanciaMetros <= 100;
   }
 
-  void setPermitirIniciarLonge(bool value) {
+  Future<void> setPermitirIniciarLonge(bool value) async {
     permitirIniciarLonge = value;
     notifyListeners();
+    await _saveAllowFarStart(value);
+  }
+
+  Future<void> setDeveloperModeEnabled(bool value) async {
+    developerModeEnabled = value;
+    notifyListeners();
+    await _saveDeveloperMode(value);
+  }
+
+  Future<bool> toggleDeveloperMode() async {
+    developerModeEnabled = !developerModeEnabled;
+    notifyListeners();
+    await _saveDeveloperMode(developerModeEnabled);
+    return developerModeEnabled;
   }
 
   void setEnderecoBase(String value) {
@@ -153,9 +189,7 @@ class AppState extends ChangeNotifier {
     required double atualLat,
     required double atualLng,
   }) {
-    if (jobAtual == null ||
-        jobAtual!.latitude == null ||
-        jobAtual!.longitude == null) {
+    if (jobAtual == null || jobAtual!.latitude == null || jobAtual!.longitude == null) {
       return 0;
     }
 
