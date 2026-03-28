@@ -18,12 +18,13 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+class _HomeScreenState extends State<HomeScreen>
+    with WidgetsBindingObserver {
   final LocationService _locationService = LocationService();
 
   bool _loadingLocation = false;
   String? _locationErrorMessage;
-  bool _bootstrapStarted = false;
+  bool _bootstrapped = false;
 
   @override
   void initState() {
@@ -31,8 +32,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _bootstrapStarted) return;
-      _bootstrapStarted = true;
+      if (!mounted || _bootstrapped) return;
+      _bootstrapped = true;
       _bootstrap();
     });
   }
@@ -44,7 +45,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       await appState.carregarJobs();
     }
 
-    _refreshUserLocation();
+    await _refreshUserLocation();
   }
 
   @override
@@ -275,7 +276,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               onTap: () async {
                 await Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const SettingsScreen(),
+                  ),
                 );
                 if (!context.mounted) return;
                 await _refreshUserLocation();
@@ -287,7 +290,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const OperationalHubScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const OperationalHubScreen(),
+                  ),
                 );
               },
             ),
@@ -442,7 +447,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const OperationalHubScreen()),
+                MaterialPageRoute(
+                  builder: (_) => const OperationalHubScreen(),
+                ),
               );
             },
             child: const Text('ABRIR'),
@@ -560,7 +567,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       _mostrarInfo(context, 'Localização do job não definida.');
                       return;
                     }
-                    await MapService().abrirWaze(job.latitude!, job.longitude!);
+                    await MapService().abrirWaze(
+                      job.latitude!,
+                      job.longitude!,
+                    );
                   },
                   child: const Text(
                     'COMO CHEGAR',
@@ -592,7 +602,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const CheckinScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const CheckinScreen(),
+                      ),
                     );
                   },
                   style: ElevatedButton.styleFrom(

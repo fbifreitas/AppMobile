@@ -42,8 +42,8 @@ class AppState extends ChangeNotifier {
           .getJobs()
           .timeout(const Duration(seconds: 5));
 
-      jobs = result;
-    } catch (e) {
+      jobs = List<Job>.from(result);
+    } catch (_) {
       jobs = [];
       jobsLoadError =
           'Não foi possível carregar as vistorias no momento. Tente novamente.';
@@ -101,7 +101,9 @@ class AppState extends ChangeNotifier {
   }
 
   void salvarChecklist(List<String> itens) {
-    jobAtual?.checklist = List.from(itens.map((item) => item.toString()));
+    jobAtual?.checklist = List.from(
+      itens.map((item) => item.toString()),
+    );
     notifyListeners();
   }
 
