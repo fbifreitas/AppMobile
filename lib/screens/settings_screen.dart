@@ -107,31 +107,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _handleDeveloperModeHiddenTap() async {
-    _versionTapCount += 1;
+    final appState = context.read<AppState>();
 
-    final remaining = _developerModeTapThreshold - _versionTapCount;
-    if (remaining > 0) {
-      if (remaining <= 3) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Mais $remaining toque${remaining == 1 ? '' : 's'} para liberar as ferramentas de desenvolvedor.',
+    if (!appState.developerToolsUnlocked) {
+      _versionTapCount += 1;
+
+      final remaining = _developerModeTapThreshold - _versionTapCount;
+      if (remaining > 0) {
+        if (remaining <= 3) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Mais $remaining toque${remaining == 1 ? '' : 's'} para liberar as ferramentas de desenvolvedor.',
+              ),
             ),
-          ),
-        );
+          );
+        }
+        return;
       }
+
+      _versionTapCount = 0;
+      await appState.unlockDeveloperTools();
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Ferramenta de desenvolvedor liberada. Ative a opção para exibir o menu técnico.',
+          ),
+        ),
+      );
       return;
     }
-
-    _versionTapCount = 0;
-    final appState = context.read<AppState>();
-    await appState.unlockDeveloperTools();
-    if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text(
-          'Ferramentas de desenvolvedor liberadas neste aparelho.',
+          'A ferramenta de desenvolvedor já está liberada. Ative a opção para exibir o menu técnico.',
         ),
       ),
     );
@@ -155,7 +167,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
-    final messenger = ScaffoldMessenger.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -256,7 +267,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 12),
             Text(_comparisonText!),
           ],
-          if (appState.developerToolsUnlocked) ...[
+          if (appState.developerToolsUnlocked &&
+              appState.developerModeEnabled) ...[
             const Divider(height: 28),
             const Text(
               'Ferramentas do desenvolvedor',
@@ -273,8 +285,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 'Controla a exibição do ícone do hub técnico na Home.',
               ),
               value: appState.developerModeEnabled,
-              onChanged: (value) {
-                appState.setDeveloperModeEnabled(value);
+              onChanged: (value) async {
+                await appState.setDeveloperModeEnabled(value);
               },
             ),
             SwitchListTile(
@@ -284,26 +296,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 'Quando desligado, o botão de vistoria depende da distância real até o imóvel.',
               ),
               value: appState.permitirIniciarLonge,
-              onChanged: (value) {
-                appState.setPermitirIniciarLonge(value);
+              onChanged: (value) async {
+                await appState.setPermitirIniciarLonge(value);
               },
             ),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton(
-                onPressed: () async {
-                  await appState.lockDeveloperTools();
-                  if (!mounted) return;
-                  messenger.showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Ferramentas de desenvolvedor ocultadas neste aparelho.',
-                      ),
-                    ),
-                  );
-                },
-                child: const Text('Ocultar ferramentas de desenvolvedor'),
+          ] else if (appState.developerToolsUnlocked &&
+              !appState.developerModeEnabled) ...[
+            const Divider(height: 28),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Habilitar ferramentas de desenvolvedor'),
+              subtitle: const Text(
+                'Ao ativar, o menu técnico volta a aparecer e o ícone do topo é exibido.',
               ),
+              value: appState.developerModeEnabled,
+              onChanged: (value) async {
+                await appState.setDeveloperModeEnabled(value);
+              },
             ),
           ],
           const SizedBox(height: 14),
