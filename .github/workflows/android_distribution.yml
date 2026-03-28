@@ -1,6 +1,10 @@
 name: Android Distribution
 
 on:
+  workflow_run:
+    workflows: ["Android CI"]
+    types:
+      - completed
   workflow_dispatch:
     inputs:
       release_notes:
@@ -14,9 +18,16 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  DEFAULT_TESTER_GROUP: testers-internos
+  DEFAULT_RELEASE_NOTES: Build distribuído automaticamente após Android CI verde
 
 jobs:
   build-and-distribute-debug:
+    if: |
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main') ||
+      github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -53,6 +64,18 @@ jobs:
             exit 1
           fi
 
+      - name: Resolve release metadata
+        id: meta
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "release_notes=${{ github.event.inputs.release_notes }}" >> $GITHUB_OUTPUT
+            echo "tester_group=${{ github.event.inputs.tester_group }}" >> $GITHUB_OUTPUT
+          else
+            echo "release_notes=${DEFAULT_RELEASE_NOTES}" >> $GITHUB_OUTPUT
+            echo "tester_group=${DEFAULT_TESTER_GROUP}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Flutter version
         run: flutter --version
 
@@ -73,7 +96,7 @@ jobs:
 
       - name: Distribute debug APK to Firebase App Distribution
         run: |
-          firebase appdistribution:distribute build/app/outputs/flutter-apk/app-debug.apk             --app "${{ secrets.FIREBASE_APP_ID_ANDROID }}"             --groups "${{ github.event.inputs.tester_group }}"             --release-notes "${{ github.event.inputs.release_notes }}"
+          firebase appdistribution:distribute build/app/outputs/flutter-apk/app-debug.apk             --app "${{ secrets.FIREBASE_APP_ID_ANDROID }}"             --groups "${{ steps.meta.outputs.tester_group }}"             --release-notes "${{ steps.meta.outputs.release_notes }}"
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
 
