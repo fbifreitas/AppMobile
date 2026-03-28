@@ -6,18 +6,14 @@ class Job {
   String endereco;
   double? latitude;
   double? longitude;
-
   JobStatus status;
-
   String nomeCliente;
   String? telefoneCliente;
-
   bool clientePresente;
   String? tipoImovel;
-
-  List<String> checklist;
-  List<String> fotos;
-
+  String? subtipoImovel;
+  List checklist;
+  List fotos;
   double? origemLat;
   double? origemLng;
   double? distanciaKm;
@@ -33,8 +29,9 @@ class Job {
     this.telefoneCliente,
     this.clientePresente = true,
     this.tipoImovel,
-    List<String>? checklist,
-    List<String>? fotos,
+    this.subtipoImovel,
+    List? checklist,
+    List? fotos,
     this.origemLat,
     this.origemLng,
     this.distanciaKm,

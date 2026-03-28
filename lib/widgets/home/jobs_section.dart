@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/job.dart';
-import '../../models/job_distance_info.dart';
-import '../../services/job_distance_service.dart';
+import '../../services/location_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/app_colors.dart';
 
@@ -15,7 +14,7 @@ typedef NavigateToJobCallback = Future<void> Function({
 typedef StartInspectionCallback = void Function(Job job);
 
 class JobsSection extends StatelessWidget {
-  JobsSection({
+  const JobsSection({
     super.key,
     required this.appState,
     required this.onNavigateToJob,
@@ -23,8 +22,7 @@ class JobsSection extends StatelessWidget {
     this.currentLatitude,
     this.currentLongitude,
     this.useDistanceMetrics = false,
-    JobDistanceService? distanceService,
-  }) : distanceService = distanceService ?? JobDistanceService();
+  });
 
   final AppState appState;
   final NavigateToJobCallback onNavigateToJob;
@@ -32,7 +30,6 @@ class JobsSection extends StatelessWidget {
   final double? currentLatitude;
   final double? currentLongitude;
   final bool useDistanceMetrics;
-  final JobDistanceService distanceService;
 
   @override
   Widget build(BuildContext context) {
@@ -58,13 +55,11 @@ class JobsSection extends StatelessWidget {
         else
           ...appState.jobs.map(
             (job) => _RichJobCard(
+              appState: appState,
               job: job,
-              distanceInfo: distanceService.buildDistanceInfo(
-                job: job,
-                currentLatitude: currentLatitude,
-                currentLongitude: currentLongitude,
-                useDistanceMetrics: useDistanceMetrics,
-              ),
+              currentLatitude: currentLatitude,
+              currentLongitude: currentLongitude,
+              useDistanceMetrics: useDistanceMetrics,
               onNavigateToJob: () {
                 return onNavigateToJob(
                   latitude: job.latitude,
@@ -179,19 +174,38 @@ class JobsSection extends StatelessWidget {
 
 class _RichJobCard extends StatelessWidget {
   const _RichJobCard({
+    required this.appState,
     required this.job,
-    required this.distanceInfo,
     required this.onNavigateToJob,
     required this.onStartInspection,
+    required this.currentLatitude,
+    required this.currentLongitude,
+    required this.useDistanceMetrics,
   });
 
+  final AppState appState;
   final Job job;
-  final JobDistanceInfo distanceInfo;
   final Future<void> Function() onNavigateToJob;
   final VoidCallback onStartInspection;
+  final double? currentLatitude;
+  final double? currentLongitude;
+  final bool useDistanceMetrics;
 
   @override
   Widget build(BuildContext context) {
+    final distanceInfo = _buildDistanceInfo();
+    final canStart = appState.canStartInspection(
+      job: job,
+      currentLatitude: currentLatitude,
+      currentLongitude: currentLongitude,
+    );
+    final showDevStart = appState.shouldShowDevStart(
+      job: job,
+      currentLatitude: currentLatitude,
+      currentLongitude: currentLongitude,
+    );
+    final radiusMeters = appState.resolveInspectionRadiusMeters(job);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -275,8 +289,32 @@ class _RichJobCard extends StatelessWidget {
                     : AppColors.warning,
                 text: distanceInfo.rangeLabel,
               ),
+              _JobTag(
+                bg: AppColors.surface,
+                fg: AppColors.textSecondary,
+                text: 'Raio: ${radiusMeters.toStringAsFixed(0)}m',
+              ),
             ],
           ),
+          const SizedBox(height: 8),
+          if (!canStart && !showDevStart)
+            Text(
+              'Fora do raio de vistoria para ${job.tipoImovel ?? 'tipo não informado'}.',
+              style: const TextStyle(
+                color: AppColors.warning,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          if (showDevStart)
+            const Text(
+              'Modo desenvolvedor ativo: fluxo liberado para teste fora do raio.',
+              style: TextStyle(
+                color: AppColors.primary,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           const SizedBox(height: 10),
           Row(
             children: [
@@ -294,10 +332,12 @@ class _RichJobCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: onStartInspection,
-                  child: const Text(
-                    'INICIAR VISTORIA',
-                    style: TextStyle(fontSize: 11),
+                  onPressed: (canStart || showDevStart)
+                      ? onStartInspection
+                      : null,
+                  child: Text(
+                    showDevStart ? 'INICIAR (DEV)' : 'INICIAR VISTORIA',
+                    style: const TextStyle(fontSize: 11),
                   ),
                 ),
               ),
@@ -305,6 +345,55 @@ class _RichJobCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  _DistanceInfo _buildDistanceInfo() {
+    if (!useDistanceMetrics ||
+        currentLatitude == null ||
+        currentLongitude == null ||
+        job.latitude == null ||
+        job.longitude == null) {
+      return const _DistanceInfo(
+        label: 'Localização pendente',
+        rangeLabel: 'Sem cálculo',
+        withinRange: false,
+      );
+    }
+
+    final distanceMeters = LocationService().calcularDistancia(
+      lat1: currentLatitude!,
+      lon1: currentLongitude!,
+      lat2: job.latitude!,
+      lon2: job.longitude!,
+    );
+
+    final withinRange = appState.inspectionRadiusService.isWithinRadius(
+      distanceMeters: distanceMeters,
+      tipoImovel: job.tipoImovel,
+      subtipoImovel: job.subtipoImovel,
+    );
+
+    if (distanceMeters <= 80) {
+      return const _DistanceInfo(
+        label: 'Você está no local',
+        rangeLabel: 'Dentro do raio',
+        withinRange: true,
+      );
+    }
+
+    if (distanceMeters < 1000) {
+      return _DistanceInfo(
+        label: '${distanceMeters.toStringAsFixed(0)} m de distância',
+        rangeLabel: withinRange ? 'Dentro do raio' : 'Fora do raio',
+        withinRange: withinRange,
+      );
+    }
+
+    return _DistanceInfo(
+      label: '${(distanceMeters / 1000).toStringAsFixed(1)} km de distância',
+      rangeLabel: withinRange ? 'Dentro do raio' : 'Fora do raio',
+      withinRange: withinRange,
     );
   }
 }
@@ -338,4 +427,16 @@ class _JobTag extends StatelessWidget {
       ),
     );
   }
+}
+
+class _DistanceInfo {
+  const _DistanceInfo({
+    required this.label,
+    required this.rangeLabel,
+    required this.withinRange,
+  });
+
+  final String label;
+  final String rangeLabel;
+  final bool withinRange;
 }

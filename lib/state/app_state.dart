@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/job.dart';
 import '../models/job_status.dart';
 import '../repositories/job_repository.dart';
+import '../services/inspection_radius_service.dart';
 import '../services/location_service.dart';
 
 class AppState extends ChangeNotifier {
@@ -16,6 +17,8 @@ class AppState extends ChangeNotifier {
   static const _allowFarStartKey = 'developer_allow_far_start';
 
   final JobRepository repository;
+  final InspectionRadiusService inspectionRadiusService =
+      const InspectionRadiusService();
 
   List<Job> jobs = [];
   Job? jobAtual;
@@ -32,7 +35,7 @@ class AppState extends ChangeNotifier {
 
   DateTime? ultimoCheckin;
 
-  bool permitirIniciarLonge = true;
+  bool permitirIniciarLonge = false;
   bool developerModeEnabled = false;
   bool developerToolsUnlocked = false;
 
@@ -43,7 +46,7 @@ class AppState extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     developerModeEnabled = prefs.getBool(_devModeKey) ?? false;
     developerToolsUnlocked = prefs.getBool(_devToolsUnlockedKey) ?? false;
-    permitirIniciarLonge = prefs.getBool(_allowFarStartKey) ?? true;
+    permitirIniciarLonge = prefs.getBool(_allowFarStartKey) ?? false;
     notifyListeners();
   }
 
@@ -148,11 +151,6 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool podeIniciarVistoria(double distanciaMetros) {
-    if (permitirIniciarLonge) return true;
-    return distanciaMetros <= 100;
-  }
-
   Future<void> setPermitirIniciarLonge(bool value) async {
     permitirIniciarLonge = value;
     notifyListeners();
@@ -235,5 +233,72 @@ class AppState extends ChangeNotifier {
     jobAtual!.origemLng = atualLng;
     jobAtual!.distanciaKm = distancia / 1000;
     notifyListeners();
+  }
+
+  double resolveInspectionRadiusMeters(Job job) {
+    return inspectionRadiusService.resolve(
+      tipoImovel: job.tipoImovel,
+      subtipoImovel: job.subtipoImovel,
+    ).radiusMeters;
+  }
+
+  bool canStartInspection({
+    required Job job,
+    required double? currentLatitude,
+    required double? currentLongitude,
+  }) {
+    if (developerModeEnabled && permitirIniciarLonge) {
+      return true;
+    }
+
+    if (currentLatitude == null ||
+        currentLongitude == null ||
+        job.latitude == null ||
+        job.longitude == null) {
+      return false;
+    }
+
+    final distanceMeters = LocationService().calcularDistancia(
+      lat1: currentLatitude,
+      lon1: currentLongitude,
+      lat2: job.latitude!,
+      lon2: job.longitude!,
+    );
+
+    return inspectionRadiusService.isWithinRadius(
+      distanceMeters: distanceMeters,
+      tipoImovel: job.tipoImovel,
+      subtipoImovel: job.subtipoImovel,
+    );
+  }
+
+  bool shouldShowDevStart({
+    required Job job,
+    required double? currentLatitude,
+    required double? currentLongitude,
+  }) {
+    if (!developerModeEnabled || !permitirIniciarLonge) {
+      return false;
+    }
+
+    if (currentLatitude == null ||
+        currentLongitude == null ||
+        job.latitude == null ||
+        job.longitude == null) {
+      return true;
+    }
+
+    final distanceMeters = LocationService().calcularDistancia(
+      lat1: currentLatitude,
+      lon1: currentLongitude,
+      lat2: job.latitude!,
+      lon2: job.longitude!,
+    );
+
+    return !inspectionRadiusService.isWithinRadius(
+      distanceMeters: distanceMeters,
+      tipoImovel: job.tipoImovel,
+      subtipoImovel: job.subtipoImovel,
+    );
   }
 }
