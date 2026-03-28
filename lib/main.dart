@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'screens/home_screen.dart';
+
 import 'repositories/fake_job_repository.dart';
+import 'screens/home_screen.dart';
 import 'state/app_state.dart';
 import 'state/inspection_state.dart';
 import 'theme/app_colors.dart';
@@ -89,26 +90,6 @@ class MyApp extends StatelessWidget {
         ),
       ),
       home: const HomeScreen(),
-    );
-  }
-}
-class DebugStartupScreen extends StatelessWidget {
-  const DebugStartupScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Colors.green,
-      body: Center(
-        child: Text(
-          'DEBUG START OK',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
     );
   }
 }
