@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/home_location_snapshot.dart';
 import '../models/job.dart';
+import '../services/home_bootstrap_service.dart';
+import '../services/home_location_service.dart';
 import '../services/location_service.dart';
 import '../services/map_service.dart';
 import '../state/app_state.dart';
@@ -24,10 +27,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final HomeLocationService _homeLocationService = const HomeLocationService();
+  final HomeBootstrapService _homeBootstrapService = const HomeBootstrapService();
+
   bool _bootstrapped = false;
-  bool _loadingLocation = false;
-  String? _locationError;
-  DateTime? _lastLocationSyncAt;
+  HomeLocationSnapshot _locationSnapshot = HomeLocationSnapshot.initial();
 
   @override
   void initState() {
@@ -42,12 +46,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _bootstrap() async {
     final appState = context.read<AppState>();
+    final bootstrap = _homeBootstrapService.evaluate(
+      hasJobs: appState.jobs.isNotEmpty,
+      isLoadingJobs: appState.isLoadingJobs,
+    );
 
-    if (appState.jobs.isEmpty && !appState.isLoadingJobs) {
+    if (bootstrap.shouldLoadJobs) {
       await appState.carregarJobs();
     }
 
-    await _refreshLocation();
+    if (bootstrap.shouldRefreshLocation) {
+      await _refreshLocation();
+    }
   }
 
   Future<void> _manualRefresh() async {
@@ -60,36 +70,34 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
 
     setState(() {
-      _loadingLocation = true;
-      _locationError = null;
+      _locationSnapshot = _locationSnapshot.copyWith(
+        loading: true,
+        clearErrorMessage: true,
+      );
     });
 
-    try {
-      final position = await LocationService().getCurrentLocation();
+    final updatedSnapshot = await _homeLocationService.refresh(
+      current: _locationSnapshot,
+      readCurrentLocation: () async {
+        final position = await LocationService().getCurrentLocation();
+        return HomeLocationPoint(
+          latitude: position.latitude,
+          longitude: position.longitude,
+        );
+      },
+      writeLocation: (latitude, longitude) {
+        context.read<AppState>().atualizarUltimaLocalizacao(
+              latitude,
+              longitude,
+            );
+      },
+    );
 
-      if (!mounted) return;
+    if (!mounted) return;
 
-      context.read<AppState>().atualizarUltimaLocalizacao(
-            position.latitude,
-            position.longitude,
-          );
-
-      setState(() {
-        _lastLocationSyncAt = DateTime.now();
-      });
-    } catch (e) {
-      if (!mounted) return;
-
-      setState(() {
-        _locationError = e.toString().replaceFirst('Exception: ', '');
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _loadingLocation = false;
-        });
-      }
-    }
+    setState(() {
+      _locationSnapshot = updatedSnapshot;
+    });
   }
 
   Future<void> _handleNavigateToJob({
@@ -191,18 +199,21 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 16),
               LocationStatusCard(
-                loading: _loadingLocation,
-                errorMessage: _locationError,
-                lastSyncAt: _lastLocationSyncAt,
-                latitude: appState.ultimaLatitude,
-                longitude: appState.ultimaLongitude,
+                loading: _locationSnapshot.loading,
+                errorMessage: _locationSnapshot.errorMessage,
+                lastSyncAt: _locationSnapshot.lastSyncAt,
+                latitude: appState.ultimaLatitude ?? _locationSnapshot.latitude,
+                longitude:
+                    appState.ultimaLongitude ?? _locationSnapshot.longitude,
                 onRefresh: _refreshLocation,
               ),
               const SizedBox(height: 16),
               JobsSection(
                 appState: appState,
-                currentLatitude: appState.ultimaLatitude,
-                currentLongitude: appState.ultimaLongitude,
+                currentLatitude:
+                    appState.ultimaLatitude ?? _locationSnapshot.latitude,
+                currentLongitude:
+                    appState.ultimaLongitude ?? _locationSnapshot.longitude,
                 useDistanceMetrics: true,
                 onNavigateToJob: ({
                   required double? latitude,
