@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
+import 'checkin_screen.dart';
 import 'notifications_screen.dart';
 import 'operational_hub_screen.dart';
 import 'settings_screen.dart';
@@ -97,9 +98,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   (job) => _buildRichJobCard(
                     context: context,
                     appState: appState,
-                    titulo: job.titulo,
-                    endereco: job.endereco,
-                    cliente: job.nomeCliente,
+                    jobTitulo: job.titulo,
+                    jobEndereco: job.endereco,
+                    jobCliente: job.nomeCliente,
+                    onStartInspection: () {
+                      appState.selecionarJob(job);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const CheckinScreen(),
+                        ),
+                      );
+                    },
                   ),
                 ),
               const SizedBox(height: 14),
@@ -415,9 +425,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildRichJobCard({
     required BuildContext context,
     required AppState appState,
-    required String titulo,
-    required String endereco,
-    required String cliente,
+    required String jobTitulo,
+    required String jobEndereco,
+    required String jobCliente,
+    required VoidCallback onStartInspection,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -460,7 +471,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            titulo,
+            jobTitulo,
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w800,
@@ -469,7 +480,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 5),
           Text(
-            endereco,
+            jobEndereco,
             style: const TextStyle(
               color: AppColors.textSecondary,
               fontSize: 10.5,
@@ -477,7 +488,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 2),
           Text(
-            cliente,
+            jobCliente,
             style: const TextStyle(
               color: AppColors.textSecondary,
               fontSize: 10.5,
@@ -508,7 +519,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   onPressed: () {
                     _mostrarInfo(
                       context,
-                      'Roteirização desabilitada nesta etapa de diagnóstico.',
+                      'Roteirização será reconectada em etapa posterior.',
                     );
                   },
                   child: const Text(
@@ -520,12 +531,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () {
-                    _mostrarInfo(
-                      context,
-                      'Fluxo de check-in será reconectado na próxima etapa.',
-                    );
-                  },
+                  onPressed: onStartInspection,
                   child: const Text(
                     'INICIAR VISTORIA',
                     style: TextStyle(fontSize: 11),
