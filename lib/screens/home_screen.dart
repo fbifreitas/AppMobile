@@ -20,12 +20,30 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final LocationService _locationService = LocationService();
-  bool _loadingLocation = true;
+
+  bool _loadingLocation = false;
+  String? _locationErrorMessage;
+  bool _bootstrapStarted = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _bootstrapStarted) return;
+      _bootstrapStarted = true;
+      _bootstrap();
+    });
+  }
+
+  Future<void> _bootstrap() async {
+    final appState = context.read<AppState>();
+
+    if (appState.jobs.isEmpty && !appState.isLoadingJobs) {
+      await appState.carregarJobs();
+    }
+
     _refreshUserLocation();
   }
 
@@ -43,18 +61,34 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _refreshUserLocation() async {
-    if (mounted) setState(() => _loadingLocation = true);
+    if (mounted) {
+      setState(() {
+        _loadingLocation = true;
+        _locationErrorMessage = null;
+      });
+    }
+
     final appState = context.read<AppState>();
+
     try {
       final pos = await _locationService.getCurrentLocation();
       appState.atualizarUltimaLocalizacao(pos.latitude, pos.longitude);
-    } catch (_) {
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _locationErrorMessage = e.toString().replaceFirst('Exception: ', '');
+        });
+      }
     } finally {
-      if (mounted) setState(() => _loadingLocation = false);
+      if (mounted) {
+        setState(() => _loadingLocation = false);
+      }
     }
   }
 
   Future<void> _manualRefresh() async {
+    final appState = context.read<AppState>();
+    await appState.carregarJobs();
     await _refreshUserLocation();
   }
 
@@ -68,38 +102,117 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 0,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Painel'),
-          BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Vistorias'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Agenda'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard),
+            label: 'Painel',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.list),
+            label: 'Vistorias',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today),
+            label: 'Agenda',
+          ),
         ],
       ),
       body: SafeArea(
-        child: jobs.isEmpty
-            ? const Center(child: CircularProgressIndicator())
-            : RefreshIndicator(
-                onRefresh: _manualRefresh,
-                child: ListView(
-                  padding: const EdgeInsets.all(18),
-                  children: [
-                    _buildHeader(context, appState),
-                    const SizedBox(height: 16),
-                    _buildOperationalHubEntry(context),
-                    const SizedBox(height: 16),
-                    const Text('MEUS JOBS DE HOJE', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w800, letterSpacing: 0.8, fontSize: 12)),
-                    const SizedBox(height: 8),
-                    ...jobs.map((job) => _jobCard(context, appState, job)),
-                    const SizedBox(height: 14),
-                    const Text('NOVAS PROPOSTAS', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w800, letterSpacing: 0.8, fontSize: 12)),
-                    const SizedBox(height: 8),
-                    ..._buildProposalCards(),
-                    if (_loadingLocation)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 8),
-                        child: Center(child: Text('Atualizando localização...', style: TextStyle(color: AppColors.textSecondary, fontSize: 10))),
+        child: Builder(
+          builder: (context) {
+            if (appState.isLoadingJobs && jobs.isEmpty) {
+              return _buildInitialLoadingState();
+            }
+
+            if (appState.jobsLoadError != null && jobs.isEmpty) {
+              return _buildJobsLoadErrorState(appState.jobsLoadError!);
+            }
+
+            if (jobs.isEmpty) {
+              return _buildEmptyState();
+            }
+
+            return RefreshIndicator(
+              onRefresh: _manualRefresh,
+              child: ListView(
+                padding: const EdgeInsets.all(18),
+                children: [
+                  _buildHeader(context, appState),
+                  const SizedBox(height: 16),
+                  _buildOperationalHubEntry(context),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'MEUS JOBS DE HOJE',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ...jobs.map((job) => _jobCard(context, appState, job)),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'NOVAS PROPOSTAS',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ..._buildProposalCards(),
+                  if (_loadingLocation)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 8),
+                      child: Center(
+                        child: Text(
+                          'Atualizando localização...',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 10,
+                          ),
+                        ),
                       ),
-                  ],
-                ),
+                    ),
+                  if (_locationErrorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.location_off_outlined,
+                              size: 18,
+                              color: AppColors.textSecondary,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Localização indisponível: $_locationErrorMessage',
+                                style: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                ],
               ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -108,15 +221,35 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const CircleAvatar(radius: 21, backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=3')),
+        const CircleAvatar(
+          radius: 21,
+          backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=3'),
+        ),
         const SizedBox(width: 10),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Olá, ${appState.primeiroNome}! 👋', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+              Text(
+                'Olá, ${appState.primeiroNome}! ',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
               const SizedBox(height: 1),
-              const Text('Seu painel operacional de hoje', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+              const Text(
+                'Seu painel operacional de hoje',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                ),
+              ),
             ],
           ),
         ),
@@ -127,7 +260,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             _circleIconButton(
               icon: Icons.notifications_none,
               onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const NotificationsScreen(),
+                  ),
+                );
               },
               badge: '3',
             ),
@@ -135,7 +273,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             _circleIconButton(
               icon: Icons.settings_outlined,
               onTap: () async {
-                await Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                );
                 if (!context.mounted) return;
                 await _refreshUserLocation();
               },
@@ -144,7 +285,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             _circleIconButton(
               icon: Icons.dashboard_customize_outlined,
               onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const OperationalHubScreen()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const OperationalHubScreen()),
+                );
               },
             ),
           ],
@@ -155,8 +299,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   List<Widget> _buildProposalCards() {
     final propostas = const [
-      {'valor': 'R\$ 150,00', 'resumo': '2.5 km • Apto padrão', 'tempo': '00:45'},
-      {'valor': 'R\$ 220,00', 'resumo': '4.1 km • Casa', 'tempo': '01:10'},
+      {
+        'valor': 'R\$ 150,00',
+        'resumo': '2.5 km • Apto padrão',
+        'tempo': '00:45',
+      },
+      {
+        'valor': 'R\$ 220,00',
+        'resumo': '4.1 km • Casa',
+        'tempo': '01:10',
+      },
     ];
 
     return propostas.map((item) {
@@ -174,23 +326,60 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             Row(
               children: [
                 Expanded(
-                  child: Text(item['valor']!, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                  child: Text(
+                    item['valor']!,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
                 ),
-                Text(item['resumo']!, style: const TextStyle(color: AppColors.textSecondary, fontSize: 10)),
+                Text(
+                  item['resumo']!,
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 10,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 2),
-            Text('Expira em ${item['tempo']}', style: const TextStyle(color: AppColors.warning, fontWeight: FontWeight.w700, fontSize: 10)),
+            Text(
+              'Expira em ${item['tempo']}',
+              style: const TextStyle(
+                color: AppColors.warning,
+                fontWeight: FontWeight.w700,
+                fontSize: 10,
+              ),
+            ),
             const SizedBox(height: 8),
             Container(
               height: 40,
-              decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(16)),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: Row(
                 children: [
-                  Container(width: 42, margin: const EdgeInsets.all(5), decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(12))),
+                  Container(
+                    width: 42,
+                    margin: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                   const Expanded(
                     child: Center(
-                      child: Text('DESLIZE PARA ACEITAR', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11)),
+                      child: Text(
+                        'DESLIZE PARA ACEITAR',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 11,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -201,7 +390,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       );
     }).toList();
   }
-
 
   Widget _buildOperationalHubEntry(BuildContext context) {
     return Container(
@@ -266,7 +454,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Widget _jobCard(BuildContext context, AppState appState, Job job) {
     final distanciaMetros = _distanceToJob(appState, job);
-    final podeIniciar = distanciaMetros == null ? appState.permitirIniciarLonge : appState.podeIniciarVistoria(distanciaMetros);
+    final podeIniciar = distanciaMetros == null
+        ? appState.permitirIniciarLonge
+        : appState.podeIniciarVistoria(distanciaMetros);
     final distanciaTexto = _distanceLabel(distanciaMetros);
     final proximidadeTexto = _proximityLabel(distanciaMetros);
 
@@ -277,35 +467,85 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border),
-        boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 6, offset: Offset(0, 2))],
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0D000000),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle)),
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                ),
+              ),
               const SizedBox(width: 6),
-              const Text('EM ANDAMENTO', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800, fontSize: 11)),
+              const Text(
+                'EM ANDAMENTO',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 11,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 6),
-          Text(job.titulo, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.textPrimary, height: 1.05)),
+          Text(
+            job.titulo,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+              height: 1.05,
+            ),
+          ),
           const SizedBox(height: 5),
-          Text(job.endereco, style: const TextStyle(color: AppColors.textSecondary, fontSize: 10.5, height: 1.05)),
+          Text(
+            job.endereco,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 10.5,
+              height: 1.05,
+            ),
+          ),
           const SizedBox(height: 1),
-          Text(job.nomeCliente, style: const TextStyle(color: AppColors.textSecondary, fontSize: 10.5, height: 1.05)),
+          Text(
+            job.nomeCliente,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 10.5,
+              height: 1.05,
+            ),
+          ),
           const SizedBox(height: 7),
           Wrap(
             spacing: 6,
             runSpacing: 6,
             children: [
               _tag(AppColors.primaryLight, AppColors.primary, distanciaTexto),
-              _tag(AppColors.warningLight, AppColors.warning, '14:30 (Em 15 min)'),
+              _tag(
+                AppColors.warningLight,
+                AppColors.warning,
+                '14:30 (Em 15 min)',
+              ),
               if (proximidadeTexto != null)
                 _tag(
-                  podeIniciar ? Colors.green.withValues(alpha: 0.12) : Colors.red.withValues(alpha: 0.10),
-                  podeIniciar ? Colors.green.shade800 : Colors.red.shade700,
+                  podeIniciar
+                      ? Colors.green.withValues(alpha: 0.12)
+                      : Colors.red.withValues(alpha: 0.10),
+                  podeIniciar
+                      ? Colors.green.shade800
+                      : Colors.red.shade700,
                   proximidadeTexto,
                 ),
             ],
@@ -322,7 +562,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     }
                     await MapService().abrirWaze(job.latitude!, job.longitude!);
                   },
-                  child: const Text('COMO CHEGAR', style: TextStyle(fontSize: 11)),
+                  child: const Text(
+                    'COMO CHEGAR',
+                    style: TextStyle(fontSize: 11),
+                  ),
                 ),
               ),
               const SizedBox(width: 7),
@@ -330,25 +573,36 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 child: ElevatedButton(
                   onPressed: () async {
                     if (!podeIniciar) {
-                      _mostrarInfo(context, 'Você precisa estar próximo do local da vistoria.');
+                      _mostrarInfo(
+                        context,
+                        'Você precisa estar próximo do local da vistoria.',
+                      );
                       return;
                     }
 
                     appState.selecionarJob(job);
-                    if (appState.ultimaLatitude != null && appState.ultimaLongitude != null) {
+
+                    if (appState.ultimaLatitude != null &&
+                        appState.ultimaLongitude != null) {
                       appState.registrarDeslocamento(
                         atualLat: appState.ultimaLatitude!,
                         atualLng: appState.ultimaLongitude!,
                       );
                     }
 
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const CheckinScreen()));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CheckinScreen()),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: podeIniciar ? AppColors.primary : Colors.grey.shade400,
+                    backgroundColor:
+                        podeIniciar ? AppColors.primary : Colors.grey.shade400,
                   ),
                   child: Text(
-                    appState.permitirIniciarLonge ? 'INICIAR (DEV)' : 'INICIAR VISTORIA',
+                    appState.permitirIniciarLonge
+                        ? 'INICIAR (DEV)'
+                        : 'INICIAR VISTORIA',
                     style: const TextStyle(fontSize: 11),
                   ),
                 ),
@@ -363,13 +617,26 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget _tag(Color bg, Color fg, String text) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
-      child: Text(text, style: TextStyle(color: fg, fontWeight: FontWeight.w700, fontSize: 10.5)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: fg,
+          fontWeight: FontWeight.w700,
+          fontSize: 10.5,
+        ),
+      ),
     );
   }
 
   double? _distanceToJob(AppState appState, Job job) {
-    if (appState.ultimaLatitude == null || appState.ultimaLongitude == null || job.latitude == null || job.longitude == null) {
+    if (appState.ultimaLatitude == null ||
+        appState.ultimaLongitude == null ||
+        job.latitude == null ||
+        job.longitude == null) {
       return null;
     }
 
@@ -384,7 +651,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   String _distanceLabel(double? distanceMeters) {
     if (distanceMeters == null) return 'Localização indisponível';
     if (distanceMeters <= 80) return 'Você está no local';
-    if (distanceMeters < 1000) return '${distanceMeters.toStringAsFixed(0)} m de distância';
+    if (distanceMeters < 1000) {
+      return '${distanceMeters.toStringAsFixed(0)} m de distância';
+    }
     return '${(distanceMeters / 1000).toStringAsFixed(1)} km de distância';
   }
 
@@ -411,21 +680,32 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               shape: BoxShape.circle,
               border: Border.all(color: AppColors.border),
             ),
-            child: Icon(icon, color: AppColors.primary, size: 18),
+            child: Icon(
+              icon,
+              color: AppColors.primary,
+              size: 18,
+            ),
           ),
           if (badge != null)
             Positioned(
               top: -4,
               right: -2,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 5,
+                  vertical: 1,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.danger,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   badge,
-                  style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 8,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -441,7 +721,109 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         title: const Text('Atenção'),
         content: Text(msg),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInitialLoadingState() {
+    return const Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 12),
+          Text(
+            'Carregando painel inicial...',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildJobsLoadErrorState(String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.cloud_off_outlined,
+              size: 40,
+              color: AppColors.textSecondary,
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Não foi possível carregar a tela inicial.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: 220,
+              child: ElevatedButton.icon(
+                onPressed: _manualRefresh,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Tentar novamente'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return RefreshIndicator(
+      onRefresh: _manualRefresh,
+      child: ListView(
+        padding: const EdgeInsets.all(24),
+        children: const [
+          SizedBox(height: 120),
+          Icon(
+            Icons.assignment_outlined,
+            size: 48,
+            color: AppColors.textSecondary,
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Nenhuma vistoria disponível no momento.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Puxe para baixo para atualizar.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 13,
+            ),
+          ),
         ],
       ),
     );

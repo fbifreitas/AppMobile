@@ -21,14 +21,36 @@ class AppState extends ChangeNotifier {
 
   String enderecoBase =
       'Apartamento - Condominio Spazio Belem, Av. Alvaro Ramos, 760 Apto 102, Fabio Freitas (Prop.)';
+
   String usuarioNomeCompleto = 'Fábio Freitas';
 
   DateTime? ultimoCheckin;
   bool permitirIniciarLonge = true;
 
+  bool isLoadingJobs = false;
+  String? jobsLoadError;
+
   Future<void> carregarJobs() async {
-    jobs = await repository.getJobs();
+    if (isLoadingJobs) return;
+
+    isLoadingJobs = true;
+    jobsLoadError = null;
     notifyListeners();
+
+    try {
+      final result = await repository
+          .getJobs()
+          .timeout(const Duration(seconds: 5));
+
+      jobs = result;
+    } catch (e) {
+      jobs = [];
+      jobsLoadError =
+          'Não foi possível carregar as vistorias no momento. Tente novamente.';
+    } finally {
+      isLoadingJobs = false;
+      notifyListeners();
+    }
   }
 
   String get primeiroNome {
@@ -66,7 +88,10 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void fazerCheckin({required bool clientePresente, String? tipoImovel}) {
+  void fazerCheckin({
+    required bool clientePresente,
+    String? tipoImovel,
+  }) {
     if (jobAtual == null) return;
     jobAtual!.clientePresente = clientePresente;
     jobAtual!.tipoImovel = tipoImovel;
@@ -75,10 +100,8 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void salvarChecklist(List<dynamic> itens) {
-    jobAtual?.checklist = List<String>.from(
-      itens.map((item) => item.toString()),
-    );
+  void salvarChecklist(List<String> itens) {
+    jobAtual?.checklist = List.from(itens.map((item) => item.toString()));
     notifyListeners();
   }
 
@@ -147,10 +170,12 @@ class AppState extends ChangeNotifier {
     required double atualLng,
   }) {
     if (jobAtual == null) return;
+
     final distancia = calcularKmDeslocamento(
       atualLat: atualLat,
       atualLng: atualLng,
     );
+
     jobAtual!.origemLat = atualLat;
     jobAtual!.origemLng = atualLng;
     jobAtual!.distanciaKm = distancia / 1000;
