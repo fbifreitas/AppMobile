@@ -8,6 +8,7 @@ import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import 'checkin_screen.dart';
 import 'notifications_screen.dart';
+import 'operational_hub_screen.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -82,6 +83,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   children: [
                     _buildHeader(context, appState),
                     const SizedBox(height: 16),
+                    _buildOperationalHubEntry(context),
+                    const SizedBox(height: 16),
                     const Text('MEUS JOBS DE HOJE', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w800, letterSpacing: 0.8, fontSize: 12)),
                     const SizedBox(height: 8),
                     ...jobs.map((job) => _jobCard(context, appState, job)),
@@ -137,6 +140,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 await _refreshUserLocation();
               },
             ),
+            const SizedBox(width: 8),
+            _circleIconButton(
+              icon: Icons.dashboard_customize_outlined,
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const OperationalHubScreen()));
+              },
+            ),
           ],
         ),
       ],
@@ -190,6 +200,68 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ),
       );
     }).toList();
+  }
+
+
+  Widget _buildOperationalHubEntry(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: AppColors.primaryLight,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.dashboard_customize_outlined,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Centrais integradas',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Acesse fluxo, operação, IA, qualidade, observabilidade e produção em um único ponto.',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          OutlinedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const OperationalHubScreen()),
+              );
+            },
+            child: const Text('ABRIR'),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _jobCard(BuildContext context, AppState appState, Job job) {
