@@ -1,0 +1,96 @@
+name: Android CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  validate-and-build-debug:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Build debug APK
+        run: flutter build apk --debug
+
+      - name: Upload debug APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+
+  # Ative este job quando quiser distribuir builds para testers via Firebase App Distribution.
+  # Antes de ativar:
+  # 1. crie o secret FIREBASE_APP_ID_ANDROID
+  # 2. crie o secret FIREBASE_TOKEN
+  # 3. descomente o bloco abaixo
+  #
+  # distribute-debug-firebase:
+  #   needs: validate-and-build-debug
+  #   runs-on: ubuntu-latest
+  #   if: github.ref == 'refs/heads/main'
+  #
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Setup Java
+  #       uses: actions/setup-java@v4
+  #       with:
+  #         distribution: temurin
+  #         java-version: '17'
+  #
+  #     - name: Setup Flutter
+  #       uses: subosito/flutter-action@v2
+  #       with:
+  #         channel: stable
+  #         cache: true
+  #
+  #     - name: Install dependencies
+  #       run: flutter pub get
+  #
+  #     - name: Build debug APK
+  #       run: flutter build apk --debug
+  #
+  #     - name: Install Firebase CLI
+  #       run: npm install -g firebase-tools
+  #
+  #     - name: Distribute debug APK to Firebase
+  #       run: |
+  #         firebase appdistribution:distribute build/app/outputs/flutter-apk/app-debug.apk \
+  #           --app "$FIREBASE_APP_ID_ANDROID" \
+  #           --groups "testers-internos" \
+  #           --release-notes "Build automático do GitHub Actions"
+  #       env:
+  #         FIREBASE_APP_ID_ANDROID: ${{ secrets.FIREBASE_APP_ID_ANDROID }}
+  #         FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
