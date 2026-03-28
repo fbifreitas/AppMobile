@@ -115,7 +115,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Mais $remaining toque${remaining == 1 ? '' : 's'} para alternar o modo desenvolvedor.',
+              'Mais $remaining toque${remaining == 1 ? '' : 's'} para liberar as ferramentas de desenvolvedor.',
             ),
           ),
         );
@@ -124,15 +124,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
 
     _versionTapCount = 0;
-    final enabled = await context.read<AppState>().toggleDeveloperMode();
+    final appState = context.read<AppState>();
+    await appState.unlockDeveloperTools();
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+      const SnackBar(
         content: Text(
-          enabled
-              ? 'Modo desenvolvedor habilitado.'
-              : 'Modo desenvolvedor desabilitado.',
+          'Ferramentas de desenvolvedor liberadas neste aparelho.',
         ),
       ),
     );
@@ -156,6 +155,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
+    final messenger = ScaffoldMessenger.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -256,7 +256,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 12),
             Text(_comparisonText!),
           ],
-          if (appState.developerModeEnabled) ...[
+          if (appState.developerToolsUnlocked) ...[
             const Divider(height: 28),
             const Text(
               'Ferramentas do desenvolvedor',
@@ -268,12 +268,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 8),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
+              title: const Text('Habilitar ferramentas de desenvolvedor'),
+              subtitle: const Text(
+                'Controla a exibição do ícone do hub técnico na Home.',
+              ),
+              value: appState.developerModeEnabled,
+              onChanged: (value) {
+                appState.setDeveloperModeEnabled(value);
+              },
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
               title: const Text('Permitir iniciar longe do local'),
               subtitle: const Text(
                 'Quando desligado, o botão de vistoria depende da distância real até o imóvel.',
               ),
               value: appState.permitirIniciarLonge,
-              onChanged: (value) => appState.setPermitirIniciarLonge(value),
+              onChanged: (value) {
+                appState.setPermitirIniciarLonge(value);
+              },
+            ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: () async {
+                  await appState.lockDeveloperTools();
+                  if (!mounted) return;
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Ferramentas de desenvolvedor ocultadas neste aparelho.',
+                      ),
+                    ),
+                  );
+                },
+                child: const Text('Ocultar ferramentas de desenvolvedor'),
+              ),
             ),
           ],
           const SizedBox(height: 14),

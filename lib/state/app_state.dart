@@ -12,6 +12,7 @@ class AppState extends ChangeNotifier {
   }
 
   static const _devModeKey = 'developer_mode_enabled';
+  static const _devToolsUnlockedKey = 'developer_tools_unlocked';
   static const _allowFarStartKey = 'developer_allow_far_start';
 
   final JobRepository repository;
@@ -33,6 +34,7 @@ class AppState extends ChangeNotifier {
 
   bool permitirIniciarLonge = true;
   bool developerModeEnabled = false;
+  bool developerToolsUnlocked = false;
 
   bool isLoadingJobs = false;
   String? jobsLoadError;
@@ -40,6 +42,7 @@ class AppState extends ChangeNotifier {
   Future<void> _loadPreferences() async {
     final prefs = await SharedPreferences.getInstance();
     developerModeEnabled = prefs.getBool(_devModeKey) ?? false;
+    developerToolsUnlocked = prefs.getBool(_devToolsUnlockedKey) ?? false;
     permitirIniciarLonge = prefs.getBool(_allowFarStartKey) ?? true;
     notifyListeners();
   }
@@ -47,6 +50,11 @@ class AppState extends ChangeNotifier {
   Future<void> _saveDeveloperMode(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_devModeKey, value);
+  }
+
+  Future<void> _saveDeveloperToolsUnlocked(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_devToolsUnlockedKey, value);
   }
 
   Future<void> _saveAllowFarStart(bool value) async {
@@ -68,7 +76,8 @@ class AppState extends ChangeNotifier {
       jobs = List<Job>.from(result);
     } catch (_) {
       jobs = [];
-      jobsLoadError = 'Não foi possível carregar as vistorias no momento. Tente novamente.';
+      jobsLoadError =
+          'Não foi possível carregar as vistorias no momento. Tente novamente.';
     } finally {
       isLoadingJobs = false;
       notifyListeners();
@@ -156,11 +165,19 @@ class AppState extends ChangeNotifier {
     await _saveDeveloperMode(value);
   }
 
-  Future<bool> toggleDeveloperMode() async {
-    developerModeEnabled = !developerModeEnabled;
+  Future<bool> unlockDeveloperTools() async {
+    developerToolsUnlocked = true;
     notifyListeners();
-    await _saveDeveloperMode(developerModeEnabled);
-    return developerModeEnabled;
+    await _saveDeveloperToolsUnlocked(true);
+    return developerToolsUnlocked;
+  }
+
+  Future<void> lockDeveloperTools() async {
+    developerToolsUnlocked = false;
+    developerModeEnabled = false;
+    notifyListeners();
+    await _saveDeveloperToolsUnlocked(false);
+    await _saveDeveloperMode(false);
   }
 
   void setEnderecoBase(String value) {
@@ -189,7 +206,9 @@ class AppState extends ChangeNotifier {
     required double atualLat,
     required double atualLng,
   }) {
-    if (jobAtual == null || jobAtual!.latitude == null || jobAtual!.longitude == null) {
+    if (jobAtual == null ||
+        jobAtual!.latitude == null ||
+        jobAtual!.longitude == null) {
       return 0;
     }
 
