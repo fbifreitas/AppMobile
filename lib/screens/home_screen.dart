@@ -118,101 +118,62 @@ class _HomeScreenState extends State<HomeScreen>
         ],
       ),
       body: SafeArea(
-        child: Builder(
-          builder: (context) {
-            if (appState.isLoadingJobs && jobs.isEmpty) {
-              return _buildInitialLoadingState();
-            }
-
-            if (appState.jobsLoadError != null && jobs.isEmpty) {
-              return _buildJobsLoadErrorState(appState.jobsLoadError!);
-            }
-
-            if (jobs.isEmpty) {
-              return _buildEmptyState();
-            }
-
-            return RefreshIndicator(
-              onRefresh: _manualRefresh,
-              child: ListView(
-                padding: const EdgeInsets.all(18),
-                children: [
-                  _buildHeader(context, appState),
-                  const SizedBox(height: 16),
-                  _buildOperationalHubEntry(context),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'MEUS JOBS DE HOJE',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.8,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ...jobs.map((job) => _jobCard(context, appState, job)),
-                  const SizedBox(height: 14),
-                  const Text(
-                    'NOVAS PROPOSTAS',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.8,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ..._buildProposalCards(),
-                  if (_loadingLocation)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 8),
-                      child: Center(
-                        child: Text(
-                          'Atualizando localização...',
-                          style: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ),
-                    ),
-                  if (_locationErrorMessage != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 12),
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Icon(
-                              Icons.location_off_outlined,
-                              size: 18,
-                              color: AppColors.textSecondary,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Localização indisponível: $_locationErrorMessage',
-                                style: const TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
+        child: RefreshIndicator(
+          onRefresh: _manualRefresh,
+          child: ListView(
+            padding: const EdgeInsets.all(18),
+            children: [
+              _buildHeader(context, appState),
+              const SizedBox(height: 16),
+              _buildOperationalHubEntry(context),
+              const SizedBox(height: 16),
+              if (appState.isLoadingJobs)
+                _buildInlineLoadingCard(),
+              if (appState.jobsLoadError != null)
+                _buildJobsLoadErrorCard(appState.jobsLoadError!),
+              if (_locationErrorMessage != null)
+                _buildLocationErrorCard(_locationErrorMessage!),
+              const Text(
+                'MEUS JOBS DE HOJE',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.8,
+                  fontSize: 12,
+                ),
               ),
-            );
-          },
+              const SizedBox(height: 8),
+              if (jobs.isNotEmpty)
+                ...jobs.map((job) => _jobCard(context, appState, job))
+              else if (!appState.isLoadingJobs && appState.jobsLoadError == null)
+                _buildEmptyJobsCard(),
+              const SizedBox(height: 14),
+              const Text(
+                'NOVAS PROPOSTAS',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.8,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ..._buildProposalCards(),
+              if (_loadingLocation)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Center(
+                    child: Text(
+                      'Atualizando localização...',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -299,6 +260,163 @@ class _HomeScreenState extends State<HomeScreen>
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildInlineLoadingCard() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: const Row(
+        children: [
+          SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2.2),
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Carregando painel inicial...',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildJobsLoadErrorCard(String message) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(
+                Icons.cloud_off_outlined,
+                size: 18,
+                color: AppColors.textSecondary,
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Não foi possível carregar as vistorias.',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: 220,
+            child: ElevatedButton.icon(
+              onPressed: _manualRefresh,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Tentar novamente'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLocationErrorCard(String message) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.location_off_outlined,
+            size: 18,
+            color: AppColors.textSecondary,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Localização indisponível: $message',
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyJobsCard() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: const Column(
+        children: [
+          Icon(
+            Icons.assignment_outlined,
+            size: 40,
+            color: AppColors.textSecondary,
+          ),
+          SizedBox(height: 12),
+          Text(
+            'Nenhuma vistoria disponível no momento.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          SizedBox(height: 6),
+          Text(
+            'Puxe para baixo para atualizar.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -736,105 +854,6 @@ class _HomeScreenState extends State<HomeScreen>
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInitialLoadingState() {
-    return const Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          CircularProgressIndicator(),
-          SizedBox(height: 12),
-          Text(
-            'Carregando painel inicial...',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildJobsLoadErrorState(String message) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.cloud_off_outlined,
-              size: 40,
-              color: AppColors.textSecondary,
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Não foi possível carregar a tela inicial.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 16,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 13,
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: 220,
-              child: ElevatedButton.icon(
-                onPressed: _manualRefresh,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Tentar novamente'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return RefreshIndicator(
-      onRefresh: _manualRefresh,
-      child: ListView(
-        padding: const EdgeInsets.all(24),
-        children: const [
-          SizedBox(height: 120),
-          Icon(
-            Icons.assignment_outlined,
-            size: 48,
-            color: AppColors.textSecondary,
-          ),
-          SizedBox(height: 16),
-          Text(
-            'Nenhuma vistoria disponível no momento.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 16,
-            ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Puxe para baixo para atualizar.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 13,
-            ),
           ),
         ],
       ),
