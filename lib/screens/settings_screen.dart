@@ -286,7 +286,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               value: appState.developerModeEnabled,
               onChanged: (value) async {
-                await appState.setDeveloperModeEnabled(value);
+                if (!value) {
+                  await appState.lockDeveloperTools();
+                  return;
+                }
+                await appState.setDeveloperModeEnabled(true);
               },
             ),
             SwitchListTile(
@@ -298,20 +302,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               value: appState.permitirIniciarLonge,
               onChanged: (value) async {
                 await appState.setPermitirIniciarLonge(value);
-              },
-            ),
-          ] else if (appState.developerToolsUnlocked &&
-              !appState.developerModeEnabled) ...[
-            const Divider(height: 28),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Habilitar ferramentas de desenvolvedor'),
-              subtitle: const Text(
-                'Ao ativar, o menu técnico volta a aparecer e o ícone do topo é exibido.',
-              ),
-              value: appState.developerModeEnabled,
-              onChanged: (value) async {
-                await appState.setDeveloperModeEnabled(value);
               },
             ),
           ],
