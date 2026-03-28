@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/map_service.dart';
+import '../services/location_service.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import '../widgets/home/home_header.dart';
 import '../widgets/home/jobs_section.dart';
+import '../widgets/home/location_status_card.dart';
 import '../widgets/home/operational_hub_card.dart';
 import '../widgets/home/proposals_section.dart';
 import '../widgets/home/startup_status_card.dart';
@@ -23,6 +25,9 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   bool _bootstrapped = false;
+  bool _loadingLocation = false;
+  String? _locationError;
+  DateTime? _lastLocationSyncAt;
 
   @override
   void initState() {
@@ -41,11 +46,48 @@ class _HomeScreenState extends State<HomeScreen> {
     if (appState.jobs.isEmpty && !appState.isLoadingJobs) {
       await appState.carregarJobs();
     }
+
+    await _refreshLocation();
   }
 
   Future<void> _manualRefresh() async {
     final appState = context.read<AppState>();
     await appState.carregarJobs();
+    await _refreshLocation();
+  }
+
+  Future<void> _refreshLocation() async {
+    if (!mounted) return;
+
+    setState(() {
+      _loadingLocation = true;
+      _locationError = null;
+    });
+
+    try {
+      final position = await LocationService().getCurrentLocation();
+      if (!mounted) return;
+
+      context.read<AppState>().atualizarUltimaLocalizacao(
+            position.latitude,
+            position.longitude,
+          );
+
+      setState(() {
+        _lastLocationSyncAt = DateTime.now();
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _locationError = e.toString().replaceFirst('Exception: ', '');
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loadingLocation = false;
+        });
+      }
+    }
   }
 
   Future<void> _handleNavigateToJob({
@@ -149,6 +191,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 jobsLoadError: appState.jobsLoadError,
               ),
               const SizedBox(height: 16),
+              LocationStatusCard(
+                loading: _loadingLocation,
+                errorMessage: _locationError,
+                lastSyncAt: _lastLocationSyncAt,
+                latitude: appState.ultimaLatitude,
+                longitude: appState.ultimaLongitude,
+                onRefresh: _refreshLocation,
+              ),
+              const SizedBox(height: 16),
               JobsSection(
                 appState: appState,
                 onNavigateToJob: ({
@@ -168,6 +219,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     job: job,
                   );
                 },
+                currentLatitude: appState.ultimaLatitude,
+                currentLongitude: appState.ultimaLongitude,
+                useDistanceMetrics: true,
               ),
               const SizedBox(height: 14),
               const ProposalsSection(),
