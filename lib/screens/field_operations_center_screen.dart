@@ -87,10 +87,7 @@ class _FieldOperationsCenterScreenState
                       style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      'Job: ${item.jobId}',
-                      style: const TextStyle(fontSize: 12),
-                    ),
+                    Text('Job: ${item.jobId}', style: const TextStyle(fontSize: 12)),
                     const SizedBox(height: 4),
                     Text(
                       'Status: ${item.status.label}',

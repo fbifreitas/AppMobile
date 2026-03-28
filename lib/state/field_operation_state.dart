@@ -81,9 +81,11 @@ class FieldOperationState extends ChangeNotifier {
   int get pendingCount =>
       queue.where((item) => item.status.isPending).length;
 
-  int get failedCount =>
-      queue.where((item) => item.status == FieldOperationSyncStatus.failed).length;
+  int get failedCount => queue
+      .where((item) => item.status == FieldOperationSyncStatus.failed)
+      .length;
 
-  int get conflictCount =>
-      queue.where((item) => item.status == FieldOperationSyncStatus.conflict).length;
+  int get conflictCount => queue
+      .where((item) => item.status == FieldOperationSyncStatus.conflict)
+      .length;
 }
