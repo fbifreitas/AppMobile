@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/job.dart';
 import '../services/location_service.dart';
 import '../services/map_service.dart';
 import '../state/app_state.dart';
@@ -108,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _handleStartInspection({
     required AppState appState,
-    required dynamic job,
+    required Job job,
   }) {
     appState.selecionarJob(job);
     Navigator.push(

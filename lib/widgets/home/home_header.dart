@@ -21,10 +21,7 @@ class HomeHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const CircleAvatar(
-          radius: 21,
-          backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=3'),
-        ),
+        const _HeaderAvatar(),
         const SizedBox(width: 10),
         Expanded(
           child: Column(
@@ -75,6 +72,49 @@ class HomeHeader extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _HeaderAvatar extends StatelessWidget {
+  const _HeaderAvatar();
+
+  static const _avatarUrl = 'https://i.pravatar.cc/150?img=3';
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipOval(
+      child: SizedBox(
+        width: 42,
+        height: 42,
+        child: Image.network(
+          _avatarUrl,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) {
+            return Container(
+              color: AppColors.primaryLight,
+              alignment: Alignment.center,
+              child: const Icon(
+                Icons.person,
+                color: AppColors.primary,
+                size: 22,
+              ),
+            );
+          },
+          loadingBuilder: (context, child, progress) {
+            if (progress == null) return child;
+            return Container(
+              color: AppColors.primaryLight,
+              alignment: Alignment.center,
+              child: const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }

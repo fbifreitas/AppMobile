@@ -1,11 +1,21 @@
 import 'package:flutter/material.dart';
 
-import '../../services/location_service.dart';
+import '../../models/job.dart';
+import '../../models/job_distance_info.dart';
+import '../../services/job_distance_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/app_colors.dart';
 
+typedef NavigateToJobCallback = Future<void> Function({
+  required double? latitude,
+  required double? longitude,
+  required String address,
+});
+
+typedef StartInspectionCallback = void Function(Job job);
+
 class JobsSection extends StatelessWidget {
-  const JobsSection({
+  JobsSection({
     super.key,
     required this.appState,
     required this.onNavigateToJob,
@@ -13,18 +23,16 @@ class JobsSection extends StatelessWidget {
     this.currentLatitude,
     this.currentLongitude,
     this.useDistanceMetrics = false,
-  });
+    JobDistanceService? distanceService,
+  }) : distanceService = distanceService ?? JobDistanceService();
 
   final AppState appState;
-  final Future<void> Function({
-    required double? latitude,
-    required double? longitude,
-    required String address,
-  }) onNavigateToJob;
-  final void Function(dynamic job) onStartInspection;
+  final NavigateToJobCallback onNavigateToJob;
+  final StartInspectionCallback onStartInspection;
   final double? currentLatitude;
   final double? currentLongitude;
   final bool useDistanceMetrics;
+  final JobDistanceService distanceService;
 
   @override
   Widget build(BuildContext context) {
@@ -51,9 +59,12 @@ class JobsSection extends StatelessWidget {
           ...appState.jobs.map(
             (job) => _RichJobCard(
               job: job,
-              currentLatitude: currentLatitude,
-              currentLongitude: currentLongitude,
-              useDistanceMetrics: useDistanceMetrics,
+              distanceInfo: distanceService.buildDistanceInfo(
+                job: job,
+                currentLatitude: currentLatitude,
+                currentLongitude: currentLongitude,
+                useDistanceMetrics: useDistanceMetrics,
+              ),
               onNavigateToJob: () {
                 return onNavigateToJob(
                   latitude: job.latitude,
@@ -169,24 +180,18 @@ class JobsSection extends StatelessWidget {
 class _RichJobCard extends StatelessWidget {
   const _RichJobCard({
     required this.job,
+    required this.distanceInfo,
     required this.onNavigateToJob,
     required this.onStartInspection,
-    required this.currentLatitude,
-    required this.currentLongitude,
-    required this.useDistanceMetrics,
   });
 
-  final dynamic job;
+  final Job job;
+  final JobDistanceInfo distanceInfo;
   final Future<void> Function() onNavigateToJob;
   final VoidCallback onStartInspection;
-  final double? currentLatitude;
-  final double? currentLongitude;
-  final bool useDistanceMetrics;
 
   @override
   Widget build(BuildContext context) {
-    final distanceInfo = _buildDistanceInfo();
-
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -302,49 +307,6 @@ class _RichJobCard extends StatelessWidget {
       ),
     );
   }
-
-  _DistanceInfo _buildDistanceInfo() {
-    if (!useDistanceMetrics ||
-        currentLatitude == null ||
-        currentLongitude == null ||
-        job.latitude == null ||
-        job.longitude == null) {
-      return const _DistanceInfo(
-        label: 'Localização pendente',
-        rangeLabel: 'Sem cálculo',
-        withinRange: false,
-      );
-    }
-
-    final distanceMeters = LocationService().calcularDistancia(
-      lat1: currentLatitude!,
-      lon1: currentLongitude!,
-      lat2: job.latitude!,
-      lon2: job.longitude!,
-    );
-
-    if (distanceMeters <= 80) {
-      return const _DistanceInfo(
-        label: 'Você está no local',
-        rangeLabel: 'Dentro do raio',
-        withinRange: true,
-      );
-    }
-
-    if (distanceMeters < 1000) {
-      return _DistanceInfo(
-        label: '${distanceMeters.toStringAsFixed(0)} m de distância',
-        rangeLabel: distanceMeters <= 100 ? 'Dentro do raio' : 'Fora do raio',
-        withinRange: distanceMeters <= 100,
-      );
-    }
-
-    return _DistanceInfo(
-      label: '${(distanceMeters / 1000).toStringAsFixed(1)} km de distância',
-      rangeLabel: distanceMeters <= 100 ? 'Dentro do raio' : 'Fora do raio',
-      withinRange: distanceMeters <= 100,
-    );
-  }
 }
 
 class _JobTag extends StatelessWidget {
@@ -376,16 +338,4 @@ class _JobTag extends StatelessWidget {
       ),
     );
   }
-}
-
-class _DistanceInfo {
-  const _DistanceInfo({
-    required this.label,
-    required this.rangeLabel,
-    required this.withinRange,
-  });
-
-  final String label;
-  final String rangeLabel;
-  final bool withinRange;
 }
