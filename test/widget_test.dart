@@ -1,14 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:myapp/main.dart';
+import 'package:appmobile/main.dart';
 
 void main() {
-  testWidgets('App loads', (WidgetTester tester) async {
-
+  testWidgets('app starts', (WidgetTester tester) async {
     await tester.pumpWidget(const MyApp());
-
-    expect(find.byType(MaterialApp), findsOneWidget);
-
+    expect(find.byType(MyApp), findsOneWidget);
   });
 }

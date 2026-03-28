@@ -1,4 +1,4 @@
-import 'package:myapp/services/quality_gate_service.dart';
+import 'package:appmobile/services/quality_gate_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
