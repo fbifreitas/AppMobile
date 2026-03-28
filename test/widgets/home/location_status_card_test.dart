@@ -1,7 +1,6 @@
+import 'package:appmobile/widgets/home/location_status_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:appmobile/widgets/home/location_status_card.dart';
 
 void main() {
   testWidgets('LocationStatusCard renders empty state', (tester) async {

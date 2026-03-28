@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../services/map_service.dart';
 import '../services/location_service.dart';
+import '../services/map_service.dart';
 import '../state/app_state.dart';
-import '../theme/app_colors.dart';
 import '../widgets/home/home_header.dart';
 import '../widgets/home/jobs_section.dart';
 import '../widgets/home/location_status_card.dart';
@@ -66,6 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final position = await LocationService().getCurrentLocation();
+
       if (!mounted) return;
 
       context.read<AppState>().atualizarUltimaLocalizacao(
@@ -78,6 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     } catch (e) {
       if (!mounted) return;
+
       setState(() {
         _locationError = e.toString().replaceFirst('Exception: ', '');
       });
@@ -150,7 +151,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final appState = context.watch<AppState>();
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 0,
         items: const [
@@ -181,9 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 onHubTap: _openOperationalHub,
               ),
               const SizedBox(height: 16),
-              OperationalHubCard(
-                onOpen: _openOperationalHub,
-              ),
+              OperationalHubCard(onOpen: _openOperationalHub),
               const SizedBox(height: 16),
               StartupStatusCard(
                 isLoadingJobs: appState.isLoadingJobs,
@@ -202,6 +200,9 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 16),
               JobsSection(
                 appState: appState,
+                currentLatitude: appState.ultimaLatitude,
+                currentLongitude: appState.ultimaLongitude,
+                useDistanceMetrics: true,
                 onNavigateToJob: ({
                   required double? latitude,
                   required double? longitude,
@@ -219,9 +220,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     job: job,
                   );
                 },
-                currentLatitude: appState.ultimaLatitude,
-                currentLongitude: appState.ultimaLongitude,
-                useDistanceMetrics: true,
               ),
               const SizedBox(height: 14),
               const ProposalsSection(),

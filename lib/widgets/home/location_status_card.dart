@@ -52,7 +52,7 @@ class LocationStatusCard extends StatelessWidget {
                 ),
               ),
               SizedBox(
-                width: 112,
+                width: 118,
                 child: OutlinedButton.icon(
                   onPressed: loading ? null : onRefresh,
                   icon: loading
