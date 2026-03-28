@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
+import 'screens/home_screen.dart';
 import 'repositories/fake_job_repository.dart';
 import 'state/app_state.dart';
 import 'state/inspection_state.dart';
@@ -88,19 +88,7 @@ class MyApp extends StatelessWidget {
           type: BottomNavigationBarType.fixed,
         ),
       ),
-      home: const Scaffold(
-  backgroundColor: Colors.green,
-  body: Center(
-    child: Text(
-      'DEBUG START OK',
-      style: TextStyle(
-        color: Colors.white,
-        fontSize: 24,
-        fontWeight: FontWeight.bold,
-      ),
-    ),
-  ),
-),
+      home: const HomeScreen(),
     );
   }
 }
