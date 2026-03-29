@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/checkin_step2_model.dart';
 import '../models/home_location_snapshot.dart';
 import '../models/job.dart';
 import '../services/home_bootstrap_service.dart';
@@ -12,6 +13,7 @@ import '../widgets/home/home_header.dart';
 import '../widgets/home/jobs_section.dart';
 import '../widgets/home/proposals_section.dart';
 import 'checkin_screen.dart';
+import 'checkin_step2_screen.dart';
 import 'notifications_screen.dart';
 import 'operational_hub_screen.dart';
 import 'settings_screen.dart';
@@ -117,6 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
     required Job job,
   }) async {
     final isRecovery = appState.hasRecoverableInspectionForJob(job.id);
+    final recoveryRoute = appState.inspectionRecoveryDraft?.routeName;
 
     appState.selecionarJob(job);
     if (!isRecovery) {
@@ -124,6 +127,29 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     if (!mounted) return;
+
+    if (isRecovery && recoveryRoute == '/checkin_step2') {
+      final tipoImovel = appState.step1Payload['tipoImovel'] as String?;
+      final initialData = appState.step2Payload.isNotEmpty
+          ? CheckinStep2Model.fromMap(appState.step2Payload)
+          : null;
+
+      if (tipoImovel != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CheckinStep2Screen(
+              tipoImovel: tipoImovel,
+              initialData: initialData,
+              onContinue: (model) async {
+                await appState.persistStep2Draft(model.toMap());
+              },
+            ),
+          ),
+        );
+        return;
+      }
+    }
 
     Navigator.push(
       context,
