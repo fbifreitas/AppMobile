@@ -194,7 +194,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
           tipoImovel: widget.tipoImovel,
           subtipoImovel: _defaultSubtype(),
           preselectedMacroLocal: null,
-          cameFromCheckinStep1: false,
+          cameFromCheckinStep1: true,
         ),
       ),
     );

@@ -151,7 +151,12 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       requirements: _buildTechnicalRequirementInputs(checkinStatuses),
     );
 
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: () async {
+        // Permite voltar normalmente (não interfere com navegação normal)
+        return true;
+      },
+      child: Scaffold(
       appBar: AppBar(title: const Text('Menu de vistoria')),
       bottomNavigationBar: SafeArea(
         minimum: const EdgeInsets.fromLTRB(16, 8, 16, 14),
@@ -244,6 +249,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
           const SizedBox(height: 16),
           _buildClosingCard(context, summary, technicalSummary),
         ],
+      ),
       ),
     );
   }
