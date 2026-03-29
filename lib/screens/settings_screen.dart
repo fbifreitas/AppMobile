@@ -118,7 +118,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Mais $remaining toque${remaining == 1 ? '' : 's'} para liberar as ferramentas de desenvolvedor.',
+                'Mais $remaining toque${remaining == 1 ? '' : 's'} para habilitar a ferramenta do desenvolvedor.',
               ),
             ),
           );
@@ -128,12 +128,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       _versionTapCount = 0;
       await appState.unlockDeveloperTools();
+      await appState.setDeveloperModeEnabled(true);
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Ferramenta de desenvolvedor liberada. Ative a opção para exibir o menu técnico.',
+            'Ferramenta do desenvolvedor habilitada.',
           ),
         ),
       );
@@ -143,7 +144,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text(
-          'A ferramenta de desenvolvedor já está liberada. Ative a opção para exibir o menu técnico.',
+          'A ferramenta do desenvolvedor já está habilitada.',
         ),
       ),
     );
@@ -280,7 +281,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 8),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Habilitar ferramentas de desenvolvedor'),
+              title: const Text('Habilitar ferramenta do desenvolvedor'),
               subtitle: const Text(
                 'Controla a exibição do ícone do hub técnico na Home.',
               ),
