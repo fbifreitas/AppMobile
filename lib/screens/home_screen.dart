@@ -15,6 +15,7 @@ import '../widgets/home/jobs_section.dart';
 import '../widgets/home/proposals_section.dart';
 import 'checkin_screen.dart';
 import 'checkin_step2_screen.dart';
+import 'completed_inspections_screen.dart';
 import 'inspection_review_screen.dart';
 import 'notifications_screen.dart';
 import 'operational_hub_screen.dart';
@@ -32,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final HomeBootstrapService _homeBootstrapService = const HomeBootstrapService();
 
   bool _bootstrapped = false;
+  int _currentTabIndex = 0;
   HomeLocationSnapshot _locationSnapshot = HomeLocationSnapshot.initial();
 
   @override
@@ -225,10 +227,66 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
+    final tabBodies = <Widget>[
+      RefreshIndicator(
+        onRefresh: _manualRefresh,
+        child: ListView(
+          padding: const EdgeInsets.all(18),
+          children: [
+            HomeHeader(
+              firstName: appState.primeiroNome,
+              onNotificationsTap: _openNotifications,
+              onSettingsTap: _openSettings,
+              onHubTap: _openOperationalHub,
+              showHubButton: appState.developerModeEnabled,
+            ),
+            const SizedBox(height: 16),
+            JobsSection(
+              appState: appState,
+              currentLatitude: appState.ultimaLatitude ?? _locationSnapshot.latitude,
+              currentLongitude: appState.ultimaLongitude ?? _locationSnapshot.longitude,
+              useDistanceMetrics: true,
+              onNavigateToJob: ({
+                required double? latitude,
+                required double? longitude,
+                required String address,
+              }) {
+                return _handleNavigateToJob(
+                  latitude: latitude,
+                  longitude: longitude,
+                  address: address,
+                );
+              },
+              onStartInspection: (job) async {
+                await _handleStartInspection(
+                  appState: appState,
+                  job: job,
+                );
+              },
+            ),
+            const SizedBox(height: 14),
+            const ProposalsSection(),
+          ],
+        ),
+      ),
+      const CompletedInspectionsScreen(),
+      const Center(
+        child: Text(
+          'Agenda em evolucao',
+          style: TextStyle(
+            color: Colors.black54,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    ];
 
     return Scaffold(
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0,
+        currentIndex: _currentTabIndex,
+        onTap: (index) {
+          setState(() => _currentTabIndex = index);
+        },
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.dashboard),
@@ -244,49 +302,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _manualRefresh,
-          child: ListView(
-            padding: const EdgeInsets.all(18),
-            children: [
-              HomeHeader(
-                firstName: appState.primeiroNome,
-                onNotificationsTap: _openNotifications,
-                onSettingsTap: _openSettings,
-                onHubTap: _openOperationalHub,
-                showHubButton: appState.developerModeEnabled,
-              ),
-              const SizedBox(height: 16),
-              JobsSection(
-                appState: appState,
-                currentLatitude: appState.ultimaLatitude ?? _locationSnapshot.latitude,
-                currentLongitude: appState.ultimaLongitude ?? _locationSnapshot.longitude,
-                useDistanceMetrics: true,
-                onNavigateToJob: ({
-                  required double? latitude,
-                  required double? longitude,
-                  required String address,
-                }) {
-                  return _handleNavigateToJob(
-                    latitude: latitude,
-                    longitude: longitude,
-                    address: address,
-                  );
-                },
-                onStartInspection: (job) async {
-                  await _handleStartInspection(
-                    appState: appState,
-                    job: job,
-                  );
-                },
-              ),
-              const SizedBox(height: 14),
-              const ProposalsSection(),
-            ],
-          ),
-        ),
-      ),
+      body: SafeArea(child: tabBodies[_currentTabIndex]),
     );
   }
 }

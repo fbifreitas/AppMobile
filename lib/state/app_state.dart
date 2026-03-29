@@ -194,8 +194,10 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> finalizarJob() async {
-    jobAtual?.status = JobStatus.finalizado;
+    final currentJob = jobAtual;
+    currentJob?.status = JobStatus.finalizado;
     await clearInspectionRecovery();
+    jobAtual = null;
     notifyListeners();
   }
 

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../config/checkin_step2_config.dart';
 import '../models/checkin_step2_model.dart';
+import '../models/job_status.dart';
 import '../state/app_state.dart';
 import '../models/technical_check_requirement_input.dart';
 import '../models/technical_evidence_input.dart';
@@ -14,6 +15,7 @@ import '../widgets/technical_pending_matrix_card.dart';
 import '../widgets/technical_justification_card.dart';
 import '../services/voice_command_catalog_service.dart';
 import '../services/voice_command_parser_service.dart';
+import '../services/inspection_export_service.dart';
 import '../services/voice_input_service.dart';
 import '../widgets/voice_action_bar.dart';
 import '../widgets/voice_text_field.dart';
@@ -44,6 +46,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   final VoiceInputService _voiceService = VoiceInputService();
   final VoiceCommandParserService _voiceCommandParser = VoiceCommandParserService();
   final VoiceCommandCatalogService _voiceCommandCatalog = const VoiceCommandCatalogService();
+  final InspectionExportService _exportService = const InspectionExportService();
   bool _reviewConfirmed = false;
   String? _expandedSubtype;
 
@@ -661,6 +664,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   Future<void> _finishInspection(BuildContext context, int pendingCount) async {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
+    final appState = Provider.of<AppState>(context, listen: false);
 
     final shouldContinue = pendingCount == 0
         ? true
@@ -682,8 +686,55 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     if (!shouldContinue) return;
     if (!mounted) return;
 
-    messenger.showSnackBar(const SnackBar(content: Text('Vistoria finalizada com sucesso.')));
+    String? exportPath;
+    try {
+      exportPath = await _exportService.export(_buildInspectionExportPayload(appState));
+    } catch (_) {
+      exportPath = null;
+    }
+
+    await appState.finalizarJob();
+
+    if (!mounted) return;
+    final message = exportPath == null
+        ? 'Vistoria finalizada com sucesso.'
+        : 'Vistoria finalizada com sucesso. JSON salvo em: $exportPath';
+    messenger.showSnackBar(SnackBar(content: Text(message)));
     navigator.popUntil((route) => route.isFirst);
+  }
+
+  Map<String, dynamic> _buildInspectionExportPayload(AppState appState) {
+    final captures = widget.captures.map((capture) => capture.toMap()).toList();
+    final reviewedCaptures = _items
+        .map(
+          (item) => {
+            'filePath': item.filePath,
+            'ambiente': item.ambiente,
+            'elemento': item.elemento,
+            'material': item.material,
+            'estado': item.estado,
+            'isComplete': item.status == _PhotoStatus.classified,
+          },
+        )
+        .toList();
+
+    return {
+      'exportedAt': DateTime.now().toIso8601String(),
+      'job': {
+        'id': appState.jobAtual?.id,
+        'titulo': appState.jobAtual?.titulo,
+        'status': appState.jobAtual?.status.label,
+      },
+      'step1': appState.step1Payload,
+      'step2': appState.step2Payload,
+      'review': {
+        'tipoImovel': widget.tipoImovel,
+        'observacao': _observacaoController.text.trim(),
+        'justificativaTecnica': _technicalJustificationController.text.trim(),
+        'capturas': captures,
+        'capturasRevisadas': reviewedCaptures,
+      },
+    };
   }
 }
 

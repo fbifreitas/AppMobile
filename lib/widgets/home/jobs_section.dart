@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/job.dart';
+import '../../models/job_status.dart';
 import '../../services/location_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/app_colors.dart';
@@ -33,6 +34,10 @@ class JobsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final activeJobs = appState.jobs
+        .where((job) => job.status != JobStatus.finalizado)
+        .toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -50,10 +55,10 @@ class JobsSection extends StatelessWidget {
           _buildInlineLoadingCard()
         else if (appState.jobsLoadError != null)
           _buildJobsLoadErrorCard(appState.jobsLoadError!)
-        else if (appState.jobs.isEmpty)
+        else if (activeJobs.isEmpty)
           _buildEmptyJobsCard()
         else
-          ...appState.jobs.map(
+          ...activeJobs.map(
             (job) => _RichJobCard(
               appState: appState,
               job: job,
@@ -247,6 +252,12 @@ class _RichJobCard extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                   fontSize: 11,
                 ),
+              ),
+              const SizedBox(width: 6),
+              _JobTag(
+                bg: AppColors.surface,
+                fg: AppColors.textSecondary,
+                text: 'JOB #${job.id}',
               ),
             ],
           ),
