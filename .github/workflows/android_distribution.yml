@@ -68,13 +68,43 @@ jobs:
         id: meta
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "release_notes=${{ github.event.inputs.release_notes }}" >> $GITHUB_OUTPUT
-            echo "tester_group=${{ github.event.inputs.tester_group }}" >> $GITHUB_OUTPUT
-          else
-            echo "release_notes=${DEFAULT_RELEASE_NOTES}" >> $GITHUB_OUTPUT
-            echo "tester_group=${DEFAULT_TESTER_GROUP}" >> $GITHUB_OUTPUT
+          APP_VERSION=$(awk '/^version:/{print $2; exit}' pubspec.yaml)
+          if [ -z "$APP_VERSION" ]; then
+            echo "Nao foi possivel ler a versao no pubspec.yaml"
+            exit 1
           fi
+
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            SOURCE_SHA="${{ github.event.workflow_run.head_sha }}"
+          else
+            SOURCE_SHA="${GITHUB_SHA}"
+          fi
+          SHORT_SHA="${SOURCE_SHA:0:7}"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            INPUT_NOTES="${{ github.event.inputs.release_notes }}"
+            INPUT_GROUP="${{ github.event.inputs.tester_group }}"
+
+            if [ -z "$INPUT_NOTES" ]; then
+              RELEASE_NOTES="Build ${APP_VERSION} (${SHORT_SHA}) distribuido manualmente pelo GitHub Actions"
+            else
+              RELEASE_NOTES="${INPUT_NOTES} | versao ${APP_VERSION} | commit ${SHORT_SHA}"
+            fi
+
+            if [ -z "$INPUT_GROUP" ]; then
+              TESTER_GROUP="${DEFAULT_TESTER_GROUP}"
+            else
+              TESTER_GROUP="$INPUT_GROUP"
+            fi
+          else
+            RELEASE_NOTES="Build ${APP_VERSION} (${SHORT_SHA}) distribuido automaticamente apos Android CI verde"
+            TESTER_GROUP="${DEFAULT_TESTER_GROUP}"
+          fi
+
+          echo "app_version=${APP_VERSION}" >> $GITHUB_OUTPUT
+          echo "source_sha=${SOURCE_SHA}" >> $GITHUB_OUTPUT
+          echo "release_notes=${RELEASE_NOTES}" >> $GITHUB_OUTPUT
+          echo "tester_group=${TESTER_GROUP}" >> $GITHUB_OUTPUT
 
       - name: Flutter version
         run: flutter --version
