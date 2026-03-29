@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'repositories/fake_job_repository.dart';
+import 'repositories/preferences_repository.dart';
 import 'screens/home_screen.dart';
 import 'state/app_state.dart';
 import 'state/inspection_state.dart';
@@ -12,7 +13,10 @@ void main() {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(
-          create: (_) => AppState(FakeJobRepository()),
+          create: (_) => AppState(
+            FakeJobRepository(),
+            const SharedPreferencesRepository(),
+          ),
         ),
         ChangeNotifierProvider(
           create: (_) => InspectionState(),

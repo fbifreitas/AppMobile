@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/inspection_recovery_draft.dart';
 import '../models/job.dart';
 import '../models/job_status.dart';
 import '../repositories/job_repository.dart';
+import '../repositories/preferences_repository.dart';
 import '../services/inspection_radius_service.dart';
 import '../services/location_service.dart';
 
 class AppState extends ChangeNotifier {
-  AppState(this.repository) {
+  AppState(
+    this.repository, [
+    PreferencesRepository? preferencesRepository,
+    LocationService? locationService,
+  ])  : preferencesRepository =
+            preferencesRepository ?? const SharedPreferencesRepository(),
+        locationService = locationService ?? const LocationService() {
     _loadPreferences();
   }
 
@@ -19,6 +25,8 @@ class AppState extends ChangeNotifier {
   static const _inspectionRecoveryKey = 'inspection_recovery_draft';
 
   final JobRepository repository;
+  final PreferencesRepository preferencesRepository;
+  final LocationService locationService;
   final InspectionRadiusService inspectionRadiusService =
       const InspectionRadiusService();
 
@@ -47,12 +55,15 @@ class AppState extends ChangeNotifier {
   InspectionRecoveryDraft? inspectionRecoveryDraft;
 
   Future<void> _loadPreferences() async {
-    final prefs = await SharedPreferences.getInstance();
-    developerModeEnabled = prefs.getBool(_devModeKey) ?? false;
-    developerToolsUnlocked = prefs.getBool(_devToolsUnlockedKey) ?? false;
-    permitirIniciarLonge = prefs.getBool(_allowFarStartKey) ?? false;
+    developerModeEnabled = await preferencesRepository.getBool(_devModeKey) ?? false;
+    developerToolsUnlocked =
+        await preferencesRepository.getBool(_devToolsUnlockedKey) ?? false;
+    permitirIniciarLonge =
+        await preferencesRepository.getBool(_allowFarStartKey) ?? false;
 
-    final recoveryJson = prefs.getString(_inspectionRecoveryKey);
+    final recoveryJson = await preferencesRepository.getString(
+      _inspectionRecoveryKey,
+    );
     if (recoveryJson != null && recoveryJson.isNotEmpty) {
       try {
         inspectionRecoveryDraft = InspectionRecoveryDraft.fromJson(recoveryJson);
@@ -65,27 +76,23 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> _saveDeveloperMode(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_devModeKey, value);
+    await preferencesRepository.setBool(_devModeKey, value);
   }
 
   Future<void> _saveDeveloperToolsUnlocked(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_devToolsUnlockedKey, value);
+    await preferencesRepository.setBool(_devToolsUnlockedKey, value);
   }
 
   Future<void> _saveAllowFarStart(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_allowFarStartKey, value);
+    await preferencesRepository.setBool(_allowFarStartKey, value);
   }
 
   Future<void> _saveInspectionRecoveryDraft() async {
-    final prefs = await SharedPreferences.getInstance();
     if (inspectionRecoveryDraft == null) {
-      await prefs.remove(_inspectionRecoveryKey);
+      await preferencesRepository.remove(_inspectionRecoveryKey);
       return;
     }
-    await prefs.setString(
+    await preferencesRepository.setString(
       _inspectionRecoveryKey,
       inspectionRecoveryDraft!.toJson(),
     );
@@ -251,7 +258,7 @@ class AppState extends ChangeNotifier {
       return 0;
     }
 
-    return LocationService().calcularDistancia(
+    return locationService.calcularDistancia(
       lat1: atualLat,
       lon1: atualLng,
       lat2: jobAtual!.latitude!,
@@ -413,7 +420,7 @@ class AppState extends ChangeNotifier {
       return false;
     }
 
-    final distanceMeters = LocationService().calcularDistancia(
+    final distanceMeters = locationService.calcularDistancia(
       lat1: currentLatitude,
       lon1: currentLongitude,
       lat2: job.latitude!,
@@ -447,7 +454,7 @@ class AppState extends ChangeNotifier {
       return true;
     }
 
-    final distanceMeters = LocationService().calcularDistancia(
+    final distanceMeters = locationService.calcularDistancia(
       lat1: currentLatitude,
       lon1: currentLongitude,
       lat2: job.latitude!,

@@ -2,6 +2,8 @@ import 'dart:math';
 import 'package:geolocator/geolocator.dart';
 
 class LocationService {
+  const LocationService();
+
   Future<Position> getCurrentLocation() async {
     bool serviceEnabled;
     LocationPermission permission;
