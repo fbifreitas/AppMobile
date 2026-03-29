@@ -581,6 +581,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
         builder: (_) => InspectionReviewScreen(
           captures: _captures,
           tipoImovel: '${widget.tipoImovel} • ${widget.subtipoImovel}',
+          cameFromCheckinStep1: widget.cameFromCheckinStep1,
         ),
       ),
     );

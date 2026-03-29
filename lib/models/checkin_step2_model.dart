@@ -18,21 +18,25 @@ class CheckinStep2PhotoAnswer {
     this.importedFromGallery = false,
   });
 
+  static const _unset = Object();
+
   CheckinStep2PhotoAnswer copyWith({
     String? fieldId,
     String? titulo,
-    String? imagePath,
-    DateTime? capturedAt,
-    GeoPointData? geoPoint,
-    bool? importedFromGallery,
+    Object? imagePath = _unset,
+    Object? capturedAt = _unset,
+    Object? geoPoint = _unset,
+    Object? importedFromGallery = _unset,
   }) {
     return CheckinStep2PhotoAnswer(
       fieldId: fieldId ?? this.fieldId,
       titulo: titulo ?? this.titulo,
-      imagePath: imagePath ?? this.imagePath,
-      capturedAt: capturedAt ?? this.capturedAt,
-      geoPoint: geoPoint ?? this.geoPoint,
-      importedFromGallery: importedFromGallery ?? this.importedFromGallery,
+      imagePath: imagePath == _unset ? this.imagePath : imagePath as String?,
+      capturedAt: capturedAt == _unset ? this.capturedAt : capturedAt as DateTime?,
+      geoPoint: geoPoint == _unset ? this.geoPoint : geoPoint as GeoPointData?,
+      importedFromGallery: importedFromGallery == _unset
+          ? this.importedFromGallery
+          : importedFromGallery as bool,
     );
   }
 

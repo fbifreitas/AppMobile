@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../config/checkin_step2_config.dart';
+import '../models/checkin_step2_model.dart';
 import '../state/app_state.dart';
 import '../models/technical_check_requirement_input.dart';
 import '../models/technical_evidence_input.dart';
@@ -22,11 +23,13 @@ import '../models/inspection_technical_summary.dart';
 class InspectionReviewScreen extends StatefulWidget {
   final List<OverlayCameraCaptureResult> captures;
   final String tipoImovel;
+  final bool cameFromCheckinStep1;
 
   const InspectionReviewScreen({
     super.key,
     this.captures = const <OverlayCameraCaptureResult>[],
     this.tipoImovel = 'Urbano',
+    this.cameFromCheckinStep1 = false,
   });
 
   @override
@@ -70,6 +73,10 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
 
   Future<void> _persistReviewState() async {
     final appState = Provider.of<AppState>(context, listen: false);
+    final step2Payload = widget.cameFromCheckinStep1
+        ? _buildStep2PayloadFromCaptures(appState.step2Payload)
+        : appState.step2Payload;
+
     await appState.setInspectionRecoveryStage(
       stageKey: 'inspection_review',
       stageLabel: 'Revisão final',
@@ -77,13 +84,52 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       payload: {
         ...appState.inspectionRecoveryPayload,
         'step1': appState.step1Payload,
-        'step2': appState.step2Payload,
+        'step2': step2Payload,
         'review': {
           'tipoImovel': widget.tipoImovel,
           'captures': widget.captures.map((capture) => capture.toMap()).toList(),
         },
       },
     );
+  }
+
+  Map<String, dynamic> _buildStep2PayloadFromCaptures(
+    Map<String, dynamic> existingStep2Payload,
+  ) {
+    final tipo = TipoImovelExtension.fromString(widget.tipoImovel);
+    var model = existingStep2Payload.isNotEmpty
+        ? CheckinStep2Model.fromMap(existingStep2Payload)
+        : CheckinStep2Model.empty(tipo);
+    final config = CheckinStep2Configs.byTipo(tipo);
+
+    for (final campo in config.camposFotos) {
+      if (model.isPhotoCaptured(campo.id)) continue;
+
+      OverlayCameraCaptureResult? matchedCapture;
+      for (final capture in widget.captures) {
+        final sameAmbiente = capture.ambiente.trim().toLowerCase() ==
+            campo.cameraAmbiente.trim().toLowerCase();
+        final sameElemento = campo.cameraElementoInicial == null ||
+            capture.elemento?.trim().toLowerCase() ==
+                campo.cameraElementoInicial!.trim().toLowerCase();
+
+        if (sameAmbiente && sameElemento) {
+          matchedCapture = capture;
+          break;
+        }
+      }
+
+      if (matchedCapture != null) {
+        model = model.setPhoto(
+          fieldId: campo.id,
+          titulo: campo.titulo,
+          imagePath: matchedCapture.filePath,
+          geoPoint: matchedCapture.toGeoPointData(),
+        );
+      }
+    }
+
+    return model.toMap();
   }
 
   @override
@@ -482,6 +528,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     );
     if (result == null || !mounted) return;
     setState(() => _items.add(_EditableCapture.fromCapture(result)));
+    await _persistReviewState();
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('${status.field.titulo} registrado com sucesso.')),
     );

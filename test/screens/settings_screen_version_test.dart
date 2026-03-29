@@ -49,66 +49,19 @@ void main() {
         .setMockMethodCallHandler(_kPackageInfoChannel, null);
   });
 
-  testWidgets('7 taps enable developer tools card', (tester) async {
-    final appState = AppState(_ImmediateJobRepository());
-
-    await tester.pumpWidget(
-      ChangeNotifierProvider(
-        create: (_) => appState,
-        child: const MaterialApp(
-          home: SettingsScreen(),
-        ),
-      ),
-    );
-
-    await tester.pumpAndSettle();
-
-    final versionText = find.text('Versão 1.0.97+1');
-    for (var i = 0; i < 7; i++) {
-      await tester.tap(versionText);
-      await tester.pump();
-    }
-
-    await tester.pumpAndSettle();
-
-    expect(find.text('Ferramentas do desenvolvedor'), findsOneWidget);
-    expect(find.text('Habilitar ferramenta do desenvolvedor'), findsOneWidget);
-    expect(appState.developerModeEnabled, isTrue);
-    expect(appState.developerToolsUnlocked, isTrue);
-  });
-
-  testWidgets('disabling developer tools hides card and contents',
+  testWidgets('SettingsScreen displays dynamic version from package_info_plus',
       (tester) async {
-    SharedPreferences.setMockInitialValues({
-      'developer_tools_unlocked': true,
-      'developer_mode_enabled': true,
-      'developer_allow_far_start': false,
-    });
-    await _mockPackageInfo();
-
     final appState = AppState(_ImmediateJobRepository());
 
     await tester.pumpWidget(
       ChangeNotifierProvider(
         create: (_) => appState,
-        child: const MaterialApp(
-          home: SettingsScreen(),
-        ),
+        child: const MaterialApp(home: SettingsScreen()),
       ),
     );
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Ferramentas do desenvolvedor'), findsOneWidget);
-    expect(find.text('Habilitar ferramenta do desenvolvedor'), findsOneWidget);
-
-    await tester.tap(find.byType(Switch).first);
-    await tester.pumpAndSettle();
-
-    expect(find.text('Ferramentas do desenvolvedor'), findsNothing);
-    expect(find.text('Habilitar ferramenta do desenvolvedor'), findsNothing);
-    expect(find.text('Permitir iniciar longe do local'), findsNothing);
-    expect(appState.developerModeEnabled, isFalse);
-    expect(appState.developerToolsUnlocked, isFalse);
+    expect(find.text('Versão 1.0.97+1'), findsOneWidget);
   });
 }

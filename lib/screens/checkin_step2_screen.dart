@@ -502,6 +502,9 @@ class _PhotoCaptureCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final completionColor = capturado
+        ? (obrigatorio ? Colors.green : theme.colorScheme.primary)
+        : theme.iconTheme.color ?? Colors.black;
     final subtitle = capturado
         ? 'Imagem capturada'
         : obrigatorio
@@ -512,11 +515,13 @@ class _PhotoCaptureCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: capturado
+            ? completionColor.withValues(alpha: 0.12)
+            : theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: capturado
-              ? theme.colorScheme.primary.withValues(alpha: 0.35)
+              ? completionColor.withValues(alpha: 0.35)
               : theme.dividerColor.withValues(alpha: 0.20),
         ),
       ),
@@ -525,11 +530,11 @@ class _PhotoCaptureCard extends StatelessWidget {
           CircleAvatar(
             radius: 20,
             backgroundColor: capturado
-                ? theme.colorScheme.primary.withValues(alpha: 0.12)
+                ? completionColor.withValues(alpha: 0.12)
                 : theme.colorScheme.surfaceContainerHighest,
             child: Icon(
               capturado ? Icons.check_circle_outline : icon,
-              color: capturado ? theme.colorScheme.primary : theme.iconTheme.color,
+              color: capturado ? completionColor : theme.iconTheme.color,
             ),
           ),
           const SizedBox(width: 10),

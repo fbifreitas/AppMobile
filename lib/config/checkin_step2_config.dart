@@ -22,7 +22,7 @@ extension TipoImovelExtension on TipoImovel {
   }
 
   static TipoImovel fromString(String value) {
-    final normalizado = value.trim().toLowerCase();
+    final normalizado = value.split('•').first.trim().toLowerCase();
 
     if (normalizado == 'urbano') return TipoImovel.urbano;
     if (normalizado == 'rural') return TipoImovel.rural;
