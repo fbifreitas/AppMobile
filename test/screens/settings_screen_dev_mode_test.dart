@@ -63,7 +63,7 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    final versionText = find.text('Versão 1.0.97+1');
+    final versionText = find.text('v1.0.97+1');
     for (var i = 0; i < 7; i++) {
       await tester.tap(versionText);
       await tester.pump();

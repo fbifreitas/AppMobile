@@ -16,7 +16,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   late TextEditingController _nomeController;
   int _versionTapCount = 0;
-  String _appVersion = 'Versão carregando...';
+  String _appVersion = 'vcarregando...';
 
   @override
   void initState() {
@@ -31,8 +31,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final packageInfo = await PackageInfo.fromPlatform();
       if (!mounted) return;
       setState(() {
-        _appVersion = 'Versão ${packageInfo.version}+${packageInfo.buildNumber}';
+        final versionLabel = packageInfo.buildNumber.isNotEmpty
+            ? 'v${packageInfo.version}+${packageInfo.buildNumber}'
+            : 'v${packageInfo.version}';
+        _appVersion = versionLabel;
       });
+
     } catch (_) {
       if (!mounted) return;
       setState(() {

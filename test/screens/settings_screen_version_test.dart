@@ -62,6 +62,6 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Versão 1.0.97+1'), findsOneWidget);
+    expect(find.text('v1.0.97+1'), findsOneWidget);
   });
 }
