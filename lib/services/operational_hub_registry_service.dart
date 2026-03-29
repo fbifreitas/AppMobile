@@ -77,6 +77,14 @@ class OperationalHubRegistryService {
         iconKey: 'export',
         highlighted: true,
       ),
+      OperationalHubItem(
+        id: 'mock_data',
+        title: 'Painel de dados mock',
+        description: 'Gerenciar cenários de vistoria para QA e homologação.',
+        category: 'Dev',
+        iconKey: 'admin',
+        highlighted: true,
+      ),
     ];
   }
 }

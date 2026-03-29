@@ -4,6 +4,7 @@ import '../models/inspection_recovery_draft.dart';
 import '../models/job.dart';
 import '../models/job_status.dart';
 import '../repositories/job_repository.dart';
+import '../repositories/mock_job_repository_controller.dart';
 import '../repositories/preferences_repository.dart';
 import '../services/inspection_radius_service.dart';
 import '../services/location_service.dart';
@@ -195,10 +196,43 @@ class AppState extends ChangeNotifier {
 
   Future<void> finalizarJob() async {
     final currentJob = jobAtual;
+    if (currentJob != null && repository is MockJobRepositoryController) {
+      await (repository as MockJobRepositoryController).updateJobStatus(
+        jobId: currentJob.id,
+        status: JobStatus.finalizado,
+      );
+    }
     currentJob?.status = JobStatus.finalizado;
     await clearInspectionRecovery();
     jobAtual = null;
     notifyListeners();
+  }
+
+  bool get supportsMockJobControl => repository is MockJobRepositoryController;
+
+  Future<void> resetMockJobsToDefault() async {
+    if (repository is! MockJobRepositoryController) return;
+    await (repository as MockJobRepositoryController).resetDefaultJobs();
+    await carregarJobs();
+  }
+
+  Future<void> generateMockJobs({
+    required int activeCount,
+    required int completedCount,
+    bool append = false,
+  }) async {
+    if (repository is! MockJobRepositoryController) return;
+
+    if ((activeCount + completedCount) <= 0) {
+      throw ArgumentError('Mínimo de uma vistoria mock é obrigatório.');
+    }
+
+    await (repository as MockJobRepositoryController).applyMockPlan(
+      activeCount: activeCount,
+      completedCount: completedCount,
+      append: append,
+    );
+    await carregarJobs();
   }
 
   Future<void> setPermitirIniciarLonge(bool value) async {

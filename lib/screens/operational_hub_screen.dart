@@ -17,6 +17,7 @@ import 'checkin_screen.dart';
 import 'clean_code_audit_center_screen.dart';
 import 'data_governance_center_screen.dart';
 import 'field_operations_center_screen.dart';
+import 'mock_data_control_screen.dart';
 import 'observability_support_center_screen.dart';
 import 'operational_snapshot_export_screen.dart';
 import 'production_readiness_center_screen.dart';
@@ -272,6 +273,9 @@ class _OperationalHubScreenState extends State<OperationalHubScreen> {
         break;
       case 'export':
         destination = const OperationalSnapshotExportScreen();
+        break;
+      case 'mock_data':
+        destination = const MockDataControlScreen();
         break;
       default:
         destination = const CheckinScreen();
