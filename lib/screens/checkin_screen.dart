@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/checkin_step2_model.dart';
 import '../screens/checkin_step2_screen.dart';
 import '../screens/overlay_camera_screen.dart';
+import '../services/checkin_dynamic_config_service.dart';
 import '../services/location_service.dart';
 import '../services/voice_input_service.dart';
 import '../state/app_state.dart';
@@ -24,19 +25,73 @@ class _CheckinScreenState extends State<CheckinScreen> {
   String? subtipoImovel;
   String? porOndeComecar;
 
-  final List<String> tipos = const ['Urbano', 'Rural', 'Comercial', 'Industrial'];
+  static const List<String> _defaultTipos = <String>['Urbano', 'Rural', 'Comercial', 'Industrial'];
 
-  final Map<String, List<String>> subtiposPorTipo = const {
+  static const Map<String, List<String>> _defaultSubtiposPorTipo = {
     'Urbano': ['Apartamento', 'Casa', 'Sobrado', 'Terreno'],
     'Rural': ['Sítio', 'Chácara', 'Fazenda'],
     'Comercial': ['Loja', 'Sala comercial', 'Galpão'],
     'Industrial': ['Fábrica', 'Armazém', 'Planta industrial'],
   };
 
-  final List<String> contextos = const ['Rua', 'Área externa', 'Área interna'];
+  static const List<String> _defaultContextos = <String>['Rua', 'Área externa', 'Área interna'];
+
+  final CheckinDynamicConfigService _dynamicConfigService =
+      CheckinDynamicConfigService.instance;
+
+  List<String> _tipos = List<String>.from(_defaultTipos);
+  Map<String, List<String>> _subtiposPorTipo = Map<String, List<String>>.fromEntries(
+    _defaultSubtiposPorTipo.entries.map(
+      (entry) => MapEntry(entry.key, List<String>.from(entry.value)),
+    ),
+  );
+  List<String> _contextos = List<String>.from(_defaultContextos);
 
   final VoiceInputService _voiceService = VoiceInputService();
   bool _hydrated = false;
+  bool _loadingDynamicConfig = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDynamicStep1Config();
+  }
+
+  Future<void> _loadDynamicStep1Config() async {
+    setState(() => _loadingDynamicConfig = true);
+    final dynamicConfig = await _dynamicConfigService.loadStep1Config(
+      fallbackTipos: _defaultTipos,
+      fallbackSubtiposPorTipo: _defaultSubtiposPorTipo,
+      fallbackContextos: _defaultContextos,
+    );
+    if (!mounted) return;
+
+    setState(() {
+      _tipos = dynamicConfig.tipos;
+      _subtiposPorTipo = dynamicConfig.subtiposPorTipo;
+      _contextos = dynamicConfig.contextos;
+
+      if (tipoImovel != null && !_tipos.contains(tipoImovel)) {
+        tipoImovel = null;
+        subtipoImovel = null;
+      }
+
+      final allowedSubtipos = tipoImovel == null
+          ? const <String>[]
+          : (_subtiposPorTipo[tipoImovel] ?? const <String>[]);
+      if (subtipoImovel != null && !allowedSubtipos.contains(subtipoImovel)) {
+        subtipoImovel = null;
+      }
+
+      if (porOndeComecar != null && !_contextos.contains(porOndeComecar)) {
+        porOndeComecar = null;
+      }
+
+      _loadingDynamicConfig = false;
+    });
+
+    await _persistStep1();
+  }
 
   @override
   void dispose() {
@@ -92,7 +147,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
     _hydrateFromDraft(appState);
 
     final subtipos =
-        tipoImovel == null ? const <String>[] : (subtiposPorTipo[tipoImovel] ?? const <String>[]);
+      tipoImovel == null ? const <String>[] : (_subtiposPorTipo[tipoImovel] ?? const <String>[]);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Check-in Vistoria')),
@@ -226,7 +281,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: tipos.map((tipo) {
+                children: _tipos.map((tipo) {
                   return ChoiceChip(
                     label: Text(tipo),
                     selected: tipoImovel == tipo,
@@ -271,7 +326,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: contextos.map((ctx) {
+                children: _contextos.map((ctx) {
                   return ChoiceChip(
                     label: Text(ctx),
                     selected: porOndeComecar == ctx,
@@ -330,7 +385,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _handleConfirm,
+                onPressed: _loadingDynamicConfig ? null : _handleConfirm,
                 child: const Text(
                   'Confirmar e abrir a câmera',
                   style: TextStyle(fontSize: 13),
@@ -385,7 +440,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
     final selected = await VoiceSelectorSheet.open(
       context,
       voiceService: _voiceService,
-      options: tipos,
+      options: _tipos,
       title: 'Tipo de imóvel',
       currentValue: tipoImovel,
     );
@@ -399,7 +454,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
 
   Future<void> _selectSubtipoByVoice() async {
     final subtipos =
-        tipoImovel == null ? const <String>[] : (subtiposPorTipo[tipoImovel] ?? const <String>[]);
+        tipoImovel == null ? const <String>[] : (_subtiposPorTipo[tipoImovel] ?? const <String>[]);
     if (subtipos.isEmpty) {
       _mostrarInfo('Selecione o tipo de imóvel antes do subtipo.');
       return;
@@ -421,7 +476,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
     final selected = await VoiceSelectorSheet.open(
       context,
       voiceService: _voiceService,
-      options: contextos,
+      options: _contextos,
       title: 'Por onde deseja começar?',
       currentValue: porOndeComecar,
     );

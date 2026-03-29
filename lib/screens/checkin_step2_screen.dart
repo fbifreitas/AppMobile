@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../config/checkin_step2_config.dart';
 import '../models/checkin_step2_model.dart';
+import '../services/checkin_dynamic_config_service.dart';
 import '../services/inspection_menu_service.dart';
 import '../services/voice_input_service.dart';
 import '../state/app_state.dart';
@@ -28,10 +29,12 @@ class CheckinStep2Screen extends StatefulWidget {
 
 class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
   late final TipoImovel _tipo;
-  late final CheckinStep2Config _config;
+  late CheckinStep2Config _config;
   late CheckinStep2Model _model;
 
   final Map<String, TextEditingController> _obsControllers = {};
+  final CheckinDynamicConfigService _dynamicConfigService =
+      CheckinDynamicConfigService.instance;
   final InspectionMenuService _menuService = InspectionMenuService.instance;
   final VoiceInputService _voiceService = VoiceInputService();
 
@@ -68,7 +71,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
       );
     }
 
-    _prepareMenus();
+    _loadDynamicConfigAndMenus();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _persistCurrentModel(stageLabel: 'Check-in etapa 2');
     });
@@ -85,8 +88,43 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
         ...appState.inspectionRecoveryPayload,
         'step1': appState.step1Payload,
         'step2': _model.toMap(),
+        'step2Config': _dynamicConfigService.serializeStep2Config(_config),
       },
     );
+  }
+
+  Future<void> _loadDynamicConfigAndMenus() async {
+    setState(() => _loadingMenus = true);
+
+    final resolvedConfig = await _dynamicConfigService.loadStep2Config(
+      tipo: _tipo,
+      fallback: _config,
+    );
+    if (!mounted) return;
+
+    _syncObservationControllers(resolvedConfig);
+    _config = resolvedConfig;
+
+    await _prepareMenus();
+    await _persistCurrentModel(stageLabel: 'Check-in etapa 2');
+  }
+
+  void _syncObservationControllers(CheckinStep2Config newConfig) {
+    final nextGroupIds = newConfig.gruposOpcoes.map((group) => group.id).toSet();
+
+    for (final entry in List<MapEntry<String, TextEditingController>>.from(_obsControllers.entries)) {
+      if (!nextGroupIds.contains(entry.key)) {
+        entry.value.dispose();
+        _obsControllers.remove(entry.key);
+      }
+    }
+
+    for (final group in newConfig.gruposOpcoes) {
+      _obsControllers.putIfAbsent(
+        group.id,
+        () => TextEditingController(text: _model.respostas[group.id]?.observacao ?? ''),
+      );
+    }
   }
 
   Future<void> _prepareMenus() async {

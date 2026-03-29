@@ -6,6 +6,7 @@ import '../models/home_location_snapshot.dart';
 import '../models/job.dart';
 import '../services/home_bootstrap_service.dart';
 import '../services/home_location_service.dart';
+import '../services/inspection_sync_queue_service.dart';
 import '../services/location_service.dart';
 import '../services/map_service.dart';
 import '../state/app_state.dart';
@@ -31,6 +32,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final HomeLocationService _homeLocationService = const HomeLocationService();
   final HomeBootstrapService _homeBootstrapService = const HomeBootstrapService();
+  final InspectionSyncQueueService _syncQueueService =
+      const InspectionSyncQueueService();
 
   bool _bootstrapped = false;
   int _currentTabIndex = 0;
@@ -49,6 +52,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _bootstrap() async {
     final appState = context.read<AppState>();
+    await _syncQueueService.flush();
+    if (!mounted) return;
+
     final bootstrap = _homeBootstrapService.evaluate(
       hasJobs: appState.jobs.isNotEmpty,
       isLoadingJobs: appState.isLoadingJobs,
@@ -65,6 +71,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _manualRefresh() async {
     final appState = context.read<AppState>();
+    await _syncQueueService.flush();
+    if (!mounted) return;
+
     await appState.carregarJobs();
     await _refreshLocation();
   }

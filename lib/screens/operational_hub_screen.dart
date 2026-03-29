@@ -17,6 +17,7 @@ import 'checkin_screen.dart';
 import 'clean_code_audit_center_screen.dart';
 import 'data_governance_center_screen.dart';
 import 'field_operations_center_screen.dart';
+import 'fallback_audit_center_screen.dart';
 import 'mock_data_control_screen.dart';
 import 'observability_support_center_screen.dart';
 import 'operational_snapshot_export_screen.dart';
@@ -255,6 +256,9 @@ class _OperationalHubScreenState extends State<OperationalHubScreen> {
         break;
       case 'quality':
         destination = const QualityStabilityCenterScreen();
+        break;
+      case 'fallback_audit':
+        destination = const FallbackAuditCenterScreen();
         break;
       case 'observability':
         destination = const ObservabilitySupportCenterScreen();

@@ -15,7 +15,10 @@ import '../widgets/technical_pending_matrix_card.dart';
 import '../widgets/technical_justification_card.dart';
 import '../services/voice_command_catalog_service.dart';
 import '../services/voice_command_parser_service.dart';
+import '../services/checkin_dynamic_config_service.dart';
 import '../services/inspection_export_service.dart';
+import '../services/inspection_sync_queue_service.dart';
+import '../services/inspection_sync_service.dart';
 import '../services/voice_input_service.dart';
 import '../widgets/voice_action_bar.dart';
 import '../widgets/voice_text_field.dart';
@@ -47,6 +50,11 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   final VoiceCommandParserService _voiceCommandParser = VoiceCommandParserService();
   final VoiceCommandCatalogService _voiceCommandCatalog = const VoiceCommandCatalogService();
   final InspectionExportService _exportService = const InspectionExportService();
+  final InspectionSyncService _syncService = const InspectionSyncService();
+    final InspectionSyncQueueService _syncQueueService =
+      const InspectionSyncQueueService();
+  final CheckinDynamicConfigService _dynamicConfigService =
+      CheckinDynamicConfigService.instance;
   bool _reviewConfirmed = false;
   String? _expandedSubtype;
 
@@ -501,8 +509,22 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   }
 
   List<_CheckinRequirementStatus> _buildCheckinRequirements() {
+    final appState = Provider.of<AppState>(context, listen: false);
     final tipo = TipoImovelExtension.fromString(widget.tipoImovel);
-    final config = CheckinStep2Configs.byTipo(tipo);
+    final fallbackConfig = CheckinStep2Configs.byTipo(tipo);
+
+    CheckinStep2Config config = fallbackConfig;
+    final dynamicStep2Raw = appState.inspectionRecoveryPayload['step2Config'];
+    if (dynamicStep2Raw is Map) {
+      final dynamicStep2Map = Map<String, dynamic>.from(
+        dynamicStep2Raw.map((key, value) => MapEntry('$key', value)),
+      );
+      config = _dynamicConfigService.parseStep2ConfigMap(
+        tipo: tipo,
+        raw: dynamicStep2Map,
+        fallback: fallbackConfig,
+      );
+    }
 
     return config.camposFotos.where((campo) => campo.obrigatorio).map((campo) {
       final hasEvidence = _items.any((item) {
@@ -687,8 +709,22 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     if (!mounted) return;
 
     String? exportPath;
+    InspectionSyncResult? syncResult;
+    int queuedCount = 0;
+    InspectionSyncQueueFlushResult? flushResult;
     try {
-      exportPath = await _exportService.export(_buildInspectionExportPayload(appState));
+      final payload = _buildInspectionExportPayload(appState);
+      exportPath = await _exportService.export(payload);
+      syncResult = await _syncService.syncFinalInspection(payload);
+
+      if (syncResult.success) {
+        flushResult = await _syncQueueService.flush(syncService: _syncService);
+      } else if (_syncService.isConfigured) {
+        queuedCount = await _syncQueueService.enqueue(
+          payload,
+          lastError: syncResult.message,
+        );
+      }
     } catch (_) {
       exportPath = null;
     }
@@ -696,11 +732,45 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     await appState.finalizarJob();
 
     if (!mounted) return;
+    final syncSuffix = syncResult == null
+      ? ''
+      : (syncResult.success
+        ? _buildSyncSuccessMessage(flushResult)
+        : _buildSyncFailureMessage(
+          syncResult: syncResult,
+          queuedCount: queuedCount,
+          ));
+
     final message = exportPath == null
-        ? 'Vistoria finalizada com sucesso.'
-        : 'Vistoria finalizada com sucesso. JSON salvo em: $exportPath';
+      ? 'Vistoria finalizada com sucesso.$syncSuffix'
+      : 'Vistoria finalizada com sucesso. JSON salvo em: $exportPath.$syncSuffix';
     messenger.showSnackBar(SnackBar(content: Text(message)));
     navigator.popUntil((route) => route.isFirst);
+  }
+
+  String _buildSyncSuccessMessage(InspectionSyncQueueFlushResult? flushResult) {
+    if (flushResult == null || flushResult.sentCount == 0) {
+      return ' Sincronizado com backend.';
+    }
+    return ' Sincronizado com backend e ${flushResult.sentCount} pendência(s) antiga(s) enviada(s).';
+  }
+
+  String _buildSyncFailureMessage({
+    required InspectionSyncResult syncResult,
+    required int queuedCount,
+  }) {
+    if (!_syncService.isConfigured) {
+      return ' Sync não configurado; JSON mantido localmente.';
+    }
+
+    final shortMessage = _truncateMessage(syncResult.message);
+    return ' Sync pendente em fila local (${queuedCount <= 0 ? 1 : queuedCount} item(ns)). Motivo: $shortMessage';
+  }
+
+  String _truncateMessage(String input) {
+    final text = input.trim();
+    if (text.length <= 120) return text;
+    return '${text.substring(0, 120)}...';
   }
 
   Map<String, dynamic> _buildInspectionExportPayload(AppState appState) {
@@ -727,6 +797,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       },
       'step1': appState.step1Payload,
       'step2': appState.step2Payload,
+      'step2Config': appState.inspectionRecoveryPayload['step2Config'],
       'review': {
         'tipoImovel': widget.tipoImovel,
         'observacao': _observacaoController.text.trim(),

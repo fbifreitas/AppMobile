@@ -35,6 +35,14 @@ class OperationalHubRegistryService {
         iconKey: 'shield',
       ),
       OperationalHubItem(
+        id: 'fallback_audit',
+        title: 'Auditoria de fallback',
+        description: 'Validar consistencia de payload e retomada por etapa.',
+        category: 'Qualidade',
+        iconKey: 'chart',
+        highlighted: true,
+      ),
+      OperationalHubItem(
         id: 'observability',
         title: 'Observabilidade',
         description: 'Inspecionar logs e métricas locais.',
