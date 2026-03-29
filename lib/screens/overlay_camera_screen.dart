@@ -90,6 +90,59 @@ class OverlayCameraCaptureResult {
         accuracy: accuracy,
         capturedAt: capturedAt,
       );
+
+  Map<String, dynamic> toMap() {
+    return {
+      'filePath': filePath,
+      'macroLocal': macroLocal,
+      'ambiente': ambiente,
+      'elemento': elemento,
+      'material': material,
+      'estado': estado,
+      'capturedAt': capturedAt.toIso8601String(),
+      'latitude': latitude,
+      'longitude': longitude,
+      'accuracy': accuracy,
+      'classificationConfirmed': classificationConfirmed,
+      'learningPersisted': learningPersisted,
+      'usedSuggestion': usedSuggestion,
+      'suggestionSummary': suggestionSummary,
+    };
+  }
+
+  factory OverlayCameraCaptureResult.fromMap(Map<String, dynamic> map) {
+    final capturedAtString = map['capturedAt']?.toString();
+    final capturedAt = DateTime.tryParse(capturedAtString ?? '') ?? DateTime.now();
+
+    double parseDouble(dynamic value) {
+      if (value is num) return value.toDouble();
+      if (value is String) return double.tryParse(value) ?? 0.0;
+      return 0.0;
+    }
+
+    bool parseBool(dynamic value) {
+      if (value is bool) return value;
+      if (value is String) return value.toLowerCase() == 'true';
+      return false;
+    }
+
+    return OverlayCameraCaptureResult(
+      filePath: map['filePath']?.toString() ?? '',
+      ambiente: map['ambiente']?.toString() ?? '',
+      macroLocal: map['macroLocal']?.toString(),
+      elemento: map['elemento']?.toString(),
+      material: map['material']?.toString(),
+      estado: map['estado']?.toString(),
+      capturedAt: capturedAt,
+      latitude: parseDouble(map['latitude']),
+      longitude: parseDouble(map['longitude']),
+      accuracy: parseDouble(map['accuracy']),
+      classificationConfirmed: parseBool(map['classificationConfirmed']),
+      learningPersisted: parseBool(map['learningPersisted']),
+      usedSuggestion: parseBool(map['usedSuggestion']),
+      suggestionSummary: map['suggestionSummary']?.toString(),
+    );
+  }
 }
 
 class OverlayCameraScreen extends StatefulWidget {

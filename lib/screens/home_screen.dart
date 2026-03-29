@@ -9,11 +9,13 @@ import '../services/home_location_service.dart';
 import '../services/location_service.dart';
 import '../services/map_service.dart';
 import '../state/app_state.dart';
+import 'overlay_camera_screen.dart';
 import '../widgets/home/home_header.dart';
 import '../widgets/home/jobs_section.dart';
 import '../widgets/home/proposals_section.dart';
 import 'checkin_screen.dart';
 import 'checkin_step2_screen.dart';
+import 'inspection_review_screen.dart';
 import 'notifications_screen.dart';
 import 'operational_hub_screen.dart';
 import 'settings_screen.dart';
@@ -128,26 +130,60 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (!mounted) return;
 
-    if (isRecovery && recoveryRoute == '/checkin_step2') {
-      final tipoImovel = appState.step1Payload['tipoImovel'] as String?;
-      final initialData = appState.step2Payload.isNotEmpty
-          ? CheckinStep2Model.fromMap(appState.step2Payload)
-          : null;
+    if (isRecovery) {
+      if (recoveryRoute == '/inspection_review') {
+        final reviewPayload = appState.inspectionRecoveryPayload['review'];
+        final tipoImovel = (reviewPayload is Map<String, dynamic>)
+            ? reviewPayload['tipoImovel'] as String?
+            : null;
+        final captures = <OverlayCameraCaptureResult>[];
 
-      if (tipoImovel != null) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => CheckinStep2Screen(
-              tipoImovel: tipoImovel,
-              initialData: initialData,
-              onContinue: (model) async {
-                await appState.persistStep2Draft(model.toMap());
-              },
+        if (reviewPayload is Map<String, dynamic>) {
+          final rawCaptures = reviewPayload['captures'];
+          if (rawCaptures is List) {
+            for (final rawCapture in rawCaptures) {
+              if (rawCapture is Map<String, dynamic>) {
+                captures.add(OverlayCameraCaptureResult.fromMap(rawCapture));
+              }
+            }
+          }
+        }
+
+        if (tipoImovel != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => InspectionReviewScreen(
+                captures: captures,
+                tipoImovel: tipoImovel,
+              ),
             ),
-          ),
-        );
-        return;
+          );
+          return;
+        }
+      }
+
+      if (recoveryRoute == '/checkin_step2') {
+        final tipoImovel = appState.step1Payload['tipoImovel'] as String?;
+        final initialData = appState.step2Payload.isNotEmpty
+            ? CheckinStep2Model.fromMap(appState.step2Payload)
+            : null;
+
+        if (tipoImovel != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => CheckinStep2Screen(
+                tipoImovel: tipoImovel,
+                initialData: initialData,
+                onContinue: (model) async {
+                  await appState.persistStep2Draft(model.toMap());
+                },
+              ),
+            ),
+          );
+          return;
+        }
       }
     }
 

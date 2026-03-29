@@ -1,8 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../config/checkin_step2_config.dart';
+import '../state/app_state.dart';
 import '../models/technical_check_requirement_input.dart';
 import '../models/technical_evidence_input.dart';
 import '../services/inspection_technical_summary_service.dart';
@@ -61,6 +63,27 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   void initState() {
     super.initState();
     _items = widget.captures.map(_EditableCapture.fromCapture).toList();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _persistReviewState();
+    });
+  }
+
+  Future<void> _persistReviewState() async {
+    final appState = Provider.of<AppState>(context, listen: false);
+    await appState.setInspectionRecoveryStage(
+      stageKey: 'inspection_review',
+      stageLabel: 'Revisão final',
+      routeName: '/inspection_review',
+      payload: {
+        ...appState.inspectionRecoveryPayload,
+        'step1': appState.step1Payload,
+        'step2': appState.step2Payload,
+        'review': {
+          'tipoImovel': widget.tipoImovel,
+          'captures': widget.captures.map((capture) => capture.toMap()).toList(),
+        },
+      },
+    );
   }
 
   @override
