@@ -151,11 +151,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       requirements: _buildTechnicalRequirementInputs(checkinStatuses),
     );
 
-    return WillPopScope(
-      onWillPop: () async {
-        // Permite voltar normalmente (não interfere com navegação normal)
-        return true;
-      },
+    return PopScope(
+      canPop: true,
       child: Scaffold(
       appBar: AppBar(title: const Text('Menu de vistoria')),
       bottomNavigationBar: SafeArea(
