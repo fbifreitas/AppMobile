@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../config/checkin_step2_config.dart';
 import '../models/checkin_step2_model.dart';
 import '../services/inspection_menu_service.dart';
 import '../services/voice_input_service.dart';
+import '../state/app_state.dart';
 import '../widgets/voice_selector_sheet.dart';
 import '../widgets/voice_text_field.dart';
 import 'overlay_camera_screen.dart';
@@ -28,12 +30,12 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
   late final TipoImovel _tipo;
   late final CheckinStep2Config _config;
   late CheckinStep2Model _model;
+
   final Map<String, TextEditingController> _obsControllers = {};
   final InspectionMenuService _menuService = InspectionMenuService.instance;
   final VoiceInputService _voiceService = VoiceInputService();
 
   List<CheckinStep2PhotoFieldConfig> _camposFotosOrdenados = [];
-
   bool _busy = false;
   bool _loadingMenus = true;
   String? _busyFieldId;
@@ -43,8 +45,22 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
     super.initState();
     _tipo = TipoImovelExtension.fromString(widget.tipoImovel);
     _config = CheckinStep2Configs.byTipo(_tipo);
-    _model = widget.initialData ?? CheckinStep2Model.empty(_tipo);
-    _camposFotosOrdenados = List<CheckinStep2PhotoFieldConfig>.from(_config.camposFotos);
+
+    final appState = context.read<AppState>();
+    final persisted = appState.step2Payload;
+    if (widget.initialData != null) {
+      _model = widget.initialData!;
+    } else if (persisted.isNotEmpty) {
+      try {
+        _model = CheckinStep2Model.fromMap(persisted);
+      } catch (_) {
+        _model = CheckinStep2Model.empty(_tipo);
+      }
+    } else {
+      _model = CheckinStep2Model.empty(_tipo);
+    }
+
+    _camposFotosOrdenados = List.from(_config.camposFotos);
 
     for (final grupo in _config.gruposOpcoes) {
       _obsControllers[grupo.id] = TextEditingController(
@@ -53,6 +69,24 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
     }
 
     _prepareMenus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _persistCurrentModel(stageLabel: 'Check-in etapa 2');
+    });
+  }
+
+  Future<void> _persistCurrentModel({String stageLabel = 'Check-in etapa 2'}) async {
+    if (!mounted) return;
+    final appState = context.read<AppState>();
+    await appState.setInspectionRecoveryStage(
+      stageKey: 'checkin_step2',
+      stageLabel: stageLabel,
+      routeName: '/checkin_step2',
+      payload: {
+        ...appState.inspectionRecoveryPayload,
+        'step1': appState.step1Payload,
+        'step2': _model.toMap(),
+      },
+    );
   }
 
   Future<void> _prepareMenus() async {
@@ -60,9 +94,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
       tipoImovel: _tipo,
       defaults: _config.camposFotos,
     );
-
     if (!mounted) return;
-
     setState(() {
       _camposFotosOrdenados = ordered;
       _loadingMenus = false;
@@ -106,7 +138,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
         value: field.id,
       );
 
-      final result = await navigator.push<OverlayCameraCaptureResult>(
+      final result = await navigator.push(
         MaterialPageRoute(
           builder: (_) => OverlayCameraScreen(
             title: field.titulo,
@@ -133,6 +165,8 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
         );
       });
 
+      await _persistCurrentModel(stageLabel: 'Check-in etapa 2');
+
       messenger.showSnackBar(
         SnackBar(content: Text('Foto de "${field.titulo}" capturada com sucesso.')),
       );
@@ -147,6 +181,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
   }
 
   Future<void> _handleContinue() async {
+    await _persistCurrentModel(stageLabel: 'Fluxo principal de coleta');
     widget.onContinue?.call(_model);
 
     if (!mounted) return;
@@ -164,7 +199,6 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
       ),
     );
   }
-
 
   Future<void> _selectGroupOptionByVoice(CheckinStep2OptionGroupConfig grupo) async {
     final labels = grupo.opcoes.map((opcao) => opcao.label).toList();
@@ -210,6 +244,8 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
         );
       }
     });
+
+    await _persistCurrentModel(stageLabel: 'Check-in etapa 2');
   }
 
   @override
@@ -354,7 +390,6 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
     CheckinStep2OptionGroupConfig grupo,
   ) {
     final resposta = _model.respostas[grupo.id];
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -392,30 +427,31 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
             runSpacing: 8,
             children: grupo.opcoes.map((opcao) {
               final selected = resposta?.selectedOptionIds.contains(opcao.id) ?? false;
-
               return grupo.multiplaEscolha
                   ? FilterChip(
                       label: Text(opcao.label),
                       selected: selected,
-                      onSelected: (_) {
+                      onSelected: (_) async {
                         setState(() {
                           _model = _model.toggleMultiOption(
                             groupId: grupo.id,
                             optionId: opcao.id,
                           );
                         });
+                        await _persistCurrentModel(stageLabel: 'Check-in etapa 2');
                       },
                     )
                   : ChoiceChip(
                       label: Text(opcao.label),
                       selected: selected,
-                      onSelected: (_) {
+                      onSelected: (_) async {
                         setState(() {
                           _model = _model.setSingleOption(
                             groupId: grupo.id,
                             optionId: opcao.id,
                           );
                         });
+                        await _persistCurrentModel(stageLabel: 'Check-in etapa 2');
                       },
                     );
             }).toList(),
@@ -429,8 +465,12 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
               maxLines: 3,
               voiceService: _voiceService,
               helperText: 'Toque no microfone para ditar a observação.',
-              onChanged: (value) {
-                _model = _model.setObservacao(groupId: grupo.id, observacao: value);
+              onChanged: (value) async {
+                _model = _model.setObservacao(
+                  groupId: grupo.id,
+                  observacao: value,
+                );
+                await _persistCurrentModel(stageLabel: 'Check-in etapa 2');
               },
             ),
           ],
@@ -458,7 +498,6 @@ class _PhotoCaptureCard extends StatelessWidget {
     required this.photoInfo,
     required this.onCapture,
   });
-
 
   @override
   Widget build(BuildContext context) {

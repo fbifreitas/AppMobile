@@ -159,12 +159,16 @@ class AppState extends ChangeNotifier {
     jobAtual!.status = JobStatus.emAndamento;
     ultimoCheckin = DateTime.now();
     await setInspectionRecoveryStage(
-      stageKey: 'checkin',
-      stageLabel: 'Check-in',
+      stageKey: 'checkin_step1',
+      stageLabel: 'Check-in etapa 1',
       routeName: '/checkin',
       payload: {
-        'clientePresente': clientePresente,
-        'tipoImovel': tipoImovel,
+        ...inspectionRecoveryPayload,
+        'step1': {
+          ...step1Payload,
+          'clientePresente': clientePresente,
+          'tipoImovel': tipoImovel,
+        },
       },
     );
     notifyListeners();
@@ -323,6 +327,58 @@ class AppState extends ChangeNotifier {
     prioritizeRecoveryJob();
     notifyListeners();
   }
+
+  Future<void> persistStep1Draft({
+    bool? clientePresente,
+    String? tipoImovel,
+    String? subtipoImovel,
+    String? porOndeComecar,
+  }) async {
+    final currentJob = jobAtual;
+    if (currentJob == null) return;
+
+    final nextStep1 = {
+      ...step1Payload,
+      'clientePresente': clientePresente,
+      'tipoImovel': tipoImovel,
+      'subtipoImovel': subtipoImovel,
+      'porOndeComecar': porOndeComecar,
+    };
+
+    await setInspectionRecoveryStage(
+      stageKey: 'checkin_step1',
+      stageLabel: 'Check-in etapa 1',
+      routeName: '/checkin',
+      payload: {
+        ...inspectionRecoveryPayload,
+        'step1': nextStep1,
+      },
+    );
+  }
+
+  Future<void> persistStep2Draft(Map<String, dynamic> step2Map) async {
+    final currentJob = jobAtual;
+    if (currentJob == null) return;
+
+    await setInspectionRecoveryStage(
+      stageKey: 'checkin_step2',
+      stageLabel: 'Check-in etapa 2',
+      routeName: '/checkin_step2',
+      payload: {
+        ...inspectionRecoveryPayload,
+        'step2': step2Map,
+      },
+    );
+  }
+
+  Map<String, dynamic> get inspectionRecoveryPayload =>
+      Map<String, dynamic>.from(inspectionRecoveryDraft?.payload ?? const {});
+
+  Map<String, dynamic> get step1Payload =>
+      Map<String, dynamic>.from(inspectionRecoveryPayload['step1'] ?? const {});
+
+  Map<String, dynamic> get step2Payload =>
+      Map<String, dynamic>.from(inspectionRecoveryPayload['step2'] ?? const {});
 
   Future<void> clearInspectionRecovery() async {
     inspectionRecoveryDraft = null;
