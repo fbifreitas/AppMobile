@@ -35,6 +35,29 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Validate app version bump
+        shell: bash
+        run: |
+          CURRENT_VERSION=$(awk '/^version:/{print $2; exit}' pubspec.yaml)
+          if [ -z "$CURRENT_VERSION" ]; then
+            echo "Nao foi possivel ler a versao atual no pubspec.yaml"
+            exit 1
+          fi
+
+          if git show HEAD~1:pubspec.yaml >/dev/null 2>&1; then
+            PREVIOUS_VERSION=$(git show HEAD~1:pubspec.yaml | awk '/^version:/{print $2; exit}')
+            if [ -n "$PREVIOUS_VERSION" ] && [ "$CURRENT_VERSION" = "$PREVIOUS_VERSION" ]; then
+              echo "Versao nao incrementada para distribuicao: $CURRENT_VERSION"
+              echo "Atualize o campo version no pubspec.yaml antes de distribuir no Firebase."
+              exit 1
+            fi
+            echo "Versao validada para distribuicao: atual=$CURRENT_VERSION anterior=$PREVIOUS_VERSION"
+          else
+            echo "Historico insuficiente para comparar versoes; validacao ignorada neste run."
+          fi
 
       - name: Setup Java
         uses: actions/setup-java@v5
