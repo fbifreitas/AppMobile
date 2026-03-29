@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/inspection_recovery_draft.dart';
 import '../models/job.dart';
 import '../models/job_status.dart';
 import '../repositories/job_repository.dart';
@@ -15,6 +16,7 @@ class AppState extends ChangeNotifier {
   static const _devModeKey = 'developer_mode_enabled';
   static const _devToolsUnlockedKey = 'developer_tools_unlocked';
   static const _allowFarStartKey = 'developer_allow_far_start';
+  static const _inspectionRecoveryKey = 'inspection_recovery_draft';
 
   final JobRepository repository;
   final InspectionRadiusService inspectionRadiusService =
@@ -42,11 +44,23 @@ class AppState extends ChangeNotifier {
   bool isLoadingJobs = false;
   String? jobsLoadError;
 
+  InspectionRecoveryDraft? inspectionRecoveryDraft;
+
   Future<void> _loadPreferences() async {
     final prefs = await SharedPreferences.getInstance();
     developerModeEnabled = prefs.getBool(_devModeKey) ?? false;
     developerToolsUnlocked = prefs.getBool(_devToolsUnlockedKey) ?? false;
     permitirIniciarLonge = prefs.getBool(_allowFarStartKey) ?? false;
+
+    final recoveryJson = prefs.getString(_inspectionRecoveryKey);
+    if (recoveryJson != null && recoveryJson.isNotEmpty) {
+      try {
+        inspectionRecoveryDraft = InspectionRecoveryDraft.fromJson(recoveryJson);
+      } catch (_) {
+        inspectionRecoveryDraft = null;
+      }
+    }
+
     notifyListeners();
   }
 
@@ -65,6 +79,18 @@ class AppState extends ChangeNotifier {
     await prefs.setBool(_allowFarStartKey, value);
   }
 
+  Future<void> _saveInspectionRecoveryDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (inspectionRecoveryDraft == null) {
+      await prefs.remove(_inspectionRecoveryKey);
+      return;
+    }
+    await prefs.setString(
+      _inspectionRecoveryKey,
+      inspectionRecoveryDraft!.toJson(),
+    );
+  }
+
   Future<void> carregarJobs() async {
     if (isLoadingJobs) return;
 
@@ -77,6 +103,7 @@ class AppState extends ChangeNotifier {
             const Duration(seconds: 5),
           );
       jobs = List<Job>.from(result);
+      prioritizeRecoveryJob();
     } catch (_) {
       jobs = [];
       jobsLoadError =
@@ -122,15 +149,24 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void fazerCheckin({
+  Future<void> fazerCheckin({
     required bool clientePresente,
     String? tipoImovel,
-  }) {
+  }) async {
     if (jobAtual == null) return;
     jobAtual!.clientePresente = clientePresente;
     jobAtual!.tipoImovel = tipoImovel;
     jobAtual!.status = JobStatus.emAndamento;
     ultimoCheckin = DateTime.now();
+    await setInspectionRecoveryStage(
+      stageKey: 'checkin',
+      stageLabel: 'Check-in',
+      routeName: '/checkin',
+      payload: {
+        'clientePresente': clientePresente,
+        'tipoImovel': tipoImovel,
+      },
+    );
     notifyListeners();
   }
 
@@ -146,8 +182,9 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void finalizarJob() {
+  Future<void> finalizarJob() async {
     jobAtual?.status = JobStatus.finalizado;
+    await clearInspectionRecovery();
     notifyListeners();
   }
 
@@ -236,10 +273,72 @@ class AppState extends ChangeNotifier {
   }
 
   double resolveInspectionRadiusMeters(Job job) {
-    return inspectionRadiusService.resolve(
-      tipoImovel: job.tipoImovel,
-      subtipoImovel: job.subtipoImovel,
-    ).radiusMeters;
+    return inspectionRadiusService
+        .resolve(
+          tipoImovel: job.tipoImovel,
+          subtipoImovel: job.subtipoImovel,
+        )
+        .radiusMeters;
+  }
+
+  bool hasRecoverableInspectionForJob(String jobId) {
+    return inspectionRecoveryDraft?.jobId == jobId;
+  }
+
+  String recoveryStageLabelForJob(String jobId) {
+    if (!hasRecoverableInspectionForJob(jobId)) return '';
+    return inspectionRecoveryDraft?.stageLabel ?? 'Etapa não informada';
+  }
+
+  Future<void> beginInspectionRecovery(Job job) async {
+    selecionarJob(job);
+    inspectionRecoveryDraft = InspectionRecoveryDraft.initial(jobId: job.id);
+    await _saveInspectionRecoveryDraft();
+    prioritizeRecoveryJob();
+    notifyListeners();
+  }
+
+  Future<void> setInspectionRecoveryStage({
+    required String stageKey,
+    required String stageLabel,
+    required String routeName,
+    Map<String, dynamic> payload = const {},
+  }) async {
+    final currentJob = jobAtual;
+    if (currentJob == null) return;
+
+    inspectionRecoveryDraft =
+        (inspectionRecoveryDraft ??
+                InspectionRecoveryDraft.initial(jobId: currentJob.id))
+            .copyWith(
+      jobId: currentJob.id,
+      stageKey: stageKey,
+      stageLabel: stageLabel,
+      routeName: routeName,
+      updatedAtIso: DateTime.now().toIso8601String(),
+      payload: payload,
+    );
+
+    await _saveInspectionRecoveryDraft();
+    prioritizeRecoveryJob();
+    notifyListeners();
+  }
+
+  Future<void> clearInspectionRecovery() async {
+    inspectionRecoveryDraft = null;
+    await _saveInspectionRecoveryDraft();
+    notifyListeners();
+  }
+
+  void prioritizeRecoveryJob() {
+    final draft = inspectionRecoveryDraft;
+    if (draft == null) return;
+
+    final index = jobs.indexWhere((job) => job.id == draft.jobId);
+    if (index <= 0) return;
+
+    final job = jobs.removeAt(index);
+    jobs.insert(0, job);
   }
 
   bool canStartInspection({
@@ -247,7 +346,7 @@ class AppState extends ChangeNotifier {
     required double? currentLatitude,
     required double? currentLongitude,
   }) {
-    if (developerModeEnabled && permitirIniciarLonge) {
+    if (hasRecoverableInspectionForJob(job.id)) {
       return true;
     }
 
@@ -277,6 +376,10 @@ class AppState extends ChangeNotifier {
     required double? currentLatitude,
     required double? currentLongitude,
   }) {
+    if (hasRecoverableInspectionForJob(job.id)) {
+      return false;
+    }
+
     if (!developerModeEnabled || !permitirIniciarLonge) {
       return false;
     }

@@ -112,11 +112,19 @@ class _HomeScreenState extends State<HomeScreen> {
     await mapService.abrirBuscaPorEndereco(address);
   }
 
-  void _handleStartInspection({
+  Future<void> _handleStartInspection({
     required AppState appState,
     required Job job,
-  }) {
+  }) async {
+    final isRecovery = appState.hasRecoverableInspectionForJob(job.id);
+
     appState.selecionarJob(job);
+    if (!isRecovery) {
+      await appState.beginInspectionRecovery(job);
+    }
+
+    if (!mounted) return;
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -204,8 +212,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     address: address,
                   );
                 },
-                onStartInspection: (job) {
-                  _handleStartInspection(
+                onStartInspection: (job) async {
+                  await _handleStartInspection(
                     appState: appState,
                     job: job,
                   );

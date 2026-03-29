@@ -24,6 +24,8 @@ void main() {
         status: JobStatus.aceito,
         latitude: -23.0,
         longitude: -46.0,
+        tipoImovel: 'Urbano',
+        subtipoImovel: 'Casa',
       ),
     ];
 
@@ -40,7 +42,7 @@ void main() {
               required double? longitude,
               required String address,
             }) async {},
-            onStartInspection: (_) {},
+            onStartInspection: (_) async {},
           ),
         ),
       ),

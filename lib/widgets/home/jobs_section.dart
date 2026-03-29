@@ -5,13 +5,13 @@ import '../../services/location_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/app_colors.dart';
 
-typedef NavigateToJobCallback = Future<void> Function({
+typedef NavigateToJobCallback = Future Function({
   required double? latitude,
   required double? longitude,
   required String address,
 });
 
-typedef StartInspectionCallback = void Function(Job job);
+typedef StartInspectionCallback = Future<void> Function(Job job);
 
 class JobsSection extends StatelessWidget {
   const JobsSection({
@@ -67,8 +67,8 @@ class JobsSection extends StatelessWidget {
                   address: job.endereco,
                 );
               },
-              onStartInspection: () {
-                onStartInspection(job);
+              onStartInspection: () async {
+                await onStartInspection(job);
               },
             ),
           ),
@@ -185,8 +185,8 @@ class _RichJobCard extends StatelessWidget {
 
   final AppState appState;
   final Job job;
-  final Future<void> Function() onNavigateToJob;
-  final VoidCallback onStartInspection;
+  final Future Function() onNavigateToJob;
+  final Future<void> Function() onStartInspection;
   final double? currentLatitude;
   final double? currentLongitude;
   final bool useDistanceMetrics;
@@ -205,6 +205,8 @@ class _RichJobCard extends StatelessWidget {
       currentLongitude: currentLongitude,
     );
     final radiusMeters = appState.resolveInspectionRadiusMeters(job);
+    final isRecoverable = appState.hasRecoverableInspectionForJob(job.id);
+    final recoveryStageLabel = appState.recoveryStageLabelForJob(job.id);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -212,7 +214,10 @@ class _RichJobCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(
+          color: isRecoverable ? AppColors.primary : AppColors.border,
+          width: isRecoverable ? 1.5 : 1,
+        ),
         boxShadow: const [
           BoxShadow(
             color: Color(0x0D000000),
@@ -229,16 +234,16 @@ class _RichJobCard extends StatelessWidget {
               Container(
                 width: 8,
                 height: 8,
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
+                decoration: BoxDecoration(
+                  color: isRecoverable ? AppColors.warning : AppColors.primary,
                   shape: BoxShape.circle,
                 ),
               ),
               const SizedBox(width: 6),
-              const Text(
-                'EM ANDAMENTO',
+              Text(
+                isRecoverable ? 'EM RECUPERAÇÃO' : 'EM ANDAMENTO',
                 style: TextStyle(
-                  color: AppColors.primary,
+                  color: isRecoverable ? AppColors.warning : AppColors.primary,
                   fontWeight: FontWeight.w800,
                   fontSize: 11,
                 ),
@@ -297,7 +302,24 @@ class _RichJobCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          if (!canStart && !showDevStart)
+          if (isRecoverable)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.warningLight,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                'Vistoria em andamento interrompida. Última etapa salva: $recoveryStageLabel.',
+                style: const TextStyle(
+                  color: AppColors.warning,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            )
+          else if (!canStart && !showDevStart)
             Text(
               'Fora do raio de vistoria para ${job.tipoImovel ?? 'tipo não informado'}.',
               style: const TextStyle(
@@ -305,8 +327,8 @@ class _RichJobCard extends StatelessWidget {
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
               ),
-            ),
-          if (showDevStart)
+            )
+          else if (showDevStart)
             const Text(
               'Modo desenvolvedor ativo: fluxo liberado para teste fora do raio.',
               style: TextStyle(
@@ -333,10 +355,16 @@ class _RichJobCard extends StatelessWidget {
               Expanded(
                 child: ElevatedButton(
                   onPressed: (canStart || showDevStart)
-                      ? onStartInspection
+                      ? () async {
+                          await onStartInspection();
+                        }
                       : null,
                   child: Text(
-                    showDevStart ? 'INICIAR (DEV)' : 'INICIAR VISTORIA',
+                    isRecoverable
+                        ? 'RETOMAR VISTORIA'
+                        : showDevStart
+                            ? 'INICIAR (DEV)'
+                            : 'INICIAR VISTORIA',
                     style: const TextStyle(fontSize: 11),
                   ),
                 ),
