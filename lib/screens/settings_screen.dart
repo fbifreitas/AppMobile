@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 
 import '../state/app_state.dart';
@@ -15,12 +16,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   late TextEditingController _nomeController;
   int _versionTapCount = 0;
+  String _appVersion = 'Versão carregando...';
 
   @override
   void initState() {
     super.initState();
     final appState = context.read<AppState>();
     _nomeController = TextEditingController(text: appState.usuarioNomeCompleto);
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      if (!mounted) return;
+      setState(() {
+        _appVersion = 'Versão ${packageInfo.version}+${packageInfo.buildNumber}';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _appVersion = 'Versão indisponível';
+      });
+    }
   }
 
   @override
@@ -157,11 +175,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: InkWell(
               onTap: _handleDeveloperModeHiddenTap,
               borderRadius: BorderRadius.circular(12),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 child: Text(
-                  'Versão 1.0.0+1',
-                  style: TextStyle(
+                  _appVersion,
+                  style: const TextStyle(
                     fontSize: 12,
                     color: Colors.grey,
                   ),
