@@ -803,7 +803,10 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         syncResult == null
             ? ''
             : (syncResult.success
-                ? _buildSyncSuccessMessage(flushResult)
+                ? _buildSyncSuccessMessage(
+                  syncResult: syncResult,
+                  flushResult: flushResult,
+                )
                 : _buildSyncFailureMessage(
                   syncResult: syncResult,
                   queuedCount: queuedCount,
@@ -817,11 +820,20 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     navigator.popUntil((route) => route.isFirst);
   }
 
-  String _buildSyncSuccessMessage(InspectionSyncQueueFlushResult? flushResult) {
+  String _buildSyncSuccessMessage({
+    required InspectionSyncResult syncResult,
+    InspectionSyncQueueFlushResult? flushResult,
+  }) {
+    final protocol = syncResult.protocolId ?? syncResult.processNumber;
+    final protocolSuffix =
+        protocol == null || protocol.trim().isEmpty
+            ? ''
+            : ' Protocolo: ${protocol.trim()}.';
+
     if (flushResult == null || flushResult.sentCount == 0) {
-      return ' Sincronizado com backend.';
+      return ' Sincronizado com backend.$protocolSuffix';
     }
-    return ' Sincronizado com backend e ${flushResult.sentCount} pendência(s) antiga(s) enviada(s).';
+    return ' Sincronizado com backend e ${flushResult.sentCount} pendência(s) antiga(s) enviada(s).$protocolSuffix';
   }
 
   String _buildSyncFailureMessage({

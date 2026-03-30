@@ -47,8 +47,8 @@ Step 8️⃣ (FUNCIONAL PRÓXIMO CICLO) → BL-029, BL-030, BL-031, BL-032, BL-0
 
 | Seq | ID | Funcionalidade | Status | Prioridade | Criterio de pronto |
 |---|---|---|---|---|---|
-| **1️⃣ AGORA** | **BL-012** | **Menus de checkin etapa 1 e 2 dinamicos via backend (sessoes NBR)** | Pendente | 🔴 **CRÍTICA** | Sessoes de captura (fachada, ambiente, elemento) com requisitos obrigatorio/desejavel configuravel via API, sem hardcoding |
-| **2️⃣ AGORA** | **BL-001** | **Integracao de envio do JSON final da vistoria para sistema web (API real)** | Pendente | 🔴 **CRÍTICA** | JSON de encerramento enviado para endpoint autenticado com retentativa e log de sucesso/erro |
+| **1️⃣ AGORA** | **BL-012** | **Menus de checkin etapa 1 e 2 dinamicos via backend (sessoes NBR)** | Em andamento | 🔴 **CRÍTICA** | Sessoes de captura (fachada, ambiente, elemento) com requisitos obrigatorio/desejavel configuravel via API, sem hardcoding |
+| **2️⃣ AGORA** | **BL-001** | **Integracao de envio do JSON final da vistoria para sistema web (API real)** | Em andamento | 🔴 **CRÍTICA** | JSON de encerramento enviado para endpoint autenticado com retentativa e log de sucesso/erro |
 | 3️⃣ | BL-002 | Fila offline para exportacao/sincronizacao de vistorias finalizadas | Concluido | 🟠 Alta | Se sem internet, arquivo entra em fila local e sincroniza automaticamente ao reconectar |
 | 4️⃣ | BL-008 | Auditoria de fallback por etapa (checkin, step2, camera, review) | Concluido | 🟠 Alta | Relatorio interno mostra consistencia de payload, retomada por etapa e pilha de navegacao ao retomar vistoria |
 | 5️⃣ | BL-015 | Associar capturas iniciadas na camera com checkin etapa 2 e revisao | Concluído | 🟠 Alta | Captura iniciada fora da etapa 2 atualiza cards/pendencias obrigatorias no checkin e preserva fotos anteriores na revisao |
@@ -91,8 +91,14 @@ Step 8️⃣ (FUNCIONAL PRÓXIMO CICLO) → BL-029, BL-030, BL-031, BL-032, BL-0
 ### BL-012
 Tornar os menus de checkin etapa 1 e etapa 2 dinamicos via backend, permitindo adicionar/remover sessoes e definir obrigatoriedade (NBR) sem novo deploy do app.
 
+Observacao 2026-03-30 (Em andamento): adicionado fallback de configuracao dinamica por modo desenvolvedor, com documento JSON local configuravel no painel de dados mock. Fluxo de leitura agora prioriza mock local quando habilitado, depois API, depois cache, e por ultimo fallback hardcoded.
+
 ### BL-001
 Enviar o JSON final da vistoria para a API web oficial com autenticacao, registro de sucesso/erro e rastreabilidade por job.
+
+Observacao 2026-03-30: payloads de origem financeira para criacao de processo devem ser tratados e normalizados no backoffice/integracao (docs/BACKLOG_BACKOFFICE_WEB.md e docs/BACKLOG_INTEGRACAO_WEB_MOBILE.md). O app mobile consome apenas campos operacionais expostos pelas APIs internas (jobs/config/sync), evitando acoplamento ao contrato externo bruto.
+
+Observacao 2026-03-30 (Em andamento): sincronizacao final passou a interpretar metadados de resposta da API (ex.: process_id/process_number/status) e a expor protocolo no feedback de conclusao. Adicionado tambem modo desenvolvedor para resposta mock de sync quando a integracao web definitiva ainda nao estiver disponivel.
 
 ### BL-002
 Criar fila offline para armazenar vistorias finalizadas quando nao houver conectividade e sincronizar automaticamente quando a rede retornar.

@@ -121,4 +121,68 @@ void main() {
     expect(parsed.camposFotos.length, fallback.camposFotos.length);
     expect(parsed.camposFotos.first.id, fallback.camposFotos.first.id);
   });
+
+  test('loadStep1Config reads developer mock document when enabled', () async {
+    final service = CheckinDynamicConfigService.instance;
+    await service.configureDeveloperMock(
+      enabled: true,
+      documentJson: jsonEncode({
+        'step1': {
+          'tipos': <String>['Comercial'],
+          'contextos': <String>['Área interna'],
+          'subtiposPorTipo': {
+            'Comercial': <String>['Loja'],
+          },
+        },
+      }),
+    );
+
+    final result = await service.loadStep1Config(
+      fallbackTipos: defaultTipos,
+      fallbackSubtiposPorTipo: defaultSubtipos,
+      fallbackContextos: defaultContextos,
+    );
+
+    expect(result.tipos, <String>['Comercial']);
+    expect(result.contextos, <String>['Área interna']);
+    expect(result.subtiposPorTipo['Comercial'], <String>['Loja']);
+  });
+
+  test('loadStep2Config resolves byTipo node from developer mock document', () async {
+    final service = CheckinDynamicConfigService.instance;
+    final fallback = CheckinStep2Configs.byTipo(TipoImovel.urbano);
+
+    await service.configureDeveloperMock(
+      enabled: true,
+      documentJson: jsonEncode({
+        'step2': {
+          'byTipo': {
+            'urbano': {
+              'tituloTela': 'Tela dinâmica mock',
+              'subtituloTela': 'Subtítulo mock',
+              'camposFotos': [
+                {
+                  'id': 'fachada_mock',
+                  'titulo': 'Fachada mock',
+                  'icon': 'home_work_outlined',
+                  'obrigatorio': true,
+                  'cameraMacroLocal': 'Rua',
+                  'cameraAmbiente': 'Fachada',
+                },
+              ],
+            },
+          },
+        },
+      }),
+    );
+
+    final parsed = await service.loadStep2Config(
+      tipo: TipoImovel.urbano,
+      fallback: fallback,
+    );
+
+    expect(parsed.tituloTela, 'Tela dinâmica mock');
+    expect(parsed.camposFotos.first.id, 'fachada_mock');
+    expect(parsed.camposFotos.first.obrigatorio, isTrue);
+  });
 }

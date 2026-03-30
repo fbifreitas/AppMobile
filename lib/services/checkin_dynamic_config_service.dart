@@ -31,6 +31,44 @@ class CheckinDynamicConfigService {
   );
 
   static const String _step1CacheKey = 'checkin_dynamic_step1_config_v1';
+  static const String _devMockEnabledKey =
+      'dev_mock_checkin_config_enabled_v1';
+  static const String _devMockDocumentKey =
+      'dev_mock_checkin_config_document_v1';
+
+  Future<void> configureDeveloperMock({
+    required bool enabled,
+    String? documentJson,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_devMockEnabledKey, enabled);
+
+    final normalized = documentJson?.trim() ?? '';
+    if (normalized.isEmpty) {
+      await prefs.remove(_devMockDocumentKey);
+      return;
+    }
+
+    try {
+      final decoded = jsonDecode(normalized);
+      final map = _extractMap(decoded);
+      if (map == null) {
+        await prefs.remove(_devMockDocumentKey);
+        return;
+      }
+      await prefs.setString(_devMockDocumentKey, jsonEncode(map));
+    } catch (_) {
+      await prefs.remove(_devMockDocumentKey);
+    }
+  }
+
+  Future<Map<String, dynamic>> loadDeveloperMockSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    return {
+      'enabled': prefs.getBool(_devMockEnabledKey) ?? false,
+      'documentJson': prefs.getString(_devMockDocumentKey) ?? '',
+    };
+  }
 
   Future<CheckinStep1DynamicConfig> loadStep1Config({
     required List<String> fallbackTipos,
@@ -47,15 +85,17 @@ class CheckinDynamicConfigService {
       contextos: List<String>.from(fallbackContextos),
     );
 
-    Map<String, dynamic>? document;
-    if (_baseUrl.trim().isNotEmpty) {
-      document = await _fetchDocument();
-      if (document != null) {
-        await _writeCache(_step1CacheKey, document);
+    Map<String, dynamic>? document = await _readDeveloperMockDocument();
+    if (document == null) {
+      if (_baseUrl.trim().isNotEmpty) {
+        document = await _fetchDocument();
+        if (document != null) {
+          await _writeCache(_step1CacheKey, document);
+        }
       }
-    }
 
-    document ??= await _readCache(_step1CacheKey);
+      document ??= await _readCache(_step1CacheKey);
+    }
 
     final step1Node = _extractMap(document?['step1']) ?? document;
     if (step1Node == null) return fallback;
@@ -90,18 +130,20 @@ class CheckinDynamicConfigService {
     required CheckinStep2Config fallback,
   }) async {
     final cacheKey = 'checkin_dynamic_step2_${tipo.name}_v1';
-    Map<String, dynamic>? document;
+    Map<String, dynamic>? document = await _readDeveloperMockDocument();
 
-    if (_baseUrl.trim().isNotEmpty) {
-      document = await _fetchDocument(tipo: tipo.name);
-      if (document != null) {
-        await _writeCache(cacheKey, document);
+    if (document == null) {
+      if (_baseUrl.trim().isNotEmpty) {
+        document = await _fetchDocument(tipo: tipo.name);
+        if (document != null) {
+          await _writeCache(cacheKey, document);
+        }
       }
+
+      document ??= await _readCache(cacheKey);
     }
 
-    document ??= await _readCache(cacheKey);
-
-    final step2Node = _extractMap(document?['step2']) ?? document;
+    final step2Node = _extractStep2Node(document, tipo);
     if (step2Node == null) return fallback;
 
     return parseStep2ConfigMap(
@@ -284,6 +326,44 @@ class CheckinDynamicConfigService {
     } catch (_) {
       return null;
     }
+  }
+
+  Future<Map<String, dynamic>?> _readDeveloperMockDocument() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final enabled = prefs.getBool(_devMockEnabledKey) ?? false;
+      if (!enabled) return null;
+
+      final raw = prefs.getString(_devMockDocumentKey);
+      if (raw == null || raw.trim().isEmpty) return null;
+
+      final decoded = jsonDecode(raw);
+      return _extractMap(decoded);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Map<String, dynamic>? _extractStep2Node(
+    Map<String, dynamic>? document,
+    TipoImovel tipo,
+  ) {
+    final step2Container = _extractMap(document?['step2']) ?? document;
+    if (step2Container == null) return null;
+
+    final byTipo =
+        _extractMap(step2Container['byTipo']) ??
+        _extractMap(step2Container['porTipo']) ??
+        _extractMap(step2Container['tipos']);
+
+    if (byTipo == null || byTipo.isEmpty) {
+      return step2Container;
+    }
+
+    final key = tipo.name;
+    return _extractMap(byTipo[key]) ??
+        _extractMap(byTipo[key.toLowerCase()]) ??
+        _extractMap(byTipo[key.toUpperCase()]);
   }
 
   Map<String, dynamic>? _extractMap(Object? value) {
