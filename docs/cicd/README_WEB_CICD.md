@@ -21,12 +21,12 @@ Executa:
 1. Automaticamente em push na `main` (staging).
 2. Manualmente via `workflow_dispatch` (staging).
 
-O deploy usa acesso SSH opcional por segredo:
+A etapa atual valida secrets e prepara o caminho para deploy SSH:
 1. `VPS_HOST`
 2. `VPS_USER`
 3. `VPS_SSH_KEY`
 
-Se o segredo nao existir, o workflow nao falha, apenas informa que o deploy automatico foi ignorado.
+Se o segredo nao existir, o workflow nao falha e informa que o deploy foi ignorado.
 
 ## Segredos recomendados
 1. `VPS_HOST`
