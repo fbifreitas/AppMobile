@@ -10,12 +10,8 @@ on:
     inputs:
       target:
         description: "Ambiente de deploy"
-        required: true
+        required: false
         default: "staging"
-        type: choice
-        options:
-          - staging
-          - production
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -55,7 +51,7 @@ jobs:
           if-no-files-found: error
 
   deploy-staging:
-    if: github.event_name == 'push' || inputs.target == 'staging'
+    if: github.event_name == 'push' || github.event.inputs.target == 'staging'
     runs-on: ubuntu-latest
     needs: build
     environment: staging
@@ -93,7 +89,7 @@ jobs:
         run: echo "Deploy de staging ignorado: configure VPS_HOST, VPS_USER e VPS_SSH_KEY nos secrets do GitHub."
 
   deploy-production:
-    if: github.event_name == 'workflow_dispatch' && inputs.target == 'production'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'production'
     runs-on: ubuntu-latest
     needs: build
     environment: production
