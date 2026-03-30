@@ -595,11 +595,36 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
 
     if (!mounted) return;
 
+    // Mescla captures de sessões anteriores (salvas no payload de recovery)
+    // com as captures desta sessão. Desta forma, fotos capturadas em sessões
+    // anteriores de câmera não são perdidas ao chegar na tela de revisão.
+    final appState = Provider.of<AppState>(context, listen: false);
+    final savedReview = appState.inspectionRecoveryPayload['review'];
+    final previousCaptures = <OverlayCameraCaptureResult>[];
+    if (savedReview is Map<String, dynamic>) {
+      final rawCaptures = savedReview['captures'];
+      if (rawCaptures is List) {
+        for (final raw in rawCaptures) {
+          if (raw is Map<String, dynamic>) {
+            previousCaptures.add(OverlayCameraCaptureResult.fromMap(raw));
+          }
+        }
+      }
+    }
+
+    // Captures novas substituem as anteriores com mesmo filePath;
+    // as que não conflitam são preservadas.
+    final currentPaths = _captures.map((c) => c.filePath).toSet();
+    final mergedCaptures = [
+      ...previousCaptures.where((prev) => !currentPaths.contains(prev.filePath)),
+      ..._captures,
+    ];
+
     Navigator.push(
       context,
       MaterialPageRoute<void>(
         builder: (_) => InspectionReviewScreen(
-          captures: _captures,
+          captures: mergedCaptures,
           tipoImovel: '${widget.tipoImovel} • ${widget.subtipoImovel}',
           cameFromCheckinStep1: widget.cameFromCheckinStep1,
         ),
