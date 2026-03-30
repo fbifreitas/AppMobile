@@ -54,6 +54,10 @@ class _CompletedInspectionDetailScreenState
                   'JOB #${widget.job.id}',
                   widget.job.titulo,
                   widget.job.endereco,
+                  if (_nonEmptyText(widget.job.idExterno) != null)
+                    'ID externo: ${_nonEmptyText(widget.job.idExterno)}',
+                  if (_nonEmptyText(widget.job.protocoloExterno) != null)
+                    'Protocolo: ${_nonEmptyText(widget.job.protocoloExterno)}',
                   if (widget.job.nomeCliente.trim().isNotEmpty)
                     'Cliente: ${widget.job.nomeCliente}',
                 ],

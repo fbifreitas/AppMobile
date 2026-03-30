@@ -26,6 +26,8 @@ void main() {
         longitude: -46.0,
         tipoImovel: 'Urbano',
         subtipoImovel: 'Casa',
+        idExterno: 'ext-001',
+        protocoloExterno: '190108',
       ),
     ];
 
@@ -50,5 +52,7 @@ void main() {
 
     expect(find.text('Você está no local'), findsOneWidget);
     expect(find.text('Dentro do raio'), findsOneWidget);
+    expect(find.text('ID externo: ext-001'), findsOneWidget);
+    expect(find.text('Protocolo: 190108'), findsOneWidget);
   });
 }

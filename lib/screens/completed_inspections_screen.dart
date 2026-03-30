@@ -113,6 +113,28 @@ class CompletedInspectionsScreen extends StatelessWidget {
                     fontSize: 11,
                   ),
                 ),
+                if (_nonEmpty(job.idExterno) != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'ID externo: ${_nonEmpty(job.idExterno)}',
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+                if (_nonEmpty(job.protocoloExterno) != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    'Protocolo: ${_nonEmpty(job.protocoloExterno)}',
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
                 if ((job.nomeCliente).trim().isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(
@@ -129,5 +151,11 @@ class CompletedInspectionsScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  String? _nonEmpty(String? value) {
+    final normalized = value?.trim();
+    if (normalized == null || normalized.isEmpty) return null;
+    return normalized;
   }
 }

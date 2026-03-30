@@ -270,6 +270,27 @@ class _RichJobCard extends StatelessWidget {
               color: AppColors.textPrimary,
             ),
           ),
+          if (_hasExternalReferences) ...[
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                if (_normalizedExternalId != null)
+                  _JobTag(
+                    bg: AppColors.surface,
+                    fg: AppColors.textSecondary,
+                    text: 'ID externo: $_normalizedExternalId',
+                  ),
+                if (_normalizedProtocol != null)
+                  _JobTag(
+                    bg: AppColors.surface,
+                    fg: AppColors.textSecondary,
+                    text: 'Protocolo: $_normalizedProtocol',
+                  ),
+              ],
+            ),
+          ],
           const SizedBox(height: 5),
           Text(
             job.endereco,
@@ -435,6 +456,21 @@ class _RichJobCard extends StatelessWidget {
       withinRange: withinRange,
     );
   }
+
+  String? get _normalizedExternalId {
+    final value = job.idExterno?.trim();
+    if (value == null || value.isEmpty) return null;
+    return value;
+  }
+
+  String? get _normalizedProtocol {
+    final value = job.protocoloExterno?.trim();
+    if (value == null || value.isEmpty) return null;
+    return value;
+  }
+
+  bool get _hasExternalReferences =>
+      _normalizedExternalId != null || _normalizedProtocol != null;
 }
 
 class _JobTag extends StatelessWidget {

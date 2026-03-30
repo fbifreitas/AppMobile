@@ -55,7 +55,7 @@ Step 8️⃣ (FUNCIONAL PRÓXIMO CICLO) → BL-029, BL-030, BL-031, BL-032, BL-0
 | 6️⃣ | BL-003 | Tela de detalhes da vistoria concluida (somente leitura) | Concluido | 🟠 Alta | Aba Vistorias permite abrir detalhes completos sem edicao |
 | 7️⃣ | BL-006 | Modo desenvolvedor: editor completo de mocks para menus dinamicos da camera | Pendente | 🟠 Alta | Painel dev permite editar cenarios e menus dinamicos sem alterar codigo |
 | 8️⃣ | BL-010 | Endurecimento de bloqueio de recursos dev em release final | Pendente | 🟠 Alta | Recursos dev nao aparecem para usuario final sem desbloqueio autorizado |
-| 9️⃣ | BL-004 | Exibir protocolo/ID externo no card e no historico de vistorias | Pendente | 🟡 Media | Card mostra ID do job e protocolo externo quando existir |
+| 9️⃣ | BL-004 | Exibir protocolo/ID externo no card e no historico de vistorias | Concluido | 🟡 Media | Card mostra ID do job e protocolo externo quando existir |
 | 🔟 | BL-005 | Regras de retencao e limpeza de arquivos JSON exportados | Pendente | 🟡 Media | Politica configuravel (ex.: manter ultimos N dias) com limpeza segura |
 | 1️⃣1️⃣ | BL-016 | Diretorio de exportacao JSON configuravel para conferencia operacional | Concluido | 🟡 Media | Export permite alternar destino (interno/externo) sem perder rastreabilidade e fluxo de sync |
 | 1️⃣2️⃣ | BL-037 | Matriz de pendencia tecnica com linguagem operacional e acao guiada | Concluido | 🟠 Alta | Matriz apresenta texto simples e link/acao direta para levar o usuario ao ponto exato da pendencia no fluxo |
@@ -133,6 +133,8 @@ Fortalecer bloqueios de recursos de desenvolvimento em build de release para imp
 
 ### BL-004
 Exibir identificadores operacionais (ID do job e protocolo externo) no card da home e no historico, facilitando rastreio e suporte.
+
+Observacao 2026-03-30 (CONCLUIDO): card da Home e lista de Vistorias concluidas passaram a exibir ID externo e Protocolo quando disponiveis. Fluxo de conclusao da revisao agora persiste referencias externas recebidas do backend no job atual, e testes cobrem a renderizacao no card ativo e no historico.
 
 ### BL-005
 Definir politica de retencao e limpeza dos JSONs exportados, com regras seguras para manter historico util sem crescimento indefinido de armazenamento.

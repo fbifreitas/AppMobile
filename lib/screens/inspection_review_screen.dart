@@ -921,6 +921,10 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       syncResult = await _syncService.syncFinalInspection(payload);
 
       if (syncResult.success) {
+        appState.atualizarReferenciasExternasJobAtual(
+          idExterno: syncResult.processId,
+          protocoloExterno: syncResult.protocolId ?? syncResult.processNumber,
+        );
         flushResult = await _syncQueueService.flush(syncService: _syncService);
       } else if (_syncService.isConfigured) {
         queuedCount = await _syncQueueService.enqueue(
@@ -1019,6 +1023,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         'id': appState.jobAtual?.id,
         'titulo': appState.jobAtual?.titulo,
         'status': appState.jobAtual?.status.label,
+        'idExterno': appState.jobAtual?.idExterno,
+        'protocoloExterno': appState.jobAtual?.protocoloExterno,
       },
       'step1': appState.step1Payload,
       'step2': appState.step2Payload,

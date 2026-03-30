@@ -17,6 +17,8 @@ class Job {
   double? origemLat;
   double? origemLng;
   double? distanciaKm;
+  String? idExterno;
+  String? protocoloExterno;
 
   Job({
     required this.id,
@@ -35,6 +37,8 @@ class Job {
     this.origemLat,
     this.origemLng,
     this.distanciaKm,
+    this.idExterno,
+    this.protocoloExterno,
   })  : checklist = checklist ?? [],
         fotos = fotos ?? [];
 }

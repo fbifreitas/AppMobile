@@ -32,6 +32,8 @@ class FakeJobRepository implements JobRepository, MockJobRepositoryController {
             origemLat: job.origemLat,
             origemLng: job.origemLng,
             distanciaKm: job.distanciaKm,
+            idExterno: job.idExterno,
+            protocoloExterno: job.protocoloExterno,
           ),
         )
         .toList();

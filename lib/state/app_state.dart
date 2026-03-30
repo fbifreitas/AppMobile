@@ -194,6 +194,26 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void atualizarReferenciasExternasJobAtual({
+    String? idExterno,
+    String? protocoloExterno,
+  }) {
+    final currentJob = jobAtual;
+    if (currentJob == null) return;
+
+    final normalizedExternalId = idExterno?.trim();
+    final normalizedProtocol = protocoloExterno?.trim();
+
+    if (normalizedExternalId != null && normalizedExternalId.isNotEmpty) {
+      currentJob.idExterno = normalizedExternalId;
+    }
+    if (normalizedProtocol != null && normalizedProtocol.isNotEmpty) {
+      currentJob.protocoloExterno = normalizedProtocol;
+    }
+
+    notifyListeners();
+  }
+
   Future<void> finalizarJob() async {
     final currentJob = jobAtual;
     if (currentJob != null && repository is MockJobRepositoryController) {
