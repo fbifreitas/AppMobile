@@ -7,11 +7,6 @@ on:
       - "apps/web-backoffice/**"
       - ".github/workflows/web_deploy.yml"
   workflow_dispatch:
-    inputs:
-      target:
-        description: "Ambiente de deploy"
-        required: false
-        default: "staging"
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -54,7 +49,7 @@ jobs:
           if-no-files-found: error
 
   deploy-staging:
-    if: github.event_name == 'push' || github.event.inputs.target == 'staging'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     needs: build
     environment: staging
@@ -90,39 +85,3 @@ jobs:
         if: steps.check_vps_staging.outputs.ready != 'true'
         run: echo "Deploy web de staging ignorado: configure VPS_HOST, VPS_USER e VPS_SSH_KEY nos secrets do GitHub."
 
-  deploy-production:
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'production'
-    runs-on: ubuntu-latest
-    needs: build
-    environment: production
-    steps:
-      - name: Check VPS secrets
-        id: check_vps_production
-        shell: bash
-        env:
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_USER: ${{ secrets.VPS_USER }}
-          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-        run: |
-          if [[ -n "$VPS_HOST" && -n "$VPS_USER" && -n "$VPS_SSH_KEY" ]]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Deploy web to VPS (production)
-        if: steps.check_vps_production.outputs.ready == 'true'
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
-            cd /opt/backoffice
-            git pull origin main
-            docker compose -f infra/docker-compose.yml up -d --build web
-            docker compose -f infra/docker-compose.yml exec -T web wget -qO- http://localhost:3000/health || true
-
-      - name: Skip deploy without VPS secrets
-        if: steps.check_vps_production.outputs.ready != 'true'
-        run: echo "Deploy web de production ignorado: configure VPS_HOST, VPS_USER e VPS_SSH_KEY nos secrets do GitHub."

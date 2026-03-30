@@ -1,6 +1,6 @@
 # CI/CD Web Backoffice
 
-Atualizado em: 2026-03-29
+Atualizado em: 2026-03-30
 
 ## Workflows criados
 1. `.github/workflows/web_ci.yml`
@@ -19,7 +19,7 @@ Etapas:
 ## web_deploy.yml
 Executa:
 1. Automaticamente em push na `main` (staging).
-2. Manualmente via `workflow_dispatch` para `staging` ou `production`.
+2. Manualmente via `workflow_dispatch` (staging).
 
 O deploy usa acesso SSH opcional por segredo:
 1. `VPS_HOST`
