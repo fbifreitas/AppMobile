@@ -1,0 +1,29 @@
+name: Project Board Visual Sync
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/30 * * * *'
+  push:
+    branches: ["main"]
+    paths:
+      - "infra/scripts/sync_project_visuals.ps1"
+      - "docs/GITHUB_PROJECTS_GESTAO_BACKLOG.md"
+
+permissions:
+  contents: read
+  repository-projects: write
+
+jobs:
+  sync-project-visuals:
+    runs-on: windows-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Sync project visuals
+        shell: pwsh
+        run: ./infra/scripts/sync_project_visuals.ps1

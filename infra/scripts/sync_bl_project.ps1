@@ -1,9 +1,20 @@
 $ErrorActionPreference = 'Stop'
 
-$gh = "$env:ProgramFiles\GitHub CLI\gh.exe"
-if (-not (Test-Path $gh)) {
-  throw "GitHub CLI nao encontrado em $gh"
+function Resolve-GitHubCli {
+  $command = Get-Command gh -ErrorAction SilentlyContinue
+  if ($command) {
+    return $command.Source
+  }
+
+  $windowsPath = "$env:ProgramFiles\GitHub CLI\gh.exe"
+  if (Test-Path $windowsPath) {
+    return $windowsPath
+  }
+
+  throw 'GitHub CLI nao encontrado no PATH nem no diretorio padrao.'
 }
+
+$gh = Resolve-GitHubCli
 
 $projectNumber = 1
 $owner = 'fbifreitas'

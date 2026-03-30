@@ -68,6 +68,20 @@ Criar os seguintes campos no Project:
 10. Owner (People) - opcional na fase inicial
 
 11. Data alvo (Date) - opcional na fase inicial
+12. Situacao de Execucao (Single select)
+- Livre
+- Impedido por dependencia
+- Impedido externo
+
+13. Semaforo (Single select)
+- Em andamento
+- Impedido
+- Done
+
+14. Termometro Backlog (Single select)
+- Alta (Vermelho)
+- Media (Laranja)
+- Baixa (Azul)
 
 ## Labels recomendadas no repositorio
 Criar labels no repositorio para facilitar filtros:
@@ -123,6 +137,23 @@ Criar as views abaixo no Project:
 3. Ao mergear PR: Status = Pronto para release
 4. Ao publicar tag de release: Status = Concluido
 5. Se label bloqueador for adicionada: Status = Bloqueado
+
+## Automacao visual implementada
+Existe um workflow no repositório para recalcular o estado visual do board:
+1. `.github/workflows/project_board_visual_sync.yml`
+2. Execucao manual via `workflow_dispatch`
+3. Execucao agendada a cada 30 minutos
+
+Regras aplicadas:
+1. `Semaforo = Done` quando `Status = Done`
+2. `Semaforo = Impedido` quando `Situacao de Execucao` comeca com `Impedido`
+3. `Semaforo = Em andamento` quando `Status = In Progress` e item nao esta impedido
+4. `Termometro Backlog = Alta (Vermelho)` para backlog com prioridade `Critica` ou `Alta`
+5. `Termometro Backlog = Media (Laranja)` para backlog com prioridade `Media`
+6. `Termometro Backlog = Baixa (Azul)` para backlog com prioridade `Baixa`
+
+Script base:
+1. `infra/scripts/sync_project_visuals.ps1`
 
 ## Mapeamento inicial sugerido
 Registrar imediatamente os itens atuais:
