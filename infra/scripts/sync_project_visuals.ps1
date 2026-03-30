@@ -33,6 +33,11 @@ $projectNumber = if ($env:PROJECT_NUMBER) { [int]$env:PROJECT_NUMBER } else { 1 
 $owner = if ($env:PROJECT_OWNER) { $env:PROJECT_OWNER } else { 'fbifreitas' }
 $projectId = if ($env:PROJECT_ID) { $env:PROJECT_ID } else { 'PVT_kwHOECRsGc4BTNJY' }
 
+if ($env:GITHUB_ACTIONS -eq 'true' -and [string]::IsNullOrWhiteSpace($env:GH_TOKEN)) {
+  Write-Output 'Sincronizacao visual ignorada: configure o secret PROJECT_AUTOMATION_TOKEN com escopo de acesso ao GitHub Project.'
+  exit 0
+}
+
 $semaforo = Ensure-SingleSelectField $gh $projectNumber $owner 'Semaforo' 'Em andamento,Impedido,Done'
 $termometro = Ensure-SingleSelectField $gh $projectNumber $owner 'Termometro Backlog' 'Alta (Vermelho),Media (Laranja),Baixa (Azul)'
 

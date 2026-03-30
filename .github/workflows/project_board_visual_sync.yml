@@ -12,31 +12,13 @@ on:
 
 jobs:
   sync-project-visuals:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Check automation token
-        id: check_token
-        shell: pwsh
-        env:
-          PROJECT_AUTOMATION_TOKEN: ${{ secrets.PROJECT_AUTOMATION_TOKEN }}
-        run: |
-          if ([string]::IsNullOrWhiteSpace($env:PROJECT_AUTOMATION_TOKEN)) {
-            "ready=false" >> $env:GITHUB_OUTPUT
-          } else {
-            "ready=true" >> $env:GITHUB_OUTPUT
-          }
-
-      - name: Skip sync without project token
-        if: steps.check_token.outputs.ready != 'true'
-        shell: pwsh
-        run: Write-Output 'Sincronizacao visual ignorada: configure o secret PROJECT_AUTOMATION_TOKEN com escopo de acesso ao GitHub Project.'
-
       - name: Sync project visuals
-        if: steps.check_token.outputs.ready == 'true'
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.PROJECT_AUTOMATION_TOKEN }}
