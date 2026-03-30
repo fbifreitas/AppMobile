@@ -15,6 +15,10 @@
 - [ ] código validado antes do push
 - [ ] branch `main` estável
 - [ ] workflow `.github/workflows/android_ci.yml` presente
+- [ ] `pubspec.yaml` com `version` incrementada para esta entrega
+- [ ] validar versão atual antes do push:
+	- `CURRENT_VERSION=$(awk '/^version:/{print $2; exit}' pubspec.yaml)`
+	- confirmar que a versão é maior que a última publicada
 
 ## Próxima etapa
 Quando quiser distribuir sem cabo USB:
