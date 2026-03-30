@@ -5,6 +5,15 @@ Atualizado em: 2026-03-29
 ## Objetivo
 Registrar funcionalidades pendentes para evolucao do AppMobile, com foco em priorizacao de produto e previsibilidade tecnica.
 
+## Backlog complementar de backoffice web
+Para planejamento do sistema web de backoffice (APIs, painéis e configurações para suportar o app mobile), consultar `docs/BACKLOG_BACKOFFICE_WEB.md`.
+
+## Backlog complementar de integração web-mobile
+Para segurança, contratos e comunicação bidirecional entre app e backoffice, consultar `docs/BACKLOG_INTEGRACAO_WEB_MOBILE.md`.
+
+## Plano de execucao (proximos 30 dias)
+Para transformar backlog em entrega com marcos semanais, ownership e criterios de aceite, consultar `docs/PLANO_EXECUCAO_30_DIAS_WEB_MOBILE.md`.
+
 ## 🎯 Roadmap de Priorização
 
 A sequência de implementação foi definida considerando:

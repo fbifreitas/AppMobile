@@ -85,7 +85,7 @@ void main() {
     TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher.views.first.resetDevicePixelRatio();
   });
 
-  testWidgets('shows review CTA and pending shortcut when there are pendencias', (tester) async {
+  testWidgets('shows review CTA without pending shortcut link', (tester) async {
     await _pumpReview(
       tester,
       captures: [
@@ -94,10 +94,10 @@ void main() {
     );
 
     expect(find.text('REVISAR E FINALIZAR'), findsOneWidget);
-    expect(find.text('Ir para principal pendência'), findsOneWidget);
+    expect(find.text('Ir para principal pendência'), findsNothing);
   });
 
-  testWidgets('keeps voice commands collapsed by default', (tester) async {
+  testWidgets('shows updated review section labels', (tester) async {
     await _pumpReview(
       tester,
       captures: [
@@ -105,18 +105,11 @@ void main() {
       ],
     );
 
-    await tester.scrollUntilVisible(
-      find.text('Comandos por voz (opcional)'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Comandos por voz (opcional)'), findsOneWidget);
-    expect(find.text('Comandos rápidos por voz'), findsNothing);
+    expect(find.text('Fotos obrigatórias do check-in'), findsOneWidget);
+    expect(find.text('Fotos capturadas'), findsOneWidget);
   });
 
-  testWidgets('expands optional voice commands section on tap', (tester) async {
+  testWidgets('does not render optional voice commands section', (tester) async {
     await _pumpReview(
       tester,
       captures: [
@@ -124,16 +117,7 @@ void main() {
       ],
     );
 
-    await tester.scrollUntilVisible(
-      find.text('Comandos por voz (opcional)'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Comandos por voz (opcional)'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Comandos rápidos por voz'), findsOneWidget);
+    expect(find.text('Comandos por voz (opcional)'), findsNothing);
+    expect(find.text('Comandos rápidos por voz'), findsNothing);
   });
 }

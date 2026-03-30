@@ -27,7 +27,7 @@ class TechnicalJustificationCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Justificativa técnica',
+            'Anotação do vistoriador',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                   fontSize: 16,
@@ -35,17 +35,17 @@ class TechnicalJustificationCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Preencha a justificativa quando houver pendências técnicas não bloqueantes ou necessidade de contextualização normativa.',
+            'Há itens com pendências que não impedem a conclusão. Anote aqui o que for necessário para registro.',
             style: TextStyle(fontSize: 12),
           ),
           const SizedBox(height: 10),
           VoiceTextField(
             controller: controller,
-            labelText: 'Justificativa técnica',
+            labelText: 'Anotação do vistoriador',
             minLines: 3,
             maxLines: 5,
             voiceService: voiceService,
-            helperText: 'Você pode ditar a justificativa pelo microfone.',
+            helperText: 'Você pode ditar a anotação pelo microfone.',
             onChanged: onChanged,
           ),
         ],

@@ -13,14 +13,11 @@ import '../services/inspection_technical_summary_service.dart';
 import '../widgets/inspection_technical_summary_card.dart';
 import '../widgets/technical_pending_matrix_card.dart';
 import '../widgets/technical_justification_card.dart';
-import '../services/voice_command_catalog_service.dart';
-import '../services/voice_command_parser_service.dart';
 import '../services/checkin_dynamic_config_service.dart';
 import '../services/inspection_export_service.dart';
 import '../services/inspection_sync_queue_service.dart';
 import '../services/inspection_sync_service.dart';
 import '../services/voice_input_service.dart';
-import '../widgets/voice_action_bar.dart';
 import '../widgets/voice_text_field.dart';
 import 'overlay_camera_screen.dart';
 import '../models/inspection_technical_summary.dart';
@@ -47,8 +44,6 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   final TextEditingController _technicalJustificationController = TextEditingController();
   final InspectionTechnicalSummaryService _technicalSummaryService = const InspectionTechnicalSummaryService();
   final VoiceInputService _voiceService = VoiceInputService();
-  final VoiceCommandParserService _voiceCommandParser = VoiceCommandParserService();
-  final VoiceCommandCatalogService _voiceCommandCatalog = const VoiceCommandCatalogService();
   final InspectionExportService _exportService = const InspectionExportService();
   final InspectionSyncService _syncService = const InspectionSyncService();
     final InspectionSyncQueueService _syncQueueService =
@@ -154,7 +149,6 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   Widget build(BuildContext context) {
     final summary = _buildSummary();
     final groups = _buildGroups();
-    final firstPendingGroupTitle = _firstPendingGroupTitle(groups);
     final checkinStatuses = _buildCheckinRequirements();
     final technicalSummary = _technicalSummaryService.build(
       tipoImovel: widget.tipoImovel,
@@ -185,13 +179,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
         children: [
-          _buildProgressCard(
-            context,
-            summary,
-            onOpenMainPending: firstPendingGroupTitle == null
-                ? null
-                : () => setState(() => _expandedSubtype = firstPendingGroupTitle),
-          ),
+          _buildProgressCard(context, summary),
           const SizedBox(height: 12),
           InspectionTechnicalSummaryCard(summary: technicalSummary),
           if (technicalSummary.pendingMatrix.totalBlocking > 0) ...[
@@ -200,7 +188,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
               tilePadding: const EdgeInsets.symmetric(horizontal: 4),
               childrenPadding: EdgeInsets.zero,
               title: Text(
-                'Ver pendências técnicas (${technicalSummary.pendingMatrix.totalBlocking})',
+                'Ver pendências da vistoria (${technicalSummary.pendingMatrix.totalBlocking})',
                 style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
               ),
               children: [
@@ -219,7 +207,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
           const SizedBox(height: 18),
           if (checkinStatuses.isNotEmpty) ...[
             Text(
-              'Pendências obrigatórias do check-in',
+              'Fotos obrigatórias do check-in',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w800,
                     fontSize: 16,
@@ -238,7 +226,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
             const SizedBox(height: 18),
           ],
           Text(
-            'Nós de coleta',
+            'Fotos capturadas',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                   fontSize: 16,
@@ -250,7 +238,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                 child: _NodeCard(
                   group: group,
                   initiallyExpanded: _expandedSubtype == null
-                      ? group.title == firstPendingGroupTitle
+                      ? group.pending > 0
                       : _expandedSubtype == group.title,
                   onExpansionChanged: (expanded) {
                     setState(() {
@@ -264,8 +252,6 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                   onEditItem: _editItem,
                 ),
               )),
-          const SizedBox(height: 8),
-          _buildOptionalVoiceCommands(),
           const SizedBox(height: 16),
           _buildClosingCard(context, summary, technicalSummary),
         ],
@@ -273,70 +259,6 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       ),
     );
   }
-
-  Future<void> _handleReviewVoiceCommand(VoiceCommandMatch match) async {
-    switch (match.commandId) {
-      case 'finalizar_vistoria':
-        await _finishInspection(context, _buildSummary().totalPending);
-        return;
-      case 'aceitar_sugestoes':
-        if (_expandedSubtype == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Abra um subtipo antes de usar este comando.')),
-          );
-          return;
-        }
-        final group = _buildGroups().where((g) => g.title == _expandedSubtype).firstOrNull;
-        if (group == null) return;
-        _acceptSuggestions(group);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Sugestões aceitas em $_expandedSubtype.')),
-        );
-        return;
-      case 'aplicar_ao_subtipo':
-        if (_expandedSubtype == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Abra um subtipo antes de usar este comando.')),
-          );
-          return;
-        }
-        final group = _buildGroups().where((g) => g.title == _expandedSubtype).firstOrNull;
-        if (group == null) return;
-        _applySubtype(group);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Classificação aplicada ao subtipo $_expandedSubtype.')),
-        );
-        return;
-      case 'aplicar_aos_semelhantes':
-        if (_expandedSubtype == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Abra um subtipo antes de usar este comando.')),
-          );
-          return;
-        }
-        final group = _buildGroups().where((g) => g.title == _expandedSubtype).firstOrNull;
-        if (group == null || group.items.isEmpty) return;
-        _applySimilar(group, group.items.first);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Classificação aplicada aos semelhantes em $_expandedSubtype.')),
-        );
-        return;
-      case 'abrir_subtipo':
-        final subtipo = match.entities['subtipo'];
-        if (subtipo == null || subtipo.trim().isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Fale o nome do subtipo para abrir.')),
-          );
-          return;
-        }
-        setState(() => _expandedSubtype = subtipo);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Subtipo $subtipo aberto para revisão.')),
-        );
-        return;
-    }
-  }
-
 
   List<TechnicalEvidenceInput> _buildTechnicalEvidenceInputs() {
     return _items
@@ -368,9 +290,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
 
   Widget _buildProgressCard(
     BuildContext context,
-    _ReviewSummary summary, {
-    VoidCallback? onOpenMainPending,
-  }) {
+    _ReviewSummary summary,
+  ) {
     final progress = summary.total == 0 ? 0.0 : (summary.classified / summary.total).clamp(0.0, 1.0);
     return Container(
       padding: const EdgeInsets.all(16),
@@ -402,50 +323,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
             borderRadius: BorderRadius.circular(999),
             child: LinearProgressIndicator(minHeight: 10, value: progress),
           ),
-          const SizedBox(height: 10),
-          Text(
-            summary.totalPending > 0
-                ? 'Existem pendências destacadas abaixo para revisão rápida.'
-                : 'Tudo pronto para finalizar a vistoria.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13),
-          ),
-          if (summary.totalPending > 0 && onOpenMainPending != null)
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: onOpenMainPending,
-                icon: const Icon(Icons.arrow_downward_rounded, size: 16),
-                label: const Text('Ir para principal pendência', style: TextStyle(fontSize: 12)),
-              ),
-            ),
         ],
       ),
-    );
-  }
-
-  Widget _buildOptionalVoiceCommands() {
-    return ExpansionTile(
-      tilePadding: const EdgeInsets.symmetric(horizontal: 4),
-      childrenPadding: EdgeInsets.zero,
-      title: const Text(
-        'Comandos por voz (opcional)',
-        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-      ),
-      subtitle: const Text(
-        'Use somente se quiser acelerar ações sem toque.',
-        style: TextStyle(fontSize: 11),
-      ),
-      children: [
-        VoiceActionBar(
-          voiceService: _voiceService,
-          parserService: _voiceCommandParser,
-          commands: _voiceCommandCatalog.reviewCommands(),
-          contextKey: 'review',
-          title: 'Comandos rápidos por voz',
-          subtitle: 'Ex.: finalizar vistoria, aceitar sugestões, abrir subtipo cozinha.',
-          onCommand: _handleReviewVoiceCommand,
-        ),
-      ],
     );
   }
 
@@ -494,7 +373,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
               child: Text(
                 technicalSummary.pendingMatrix.hasBlocking
                     ? 'Conclusão técnica bloqueada até resolver as pendências normativas.'
-                    : 'Preencha a justificativa técnica para concluir a vistoria.',
+                    : 'Preencha a anotação do vistoriador para concluir a vistoria.',
                 style: TextStyle(
                   color: Colors.orange.shade800,
                   fontWeight: FontWeight.w700,
@@ -845,13 +724,6 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     };
   }
 
-  String? _firstPendingGroupTitle(List<_NodeGroup> groups) {
-    for (final group in groups) {
-      if (group.pending > 0) return group.title;
-    }
-    if (groups.isEmpty) return null;
-    return groups.first.title;
-  }
 }
 
 class _CheckinRequirementCard extends StatelessWidget {
