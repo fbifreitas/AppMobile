@@ -182,20 +182,13 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
           _buildProgressCard(context, summary),
           const SizedBox(height: 12),
           InspectionTechnicalSummaryCard(summary: technicalSummary),
-          if (technicalSummary.pendingMatrix.totalBlocking > 0) ...[
-            const SizedBox(height: 8),
-            ExpansionTile(
-              tilePadding: const EdgeInsets.symmetric(horizontal: 4),
-              childrenPadding: EdgeInsets.zero,
-              title: Text(
-                'Ver pendências da vistoria (${technicalSummary.pendingMatrix.totalBlocking})',
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-              ),
-              children: [
-                TechnicalPendingMatrixCard(matrix: technicalSummary.pendingMatrix),
-              ],
-            ),
-          ],
+          const SizedBox(height: 8),
+          _buildPendenciasSection(
+            context: context,
+            groups: groups,
+            checkinStatuses: checkinStatuses,
+            technicalSummary: technicalSummary,
+          ),
           if (technicalSummary.requiresJustification) ...[
             const SizedBox(height: 12),
             TechnicalJustificationCard(
@@ -204,54 +197,6 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
               onChanged: (_) => setState(() {}),
             ),
           ],
-          const SizedBox(height: 18),
-          if (checkinStatuses.isNotEmpty) ...[
-            Text(
-              'Fotos obrigatórias do check-in',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 16,
-                  ),
-            ),
-            const SizedBox(height: 10),
-            ...checkinStatuses.map(
-              (status) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _CheckinRequirementCard(
-                  status: status,
-                  onCapture: status.isDone ? null : () => _captureMissingRequirement(status),
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),
-          ],
-          Text(
-            'Fotos capturadas',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 16,
-                ),
-          ),
-          const SizedBox(height: 10),
-          ...groups.map((group) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _NodeCard(
-                  group: group,
-                  initiallyExpanded: _expandedSubtype == null
-                      ? group.pending > 0
-                      : _expandedSubtype == group.title,
-                  onExpansionChanged: (expanded) {
-                    setState(() {
-                      _expandedSubtype = expanded ? group.title : null;
-                    });
-                  },
-                  onChanged: () => setState(() {}),
-                  onApplySubtype: () => _applySubtype(group),
-                  onApplySimilar: (source) => _applySimilar(group, source),
-                  onAcceptSuggestions: () => _acceptSuggestions(group),
-                  onEditItem: _editItem,
-                ),
-              )),
           const SizedBox(height: 16),
           _buildClosingCard(context, summary, technicalSummary),
         ],
@@ -303,28 +248,110 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.map_outlined, size: 24),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          Row(
             children: [
-              _MetricChip(label: 'Fotos', value: '${summary.total}', color: Colors.blueGrey),
-              _MetricChip(label: 'Concluídas', value: '${summary.classified}', color: Colors.green),
-              _MetricChip(
-                label: 'Pendências',
-                value: '${summary.totalPending}',
-                color: summary.totalPending > 0 ? Colors.orange : Colors.green,
+              const Icon(Icons.map_outlined, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Revisão de fotos',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const Spacer(),
+              Text(
+                '${summary.classified}/${summary.total} classificadas',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           ClipRRect(
             borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(minHeight: 10, value: progress),
+            child: LinearProgressIndicator(minHeight: 8, value: progress),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildPendenciasSection({
+    required BuildContext context,
+    required List<_NodeGroup> groups,
+    required List<_CheckinRequirementStatus> checkinStatuses,
+    required InspectionTechnicalSummary technicalSummary,
+  }) {
+    final checkinPendencias = checkinStatuses.where((status) => !status.isDone).length;
+    final fotosPendentes = groups.fold<int>(0, (sum, group) => sum + group.pending);
+    final totalPendencias = technicalSummary.pendingMatrix.totalBlocking +
+        checkinPendencias +
+        fotosPendentes;
+    final hasPendencias = totalPendencias > 0;
+
+    return ExpansionTile(
+      initiallyExpanded: hasPendencias,
+      tilePadding: const EdgeInsets.symmetric(horizontal: 4),
+      childrenPadding: EdgeInsets.zero,
+      title: Text(
+        hasPendencias
+            ? 'Ver pendências da vistoria ($totalPendencias)'
+            : 'Vistoria revisada',
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: hasPendencias ? Colors.orange.shade800 : Colors.green.shade700,
+            ),
+      ),
+      children: [
+        if (technicalSummary.pendingMatrix.totalBlocking > 0) ...[
+          TechnicalPendingMatrixCard(matrix: technicalSummary.pendingMatrix),
+          const SizedBox(height: 12),
+        ],
+        if (checkinStatuses.isNotEmpty) ...[
+          Text(
+            'Fotos obrigatórias do check-in',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                ),
+          ),
+          const SizedBox(height: 10),
+          ...checkinStatuses.map(
+            (status) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _CheckinRequirementCard(
+                status: status,
+                onCapture: status.isDone ? null : () => _captureMissingRequirement(status),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        Text(
+          'Fotos capturadas',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                fontSize: 16,
+              ),
+        ),
+        const SizedBox(height: 10),
+        ...groups.map((group) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _NodeCard(
+                group: group,
+                initiallyExpanded: _expandedSubtype == null
+                    ? group.pending > 0
+                    : _expandedSubtype == group.title,
+                onExpansionChanged: (expanded) {
+                  setState(() {
+                    _expandedSubtype = expanded ? group.title : null;
+                  });
+                },
+                onChanged: () => setState(() {}),
+                onApplySubtype: () => _applySubtype(group),
+                onApplySimilar: (source) => _applySimilar(group, source),
+                onAcceptSuggestions: () => _acceptSuggestions(group),
+                onEditItem: _editItem,
+              ),
+            )),
+      ],
     );
   }
 
@@ -1007,31 +1034,6 @@ class _EditorDropdown extends StatelessWidget {
       decoration: InputDecoration(labelText: label, isDense: true, border: const OutlineInputBorder()),
       items: items.map((item) => DropdownMenuItem<String>(value: item, child: Text(item, overflow: TextOverflow.ellipsis))).toList(),
       onChanged: onChanged,
-    );
-  }
-}
-
-class _MetricChip extends StatelessWidget {
-  final String label;
-  final String value;
-  final MaterialColor color;
-
-  const _MetricChip({required this.label, required this.value, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), color: color.shade50),
-      child: RichText(
-        text: TextSpan(
-          style: TextStyle(color: color.shade800, fontSize: 11, fontFamily: DefaultTextStyle.of(context).style.fontFamily),
-          children: [
-            TextSpan(text: '$value ', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-            TextSpan(text: label),
-          ],
-        ),
-      ),
     );
   }
 }

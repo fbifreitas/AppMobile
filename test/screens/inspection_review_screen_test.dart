@@ -97,7 +97,7 @@ void main() {
     expect(find.text('Ir para principal pendência'), findsNothing);
   });
 
-  testWidgets('shows updated review section labels', (tester) async {
+  testWidgets('consolidates pending content under one review section', (tester) async {
     await _pumpReview(
       tester,
       captures: [
@@ -105,6 +105,7 @@ void main() {
       ],
     );
 
+    expect(find.textContaining('Ver pendências da vistoria'), findsOneWidget);
     expect(find.text('Fotos obrigatórias do check-in'), findsOneWidget);
     expect(find.text('Fotos capturadas'), findsOneWidget);
   });
@@ -119,5 +120,18 @@ void main() {
 
     expect(find.text('Comandos por voz (opcional)'), findsNothing);
     expect(find.text('Comandos rápidos por voz'), findsNothing);
+  });
+
+  testWidgets('uses simplified progress header without top metric chips', (tester) async {
+    await _pumpReview(
+      tester,
+      captures: [
+        _capture(filePath: '/tmp/a.jpg', ambiente: 'Cozinha', elemento: 'Piso', material: 'Cerâmica', estado: 'Bom'),
+      ],
+    );
+
+    expect(find.text('Revisão de fotos'), findsOneWidget);
+    expect(find.text('Concluídas'), findsNothing);
+    expect(find.text('Pendências'), findsNothing);
   });
 }
