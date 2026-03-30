@@ -348,9 +348,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 8),
           OutlinedButton.icon(
             onPressed: () async {
-              await context.read<AuthState>().logout();
+              final authState = context.read<AuthState>();
+              final navigator = Navigator.of(context);
+              await authState.logout();
               if (!mounted) return;
-              Navigator.of(context).popUntil((route) => route.isFirst);
+              navigator.popUntil((route) => route.isFirst);
             },
             icon: const Icon(Icons.logout),
             label: const Text('Sair da conta'),

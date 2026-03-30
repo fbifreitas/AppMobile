@@ -21,7 +21,8 @@ class CheckinStep1DynamicConfig {
 class CheckinDynamicConfigService {
   CheckinDynamicConfigService._();
 
-  static final CheckinDynamicConfigService instance = CheckinDynamicConfigService._();
+  static final CheckinDynamicConfigService instance =
+      CheckinDynamicConfigService._();
 
   static const String _baseUrl = String.fromEnvironment('APP_API_BASE_URL');
   static const String _authToken = String.fromEnvironment('APP_API_TOKEN');
@@ -31,8 +32,7 @@ class CheckinDynamicConfigService {
   );
 
   static const String _step1CacheKey = 'checkin_dynamic_step1_config_v1';
-  static const String _devMockEnabledKey =
-      'dev_mock_checkin_config_enabled_v1';
+  static const String _devMockEnabledKey = 'dev_mock_checkin_config_enabled_v1';
   static const String _devMockDocumentKey =
       'dev_mock_checkin_config_document_v1';
 
@@ -104,7 +104,10 @@ class CheckinDynamicConfigService {
     final contextos = _extractStringList(step1Node['contextos']);
     final rawSubtipos = _extractMap(step1Node['subtiposPorTipo']);
 
-    if (tipos.isEmpty || contextos.isEmpty || rawSubtipos == null || rawSubtipos.isEmpty) {
+    if (tipos.isEmpty ||
+        contextos.isEmpty ||
+        rawSubtipos == null ||
+        rawSubtipos.isEmpty) {
       return fallback;
     }
 
@@ -146,11 +149,7 @@ class CheckinDynamicConfigService {
     final step2Node = _extractStep2Node(document, tipo);
     if (step2Node == null) return fallback;
 
-    return parseStep2ConfigMap(
-      tipo: tipo,
-      raw: step2Node,
-      fallback: fallback,
-    );
+    return parseStep2ConfigMap(tipo: tipo, raw: step2Node, fallback: fallback);
   }
 
   CheckinStep2Config parseStep2ConfigMap({
@@ -171,7 +170,10 @@ class CheckinDynamicConfigService {
       final cameraMacroLocal = '${map['cameraMacroLocal'] ?? ''}'.trim();
       final cameraAmbiente = '${map['cameraAmbiente'] ?? ''}'.trim();
 
-      if (id.isEmpty || titulo.isEmpty || cameraMacroLocal.isEmpty || cameraAmbiente.isEmpty) {
+      if (id.isEmpty ||
+          titulo.isEmpty ||
+          cameraMacroLocal.isEmpty ||
+          cameraAmbiente.isEmpty) {
         continue;
       }
 
@@ -228,7 +230,8 @@ class CheckinDynamicConfigService {
     return CheckinStep2Config(
       tipoImovel: tipo,
       tituloTela: _optionalString(raw['tituloTela']) ?? fallback.tituloTela,
-      subtituloTela: _optionalString(raw['subtituloTela']) ?? fallback.subtituloTela,
+      subtituloTela:
+          _optionalString(raw['subtituloTela']) ?? fallback.subtituloTela,
       camposFotos: campos,
       gruposOpcoes: grupos.isNotEmpty ? grupos : fallback.gruposOpcoes,
     );
@@ -239,46 +242,53 @@ class CheckinDynamicConfigService {
       'tipoImovel': config.tipoImovel.name,
       'tituloTela': config.tituloTela,
       'subtituloTela': config.subtituloTela,
-      'camposFotos': config.camposFotos
-          .map(
-            (field) => {
-              'id': field.id,
-              'titulo': field.titulo,
-              'icon': _iconToName(field.icon),
-              'obrigatorio': field.obrigatorio,
-              'cameraMacroLocal': field.cameraMacroLocal,
-              'cameraAmbiente': field.cameraAmbiente,
-              'cameraElementoInicial': field.cameraElementoInicial,
-            },
-          )
-          .toList(),
-      'gruposOpcoes': config.gruposOpcoes
-          .map(
-            (group) => {
-              'id': group.id,
-              'titulo': group.titulo,
-              'multiplaEscolha': group.multiplaEscolha,
-              'permiteObservacao': group.permiteObservacao,
-              'opcoes': group.opcoes
-                  .map(
-                    (option) => {
-                      'id': option.id,
-                      'label': option.label,
-                    },
-                  )
-                  .toList(),
-            },
-          )
-          .toList(),
+      'camposFotos':
+          config.camposFotos
+              .map(
+                (field) => {
+                  'id': field.id,
+                  'titulo': field.titulo,
+                  'icon': _iconToName(field.icon),
+                  'obrigatorio': field.obrigatorio,
+                  'cameraMacroLocal': field.cameraMacroLocal,
+                  'cameraAmbiente': field.cameraAmbiente,
+                  'cameraElementoInicial': field.cameraElementoInicial,
+                },
+              )
+              .toList(),
+      'gruposOpcoes':
+          config.gruposOpcoes
+              .map(
+                (group) => {
+                  'id': group.id,
+                  'titulo': group.titulo,
+                  'multiplaEscolha': group.multiplaEscolha,
+                  'permiteObservacao': group.permiteObservacao,
+                  'opcoes':
+                      group.opcoes
+                          .map(
+                            (option) => {
+                              'id': option.id,
+                              'label': option.label,
+                            },
+                          )
+                          .toList(),
+                },
+              )
+              .toList(),
     };
   }
 
   Future<Map<String, dynamic>?> _fetchDocument({String? tipo}) async {
     try {
-      final normalizedBase = _baseUrl.endsWith('/') ? _baseUrl.substring(0, _baseUrl.length - 1) : _baseUrl;
-      final normalizedPath = _checkinConfigEndpoint.startsWith('/')
-          ? _checkinConfigEndpoint
-          : '/$_checkinConfigEndpoint';
+      final normalizedBase =
+          _baseUrl.endsWith('/')
+              ? _baseUrl.substring(0, _baseUrl.length - 1)
+              : _baseUrl;
+      final normalizedPath =
+          _checkinConfigEndpoint.startsWith('/')
+              ? _checkinConfigEndpoint
+              : '/$_checkinConfigEndpoint';
       final uri = Uri.parse('$normalizedBase$normalizedPath').replace(
         queryParameters: {
           if (tipo != null && tipo.trim().isNotEmpty) 'tipoImovel': tipo,
@@ -290,11 +300,16 @@ class CheckinDynamicConfigService {
         final request = await client.getUrl(uri);
         request.headers.set(HttpHeaders.acceptHeader, 'application/json');
         if (_authToken.trim().isNotEmpty) {
-          request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $_authToken');
+          request.headers.set(
+            HttpHeaders.authorizationHeader,
+            'Bearer $_authToken',
+          );
         }
 
         final response = await request.close();
-        if (response.statusCode < 200 || response.statusCode >= 300) return null;
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+          return null;
+        }
 
         final body = await response.transform(utf8.decoder).join();
         final decoded = jsonDecode(body);
@@ -416,7 +431,9 @@ class CheckinDynamicConfigService {
   String _iconToName(IconData icon) {
     if (icon == Icons.home_work_outlined) return 'home_work_outlined';
     if (icon == Icons.map_outlined) return 'map_outlined';
-    if (icon == Icons.door_front_door_outlined) return 'door_front_door_outlined';
+    if (icon == Icons.door_front_door_outlined) {
+      return 'door_front_door_outlined';
+    }
     if (icon == Icons.agriculture_outlined) return 'agriculture_outlined';
     if (icon == Icons.login_outlined) return 'login_outlined';
     if (icon == Icons.place_outlined) return 'place_outlined';
