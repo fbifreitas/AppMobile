@@ -4,8 +4,10 @@ import 'package:provider/provider.dart';
 import '../models/checkin_step2_model.dart';
 import '../models/home_location_snapshot.dart';
 import '../models/job.dart';
+import '../services/app_navigation_coordinator.dart';
 import '../services/home_bootstrap_service.dart';
 import '../services/home_location_service.dart';
+import '../services/inspection_flow_coordinator.dart';
 import '../services/inspection_sync_queue_service.dart';
 import '../services/location_service.dart';
 import '../services/map_service.dart';
@@ -14,16 +16,17 @@ import 'overlay_camera_screen.dart';
 import '../widgets/home/home_header.dart';
 import '../widgets/home/jobs_section.dart';
 import '../widgets/home/proposals_section.dart';
-import 'checkin_screen.dart';
-import 'checkin_step2_screen.dart';
 import 'completed_inspections_screen.dart';
-import 'inspection_review_screen.dart';
-import 'notifications_screen.dart';
-import 'operational_hub_screen.dart';
-import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final InspectionFlowCoordinator flowCoordinator;
+  final AppNavigationCoordinator? appNavigationCoordinator;
+
+  const HomeScreen({
+    super.key,
+    this.flowCoordinator = const DefaultInspectionFlowCoordinator(),
+    this.appNavigationCoordinator,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -31,7 +34,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final HomeLocationService _homeLocationService = const HomeLocationService();
-  final HomeBootstrapService _homeBootstrapService = const HomeBootstrapService();
+  final HomeBootstrapService _homeBootstrapService =
+      const HomeBootstrapService();
   final InspectionSyncQueueService _syncQueueService =
       const InspectionSyncQueueService();
 
@@ -39,6 +43,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _refreshingLocation = false;
   int _currentTabIndex = 0;
   HomeLocationSnapshot _locationSnapshot = HomeLocationSnapshot.initial();
+
+  AppNavigationCoordinator get _appNavigationCoordinator =>
+      widget.appNavigationCoordinator ??
+      DefaultAppNavigationCoordinator(
+        inspectionFlowCoordinator: widget.flowCoordinator,
+      );
 
   @override
   void initState() {
@@ -103,9 +113,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         },
         writeLocation: (latitude, longitude) {
           context.read<AppState>().atualizarUltimaLocalizacao(
-                latitude,
-                longitude,
-              );
+            latitude,
+            longitude,
+          );
         },
       );
 
@@ -165,9 +175,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (isRecovery) {
       if (recoveryRoute == '/inspection_review') {
         final reviewPayload = appState.inspectionRecoveryPayload['review'];
-        final tipoImovel = (reviewPayload is Map<String, dynamic>)
-            ? reviewPayload['tipoImovel'] as String?
-            : null;
+        final tipoImovel =
+            (reviewPayload is Map<String, dynamic>)
+                ? reviewPayload['tipoImovel'] as String?
+                : null;
         final captures = <OverlayCameraCaptureResult>[];
 
         if (reviewPayload is Map<String, dynamic>) {
@@ -182,43 +193,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         }
 
         if (tipoImovel != null) {
-          // Rebuild back-stack: CheckinScreen → CheckinStep2Screen → InspectionReviewScreen
-          // so the user can navigate back through the flow instead of landing on Home.
-          final tipoBase = tipoImovel.split(' •').first.trim();
-          final initialData = appState.step2Payload.isNotEmpty
-              ? CheckinStep2Model.fromMap(appState.step2Payload)
-              : null;
+          final initialData =
+              appState.step2Payload.isNotEmpty
+                  ? CheckinStep2Model.fromMap(appState.step2Payload)
+                  : null;
 
-          Navigator.push(
+          widget.flowCoordinator.restoreReviewRecoveryFlow(
             context,
-            PageRouteBuilder<void>(
-              pageBuilder: (_, __, ___) => const CheckinScreen(),
-              transitionDuration: Duration.zero,
-              reverseTransitionDuration: Duration.zero,
-            ),
-          );
-          Navigator.push(
-            context,
-            PageRouteBuilder<void>(
-              pageBuilder: (_, __, ___) => CheckinStep2Screen(
-                tipoImovel: tipoBase,
-                initialData: initialData,
-                onContinue: (model) async {
-                  await appState.persistStep2Draft(model.toMap());
-                },
-              ),
-              transitionDuration: Duration.zero,
-              reverseTransitionDuration: Duration.zero,
-            ),
-          );
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => InspectionReviewScreen(
-                captures: captures,
-                tipoImovel: tipoImovel,
-              ),
-            ),
+            tipoImovel: tipoImovel,
+            initialData: initialData,
+            onContinue: (model) async {
+              await appState.persistStep2Draft(model.toMap());
+            },
+            captures: captures,
           );
           return;
         }
@@ -226,70 +213,38 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
       if (recoveryRoute == '/checkin_step2') {
         final tipoImovel = appState.step1Payload['tipoImovel'] as String?;
-        final initialData = appState.step2Payload.isNotEmpty
-            ? CheckinStep2Model.fromMap(appState.step2Payload)
-            : null;
+        final initialData =
+            appState.step2Payload.isNotEmpty
+                ? CheckinStep2Model.fromMap(appState.step2Payload)
+                : null;
 
         if (tipoImovel != null) {
-          // Push CheckinScreen silently so the user can go back to step 1.
-          Navigator.push(
+          widget.flowCoordinator.restoreCheckinStep2RecoveryFlow(
             context,
-            PageRouteBuilder<void>(
-              pageBuilder: (_, __, ___) => const CheckinScreen(),
-              transitionDuration: Duration.zero,
-              reverseTransitionDuration: Duration.zero,
-            ),
-          );
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => CheckinStep2Screen(
-                tipoImovel: tipoImovel,
-                initialData: initialData,
-                onContinue: (model) async {
-                  await appState.persistStep2Draft(model.toMap());
-                },
-              ),
-            ),
+            tipoImovel: tipoImovel,
+            initialData: initialData,
+            onContinue: (model) async {
+              await appState.persistStep2Draft(model.toMap());
+            },
           );
           return;
         }
       }
     }
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const CheckinScreen(),
-      ),
-    );
+    widget.flowCoordinator.openCheckin(context);
   }
 
   void _openNotifications() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const NotificationsScreen(),
-      ),
-    );
+    _appNavigationCoordinator.openNotifications(context);
   }
 
   void _openSettings() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const SettingsScreen(),
-      ),
-    );
+    _appNavigationCoordinator.openSettings(context);
   }
 
   void _openOperationalHub() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const OperationalHubScreen(),
-      ),
-    );
+    _appNavigationCoordinator.openOperationalHub(context);
   }
 
   @override
@@ -311,8 +266,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             const SizedBox(height: 16),
             JobsSection(
               appState: appState,
-              currentLatitude: appState.ultimaLatitude ?? _locationSnapshot.latitude,
-              currentLongitude: appState.ultimaLongitude ?? _locationSnapshot.longitude,
+              currentLatitude:
+                  appState.ultimaLatitude ?? _locationSnapshot.latitude,
+              currentLongitude:
+                  appState.ultimaLongitude ?? _locationSnapshot.longitude,
               useDistanceMetrics: true,
               onNavigateToJob: ({
                 required double? latitude,
@@ -326,10 +283,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 );
               },
               onStartInspection: (job) async {
-                await _handleStartInspection(
-                  appState: appState,
-                  job: job,
-                );
+                await _handleStartInspection(appState: appState, job: job);
               },
             ),
             const SizedBox(height: 14),
@@ -341,10 +295,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       const Center(
         child: Text(
           'Agenda em evolucao',
-          style: TextStyle(
-            color: Colors.black54,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(color: Colors.black54, fontWeight: FontWeight.w600),
         ),
       ),
     ];
@@ -356,14 +307,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           setState(() => _currentTabIndex = index);
         },
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Painel',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.list),
-            label: 'Vistorias',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Painel'),
+          BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Vistorias'),
           BottomNavigationBarItem(
             icon: Icon(Icons.calendar_today),
             label: 'Agenda',

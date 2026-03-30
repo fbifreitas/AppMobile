@@ -4,23 +4,25 @@ import 'package:provider/provider.dart';
 import '../config/checkin_step2_config.dart';
 import '../models/checkin_step2_model.dart';
 import '../services/checkin_dynamic_config_service.dart';
+import '../services/inspection_flow_coordinator.dart';
 import '../services/inspection_menu_service.dart';
 import '../services/voice_input_service.dart';
 import '../state/app_state.dart';
 import '../widgets/voice_selector_sheet.dart';
 import '../widgets/voice_text_field.dart';
-import 'overlay_camera_screen.dart';
 
 class CheckinStep2Screen extends StatefulWidget {
   final String tipoImovel;
   final CheckinStep2Model? initialData;
   final ValueChanged<CheckinStep2Model>? onContinue;
+  final InspectionFlowCoordinator flowCoordinator;
 
   const CheckinStep2Screen({
     super.key,
     required this.tipoImovel,
     this.initialData,
     this.onContinue,
+    this.flowCoordinator = const DefaultInspectionFlowCoordinator(),
   });
 
   @override
@@ -77,7 +79,9 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
     });
   }
 
-  Future<void> _persistCurrentModel({String stageLabel = 'Check-in etapa 2'}) async {
+  Future<void> _persistCurrentModel({
+    String stageLabel = 'Check-in etapa 2',
+  }) async {
     if (!mounted) return;
     final appState = context.read<AppState>();
     await appState.setInspectionRecoveryStage(
@@ -110,9 +114,12 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
   }
 
   void _syncObservationControllers(CheckinStep2Config newConfig) {
-    final nextGroupIds = newConfig.gruposOpcoes.map((group) => group.id).toSet();
+    final nextGroupIds =
+        newConfig.gruposOpcoes.map((group) => group.id).toSet();
 
-    for (final entry in List<MapEntry<String, TextEditingController>>.from(_obsControllers.entries)) {
+    for (final entry in List<MapEntry<String, TextEditingController>>.from(
+      _obsControllers.entries,
+    )) {
       if (!nextGroupIds.contains(entry.key)) {
         entry.value.dispose();
         _obsControllers.remove(entry.key);
@@ -122,7 +129,9 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
     for (final group in newConfig.gruposOpcoes) {
       _obsControllers.putIfAbsent(
         group.id,
-        () => TextEditingController(text: _model.respostas[group.id]?.observacao ?? ''),
+        () => TextEditingController(
+          text: _model.respostas[group.id]?.observacao ?? '',
+        ),
       );
     }
   }
@@ -162,33 +171,35 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
   }
 
   Future<void> _handleCapture(CheckinStep2PhotoFieldConfig field) async {
-    final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
 
     try {
+      final buildContext = context;
+
       setState(() {
         _busy = true;
         _busyFieldId = field.id;
       });
+
+      final flowCoordinator = widget.flowCoordinator;
 
       await _menuService.registerUsage(
         scope: 'checkin_step2.${_tipo.name}.field',
         value: field.id,
       );
 
-      final result = await navigator.push(
-        MaterialPageRoute(
-          builder: (_) => OverlayCameraScreen(
-            title: field.titulo,
-            tipoImovel: widget.tipoImovel,
-            subtipoImovel: _defaultSubtype(),
-            singleCaptureMode: true,
-            preselectedMacroLocal: field.cameraMacroLocal,
-            initialAmbiente: field.cameraAmbiente,
-            initialElemento: field.cameraElementoInicial,
-            cameFromCheckinStep1: false,
-          ),
-        ),
+      if (!buildContext.mounted) return;
+
+      final result = await flowCoordinator.openOverlayCamera(
+        buildContext,
+        title: field.titulo,
+        tipoImovel: widget.tipoImovel,
+        subtipoImovel: _defaultSubtype(),
+        singleCaptureMode: true,
+        preselectedMacroLocal: field.cameraMacroLocal,
+        initialAmbiente: field.cameraAmbiente,
+        initialElemento: field.cameraElementoInicial,
+        cameFromCheckinStep1: false,
       );
 
       if (!mounted || result == null) return;
@@ -206,7 +217,9 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
       await _persistCurrentModel(stageLabel: 'Check-in etapa 2');
 
       messenger.showSnackBar(
-        SnackBar(content: Text('Foto de "${field.titulo}" capturada com sucesso.')),
+        SnackBar(
+          content: Text('Foto de "${field.titulo}" capturada com sucesso.'),
+        ),
       );
     } finally {
       if (mounted) {
@@ -224,35 +237,34 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
 
     if (!mounted) return;
 
-    await Navigator.push(
+    await widget.flowCoordinator.openOverlayCamera(
       context,
-      MaterialPageRoute(
-        builder: (_) => OverlayCameraScreen(
-          title: 'COLETA',
-          tipoImovel: widget.tipoImovel,
-          subtipoImovel: _defaultSubtype(),
-          preselectedMacroLocal: null,
-          cameFromCheckinStep1: true,
-        ),
-      ),
+      title: 'COLETA',
+      tipoImovel: widget.tipoImovel,
+      subtipoImovel: _defaultSubtype(),
+      preselectedMacroLocal: null,
+      cameFromCheckinStep1: true,
     );
   }
 
-  Future<void> _selectGroupOptionByVoice(CheckinStep2OptionGroupConfig grupo) async {
+  Future<void> _selectGroupOptionByVoice(
+    CheckinStep2OptionGroupConfig grupo,
+  ) async {
     final labels = grupo.opcoes.map((opcao) => opcao.label).toList();
     if (labels.isEmpty) return;
 
     final respostaAtual = _model.respostas[grupo.id];
-    final selectedLabel = (!grupo.multiplaEscolha &&
-            respostaAtual != null &&
-            respostaAtual.selectedOptionIds.isNotEmpty)
-        ? grupo.opcoes
-            .firstWhere(
-              (opcao) => opcao.id == respostaAtual.selectedOptionIds.first,
-              orElse: () => grupo.opcoes.first,
-            )
-            .label
-        : null;
+    final selectedLabel =
+        (!grupo.multiplaEscolha &&
+                respostaAtual != null &&
+                respostaAtual.selectedOptionIds.isNotEmpty)
+            ? grupo.opcoes
+                .firstWhere(
+                  (opcao) => opcao.id == respostaAtual.selectedOptionIds.first,
+                  orElse: () => grupo.opcoes.first,
+                )
+                .label
+            : null;
 
     final selected = await VoiceSelectorSheet.open(
       context,
@@ -276,10 +288,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
           optionId: option.id,
         );
       } else {
-        _model = _model.setSingleOption(
-          groupId: grupo.id,
-          optionId: option.id,
-        );
+        _model = _model.setSingleOption(groupId: grupo.id, optionId: option.id);
       }
     });
 
@@ -311,7 +320,10 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
                         SizedBox(
                           width: double.infinity,
                           child: FilledButton(
-                            onPressed: (_busy || _loadingMenus) ? null : _handleContinue,
+                            onPressed:
+                                (_busy || _loadingMenus)
+                                    ? null
+                                    : _handleContinue,
                             child: const Text(
                               'Confirmar e abrir a câmera',
                               style: TextStyle(fontSize: 13),
@@ -340,7 +352,9 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.35,
+        ),
         border: Border(
           bottom: BorderSide(color: theme.dividerColor.withValues(alpha: 0.2)),
         ),
@@ -366,7 +380,9 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
           const SizedBox(height: 10),
           Text(
             '${_config.subtituloTela} ${_tipo.label}',
-            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -386,7 +402,9 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
       children: [
         Text(
           'Registros fotográficos',
-          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
         ),
         const SizedBox(height: 10),
         ..._camposFotosOrdenados.map(
@@ -410,7 +428,9 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
       children: [
         Text(
           'Infraestrutura e serviços',
-          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
         ),
         const SizedBox(height: 10),
         ..._config.gruposOpcoes.map((grupo) {
@@ -434,9 +454,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.dividerColor.withValues(alpha: 0.20),
-        ),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.20)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -463,36 +481,42 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: grupo.opcoes.map((opcao) {
-              final selected = resposta?.selectedOptionIds.contains(opcao.id) ?? false;
-              return grupo.multiplaEscolha
-                  ? FilterChip(
-                      label: Text(opcao.label),
-                      selected: selected,
-                      onSelected: (_) async {
-                        setState(() {
-                          _model = _model.toggleMultiOption(
-                            groupId: grupo.id,
-                            optionId: opcao.id,
+            children:
+                grupo.opcoes.map((opcao) {
+                  final selected =
+                      resposta?.selectedOptionIds.contains(opcao.id) ?? false;
+                  return grupo.multiplaEscolha
+                      ? FilterChip(
+                        label: Text(opcao.label),
+                        selected: selected,
+                        onSelected: (_) async {
+                          setState(() {
+                            _model = _model.toggleMultiOption(
+                              groupId: grupo.id,
+                              optionId: opcao.id,
+                            );
+                          });
+                          await _persistCurrentModel(
+                            stageLabel: 'Check-in etapa 2',
                           );
-                        });
-                        await _persistCurrentModel(stageLabel: 'Check-in etapa 2');
-                      },
-                    )
-                  : ChoiceChip(
-                      label: Text(opcao.label),
-                      selected: selected,
-                      onSelected: (_) async {
-                        setState(() {
-                          _model = _model.setSingleOption(
-                            groupId: grupo.id,
-                            optionId: opcao.id,
+                        },
+                      )
+                      : ChoiceChip(
+                        label: Text(opcao.label),
+                        selected: selected,
+                        onSelected: (_) async {
+                          setState(() {
+                            _model = _model.setSingleOption(
+                              groupId: grupo.id,
+                              optionId: opcao.id,
+                            );
+                          });
+                          await _persistCurrentModel(
+                            stageLabel: 'Check-in etapa 2',
                           );
-                        });
-                        await _persistCurrentModel(stageLabel: 'Check-in etapa 2');
-                      },
-                    );
-            }).toList(),
+                        },
+                      );
+                }).toList(),
           ),
           if (grupo.permiteObservacao) ...[
             const SizedBox(height: 12),
@@ -540,12 +564,14 @@ class _PhotoCaptureCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final completionColor = capturado
-        ? (obrigatorio ? Colors.green : theme.colorScheme.primary)
-        : theme.iconTheme.color ?? Colors.black;
-    final subtitle = capturado
-        ? 'Imagem capturada'
-        : obrigatorio
+    final completionColor =
+        capturado
+            ? (obrigatorio ? Colors.green : theme.colorScheme.primary)
+            : theme.iconTheme.color ?? Colors.black;
+    final subtitle =
+        capturado
+            ? 'Imagem capturada'
+            : obrigatorio
             ? 'Foto obrigatória'
             : 'Foto opcional';
 
@@ -553,23 +579,26 @@ class _PhotoCaptureCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: capturado
-            ? completionColor.withValues(alpha: 0.12)
-            : theme.colorScheme.surface,
+        color:
+            capturado
+                ? completionColor.withValues(alpha: 0.12)
+                : theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: capturado
-              ? completionColor.withValues(alpha: 0.35)
-              : theme.dividerColor.withValues(alpha: 0.20),
+          color:
+              capturado
+                  ? completionColor.withValues(alpha: 0.35)
+                  : theme.dividerColor.withValues(alpha: 0.20),
         ),
       ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 20,
-            backgroundColor: capturado
-                ? completionColor.withValues(alpha: 0.12)
-                : theme.colorScheme.surfaceContainerHighest,
+            backgroundColor:
+                capturado
+                    ? completionColor.withValues(alpha: 0.12)
+                    : theme.colorScheme.surfaceContainerHighest,
             child: Icon(
               capturado ? Icons.check_circle_outline : icon,
               color: capturado ? completionColor : theme.iconTheme.color,

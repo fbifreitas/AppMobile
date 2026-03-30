@@ -1,8 +1,12 @@
 import 'package:appmobile/models/job.dart';
+import 'package:appmobile/models/inspection_session_model.dart';
 import 'package:appmobile/repositories/job_repository.dart';
+import 'package:appmobile/services/inspection_flow_coordinator.dart';
 import 'package:appmobile/screens/inspection_review_screen.dart';
 import 'package:appmobile/screens/overlay_camera_screen.dart';
 import 'package:appmobile/state/app_state.dart';
+import 'package:appmobile/config/checkin_step2_config.dart';
+import 'package:appmobile/models/checkin_step2_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -13,6 +17,71 @@ void Function(FlutterErrorDetails)? _originalFlutterErrorHandler;
 class _ImmediateJobRepository implements JobRepository {
   @override
   Future<List<Job>> getJobs() async => <Job>[];
+}
+
+class _FakeInspectionFlowCoordinator extends InspectionFlowCoordinator {
+  OverlayCameraCaptureResult? nextOverlayResult;
+  int overlayOpenCount = 0;
+  String? lastOverlayTitle;
+
+  @override
+  void openCheckin(BuildContext context, {bool silent = false}) {}
+
+  @override
+  void openCheckinStep2(
+    BuildContext context, {
+    required String tipoImovel,
+    CheckinStep2Model? initialData,
+    ValueChanged<CheckinStep2Model>? onContinue,
+    bool silent = false,
+  }) {}
+
+  @override
+  Future<OverlayCameraCaptureResult?> openOverlayCamera(
+    BuildContext context, {
+    required String title,
+    required String tipoImovel,
+    required String subtipoImovel,
+    bool singleCaptureMode = false,
+    String? preselectedMacroLocal,
+    String? initialAmbiente,
+    String? initialElemento,
+    required bool cameFromCheckinStep1,
+  }) async {
+    overlayOpenCount += 1;
+    lastOverlayTitle = title;
+    return nextOverlayResult;
+  }
+
+  @override
+  void openInspectionReview(
+    BuildContext context, {
+    List<OverlayCameraCaptureResult> captures =
+        const <OverlayCameraCaptureResult>[],
+    required String tipoImovel,
+    bool cameFromCheckinStep1 = false,
+  }) {}
+
+  @override
+  void restoreReviewRecoveryFlow(
+    BuildContext context, {
+    required String tipoImovel,
+    CheckinStep2Model? initialData,
+    ValueChanged<CheckinStep2Model>? onContinue,
+    List<OverlayCameraCaptureResult> captures =
+        const <OverlayCameraCaptureResult>[],
+  }) {}
+
+  @override
+  void restoreCheckinStep2RecoveryFlow(
+    BuildContext context, {
+    required String tipoImovel,
+    CheckinStep2Model? initialData,
+    ValueChanged<CheckinStep2Model>? onContinue,
+  }) {}
+
+  @override
+  void openCameraFlow(BuildContext context) {}
 }
 
 OverlayCameraCaptureResult _capture({
@@ -38,11 +107,26 @@ OverlayCameraCaptureResult _capture({
 Future<void> _pumpReview(
   WidgetTester tester, {
   required List<OverlayCameraCaptureResult> captures,
+  String tipoImovel = 'Urbano',
+  Map<String, dynamic>? persistedStep2Payload,
+  InspectionFlowCoordinator flowCoordinator =
+      const DefaultInspectionFlowCoordinator(),
 }) async {
   tester.view.physicalSize = const Size(1440, 2560);
   tester.view.devicePixelRatio = 1.0;
 
   final appState = AppState(_ImmediateJobRepository());
+  if (persistedStep2Payload != null) {
+    appState.selecionarJob(
+      Job(
+        id: 'job-1',
+        titulo: 'Vistoria A',
+        endereco: 'Rua A, 1',
+        nomeCliente: 'Cliente A',
+      ),
+    );
+    await appState.persistStep2Draft(persistedStep2Payload);
+  }
 
   await tester.pumpWidget(
     MaterialApp(
@@ -50,8 +134,9 @@ Future<void> _pumpReview(
         value: appState,
         child: InspectionReviewScreen(
           captures: captures,
-          tipoImovel: 'Urbano',
+          tipoImovel: tipoImovel,
           cameFromCheckinStep1: false,
+          flowCoordinator: flowCoordinator,
         ),
       ),
     ),
@@ -81,27 +166,35 @@ void main() {
 
   tearDown(() {
     FlutterError.onError = _originalFlutterErrorHandler;
-    TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher.views.first.resetPhysicalSize();
-    TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher.views.first.resetDevicePixelRatio();
+    TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher.views.first
+        .resetPhysicalSize();
+    TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher.views.first
+        .resetDevicePixelRatio();
   });
 
   testWidgets('shows review CTA without pending shortcut link', (tester) async {
     await _pumpReview(
       tester,
-      captures: [
-        _capture(filePath: '/tmp/a.jpg', ambiente: 'Cozinha'),
-      ],
+      captures: [_capture(filePath: '/tmp/a.jpg', ambiente: 'Cozinha')],
     );
 
     expect(find.text('REVISAR E FINALIZAR'), findsOneWidget);
     expect(find.text('Ir para principal pendência'), findsNothing);
   });
 
-  testWidgets('consolidates pending content under one review section', (tester) async {
+  testWidgets('consolidates pending content under one review section', (
+    tester,
+  ) async {
     await _pumpReview(
       tester,
       captures: [
-        _capture(filePath: '/tmp/a.jpg', ambiente: 'Cozinha', elemento: 'Piso', material: 'Cerâmica', estado: 'Bom'),
+        _capture(
+          filePath: '/tmp/a.jpg',
+          ambiente: 'Cozinha',
+          elemento: 'Piso',
+          material: 'Cerâmica',
+          estado: 'Bom',
+        ),
       ],
     );
 
@@ -110,23 +203,31 @@ void main() {
     expect(find.text('Fotos capturadas'), findsOneWidget);
   });
 
-  testWidgets('does not render optional voice commands section', (tester) async {
+  testWidgets('does not render optional voice commands section', (
+    tester,
+  ) async {
     await _pumpReview(
       tester,
-      captures: [
-        _capture(filePath: '/tmp/a.jpg', ambiente: 'Cozinha'),
-      ],
+      captures: [_capture(filePath: '/tmp/a.jpg', ambiente: 'Cozinha')],
     );
 
     expect(find.text('Comandos por voz (opcional)'), findsNothing);
     expect(find.text('Comandos rápidos por voz'), findsNothing);
   });
 
-  testWidgets('uses simplified progress header without top metric chips', (tester) async {
+  testWidgets('uses simplified progress header without top metric chips', (
+    tester,
+  ) async {
     await _pumpReview(
       tester,
       captures: [
-        _capture(filePath: '/tmp/a.jpg', ambiente: 'Cozinha', elemento: 'Piso', material: 'Cerâmica', estado: 'Bom'),
+        _capture(
+          filePath: '/tmp/a.jpg',
+          ambiente: 'Cozinha',
+          elemento: 'Piso',
+          material: 'Cerâmica',
+          estado: 'Bom',
+        ),
       ],
     );
 
@@ -134,4 +235,95 @@ void main() {
     expect(find.text('Concluídas'), findsNothing);
     expect(find.text('Pendências'), findsNothing);
   });
+
+  testWidgets(
+    'keeps persisted mandatory check-in photos as fulfilled on review reopen',
+    (tester) async {
+      final geoPoint = GeoPointData(
+        latitude: -23.0,
+        longitude: -46.0,
+        accuracy: 5,
+        capturedAt: DateTime(2026, 3, 30),
+      );
+
+      final persistedStep2 =
+          CheckinStep2Model.empty(TipoImovel.urbano)
+              .setPhoto(
+                fieldId: 'fachada',
+                titulo: 'Fachada',
+                imagePath: '/tmp/fachada.jpg',
+                geoPoint: geoPoint,
+              )
+              .setPhoto(
+                fieldId: 'logradouro',
+                titulo: 'Logradouro',
+                imagePath: '/tmp/logradouro.jpg',
+                geoPoint: geoPoint,
+              )
+              .toMap();
+
+      await _pumpReview(
+        tester,
+        captures: const [],
+        tipoImovel: 'Urbano • Apartamento',
+        persistedStep2Payload: persistedStep2,
+      );
+
+      expect(find.text('Fachada'), findsOneWidget);
+      expect(find.text('Logradouro'), findsOneWidget);
+      expect(find.text('Obrigatório atendido'), findsNWidgets(2));
+      expect(find.text('Obrigatório — pendente de captura'), findsOneWidget);
+      expect(find.text('Capturar'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'captures missing mandatory requirement through injected coordinator',
+    (tester) async {
+      final geoPoint = GeoPointData(
+        latitude: -23.0,
+        longitude: -46.0,
+        accuracy: 5,
+        capturedAt: DateTime(2026, 3, 30),
+      );
+      final persistedStep2 =
+          CheckinStep2Model.empty(TipoImovel.urbano)
+              .setPhoto(
+                fieldId: 'fachada',
+                titulo: 'Fachada',
+                imagePath: '/tmp/fachada.jpg',
+                geoPoint: geoPoint,
+              )
+              .setPhoto(
+                fieldId: 'logradouro',
+                titulo: 'Logradouro',
+                imagePath: '/tmp/logradouro.jpg',
+                geoPoint: geoPoint,
+              )
+              .toMap();
+      final flowCoordinator =
+          _FakeInspectionFlowCoordinator()
+            ..nextOverlayResult = _capture(
+              filePath: '/tmp/acesso.jpg',
+              ambiente: 'Acesso ao imóvel',
+              elemento: 'Portão',
+            );
+
+      await _pumpReview(
+        tester,
+        captures: const [],
+        tipoImovel: 'Urbano • Apartamento',
+        persistedStep2Payload: persistedStep2,
+        flowCoordinator: flowCoordinator,
+      );
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Capturar'));
+      await tester.pumpAndSettle();
+
+      expect(flowCoordinator.overlayOpenCount, 1);
+      expect(flowCoordinator.lastOverlayTitle, 'Acesso ao imóvel');
+      expect(find.text('Obrigatório atendido'), findsNWidgets(3));
+      expect(find.widgetWithText(FilledButton, 'Capturar'), findsNothing);
+    },
+  );
 }

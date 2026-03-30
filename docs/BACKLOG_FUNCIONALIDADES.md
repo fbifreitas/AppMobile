@@ -1,6 +1,6 @@
 # Backlog de Funcionalidades Nao Implementadas
 
-Atualizado em: 2026-03-29
+Atualizado em: 2026-03-30
 
 ## Objetivo
 Registrar funcionalidades pendentes para evolucao do AppMobile, com foco em priorizacao de produto e previsibilidade tecnica.
@@ -102,6 +102,16 @@ Implementar auditoria de fallback por etapa (checkin, step2, camera e review) pa
 
 ### BL-015
 Garantir que capturas iniciadas diretamente pela camera (fora do fluxo da etapa 2) sejam conciliadas automaticamente com os requisitos do checkin etapa 2 e com as pendencias da revisao final.
+
+Observacao 2026-03-30: ajustada a persistencia do status das fotos obrigatorias do check-in na revisao/menu de vistoria, reconstruindo o indicador tambem a partir do payload salvo da etapa 2 para evitar perda visual do status OK ao voltar no fluxo.
+
+Observacao 2026-03-30 (CORRIGIDO): bug do status verde desaparecendo ao voltar para Menu de Vistoria - `InspectionMenuScreen` agora consulta tambem `appState.step2Payload` (nao apenas `InspectionSession`) para recalcular status das fotos obrigatorias, garantindo persistencia mesmo quando sessao nao foi sincronizada. Adicionado metodo `_countCompletedMandatoryFields()` que reconstroi indicador a partir de ambas fontes de dados.
+
+Observacao 2026-03-30: iniciada a centralizacao da navegacao do fluxo Home -> Check-in -> Camera -> Revisao com coordinator injetavel, reduzindo acoplamento entre telas e abrindo caminho para testes estaveis de retorno da camera e retomada da pilha.
+
+Observacao 2026-03-30: estendida a centralizacao para hubs secundarios (Home, Hub operacional e Centro de integracao), concentrando o despacho de atalhos e centrais em um coordinator unico para reduzir switches duplicados e facilitar testes de navegacao.
+
+Observacao 2026-03-30: a tela Menu de Vistoria passou a delegar a abertura da revisao ao coordinator do fluxo, e a cobertura automatizada agora valida tambem os atalhos do header da Home e os entrypoints secundarios de navegacao.
 
 ### BL-003
 Disponibilizar tela de detalhes da vistoria concluida em modo somente leitura, acessivel pela aba Vistorias, sem qualquer possibilidade de edicao.

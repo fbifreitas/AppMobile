@@ -2,30 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/home_location_snapshot.dart';
-import '../models/operational_hub_item.dart';
+import '../services/app_navigation_coordinator.dart';
 import '../services/home_location_service.dart';
 import '../services/location_service.dart';
 import '../services/operational_hub_registry_service.dart';
 import '../state/app_state.dart';
-import '../state/field_operation_state.dart';
 import '../widgets/home/location_status_card.dart';
 import '../widgets/home/startup_status_card.dart';
 import '../widgets/operational_hub_grid.dart';
-import 'admin_remote_config_center_screen.dart';
-import 'assistive_intelligence_center_screen.dart';
-import 'checkin_screen.dart';
-import 'clean_code_audit_center_screen.dart';
-import 'data_governance_center_screen.dart';
-import 'field_operations_center_screen.dart';
-import 'fallback_audit_center_screen.dart';
-import 'mock_data_control_screen.dart';
-import 'observability_support_center_screen.dart';
-import 'operational_snapshot_export_screen.dart';
-import 'production_readiness_center_screen.dart';
-import 'quality_stability_center_screen.dart';
 
 class OperationalHubScreen extends StatefulWidget {
-  const OperationalHubScreen({super.key});
+  final AppNavigationCoordinator navigationCoordinator;
+
+  const OperationalHubScreen({
+    super.key,
+    this.navigationCoordinator = const DefaultAppNavigationCoordinator(),
+  });
 
   @override
   State<OperationalHubScreen> createState() => _OperationalHubScreenState();
@@ -92,9 +84,9 @@ class _OperationalHubScreenState extends State<OperationalHubScreen> {
       },
       writeLocation: (latitude, longitude) {
         context.read<AppState>().atualizarUltimaLocalizacao(
-              latitude,
-              longitude,
-            );
+          latitude,
+          longitude,
+        );
       },
     );
 
@@ -132,9 +124,10 @@ class _OperationalHubScreenState extends State<OperationalHubScreen> {
           lon2: configuredLng,
         );
 
-        comparison = d < 1000
-            ? 'Diferença entre localização atual e configurada: ${d.toStringAsFixed(0)}m'
-            : 'Diferença entre localização atual e configurada: ${(d / 1000).toStringAsFixed(2)} km';
+        comparison =
+            d < 1000
+                ? 'Diferença entre localização atual e configurada: ${d.toStringAsFixed(0)}m'
+                : 'Diferença entre localização atual e configurada: ${(d / 1000).toStringAsFixed(2)} km';
       }
 
       if (!mounted) return;
@@ -183,17 +176,15 @@ class _OperationalHubScreenState extends State<OperationalHubScreen> {
     final appState = context.watch<AppState>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Hub operacional'),
-      ),
+      appBar: AppBar(title: const Text('Hub operacional')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Text(
             'Centrais integradas',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -231,63 +222,14 @@ class _OperationalHubScreenState extends State<OperationalHubScreen> {
           const SizedBox(height: 16),
           OperationalHubGrid(
             items: items,
-            onTap: (item) => _open(context, item),
+            onTap:
+                (item) => widget.navigationCoordinator.openOperationalHubItem(
+                  context,
+                  itemId: item.id,
+                ),
           ),
         ],
       ),
-    );
-  }
-
-  void _open(BuildContext context, OperationalHubItem item) {
-    Widget destination;
-
-    switch (item.id) {
-      case 'checkin':
-        destination = const CheckinScreen();
-        break;
-      case 'field_ops':
-        destination = ChangeNotifierProvider<FieldOperationState>(
-          create: (_) => FieldOperationState.demo(),
-          child: const FieldOperationsCenterScreen(),
-        );
-        break;
-      case 'assistive':
-        destination = const AssistiveIntelligenceCenterScreen();
-        break;
-      case 'quality':
-        destination = const QualityStabilityCenterScreen();
-        break;
-      case 'fallback_audit':
-        destination = const FallbackAuditCenterScreen();
-        break;
-      case 'observability':
-        destination = const ObservabilitySupportCenterScreen();
-        break;
-      case 'governance':
-        destination = const DataGovernanceCenterScreen();
-        break;
-      case 'production':
-        destination = const ProductionReadinessCenterScreen();
-        break;
-      case 'admin':
-        destination = const AdminRemoteConfigCenterScreen();
-        break;
-      case 'clean_code':
-        destination = const CleanCodeAuditCenterScreen();
-        break;
-      case 'export':
-        destination = const OperationalSnapshotExportScreen();
-        break;
-      case 'mock_data':
-        destination = const MockDataControlScreen();
-        break;
-      default:
-        destination = const CheckinScreen();
-    }
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => destination),
     );
   }
 }
@@ -327,10 +269,7 @@ class _TestAddressConfigurationCard extends StatelessWidget {
           children: [
             const Text(
               'Configuração de Endereço para Teste',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -381,10 +320,9 @@ class _TestAddressConfigurationCard extends StatelessWidget {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(14),
-                  color: Theme.of(context)
-                      .colorScheme
-                      .surfaceContainerHighest
-                      .withValues(alpha: 0.35),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

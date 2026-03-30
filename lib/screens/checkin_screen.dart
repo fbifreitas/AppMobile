@@ -3,9 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/checkin_step2_model.dart';
-import '../screens/checkin_step2_screen.dart';
-import '../screens/overlay_camera_screen.dart';
 import '../services/checkin_dynamic_config_service.dart';
+import '../services/inspection_flow_coordinator.dart';
 import '../services/location_service.dart';
 import '../services/voice_input_service.dart';
 import '../state/app_state.dart';
@@ -13,7 +12,12 @@ import '../theme/app_colors.dart';
 import '../widgets/voice_selector_sheet.dart';
 
 class CheckinScreen extends StatefulWidget {
-  const CheckinScreen({super.key});
+  final InspectionFlowCoordinator flowCoordinator;
+
+  const CheckinScreen({
+    super.key,
+    this.flowCoordinator = const DefaultInspectionFlowCoordinator(),
+  });
 
   @override
   State<CheckinScreen> createState() => _CheckinScreenState();
@@ -25,7 +29,12 @@ class _CheckinScreenState extends State<CheckinScreen> {
   String? subtipoImovel;
   String? porOndeComecar;
 
-  static const List<String> _defaultTipos = <String>['Urbano', 'Rural', 'Comercial', 'Industrial'];
+  static const List<String> _defaultTipos = <String>[
+    'Urbano',
+    'Rural',
+    'Comercial',
+    'Industrial',
+  ];
 
   static const Map<String, List<String>> _defaultSubtiposPorTipo = {
     'Urbano': ['Apartamento', 'Casa', 'Sobrado', 'Terreno'],
@@ -34,17 +43,22 @@ class _CheckinScreenState extends State<CheckinScreen> {
     'Industrial': ['Fábrica', 'Armazém', 'Planta industrial'],
   };
 
-  static const List<String> _defaultContextos = <String>['Rua', 'Área externa', 'Área interna'];
+  static const List<String> _defaultContextos = <String>[
+    'Rua',
+    'Área externa',
+    'Área interna',
+  ];
 
   final CheckinDynamicConfigService _dynamicConfigService =
       CheckinDynamicConfigService.instance;
 
   List<String> _tipos = List<String>.from(_defaultTipos);
-  Map<String, List<String>> _subtiposPorTipo = Map<String, List<String>>.fromEntries(
-    _defaultSubtiposPorTipo.entries.map(
-      (entry) => MapEntry(entry.key, List<String>.from(entry.value)),
-    ),
-  );
+  Map<String, List<String>> _subtiposPorTipo =
+      Map<String, List<String>>.fromEntries(
+        _defaultSubtiposPorTipo.entries.map(
+          (entry) => MapEntry(entry.key, List<String>.from(entry.value)),
+        ),
+      );
   List<String> _contextos = List<String>.from(_defaultContextos);
 
   final VoiceInputService _voiceService = VoiceInputService();
@@ -76,9 +90,10 @@ class _CheckinScreenState extends State<CheckinScreen> {
         subtipoImovel = null;
       }
 
-      final allowedSubtipos = tipoImovel == null
-          ? const <String>[]
-          : (_subtiposPorTipo[tipoImovel] ?? const <String>[]);
+      final allowedSubtipos =
+          tipoImovel == null
+              ? const <String>[]
+              : (_subtiposPorTipo[tipoImovel] ?? const <String>[]);
       if (subtipoImovel != null && !allowedSubtipos.contains(subtipoImovel)) {
         subtipoImovel = null;
       }
@@ -147,7 +162,9 @@ class _CheckinScreenState extends State<CheckinScreen> {
     _hydrateFromDraft(appState);
 
     final subtipos =
-      tipoImovel == null ? const <String>[] : (_subtiposPorTipo[tipoImovel] ?? const <String>[]);
+        tipoImovel == null
+            ? const <String>[]
+            : (_subtiposPorTipo[tipoImovel] ?? const <String>[]);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Check-in Vistoria')),
@@ -166,7 +183,10 @@ class _CheckinScreenState extends State<CheckinScreen> {
             const SizedBox(height: 4),
             Text(
               job.endereco,
-              style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 12,
+              ),
             ),
             const SizedBox(height: 16),
             FutureBuilder(
@@ -176,7 +196,9 @@ class _CheckinScreenState extends State<CheckinScreen> {
                 Color cor = AppColors.warning;
                 Color fundo = AppColors.warningLight;
 
-                if (snapshot.hasData && job.latitude != null && job.longitude != null) {
+                if (snapshot.hasData &&
+                    job.latitude != null &&
+                    job.longitude != null) {
                   final pos = snapshot.data!;
                   final distancia = LocationService().calcularDistancia(
                     lat1: pos.latitude,
@@ -231,7 +253,10 @@ class _CheckinScreenState extends State<CheckinScreen> {
                   child: OutlinedButton.icon(
                     onPressed: () => _abrirWhatsApp(job.telefoneCliente),
                     icon: const Icon(Icons.chat_outlined, size: 18),
-                    label: const Text('WhatsApp', style: TextStyle(fontSize: 13)),
+                    label: const Text(
+                      'WhatsApp',
+                      style: TextStyle(fontSize: 13),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -281,19 +306,20 @@ class _CheckinScreenState extends State<CheckinScreen> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: _tipos.map((tipo) {
-                  return ChoiceChip(
-                    label: Text(tipo),
-                    selected: tipoImovel == tipo,
-                    onSelected: (_) async {
-                      setState(() {
-                        tipoImovel = tipo;
-                        subtipoImovel = null;
-                      });
-                      await _persistStep1();
-                    },
-                  );
-                }).toList(),
+                children:
+                    _tipos.map((tipo) {
+                      return ChoiceChip(
+                        label: Text(tipo),
+                        selected: tipoImovel == tipo,
+                        onSelected: (_) async {
+                          setState(() {
+                            tipoImovel = tipo;
+                            subtipoImovel = null;
+                          });
+                          await _persistStep1();
+                        },
+                      );
+                    }).toList(),
               ),
               if (tipoImovel != null) ...[
                 const SizedBox(height: 16),
@@ -305,16 +331,17 @@ class _CheckinScreenState extends State<CheckinScreen> {
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: subtipos.map((subtipo) {
-                    return ChoiceChip(
-                      label: Text(subtipo),
-                      selected: subtipoImovel == subtipo,
-                      onSelected: (_) async {
-                        setState(() => subtipoImovel = subtipo);
-                        await _persistStep1();
-                      },
-                    );
-                  }).toList(),
+                  children:
+                      subtipos.map((subtipo) {
+                        return ChoiceChip(
+                          label: Text(subtipo),
+                          selected: subtipoImovel == subtipo,
+                          onSelected: (_) async {
+                            setState(() => subtipoImovel = subtipo);
+                            await _persistStep1();
+                          },
+                        );
+                      }).toList(),
                 ),
               ],
               const SizedBox(height: 16),
@@ -326,54 +353,53 @@ class _CheckinScreenState extends State<CheckinScreen> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: _contextos.map((ctx) {
-                  return ChoiceChip(
-                    label: Text(ctx),
-                    selected: porOndeComecar == ctx,
-                    onSelected: (_) async {
-                      setState(() => porOndeComecar = ctx);
-                      await _persistStep1();
-                    },
-                  );
-                }).toList(),
+                children:
+                    _contextos.map((ctx) {
+                      return ChoiceChip(
+                        label: Text(ctx),
+                        selected: porOndeComecar == ctx,
+                        onSelected: (_) async {
+                          setState(() => porOndeComecar = ctx);
+                          await _persistStep1();
+                        },
+                      );
+                    }).toList(),
               ),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
-                  onPressed: tipoImovel == null
-                      ? null
-                      : () async {
-                          final navigator = Navigator.of(context);
-                          final appStateRead = context.read<AppState>();
+                  onPressed:
+                      tipoImovel == null
+                          ? null
+                          : () async {
+                            final appStateRead = context.read<AppState>();
+                            final flowCoordinator = widget.flowCoordinator;
 
-                          await appStateRead.setInspectionRecoveryStage(
-                            stageKey: 'checkin_step2',
-                            stageLabel: 'Check-in etapa 2',
-                            routeName: '/checkin_step2',
-                            payload: {
-                              ...appStateRead.inspectionRecoveryPayload,
-                              'step1': appStateRead.step1Payload,
-                              'step2': appStateRead.step2Payload,
-                            },
-                          );
+                            await appStateRead.setInspectionRecoveryStage(
+                              stageKey: 'checkin_step2',
+                              stageLabel: 'Check-in etapa 2',
+                              routeName: '/checkin_step2',
+                              payload: {
+                                ...appStateRead.inspectionRecoveryPayload,
+                                'step1': appStateRead.step1Payload,
+                                'step2': appStateRead.step2Payload,
+                              },
+                            );
 
-                          if (!mounted) return;
+                            if (!context.mounted) return;
 
-                          navigator.push(
-                            MaterialPageRoute(
-                              builder: (_) => CheckinStep2Screen(
-                                tipoImovel: tipoImovel!,
-                                initialData: _readInitialStep2(appStateRead),
-                                onContinue: (model) async {
-                                  await context.read<AppState>().persistStep2Draft(
-                                        model.toMap(),
-                                      );
-                                },
-                              ),
-                            ),
-                          );
-                        },
+                            flowCoordinator.openCheckinStep2(
+                              context,
+                              tipoImovel: tipoImovel!,
+                              initialData: _readInitialStep2(appStateRead),
+                              onContinue: (model) async {
+                                await context
+                                    .read<AppState>()
+                                    .persistStep2Draft(model.toMap());
+                              },
+                            );
+                          },
                   child: const Text(
                     'Ir para etapa 2 do check-in',
                     style: TextStyle(fontSize: 13),
@@ -429,7 +455,8 @@ class _CheckinScreenState extends State<CheckinScreen> {
       voiceService: _voiceService,
       options: const ['Sim', 'Não'],
       title: 'Cliente está presente?',
-      currentValue: clientePresente == null ? null : (clientePresente! ? 'Sim' : 'Não'),
+      currentValue:
+          clientePresente == null ? null : (clientePresente! ? 'Sim' : 'Não'),
     );
     if (selected == null || !mounted) return;
     setState(() => clientePresente = selected == 'Sim');
@@ -454,7 +481,9 @@ class _CheckinScreenState extends State<CheckinScreen> {
 
   Future<void> _selectSubtipoByVoice() async {
     final subtipos =
-        tipoImovel == null ? const <String>[] : (_subtiposPorTipo[tipoImovel] ?? const <String>[]);
+        tipoImovel == null
+            ? const <String>[]
+            : (_subtiposPorTipo[tipoImovel] ?? const <String>[]);
     if (subtipos.isEmpty) {
       _mostrarInfo('Selecione o tipo de imóvel antes do subtipo.');
       return;
@@ -490,24 +519,22 @@ class _CheckinScreenState extends State<CheckinScreen> {
         tipoImovel == null ||
         subtipoImovel == null ||
         porOndeComecar == null) {
-      _mostrarInfo('Preencha presença, tipo, subtipo e por onde deseja começar.');
+      _mostrarInfo(
+        'Preencha presença, tipo, subtipo e por onde deseja começar.',
+      );
       return;
     }
 
     await _persistStep1();
 
     if (!mounted) return;
-    await Navigator.push(
+    await widget.flowCoordinator.openOverlayCamera(
       context,
-      MaterialPageRoute(
-        builder: (_) => OverlayCameraScreen(
-          title: 'COLETA',
-          tipoImovel: tipoImovel!,
-          subtipoImovel: subtipoImovel!,
-          preselectedMacroLocal: porOndeComecar,
-          cameFromCheckinStep1: true,
-        ),
-      ),
+      title: 'COLETA',
+      tipoImovel: tipoImovel!,
+      subtipoImovel: subtipoImovel!,
+      preselectedMacroLocal: porOndeComecar,
+      cameFromCheckinStep1: true,
     );
   }
 
@@ -531,16 +558,17 @@ class _CheckinScreenState extends State<CheckinScreen> {
   void _mostrarInfo(String msg) {
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Atenção'),
-        content: Text(msg),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('OK'),
+      builder:
+          (dialogContext) => AlertDialog(
+            title: const Text('Atenção'),
+            content: Text(msg),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('OK'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 }

@@ -1,23 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../config/checkin_step2_config.dart';
+import '../models/checkin_step2_model.dart';
 import '../models/inspection_session_model.dart';
+import '../services/inspection_flow_coordinator.dart';
+import '../state/app_state.dart';
 import '../state/inspection_state.dart';
-import 'camera_flow_screen.dart';
-import 'inspection_review_screen.dart';
 
 class InspectionMenuScreen extends StatelessWidget {
-  const InspectionMenuScreen({super.key});
+  final InspectionFlowCoordinator flowCoordinator;
+
+  const InspectionMenuScreen({
+    super.key,
+    this.flowCoordinator = const DefaultInspectionFlowCoordinator(),
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<InspectionState>(
-      builder: (context, inspectionState, _) {
+    return Consumer2<AppState, InspectionState>(
+      builder: (context, appState, inspectionState, _) {
         if (inspectionState.isRestoring) {
           return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
+            body: Center(child: CircularProgressIndicator()),
           );
         }
 
@@ -52,11 +57,10 @@ class InspectionMenuScreen extends StatelessWidget {
               IconButton(
                 tooltip: 'Revisão final',
                 onPressed: () {
-                  Navigator.push(
+                  flowCoordinator.openInspectionReview(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => InspectionReviewScreen(),
-                    ),
+                    tipoImovel:
+                        '${session.tipoImovel} • ${session.subtipoImovel}',
                   );
                 },
                 icon: const Icon(Icons.fact_check_outlined),
@@ -70,7 +74,10 @@ class InspectionMenuScreen extends StatelessWidget {
                 subtipoImovel: session.subtipoImovel,
                 percent: percent,
                 totalFotos: session.totalCapturedPhotos,
-                obrigatorias: session.totalRequiredPhotos,
+                obrigatorias: _countCompletedMandatoryFields(
+                  session: session,
+                  step2Payload: appState.step2Payload,
+                ),
                 gpsEnabled: session.gpsEnabled,
                 syncStatus: session.syncStatus,
                 lastSavedAt: session.lastSavedAt,
@@ -89,12 +96,7 @@ class InspectionMenuScreen extends StatelessWidget {
                       ambiente: ambiente,
                       onOpen: () {
                         inspectionState.selectEnvironment(ambiente.ambienteId);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const CameraFlowScreen(),
-                          ),
-                        );
+                        flowCoordinator.openCameraFlow(context);
                       },
                     );
                   },
@@ -104,11 +106,9 @@ class InspectionMenuScreen extends StatelessWidget {
           ),
           floatingActionButton: FloatingActionButton.extended(
             onPressed: () {
-              Navigator.push(
+              flowCoordinator.openInspectionReview(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => InspectionReviewScreen(),
-                ),
+                tipoImovel: '${session.tipoImovel} • ${session.subtipoImovel}',
               );
             },
             icon: const Icon(Icons.assignment_turned_in_outlined),
@@ -117,6 +117,39 @@ class InspectionMenuScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  int _countCompletedMandatoryFields({
+    required InspectionSession session,
+    required Map<String, dynamic> step2Payload,
+  }) {
+    final tipo = TipoImovelExtension.fromString(
+      session.tipoImovel.trim(),
+    );
+    final config = CheckinStep2Configs.byTipo(tipo);
+    final mandatoryFields = config.camposFotos.where((f) => f.obrigatorio);
+
+    if (mandatoryFields.isEmpty) return 0;
+
+    CheckinStep2Model? persistedModel;
+    if (step2Payload.isNotEmpty) {
+      try {
+        persistedModel = CheckinStep2Model.fromMap(step2Payload);
+      } catch (_) {
+        persistedModel = null;
+      }
+    }
+
+    int count = 0;
+    for (final field in mandatoryFields) {
+      final isCaptured =
+          persistedModel?.isPhotoCaptured(field.id) ?? false;
+      if (isCaptured) {
+        count++;
+      }
+    }
+
+    return count;
   }
 }
 
@@ -158,7 +191,9 @@ class _HeaderCard extends StatelessWidget {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.35,
+        ),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
@@ -178,10 +213,7 @@ class _HeaderCard extends StatelessWidget {
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: 8),
-          Text(
-            'Status local: $syncLabel',
-            style: theme.textTheme.bodyMedium,
-          ),
+          Text('Status local: $syncLabel', style: theme.textTheme.bodyMedium),
           if (lastSavedAt != null) ...[
             const SizedBox(height: 4),
             Text(
@@ -194,9 +226,10 @@ class _HeaderCard extends StatelessWidget {
             children: [
               Icon(
                 gpsEnabled ? Icons.location_on : Icons.location_off,
-                color: gpsEnabled
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.error,
+                color:
+                    gpsEnabled
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.error,
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -221,10 +254,7 @@ class _EnvironmentCard extends StatelessWidget {
   final InspectionEnvironmentProgress ambiente;
   final VoidCallback onOpen;
 
-  const _EnvironmentCard({
-    required this.ambiente,
-    required this.onOpen,
-  });
+  const _EnvironmentCard({required this.ambiente, required this.onOpen});
 
   @override
   Widget build(BuildContext context) {
@@ -238,18 +268,14 @@ class _EnvironmentCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: theme.dividerColor.withValues(alpha: 0.2),
-          ),
+          border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
           color: theme.colorScheme.surface,
         ),
         child: Row(
           children: [
             CircleAvatar(
               radius: 24,
-              child: Text(
-                ambiente.ambienteNome.characters.first.toUpperCase(),
-              ),
+              child: Text(ambiente.ambienteNome.characters.first.toUpperCase()),
             ),
             const SizedBox(width: 12),
             Expanded(

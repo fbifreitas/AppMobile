@@ -10,6 +10,7 @@ import '../state/app_state.dart';
 import '../models/technical_check_requirement_input.dart';
 import '../models/technical_evidence_input.dart';
 import '../services/inspection_technical_summary_service.dart';
+import '../services/inspection_flow_coordinator.dart';
 import '../widgets/inspection_technical_summary_card.dart';
 import '../widgets/technical_pending_matrix_card.dart';
 import '../widgets/technical_justification_card.dart';
@@ -26,12 +27,14 @@ class InspectionReviewScreen extends StatefulWidget {
   final List<OverlayCameraCaptureResult> captures;
   final String tipoImovel;
   final bool cameFromCheckinStep1;
+  final InspectionFlowCoordinator flowCoordinator;
 
   const InspectionReviewScreen({
     super.key,
     this.captures = const <OverlayCameraCaptureResult>[],
     this.tipoImovel = 'Urbano',
     this.cameFromCheckinStep1 = false,
+    this.flowCoordinator = const DefaultInspectionFlowCoordinator(),
   });
 
   @override
@@ -40,30 +43,62 @@ class InspectionReviewScreen extends StatefulWidget {
 
 class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   late final List<_EditableCapture> _items;
+  late List<OverlayCameraCaptureResult> _capturesCurrent;
   final TextEditingController _observacaoController = TextEditingController();
-  final TextEditingController _technicalJustificationController = TextEditingController();
-  final InspectionTechnicalSummaryService _technicalSummaryService = const InspectionTechnicalSummaryService();
+  final TextEditingController _technicalJustificationController =
+      TextEditingController();
+  final InspectionTechnicalSummaryService _technicalSummaryService =
+      const InspectionTechnicalSummaryService();
   final VoiceInputService _voiceService = VoiceInputService();
-  final InspectionExportService _exportService = const InspectionExportService();
+  final InspectionExportService _exportService =
+      const InspectionExportService();
   final InspectionSyncService _syncService = const InspectionSyncService();
-    final InspectionSyncQueueService _syncQueueService =
+  final InspectionSyncQueueService _syncQueueService =
       const InspectionSyncQueueService();
   final CheckinDynamicConfigService _dynamicConfigService =
       CheckinDynamicConfigService.instance;
   String? _expandedSubtype;
 
   static const _elementos = <String>[
-    'Visão geral', 'Número', 'Porta', 'Portão', 'Janela', 'Piso', 'Parede', 'Teto', 'Outro',
+    'Visão geral',
+    'Número',
+    'Porta',
+    'Portão',
+    'Janela',
+    'Piso',
+    'Parede',
+    'Teto',
+    'Outro',
   ];
   static const _materiais = <String>[
-    'Alvenaria', 'Metal', 'Madeira', 'Vidro', 'Cerâmica', 'Concreto', 'Outro',
+    'Alvenaria',
+    'Metal',
+    'Madeira',
+    'Vidro',
+    'Cerâmica',
+    'Concreto',
+    'Outro',
   ];
   static const _estados = <String>[
-    'Bom', 'Regular', 'Ruim', 'Necessita reparo', 'Não se aplica',
+    'Bom',
+    'Regular',
+    'Ruim',
+    'Necessita reparo',
+    'Não se aplica',
   ];
   static const _ambientes = <String>[
-    'Fachada', 'Logradouro', 'Acesso ao imóvel', 'Entorno', 'Sala de Estar', 'Sala',
-    'Dormitório', 'Cozinha', 'Banheiro', 'Área de serviço', 'Áreas Comuns', 'Garagem',
+    'Fachada',
+    'Logradouro',
+    'Acesso ao imóvel',
+    'Entorno',
+    'Sala de Estar',
+    'Sala',
+    'Dormitório',
+    'Cozinha',
+    'Banheiro',
+    'Área de serviço',
+    'Áreas Comuns',
+    'Garagem',
     'Outro ambiente',
   ];
 
@@ -71,6 +106,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   void initState() {
     super.initState();
     _items = widget.captures.map(_EditableCapture.fromCapture).toList();
+    _capturesCurrent = List.of(widget.captures);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _persistReviewState();
     });
@@ -78,9 +114,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
 
   Future<void> _persistReviewState() async {
     final appState = Provider.of<AppState>(context, listen: false);
-    final step2Payload = widget.cameFromCheckinStep1
-        ? _buildStep2PayloadFromCaptures(appState.step2Payload)
-        : appState.step2Payload;
+    final step2Payload = _buildStep2PayloadFromCaptures(appState.step2Payload);
 
     await appState.setInspectionRecoveryStage(
       stageKey: 'inspection_review',
@@ -92,7 +126,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         'step2': step2Payload,
         'review': {
           'tipoImovel': widget.tipoImovel,
-          'captures': widget.captures.map((capture) => capture.toMap()).toList(),
+          'captures':
+              _capturesCurrent.map((capture) => capture.toMap()).toList(),
         },
       },
     );
@@ -101,20 +136,23 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   Map<String, dynamic> _buildStep2PayloadFromCaptures(
     Map<String, dynamic> existingStep2Payload,
   ) {
-    final tipo = TipoImovelExtension.fromString(widget.tipoImovel);
-    var model = existingStep2Payload.isNotEmpty
-        ? CheckinStep2Model.fromMap(existingStep2Payload)
-        : CheckinStep2Model.empty(tipo);
+    final tipo = _resolvedTipoImovel();
+    var model =
+        existingStep2Payload.isNotEmpty
+            ? CheckinStep2Model.fromMap(existingStep2Payload)
+            : CheckinStep2Model.empty(tipo);
     final config = CheckinStep2Configs.byTipo(tipo);
 
     for (final campo in config.camposFotos) {
       if (model.isPhotoCaptured(campo.id)) continue;
 
       OverlayCameraCaptureResult? matchedCapture;
-      for (final capture in widget.captures) {
-        final sameAmbiente = capture.ambiente.trim().toLowerCase() ==
+      for (final capture in _capturesCurrent) {
+        final sameAmbiente =
+            capture.ambiente.trim().toLowerCase() ==
             campo.cameraAmbiente.trim().toLowerCase();
-        final sameElemento = campo.cameraElementoInicial == null ||
+        final sameElemento =
+            campo.cameraElementoInicial == null ||
             capture.elemento?.trim().toLowerCase() ==
                 campo.cameraElementoInicial!.trim().toLowerCase();
 
@@ -135,6 +173,11 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     }
 
     return model.toMap();
+  }
+
+  TipoImovel _resolvedTipoImovel() {
+    final rawTipo = widget.tipoImovel.split('•').first.trim();
+    return TipoImovelExtension.fromString(rawTipo);
   }
 
   @override
@@ -159,48 +202,57 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     return PopScope(
       canPop: true,
       child: Scaffold(
-      appBar: AppBar(title: const Text('Menu de vistoria')),
-      bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(16, 8, 16, 14),
-        child: SizedBox(
-          height: 54,
-          child: FilledButton.icon(
-            onPressed: technicalSummary.canProceedWith(_technicalJustificationController.text)
-                ? () => _finishInspection(context, summary.totalPending + technicalSummary.pendingMatrix.totalBlocking)
-                : null,
-            icon: const Icon(Icons.flag_outlined, size: 18),
-            label: Text(
-              summary.totalPending > 0 ? 'REVISAR E FINALIZAR' : 'FINALIZAR VISTORIA',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+        appBar: AppBar(title: const Text('Menu de vistoria')),
+        bottomNavigationBar: SafeArea(
+          minimum: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+          child: SizedBox(
+            height: 54,
+            child: FilledButton.icon(
+              onPressed:
+                  technicalSummary.canProceedWith(
+                        _technicalJustificationController.text,
+                      )
+                      ? () => _finishInspection(
+                        context,
+                        summary.totalPending +
+                            technicalSummary.pendingMatrix.totalBlocking,
+                      )
+                      : null,
+              icon: const Icon(Icons.flag_outlined, size: 18),
+              label: Text(
+                summary.totalPending > 0
+                    ? 'REVISAR E FINALIZAR'
+                    : 'FINALIZAR VISTORIA',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+              ),
             ),
           ),
         ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
-        children: [
-          _buildProgressCard(context, summary),
-          const SizedBox(height: 12),
-          InspectionTechnicalSummaryCard(summary: technicalSummary),
-          const SizedBox(height: 8),
-          _buildPendenciasSection(
-            context: context,
-            groups: groups,
-            checkinStatuses: checkinStatuses,
-            technicalSummary: technicalSummary,
-          ),
-          if (technicalSummary.requiresJustification) ...[
+        body: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+          children: [
+            _buildProgressCard(context, summary),
             const SizedBox(height: 12),
-            TechnicalJustificationCard(
-              controller: _technicalJustificationController,
-              voiceService: _voiceService,
-              onChanged: (_) => setState(() {}),
+            InspectionTechnicalSummaryCard(summary: technicalSummary),
+            const SizedBox(height: 8),
+            _buildPendenciasSection(
+              context: context,
+              groups: groups,
+              checkinStatuses: checkinStatuses,
+              technicalSummary: technicalSummary,
             ),
+            if (technicalSummary.requiresJustification) ...[
+              const SizedBox(height: 12),
+              TechnicalJustificationCard(
+                controller: _technicalJustificationController,
+                voiceService: _voiceService,
+                onChanged: (_) => setState(() {}),
+              ),
+            ],
+            const SizedBox(height: 16),
+            _buildClosingCard(context, summary, technicalSummary),
           ],
-          const SizedBox(height: 16),
-          _buildClosingCard(context, summary, technicalSummary),
-        ],
-      ),
+        ),
       ),
     );
   }
@@ -233,17 +285,21 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         .toList();
   }
 
-  Widget _buildProgressCard(
-    BuildContext context,
-    _ReviewSummary summary,
-  ) {
-    final progress = summary.total == 0 ? 0.0 : (summary.classified / summary.total).clamp(0.0, 1.0);
+  Widget _buildProgressCard(BuildContext context, _ReviewSummary summary) {
+    final progress =
+        summary.total == 0
+            ? 0.0
+            : (summary.classified / summary.total).clamp(0.0, 1.0);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.32),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.32),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.10)),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.10),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -254,12 +310,16 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
               const SizedBox(width: 8),
               Text(
                 'Revisão de fotos',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
               ),
               const Spacer(),
               Text(
                 '${summary.classified}/${summary.total} classificadas',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -279,9 +339,14 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     required List<_CheckinRequirementStatus> checkinStatuses,
     required InspectionTechnicalSummary technicalSummary,
   }) {
-    final checkinPendencias = checkinStatuses.where((status) => !status.isDone).length;
-    final fotosPendentes = groups.fold<int>(0, (sum, group) => sum + group.pending);
-    final totalPendencias = technicalSummary.pendingMatrix.totalBlocking +
+    final checkinPendencias =
+        checkinStatuses.where((status) => !status.isDone).length;
+    final fotosPendentes = groups.fold<int>(
+      0,
+      (sum, group) => sum + group.pending,
+    );
+    final totalPendencias =
+        technicalSummary.pendingMatrix.totalBlocking +
         checkinPendencias +
         fotosPendentes;
     final hasPendencias = totalPendencias > 0;
@@ -295,9 +360,9 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
             ? 'Ver pendências da vistoria ($totalPendencias)'
             : 'Vistoria revisada',
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: hasPendencias ? Colors.orange.shade800 : Colors.green.shade700,
-            ),
+          fontWeight: FontWeight.w700,
+          color: hasPendencias ? Colors.orange.shade800 : Colors.green.shade700,
+        ),
       ),
       children: [
         if (technicalSummary.pendingMatrix.totalBlocking > 0) ...[
@@ -308,9 +373,9 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
           Text(
             'Fotos obrigatórias do check-in',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 16,
-                ),
+              fontWeight: FontWeight.w800,
+              fontSize: 16,
+            ),
           ),
           const SizedBox(height: 10),
           ...checkinStatuses.map(
@@ -318,7 +383,10 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
               padding: const EdgeInsets.only(bottom: 10),
               child: _CheckinRequirementCard(
                 status: status,
-                onCapture: status.isDone ? null : () => _captureMissingRequirement(status),
+                onCapture:
+                    status.isDone
+                        ? null
+                        : () => _captureMissingRequirement(status),
               ),
             ),
           ),
@@ -327,40 +395,48 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         Text(
           'Fotos capturadas',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-                fontSize: 16,
-              ),
+            fontWeight: FontWeight.w800,
+            fontSize: 16,
+          ),
         ),
         const SizedBox(height: 10),
-        ...groups.map((group) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _NodeCard(
-                group: group,
-                initiallyExpanded: _expandedSubtype == null
-                    ? group.pending > 0
-                    : _expandedSubtype == group.title,
-                onExpansionChanged: (expanded) {
-                  setState(() {
-                    _expandedSubtype = expanded ? group.title : null;
-                  });
-                },
-                onChanged: () => setState(() {}),
-                onApplySubtype: () => _applySubtype(group),
-                onApplySimilar: (source) => _applySimilar(group, source),
-                onAcceptSuggestions: () => _acceptSuggestions(group),
-                onEditItem: _editItem,
-              ),
-            )),
+        ...groups.map(
+          (group) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _NodeCard(
+              group: group,
+              initiallyExpanded:
+                  _expandedSubtype == null
+                      ? group.pending > 0
+                      : _expandedSubtype == group.title,
+              onExpansionChanged: (expanded) {
+                setState(() {
+                  _expandedSubtype = expanded ? group.title : null;
+                });
+              },
+              onChanged: () => setState(() {}),
+              onApplySubtype: () => _applySubtype(group),
+              onApplySimilar: (source) => _applySimilar(group, source),
+              onAcceptSuggestions: () => _acceptSuggestions(group),
+              onEditItem: _editItem,
+            ),
+          ),
+        ),
       ],
     );
   }
 
-      Widget _buildClosingCard(BuildContext context, _ReviewSummary summary, InspectionTechnicalSummary technicalSummary,) 
-      {    
-        return Container(
+  Widget _buildClosingCard(
+    BuildContext context,
+    _ReviewSummary summary,
+    InspectionTechnicalSummary technicalSummary,
+  ) {
+    return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.24),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.24),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
@@ -369,9 +445,9 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
           Text(
             'Encerramento',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 16,
-                ),
+              fontWeight: FontWeight.w800,
+              fontSize: 16,
+            ),
           ),
           const SizedBox(height: 10),
           VoiceTextField(
@@ -394,7 +470,9 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                 ),
               ),
             ),
-          if (!technicalSummary.canProceedWith(_technicalJustificationController.text))
+          if (!technicalSummary.canProceedWith(
+            _technicalJustificationController.text,
+          ))
             Padding(
               padding: const EdgeInsets.only(top: 6),
               child: Text(
@@ -414,10 +492,14 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   }
 
   _ReviewSummary _buildSummary() {
-    final photoPending = _items.where((item) => item.status == _PhotoStatus.pending).length;
-    final suggested = _items.where((item) => item.status == _PhotoStatus.suggested).length;
-    final classified = _items.where((item) => item.status == _PhotoStatus.classified).length;
-    final missingCheckin = _buildCheckinRequirements().where((item) => !item.isDone).length;
+    final photoPending =
+        _items.where((item) => item.status == _PhotoStatus.pending).length;
+    final suggested =
+        _items.where((item) => item.status == _PhotoStatus.suggested).length;
+    final classified =
+        _items.where((item) => item.status == _PhotoStatus.classified).length;
+    final missingCheckin =
+        _buildCheckinRequirements().where((item) => !item.isDone).length;
     return _ReviewSummary(
       total: _items.length,
       photoPending: photoPending,
@@ -433,16 +515,20 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       final key = item.ambiente.trim().isEmpty ? 'Sem subtipo' : item.ambiente;
       map.putIfAbsent(key, () => <_EditableCapture>[]).add(item);
     }
-    final groups = map.entries.map((entry) {
-      final items = entry.value;
-      return _NodeGroup(
-        title: entry.key,
-        items: items,
-        pending: items.where((e) => e.status == _PhotoStatus.pending).length,
-        suggested: items.where((e) => e.status == _PhotoStatus.suggested).length,
-        classified: items.where((e) => e.status == _PhotoStatus.classified).length,
-      );
-    }).toList();
+    final groups =
+        map.entries.map((entry) {
+          final items = entry.value;
+          return _NodeGroup(
+            title: entry.key,
+            items: items,
+            pending:
+                items.where((e) => e.status == _PhotoStatus.pending).length,
+            suggested:
+                items.where((e) => e.status == _PhotoStatus.suggested).length,
+            classified:
+                items.where((e) => e.status == _PhotoStatus.classified).length,
+          );
+        }).toList();
     groups.sort((a, b) {
       if (a.pending != b.pending) return b.pending.compareTo(a.pending);
       if (a.suggested != b.suggested) return b.suggested.compareTo(a.suggested);
@@ -453,8 +539,12 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
 
   List<_CheckinRequirementStatus> _buildCheckinRequirements() {
     final appState = Provider.of<AppState>(context, listen: false);
-    final tipo = TipoImovelExtension.fromString(widget.tipoImovel);
+    final tipo = _resolvedTipoImovel();
     final fallbackConfig = CheckinStep2Configs.byTipo(tipo);
+    final persistedStep2Model =
+        appState.step2Payload.isNotEmpty
+            ? CheckinStep2Model.fromMap(appState.step2Payload)
+            : CheckinStep2Model.empty(tipo);
 
     CheckinStep2Config config = fallbackConfig;
     final dynamicStep2Raw = appState.inspectionRecoveryPayload['step2Config'];
@@ -471,34 +561,43 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
 
     return config.camposFotos.where((campo) => campo.obrigatorio).map((campo) {
       final hasEvidence = _items.any((item) {
-        final sameAmbiente = item.ambiente.trim().toLowerCase() == campo.cameraAmbiente.trim().toLowerCase();
-        final sameElemento = campo.cameraElementoInicial == null
-            ? true
-            : (item.elemento?.trim().toLowerCase() == campo.cameraElementoInicial!.trim().toLowerCase());
+        final sameAmbiente =
+            item.ambiente.trim().toLowerCase() ==
+            campo.cameraAmbiente.trim().toLowerCase();
+        final sameElemento =
+            campo.cameraElementoInicial == null
+                ? true
+                : (item.elemento?.trim().toLowerCase() ==
+                    campo.cameraElementoInicial!.trim().toLowerCase());
         return sameAmbiente && sameElemento;
       });
-      return _CheckinRequirementStatus(field: campo, isDone: hasEvidence);
+      final isPersisted = persistedStep2Model.isPhotoCaptured(campo.id);
+      return _CheckinRequirementStatus(
+        field: campo,
+        isDone: hasEvidence || isPersisted,
+      );
     }).toList();
   }
 
-  Future<void> _captureMissingRequirement(_CheckinRequirementStatus status) async {
-    final result = await Navigator.push<OverlayCameraCaptureResult>(
+  Future<void> _captureMissingRequirement(
+    _CheckinRequirementStatus status,
+  ) async {
+    final result = await widget.flowCoordinator.openOverlayCamera(
       context,
-      MaterialPageRoute(
-        builder: (_) => OverlayCameraScreen(
-          title: status.field.titulo,
-          tipoImovel: widget.tipoImovel,
-          subtipoImovel: widget.tipoImovel,
-          singleCaptureMode: true,
-          preselectedMacroLocal: status.field.cameraMacroLocal,
-          initialAmbiente: status.field.cameraAmbiente,
-          initialElemento: status.field.cameraElementoInicial,
-          cameFromCheckinStep1: false,
-        ),
-      ),
+      title: status.field.titulo,
+      tipoImovel: widget.tipoImovel,
+      subtipoImovel: widget.tipoImovel,
+      singleCaptureMode: true,
+      preselectedMacroLocal: status.field.cameraMacroLocal,
+      initialAmbiente: status.field.cameraAmbiente,
+      initialElemento: status.field.cameraElementoInicial,
+      cameFromCheckinStep1: false,
     );
     if (result == null || !mounted) return;
-    setState(() => _items.add(_EditableCapture.fromCapture(result)));
+    _capturesCurrent.add(result);
+    setState(() {
+      _items.add(_EditableCapture.fromCapture(result));
+    });
     await _persistReviewState();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -508,7 +607,10 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
 
   void _applySubtype(_NodeGroup group) {
     if (group.items.isEmpty) return;
-    final source = group.items.firstWhere((item) => item.hasAnyClassification, orElse: () => group.items.first);
+    final source = group.items.firstWhere(
+      (item) => item.hasAnyClassification,
+      orElse: () => group.items.first,
+    );
     setState(() {
       for (final item in group.items) {
         item.copyClassificationFrom(source);
@@ -520,7 +622,9 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   void _acceptSuggestions(_NodeGroup group) {
     setState(() {
       for (final item in group.items) {
-        if (item.status == _PhotoStatus.suggested) item.recalculateStatus(forceClassified: true);
+        if (item.status == _PhotoStatus.suggested) {
+          item.recalculateStatus(forceClassified: true);
+        }
       }
     });
   }
@@ -540,7 +644,9 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       isScrollControlled: true,
       showDragHandle: true,
       useSafeArea: true,
-      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.88),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.88,
+      ),
       builder: (sheetContext) {
         String? elemento = item.elemento;
         String? material = item.material;
@@ -557,7 +663,10 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                   left: 16,
                   right: 16,
                   top: 4,
-                  bottom: mediaQuery.viewInsets.bottom + mediaQuery.viewPadding.bottom + 16,
+                  bottom:
+                      mediaQuery.viewInsets.bottom +
+                      mediaQuery.viewPadding.bottom +
+                      16,
                 ),
                 child: SingleChildScrollView(
                   child: Column(
@@ -566,38 +675,44 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                     children: [
                       Text(
                         'Classificar foto',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 16,
-                            ),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       _EditorDropdown(
                         label: 'Subtipo / Local',
                         value: _ambientes.contains(ambiente) ? ambiente : null,
                         items: _ambientes,
-                        onChanged: (value) => setSheetState(() => ambiente = value),
+                        onChanged:
+                            (value) => setSheetState(() => ambiente = value),
                       ),
                       const SizedBox(height: 10),
                       _EditorDropdown(
                         label: 'Elemento',
                         value: _elementos.contains(elemento) ? elemento : null,
                         items: _elementos,
-                        onChanged: (value) => setSheetState(() => elemento = value),
+                        onChanged:
+                            (value) => setSheetState(() => elemento = value),
                       ),
                       const SizedBox(height: 10),
                       _EditorDropdown(
                         label: 'Material',
                         value: _materiais.contains(material) ? material : null,
                         items: _materiais,
-                        onChanged: (value) => setSheetState(() => material = value),
+                        onChanged:
+                            (value) => setSheetState(() => material = value),
                       ),
                       const SizedBox(height: 10),
                       _EditorDropdown(
                         label: 'Estado',
                         value: _estados.contains(estado) ? estado : null,
                         items: _estados,
-                        onChanged: (value) => setSheetState(() => estado = value),
+                        onChanged:
+                            (value) => setSheetState(() => estado = value),
                       ),
                       const SizedBox(height: 16),
                       SizedBox(
@@ -631,22 +746,31 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     final navigator = Navigator.of(context);
     final appState = Provider.of<AppState>(context, listen: false);
 
-    final shouldContinue = pendingCount == 0
-        ? true
-        : await showDialog<bool>(
-              context: context,
-              builder: (dialogContext) => AlertDialog(
-                title: const Text('Existem pendências'),
-                content: Text(
-                  'Ainda existem $pendingCount item(ns) com pendência. Deseja finalizar a vistoria mesmo assim?',
-                ),
-                actions: [
-                  TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Voltar')),
-                  FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Finalizar mesmo assim')),
-                ],
-              ),
-            ) ??
-            false;
+    final shouldContinue =
+        pendingCount == 0
+            ? true
+            : await showDialog<bool>(
+                  context: context,
+                  builder:
+                      (dialogContext) => AlertDialog(
+                        title: const Text('Existem pendências'),
+                        content: Text(
+                          'Ainda existem $pendingCount item(ns) com pendência. Deseja finalizar a vistoria mesmo assim?',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed:
+                                () => Navigator.pop(dialogContext, false),
+                            child: const Text('Voltar'),
+                          ),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(dialogContext, true),
+                            child: const Text('Finalizar mesmo assim'),
+                          ),
+                        ],
+                      ),
+                ) ??
+                false;
 
     if (!shouldContinue) return;
     if (!mounted) return;
@@ -675,18 +799,20 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     await appState.finalizarJob();
 
     if (!mounted) return;
-    final syncSuffix = syncResult == null
-      ? ''
-      : (syncResult.success
-        ? _buildSyncSuccessMessage(flushResult)
-        : _buildSyncFailureMessage(
-          syncResult: syncResult,
-          queuedCount: queuedCount,
-          ));
+    final syncSuffix =
+        syncResult == null
+            ? ''
+            : (syncResult.success
+                ? _buildSyncSuccessMessage(flushResult)
+                : _buildSyncFailureMessage(
+                  syncResult: syncResult,
+                  queuedCount: queuedCount,
+                ));
 
-    final message = exportPath == null
-      ? 'Vistoria finalizada com sucesso.$syncSuffix'
-      : 'Vistoria finalizada com sucesso. JSON salvo em: $exportPath.$syncSuffix';
+    final message =
+        exportPath == null
+            ? 'Vistoria finalizada com sucesso.$syncSuffix'
+            : 'Vistoria finalizada com sucesso. JSON salvo em: $exportPath.$syncSuffix';
     messenger.showSnackBar(SnackBar(content: Text(message)));
     navigator.popUntil((route) => route.isFirst);
   }
@@ -718,18 +844,19 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
 
   Map<String, dynamic> _buildInspectionExportPayload(AppState appState) {
     final captures = widget.captures.map((capture) => capture.toMap()).toList();
-    final reviewedCaptures = _items
-        .map(
-          (item) => {
-            'filePath': item.filePath,
-            'ambiente': item.ambiente,
-            'elemento': item.elemento,
-            'material': item.material,
-            'estado': item.estado,
-            'isComplete': item.status == _PhotoStatus.classified,
-          },
-        )
-        .toList();
+    final reviewedCaptures =
+        _items
+            .map(
+              (item) => {
+                'filePath': item.filePath,
+                'ambiente': item.ambiente,
+                'elemento': item.elemento,
+                'material': item.material,
+                'estado': item.estado,
+                'isComplete': item.status == _PhotoStatus.classified,
+              },
+            )
+            .toList();
 
     return {
       'exportedAt': DateTime.now().toIso8601String(),
@@ -750,27 +877,39 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       },
     };
   }
-
 }
 
 class _CheckinRequirementCard extends StatelessWidget {
   final _CheckinRequirementStatus status;
   final VoidCallback? onCapture;
 
-  const _CheckinRequirementCard({required this.status, required this.onCapture});
+  const _CheckinRequirementCard({
+    required this.status,
+    required this.onCapture,
+  });
 
   @override
   Widget build(BuildContext context) {
     final color = status.isDone ? Colors.green : Colors.orange;
-    final subtitle = status.isDone ? 'Obrigatório atendido' : 'Obrigatório — pendente de captura';
+    final subtitle =
+        status.isDone
+            ? 'Obrigatório atendido'
+            : 'Obrigatório — pendente de captura';
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
         color: Colors.white,
-        border: Border.all(color: color.withValues(alpha: 0.35), width: status.isDone ? 1.0 : 1.3),
+        border: Border.all(
+          color: color.withValues(alpha: 0.35),
+          width: status.isDone ? 1.0 : 1.3,
+        ),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Row(
@@ -786,18 +925,31 @@ class _CheckinRequirementCard extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(status.field.titulo, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: status.isDone ? Colors.green.shade700 : Colors.orange.shade800,
-                  fontWeight: status.isDone ? FontWeight.w600 : FontWeight.w700,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  status.field.titulo,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-              ),
-            ]),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color:
+                        status.isDone
+                            ? Colors.green.shade700
+                            : Colors.orange.shade800,
+                    fontWeight:
+                        status.isDone ? FontWeight.w600 : FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(width: 10),
           if (status.isDone)
@@ -806,7 +958,10 @@ class _CheckinRequirementCard extends StatelessWidget {
             FilledButton.tonalIcon(
               onPressed: onCapture,
               icon: const Icon(Icons.photo_camera_outlined, size: 16),
-              label: const Text('Capturar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+              label: const Text(
+                'Capturar',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+              ),
             ),
         ],
       ),
@@ -837,15 +992,29 @@ class _NodeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final status = group.pending > 0 ? _VisualStatus.pending : group.suggested > 0 ? _VisualStatus.suggested : _VisualStatus.ok;
+    final status =
+        group.pending > 0
+            ? _VisualStatus.pending
+            : group.suggested > 0
+            ? _VisualStatus.suggested
+            : _VisualStatus.ok;
     final icon = _iconForSubtype(group.title);
 
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         color: Colors.white,
-        border: Border.all(color: status.borderColor.withValues(alpha: 0.35), width: status == _VisualStatus.pending ? 1.4 : 1.0),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.035), blurRadius: 12, offset: const Offset(0, 5))],
+        border: Border.all(
+          color: status.borderColor.withValues(alpha: 0.35),
+          width: status == _VisualStatus.pending ? 1.4 : 1.0,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.035),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: ExpansionTile(
         initiallyExpanded: initiallyExpanded,
@@ -853,27 +1022,47 @@ class _NodeCard extends StatelessWidget {
         tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        collapsedShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
         title: Row(
           children: [
             Container(
               width: 54,
               height: 54,
-              decoration: BoxDecoration(color: status.iconBackground, borderRadius: BorderRadius.circular(16)),
+              decoration: BoxDecoration(
+                color: status.iconBackground,
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: Icon(icon, size: 28, color: status.iconColor),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(group.title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800), overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 4),
-                Text(
-                  status.subtitle(group),
-                  style: TextStyle(fontSize: 12, fontWeight: group.pending > 0 ? FontWeight.w700 : FontWeight.w500, color: status.subtitleColor),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 2,
-                ),
-              ]),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    group.title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    status.subtitle(group),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight:
+                          group.pending > 0 ? FontWeight.w700 : FontWeight.w500,
+                      color: status.subtitleColor,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -906,13 +1095,19 @@ class _NodeCard extends StatelessWidget {
               OutlinedButton.icon(
                 onPressed: onApplySubtype,
                 icon: const Icon(Icons.copy_all_outlined, size: 16),
-                label: const Text('Aplicar ao subtipo', style: TextStyle(fontSize: 12)),
+                label: const Text(
+                  'Aplicar ao subtipo',
+                  style: TextStyle(fontSize: 12),
+                ),
               ),
               if (group.suggested > 0)
                 OutlinedButton.icon(
                   onPressed: onAcceptSuggestions,
                   icon: const Icon(Icons.task_alt_outlined, size: 16),
-                  label: const Text('Aceitar sugestões', style: TextStyle(fontSize: 12)),
+                  label: const Text(
+                    'Aceitar sugestões',
+                    style: TextStyle(fontSize: 12),
+                  ),
                 ),
             ],
           ),
@@ -924,7 +1119,10 @@ class _NodeCard extends StatelessWidget {
                 child: TextButton.icon(
                   onPressed: () => onApplySimilar(group.items.first),
                   icon: const Icon(Icons.auto_fix_high_outlined, size: 16),
-                  label: const Text('Aplicar aos semelhantes', style: TextStyle(fontSize: 12)),
+                  label: const Text(
+                    'Aplicar aos semelhantes',
+                    style: TextStyle(fontSize: 12),
+                  ),
                 ),
               ),
             ),
@@ -935,12 +1133,24 @@ class _NodeCard extends StatelessWidget {
 
   IconData _iconForSubtype(String subtype) {
     final normalized = subtype.toLowerCase();
-    if (normalized.contains('exterior') || normalized.contains('fachada')) return Icons.home_outlined;
-    if (normalized.contains('sala')) return Icons.weekend_outlined;
-    if (normalized.contains('cozinha')) return Icons.restaurant_outlined;
-    if (normalized.contains('banheiro')) return Icons.shower_outlined;
-    if (normalized.contains('área') || normalized.contains('comum')) return Icons.apartment_outlined;
-    if (normalized.contains('garagem')) return Icons.garage_outlined;
+    if (normalized.contains('exterior') || normalized.contains('fachada')) {
+      return Icons.home_outlined;
+    }
+    if (normalized.contains('sala')) {
+      return Icons.weekend_outlined;
+    }
+    if (normalized.contains('cozinha')) {
+      return Icons.restaurant_outlined;
+    }
+    if (normalized.contains('banheiro')) {
+      return Icons.shower_outlined;
+    }
+    if (normalized.contains('área') || normalized.contains('comum')) {
+      return Icons.apartment_outlined;
+    }
+    if (normalized.contains('garagem')) {
+      return Icons.garage_outlined;
+    }
     return Icons.grid_view_rounded;
   }
 }
@@ -953,38 +1163,71 @@ class _ThumbCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final status = item.status == _PhotoStatus.pending ? _VisualStatus.pending : item.status == _PhotoStatus.suggested ? _VisualStatus.suggested : _VisualStatus.ok;
+    final status =
+        item.status == _PhotoStatus.pending
+            ? _VisualStatus.pending
+            : item.status == _PhotoStatus.suggested
+            ? _VisualStatus.suggested
+            : _VisualStatus.ok;
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
       child: SizedBox(
         width: 122,
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          SizedBox(
-            height: 92,
-            width: 122,
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: ClipRRect(borderRadius: BorderRadius.circular(16), child: _CaptureThumbnail(filePath: item.filePath)),
-                ),
-                Positioned(
-                  top: 6,
-                  left: 6,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                    decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.55), borderRadius: BorderRadius.circular(999)),
-                    child: Text(item.hourMinute, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: 92,
+              width: 122,
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: _CaptureThumbnail(filePath: item.filePath),
+                    ),
                   ),
-                ),
-              ],
+                  Positioned(
+                    top: 6,
+                    left: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        item.hourMinute,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
-          _StatusPill(status: status, label: status.shortLabel),
-          const SizedBox(height: 4),
-          Text(item.shortDescription, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600)),
-        ]),
+            const SizedBox(height: 6),
+            _StatusPill(status: status, label: status.shortLabel),
+            const SizedBox(height: 4),
+            Text(
+              item.shortDescription,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1011,7 +1254,10 @@ class _CaptureThumbnail extends StatelessWidget {
         fit: BoxFit.cover,
         alignment: Alignment.center,
         filterQuality: FilterQuality.medium,
-        errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image_outlined, size: 28)),
+        errorBuilder:
+            (_, __, ___) => const Center(
+              child: Icon(Icons.broken_image_outlined, size: 28),
+            ),
       ),
     );
   }
@@ -1023,7 +1269,12 @@ class _EditorDropdown extends StatelessWidget {
   final List<String> items;
   final ValueChanged<String?> onChanged;
 
-  const _EditorDropdown({required this.label, required this.value, required this.items, required this.onChanged});
+  const _EditorDropdown({
+    required this.label,
+    required this.value,
+    required this.items,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1031,8 +1282,20 @@ class _EditorDropdown extends StatelessWidget {
     return DropdownButtonFormField<String>(
       initialValue: safeValue,
       isExpanded: true,
-      decoration: InputDecoration(labelText: label, isDense: true, border: const OutlineInputBorder()),
-      items: items.map((item) => DropdownMenuItem<String>(value: item, child: Text(item, overflow: TextOverflow.ellipsis))).toList(),
+      decoration: InputDecoration(
+        labelText: label,
+        isDense: true,
+        border: const OutlineInputBorder(),
+      ),
+      items:
+          items
+              .map(
+                (item) => DropdownMenuItem<String>(
+                  value: item,
+                  child: Text(item, overflow: TextOverflow.ellipsis),
+                ),
+              )
+              .toList(),
       onChanged: onChanged,
     );
   }
@@ -1054,13 +1317,24 @@ class _StatusPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: status.pillBorder),
       ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(status.icon, size: 14, color: status.pillText),
-        const SizedBox(width: 5),
-        Flexible(
-          child: Text(label, overflow: TextOverflow.ellipsis, style: TextStyle(color: status.pillText, fontWeight: FontWeight.w800, fontSize: 11)),
-        ),
-      ]),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(status.icon, size: 14, color: status.pillText),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: status.pillText,
+                fontWeight: FontWeight.w800,
+                fontSize: 11,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1068,15 +1342,60 @@ class _StatusPill extends StatelessWidget {
 enum _VisualStatus { ok, suggested, pending }
 
 extension on _VisualStatus {
-  Color get borderColor => this == _VisualStatus.ok ? Colors.green : this == _VisualStatus.suggested ? Colors.amber : Colors.orange;
-  Color get iconBackground => this == _VisualStatus.ok ? Colors.green.shade50 : this == _VisualStatus.suggested ? Colors.amber.shade50 : Colors.orange.shade50;
-  Color get iconColor => this == _VisualStatus.ok ? Colors.green.shade700 : this == _VisualStatus.suggested ? Colors.amber.shade800 : Colors.orange.shade700;
-  Color get subtitleColor => this == _VisualStatus.ok ? Colors.green.shade700 : this == _VisualStatus.suggested ? Colors.amber.shade800 : Colors.orange.shade700;
-  Color get pillBackground => this == _VisualStatus.ok ? Colors.green.shade50 : this == _VisualStatus.suggested ? Colors.amber.shade50 : Colors.orange.shade50;
-  Color get pillBorder => this == _VisualStatus.ok ? Colors.green.shade100 : this == _VisualStatus.suggested ? Colors.amber.shade100 : Colors.orange.shade200;
-  Color get pillText => this == _VisualStatus.ok ? Colors.green.shade700 : this == _VisualStatus.suggested ? Colors.amber.shade800 : Colors.orange.shade700;
-  IconData get icon => this == _VisualStatus.ok ? Icons.check_circle_outline : this == _VisualStatus.suggested ? Icons.auto_awesome_outlined : Icons.warning_amber_rounded;
-  String get shortLabel => this == _VisualStatus.ok ? 'OK' : this == _VisualStatus.suggested ? 'Sug.' : 'Pend.';
+  Color get borderColor =>
+      this == _VisualStatus.ok
+          ? Colors.green
+          : this == _VisualStatus.suggested
+          ? Colors.amber
+          : Colors.orange;
+  Color get iconBackground =>
+      this == _VisualStatus.ok
+          ? Colors.green.shade50
+          : this == _VisualStatus.suggested
+          ? Colors.amber.shade50
+          : Colors.orange.shade50;
+  Color get iconColor =>
+      this == _VisualStatus.ok
+          ? Colors.green.shade700
+          : this == _VisualStatus.suggested
+          ? Colors.amber.shade800
+          : Colors.orange.shade700;
+  Color get subtitleColor =>
+      this == _VisualStatus.ok
+          ? Colors.green.shade700
+          : this == _VisualStatus.suggested
+          ? Colors.amber.shade800
+          : Colors.orange.shade700;
+  Color get pillBackground =>
+      this == _VisualStatus.ok
+          ? Colors.green.shade50
+          : this == _VisualStatus.suggested
+          ? Colors.amber.shade50
+          : Colors.orange.shade50;
+  Color get pillBorder =>
+      this == _VisualStatus.ok
+          ? Colors.green.shade100
+          : this == _VisualStatus.suggested
+          ? Colors.amber.shade100
+          : Colors.orange.shade200;
+  Color get pillText =>
+      this == _VisualStatus.ok
+          ? Colors.green.shade700
+          : this == _VisualStatus.suggested
+          ? Colors.amber.shade800
+          : Colors.orange.shade700;
+  IconData get icon =>
+      this == _VisualStatus.ok
+          ? Icons.check_circle_outline
+          : this == _VisualStatus.suggested
+          ? Icons.auto_awesome_outlined
+          : Icons.warning_amber_rounded;
+  String get shortLabel =>
+      this == _VisualStatus.ok
+          ? 'OK'
+          : this == _VisualStatus.suggested
+          ? 'Sug.'
+          : 'Pend.';
 
   String label(_NodeGroup group) {
     switch (this) {
@@ -1085,8 +1404,13 @@ extension on _VisualStatus {
       case _VisualStatus.suggested:
         return 'Revisar';
       case _VisualStatus.pending:
-        final source = group.items.firstWhere((item) => item.status == _PhotoStatus.pending, orElse: () => group.items.first);
-        return source.elemento?.trim().isNotEmpty == true ? source.elemento! : 'Pendente';
+        final source = group.items.firstWhere(
+          (item) => item.status == _PhotoStatus.pending,
+          orElse: () => group.items.first,
+        );
+        return source.elemento?.trim().isNotEmpty == true
+            ? source.elemento!
+            : 'Pendente';
     }
   }
 
@@ -1097,8 +1421,14 @@ extension on _VisualStatus {
       case _VisualStatus.suggested:
         return 'Existem sugestões automáticas para revisar';
       case _VisualStatus.pending:
-        final source = group.items.firstWhere((item) => item.status == _PhotoStatus.pending, orElse: () => group.items.first);
-        final detail = source.elemento?.trim().isNotEmpty == true ? source.elemento! : 'Classificação incompleta';
+        final source = group.items.firstWhere(
+          (item) => item.status == _PhotoStatus.pending,
+          orElse: () => group.items.first,
+        );
+        final detail =
+            source.elemento?.trim().isNotEmpty == true
+                ? source.elemento!
+                : 'Classificação incompleta';
         return 'Pendente: $detail';
     }
   }
@@ -1149,10 +1479,12 @@ class _EditableCapture {
   });
 
   factory _EditableCapture.fromCapture(OverlayCameraCaptureResult capture) {
-    final hasCompleteClassification = (capture.elemento?.trim().isNotEmpty ?? false) &&
+    final hasCompleteClassification =
+        (capture.elemento?.trim().isNotEmpty ?? false) &&
         (capture.material?.trim().isNotEmpty ?? false) &&
         (capture.estado?.trim().isNotEmpty ?? false);
-    final hasAnyClassification = (capture.elemento?.trim().isNotEmpty ?? false) ||
+    final hasAnyClassification =
+        (capture.elemento?.trim().isNotEmpty ?? false) ||
         (capture.material?.trim().isNotEmpty ?? false) ||
         (capture.estado?.trim().isNotEmpty ?? false);
 
@@ -1164,7 +1496,12 @@ class _EditableCapture {
       material: capture.material,
       estado: capture.estado,
       capturedAt: capture.capturedAt,
-      status: hasCompleteClassification ? _PhotoStatus.classified : hasAnyClassification ? _PhotoStatus.suggested : _PhotoStatus.pending,
+      status:
+          hasCompleteClassification
+              ? _PhotoStatus.classified
+              : hasAnyClassification
+              ? _PhotoStatus.suggested
+              : _PhotoStatus.pending,
     );
   }
 
@@ -1173,7 +1510,8 @@ class _EditableCapture {
       (material?.trim().isNotEmpty ?? false) ||
       (estado?.trim().isNotEmpty ?? false);
 
-  String get hourMinute => '${capturedAt.hour.toString().padLeft(2, '0')}:${capturedAt.minute.toString().padLeft(2, '0')}';
+  String get hourMinute =>
+      '${capturedAt.hour.toString().padLeft(2, '0')}:${capturedAt.minute.toString().padLeft(2, '0')}';
 
   String get shortDescription {
     final parts = <String>[
@@ -1193,10 +1531,12 @@ class _EditableCapture {
   }
 
   void recalculateStatus({bool forceClassified = false}) {
-    final hasCompleteClassification = (elemento?.trim().isNotEmpty ?? false) &&
+    final hasCompleteClassification =
+        (elemento?.trim().isNotEmpty ?? false) &&
         (material?.trim().isNotEmpty ?? false) &&
         (estado?.trim().isNotEmpty ?? false);
-    final hasAnyClassification = (elemento?.trim().isNotEmpty ?? false) ||
+    final hasAnyClassification =
+        (elemento?.trim().isNotEmpty ?? false) ||
         (material?.trim().isNotEmpty ?? false) ||
         (estado?.trim().isNotEmpty ?? false);
 
