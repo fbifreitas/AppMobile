@@ -1,5 +1,4 @@
 ﻿import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 
 import '../models/agenda_item.dart';
 import '../models/app_message.dart';
