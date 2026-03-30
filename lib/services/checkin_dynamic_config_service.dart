@@ -70,6 +70,11 @@ class CheckinDynamicConfigService {
     };
   }
 
+  Future<Map<String, dynamic>?> loadDeveloperMockDocument() async {
+    final document = await _readDeveloperMockDocument();
+    return document == null ? null : Map<String, dynamic>.from(document);
+  }
+
   Future<CheckinStep1DynamicConfig> loadStep1Config({
     required List<String> fallbackTipos,
     required Map<String, List<String>> fallbackSubtiposPorTipo,
@@ -251,8 +256,8 @@ class CheckinDynamicConfigService {
       'tipoImovel': config.tipoImovel.name,
       'tituloTela': config.tituloTela,
       'subtituloTela': config.subtituloTela,
-        'minFotos': config.minFotos,
-        'maxFotos': config.maxFotos,
+      'minFotos': config.minFotos,
+      'maxFotos': config.maxFotos,
       'camposFotos':
           config.camposFotos
               .map(

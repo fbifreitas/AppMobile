@@ -226,4 +226,39 @@ void main() {
     expect(serialized['minFotos'], fallback.minFotos);
     expect(serialized['maxFotos'], fallback.maxFotos);
   });
+
+  test(
+    'loadDeveloperMockDocument exposes unified developer document',
+    () async {
+      final service = CheckinDynamicConfigService.instance;
+
+      await service.configureDeveloperMock(
+        enabled: true,
+        documentJson: jsonEncode({
+          'step1': {
+            'tipos': <String>['Urbano'],
+            'contextos': <String>['Rua'],
+            'subtiposPorTipo': {
+              'Urbano': <String>['Casa'],
+            },
+          },
+          'camera': {
+            'byTipo': {
+              'urbano': {
+                'macroLocals': [
+                  {'label': 'Rua', 'baseScore': 100},
+                ],
+              },
+            },
+          },
+        }),
+      );
+
+      final document = await service.loadDeveloperMockDocument();
+
+      expect(document, isNotNull);
+      expect(document!['step1'], isA<Map<String, dynamic>>());
+      expect(document['camera'], isA<Map<String, dynamic>>());
+    },
+  );
 }

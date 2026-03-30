@@ -16,18 +16,20 @@ class FeatureFlagsConfig {
   factory FeatureFlagsConfig.fromJson(Map<String, dynamic> json) {
     return FeatureFlagsConfig(
       enablePredictionV3: json['enablePredictionV3'] as bool? ?? true,
-      enableRecentSuggestionsV3: json['enableRecentSuggestionsV3'] as bool? ?? true,
-      enableContextBootstrapV4: json['enableContextBootstrapV4'] as bool? ?? true,
+      enableRecentSuggestionsV3:
+          json['enableRecentSuggestionsV3'] as bool? ?? true,
+      enableContextBootstrapV4:
+          json['enableContextBootstrapV4'] as bool? ?? true,
       enableRecentAmbienteSuggestionsV4:
           json['enableRecentAmbienteSuggestionsV4'] as bool? ?? true,
     );
   }
 
   const FeatureFlagsConfig.fallback()
-      : enablePredictionV3 = true,
-        enableRecentSuggestionsV3 = true,
-        enableContextBootstrapV4 = true,
-        enableRecentAmbienteSuggestionsV4 = true;
+    : enablePredictionV3 = true,
+      enableRecentSuggestionsV3 = true,
+      enableContextBootstrapV4 = true,
+      enableRecentAmbienteSuggestionsV4 = true;
 }
 
 class RankingPolicyConfig {
@@ -56,11 +58,11 @@ class RankingPolicyConfig {
   }
 
   const RankingPolicyConfig.fallback()
-      : editorialWeight = 0.72,
-        localUsageWeight = 0.18,
-        recencyWeight = 0.10,
-        minUsesToReorder = 3,
-        decayDays = 30;
+    : editorialWeight = 0.72,
+      localUsageWeight = 0.18,
+      recencyWeight = 0.10,
+      minUsesToReorder = 3,
+      decayDays = 30;
 }
 
 class PredictionPolicyConfig {
@@ -101,15 +103,15 @@ class PredictionPolicyConfig {
   }
 
   const PredictionPolicyConfig.fallback()
-      : enabled = true,
-        minContextCaptures = 2,
-        recencyWindowDays = 45,
-        autoSelectElemento = true,
-        autoSelectMaterial = true,
-        autoSelectEstado = true,
-        maxRecentSuggestions = 3,
-        minContextSuggestionCaptures = 2,
-        maxRecentAmbienteSuggestions = 3;
+    : enabled = true,
+      minContextCaptures = 2,
+      recencyWindowDays = 45,
+      autoSelectElemento = true,
+      autoSelectMaterial = true,
+      autoSelectEstado = true,
+      maxRecentSuggestions = 3,
+      minContextSuggestionCaptures = 2,
+      maxRecentAmbienteSuggestions = 3;
 }
 
 class RankedMenuOption {
@@ -118,6 +120,8 @@ class RankedMenuOption {
   final bool pinnedTop;
   final bool pinnedBottom;
   final List<RankedMenuOption> elements;
+  final List<RankedMenuOption> materials;
+  final List<RankedMenuOption> states;
 
   const RankedMenuOption({
     required this.label,
@@ -125,6 +129,8 @@ class RankedMenuOption {
     this.pinnedTop = false,
     this.pinnedBottom = false,
     this.elements = const [],
+    this.materials = const [],
+    this.states = const [],
   });
 
   factory RankedMenuOption.fromJson(Map<String, dynamic> json) {
@@ -133,9 +139,30 @@ class RankedMenuOption {
       baseScore: (json['baseScore'] ?? 0).toDouble(),
       pinnedTop: json['pinnedTop'] as bool? ?? false,
       pinnedBottom: json['pinnedBottom'] as bool? ?? false,
-      elements: (json['elements'] as List<dynamic>? ?? const [])
-          .map((item) => RankedMenuOption.fromJson(Map<String, dynamic>.from(item as Map)))
-          .toList(),
+      elements:
+          (json['elements'] as List<dynamic>? ?? const [])
+              .map(
+                (item) => RankedMenuOption.fromJson(
+                  Map<String, dynamic>.from(item as Map),
+                ),
+              )
+              .toList(),
+      materials:
+          (json['materials'] as List<dynamic>? ?? const [])
+              .map(
+                (item) => RankedMenuOption.fromJson(
+                  Map<String, dynamic>.from(item as Map),
+                ),
+              )
+              .toList(),
+      states:
+          (json['states'] as List<dynamic>? ?? const [])
+              .map(
+                (item) => RankedMenuOption.fromJson(
+                  Map<String, dynamic>.from(item as Map),
+                ),
+              )
+              .toList(),
     );
   }
 }
@@ -157,9 +184,14 @@ class MacroLocalOption extends RankedMenuOption {
       baseScore: (json['baseScore'] ?? 0).toDouble(),
       pinnedTop: json['pinnedTop'] as bool? ?? false,
       pinnedBottom: json['pinnedBottom'] as bool? ?? false,
-      ambientes: (json['ambientes'] as List<dynamic>? ?? const [])
-          .map((item) => RankedMenuOption.fromJson(Map<String, dynamic>.from(item as Map)))
-          .toList(),
+      ambientes:
+          (json['ambientes'] as List<dynamic>? ?? const [])
+              .map(
+                (item) => RankedMenuOption.fromJson(
+                  Map<String, dynamic>.from(item as Map),
+                ),
+              )
+              .toList(),
     );
   }
 }
@@ -171,9 +203,14 @@ class PropertyTypeCameraConfig {
 
   factory PropertyTypeCameraConfig.fromJson(Map<String, dynamic> json) {
     return PropertyTypeCameraConfig(
-      macroLocals: (json['macroLocals'] as List<dynamic>? ?? const [])
-          .map((item) => MacroLocalOption.fromJson(Map<String, dynamic>.from(item as Map)))
-          .toList(),
+      macroLocals:
+          (json['macroLocals'] as List<dynamic>? ?? const [])
+              .map(
+                (item) => MacroLocalOption.fromJson(
+                  Map<String, dynamic>.from(item as Map),
+                ),
+              )
+              .toList(),
     );
   }
 }
@@ -201,10 +238,20 @@ class InspectionMenuPackage {
   }
 
   factory InspectionMenuPackage.fromJson(Map<String, dynamic> json) {
-    final photoFieldOrderJson =
-        Map<String, dynamic>.from((json['step2']?['photoFieldOrder'] ?? const {}) as Map);
+    final photoFieldOrderJson = Map<String, dynamic>.from(
+      (json['step2']?['photoFieldOrder'] ?? const {}) as Map,
+    );
+    final cameraJson = Map<String, dynamic>.from(
+      (json['camera'] ?? const {}) as Map,
+    );
+    final propertyTypesSource =
+        ((cameraJson['propertyTypes'] as Map?)?.isNotEmpty ?? false)
+            ? cameraJson['propertyTypes']
+            : ((cameraJson['byTipo'] as Map?)?.isNotEmpty ?? false)
+            ? cameraJson['byTipo']
+            : cameraJson['tipos'] ?? const {};
     final propertyTypesJson = Map<String, dynamic>.from(
-      (json['camera']?['propertyTypes'] ?? const {}) as Map,
+      propertyTypesSource as Map,
     );
 
     return InspectionMenuPackage(
@@ -219,12 +266,15 @@ class InspectionMenuPackage {
         Map<String, dynamic>.from(json['predictionPolicy'] ?? const {}),
       ),
       photoFieldOrder: photoFieldOrderJson.map(
-        (key, value) => MapEntry(key, List<String>.from(value as List<dynamic>)),
+        (key, value) =>
+            MapEntry(key, List<String>.from(value as List<dynamic>)),
       ),
       propertyTypeConfigs: propertyTypesJson.map(
         (key, value) => MapEntry(
           key,
-          PropertyTypeCameraConfig.fromJson(Map<String, dynamic>.from(value as Map)),
+          PropertyTypeCameraConfig.fromJson(
+            Map<String, dynamic>.from(value as Map),
+          ),
         ),
       ),
     );
@@ -238,9 +288,21 @@ class InspectionMenuPackage {
       predictionPolicy: PredictionPolicyConfig.fallback(),
       photoFieldOrder: {
         'urbano': ['fachada', 'logradouro', 'acesso_imovel'],
-        'rural': ['acesso_principal', 'entrada_propriedade', 'identificacao_area'],
-        'comercial': ['fachada_comercial', 'logradouro_comercial', 'acesso_comercial'],
-        'industrial': ['acesso_industrial', 'fachada_industrial', 'identificacao_industrial'],
+        'rural': [
+          'acesso_principal',
+          'entrada_propriedade',
+          'identificacao_area',
+        ],
+        'comercial': [
+          'fachada_comercial',
+          'logradouro_comercial',
+          'acesso_comercial',
+        ],
+        'industrial': [
+          'acesso_industrial',
+          'fachada_industrial',
+          'identificacao_industrial',
+        ],
       },
       propertyTypeConfigs: {},
     );

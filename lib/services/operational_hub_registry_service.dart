@@ -87,8 +87,9 @@ class OperationalHubRegistryService {
       ),
       OperationalHubItem(
         id: 'mock_data',
-        title: 'Painel de dados mock',
-        description: 'Gerenciar cenários de vistoria para QA e homologação.',
+        title: 'Parametrização operacional',
+        description:
+            'Configurar pacote unificado de check-in, câmera e cenários de QA.',
         category: 'Dev',
         iconKey: 'admin',
         highlighted: true,

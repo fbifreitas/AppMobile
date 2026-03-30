@@ -243,7 +243,7 @@ class _OperationalHubScreenState extends State<OperationalHubScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Ferramentas de cadastro mock',
+                    'Ferramentas operacionais de mock',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 8),
