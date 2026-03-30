@@ -55,7 +55,6 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       const InspectionSyncQueueService();
   final CheckinDynamicConfigService _dynamicConfigService =
       CheckinDynamicConfigService.instance;
-  bool _reviewConfirmed = false;
   String? _expandedSubtype;
 
   static const _elementos = <String>[
@@ -155,6 +154,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   Widget build(BuildContext context) {
     final summary = _buildSummary();
     final groups = _buildGroups();
+    final firstPendingGroupTitle = _firstPendingGroupTitle(groups);
     final checkinStatuses = _buildCheckinRequirements();
     final technicalSummary = _technicalSummaryService.build(
       tipoImovel: widget.tipoImovel,
@@ -171,12 +171,12 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         child: SizedBox(
           height: 54,
           child: FilledButton.icon(
-            onPressed: _reviewConfirmed && technicalSummary.canProceedWith(_technicalJustificationController.text)
+            onPressed: technicalSummary.canProceedWith(_technicalJustificationController.text)
                 ? () => _finishInspection(context, summary.totalPending + technicalSummary.pendingMatrix.totalBlocking)
                 : null,
             icon: const Icon(Icons.flag_outlined, size: 18),
-            label: const Text(
-              'FINALIZAR VISTORIA',
+            label: Text(
+              summary.totalPending > 0 ? 'REVISAR E FINALIZAR' : 'FINALIZAR VISTORIA',
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
             ),
           ),
@@ -185,21 +185,29 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
         children: [
-          _buildProgressCard(context, summary),
-          const SizedBox(height: 12),
-          VoiceActionBar(
-            voiceService: _voiceService,
-            parserService: _voiceCommandParser,
-            commands: _voiceCommandCatalog.reviewCommands(),
-            contextKey: 'review',
-            title: 'Comandos rápidos por voz',
-            subtitle: 'Ex.: finalizar vistoria, aceitar sugestões, abrir subtipo cozinha.',
-            onCommand: _handleReviewVoiceCommand,
+          _buildProgressCard(
+            context,
+            summary,
+            onOpenMainPending: firstPendingGroupTitle == null
+                ? null
+                : () => setState(() => _expandedSubtype = firstPendingGroupTitle),
           ),
-          const SizedBox(height: 18),
-          InspectionTechnicalSummaryCard(summary: technicalSummary),
           const SizedBox(height: 12),
-          TechnicalPendingMatrixCard(matrix: technicalSummary.pendingMatrix),
+          InspectionTechnicalSummaryCard(summary: technicalSummary),
+          if (technicalSummary.pendingMatrix.totalBlocking > 0) ...[
+            const SizedBox(height: 8),
+            ExpansionTile(
+              tilePadding: const EdgeInsets.symmetric(horizontal: 4),
+              childrenPadding: EdgeInsets.zero,
+              title: Text(
+                'Ver pendências técnicas (${technicalSummary.pendingMatrix.totalBlocking})',
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+              ),
+              children: [
+                TechnicalPendingMatrixCard(matrix: technicalSummary.pendingMatrix),
+              ],
+            ),
+          ],
           if (technicalSummary.requiresJustification) ...[
             const SizedBox(height: 12),
             TechnicalJustificationCard(
@@ -241,7 +249,9 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: _NodeCard(
                   group: group,
-                  initiallyExpanded: _expandedSubtype == group.title,
+                  initiallyExpanded: _expandedSubtype == null
+                      ? group.title == firstPendingGroupTitle
+                      : _expandedSubtype == group.title,
                   onExpansionChanged: (expanded) {
                     setState(() {
                       _expandedSubtype = expanded ? group.title : null;
@@ -254,6 +264,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                   onEditItem: _editItem,
                 ),
               )),
+          const SizedBox(height: 8),
+          _buildOptionalVoiceCommands(),
           const SizedBox(height: 16),
           _buildClosingCard(context, summary, technicalSummary),
         ],
@@ -265,9 +277,6 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   Future<void> _handleReviewVoiceCommand(VoiceCommandMatch match) async {
     switch (match.commandId) {
       case 'finalizar_vistoria':
-        if (!_reviewConfirmed) {
-          setState(() => _reviewConfirmed = true);
-        }
         await _finishInspection(context, _buildSummary().totalPending);
         return;
       case 'aceitar_sugestoes':
@@ -357,7 +366,11 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         .toList();
   }
 
-  Widget _buildProgressCard(BuildContext context, _ReviewSummary summary) {
+  Widget _buildProgressCard(
+    BuildContext context,
+    _ReviewSummary summary, {
+    VoidCallback? onOpenMainPending,
+  }) {
     final progress = summary.total == 0 ? 0.0 : (summary.classified / summary.total).clamp(0.0, 1.0);
     return Container(
       padding: const EdgeInsets.all(16),
@@ -396,8 +409,43 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                 : 'Tudo pronto para finalizar a vistoria.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13),
           ),
+          if (summary.totalPending > 0 && onOpenMainPending != null)
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: onOpenMainPending,
+                icon: const Icon(Icons.arrow_downward_rounded, size: 16),
+                label: const Text('Ir para principal pendência', style: TextStyle(fontSize: 12)),
+              ),
+            ),
         ],
       ),
+    );
+  }
+
+  Widget _buildOptionalVoiceCommands() {
+    return ExpansionTile(
+      tilePadding: const EdgeInsets.symmetric(horizontal: 4),
+      childrenPadding: EdgeInsets.zero,
+      title: const Text(
+        'Comandos por voz (opcional)',
+        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+      ),
+      subtitle: const Text(
+        'Use somente se quiser acelerar ações sem toque.',
+        style: TextStyle(fontSize: 11),
+      ),
+      children: [
+        VoiceActionBar(
+          voiceService: _voiceService,
+          parserService: _voiceCommandParser,
+          commands: _voiceCommandCatalog.reviewCommands(),
+          contextKey: 'review',
+          title: 'Comandos rápidos por voz',
+          subtitle: 'Ex.: finalizar vistoria, aceitar sugestões, abrir subtipo cozinha.',
+          onCommand: _handleReviewVoiceCommand,
+        ),
+      ],
     );
   }
 
@@ -427,17 +475,6 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
             maxLines: 4,
             voiceService: _voiceService,
             helperText: 'Toque no microfone para ditar a observação.',
-          ),
-          const SizedBox(height: 8),
-          CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
-            dense: true,
-            title: const Text(
-              'Confirmo a revisão das evidências e pendências.',
-              style: TextStyle(fontSize: 13),
-            ),
-            value: _reviewConfirmed,
-            onChanged: (value) => setState(() => _reviewConfirmed = value ?? false),
           ),
           if (summary.totalPending > 0)
             Padding(
@@ -807,6 +844,14 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       },
     };
   }
+
+  String? _firstPendingGroupTitle(List<_NodeGroup> groups) {
+    for (final group in groups) {
+      if (group.pending > 0) return group.title;
+    }
+    if (groups.isEmpty) return null;
+    return groups.first.title;
+  }
 }
 
 class _CheckinRequirementCard extends StatelessWidget {
@@ -1015,7 +1060,7 @@ class _ThumbCard extends StatelessWidget {
       onTap: onTap,
       child: SizedBox(
         width: 122,
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           SizedBox(
             height: 92,
             width: 122,
@@ -1039,7 +1084,7 @@ class _ThumbCard extends StatelessWidget {
           const SizedBox(height: 6),
           _StatusPill(status: status, label: status.shortLabel),
           const SizedBox(height: 4),
-          Text(item.shortDescription, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600)),
+          Text(item.shortDescription, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600)),
         ]),
       ),
     );

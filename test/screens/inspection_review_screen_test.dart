@@ -1,0 +1,139 @@
+import 'package:appmobile/models/job.dart';
+import 'package:appmobile/repositories/job_repository.dart';
+import 'package:appmobile/screens/inspection_review_screen.dart';
+import 'package:appmobile/screens/overlay_camera_screen.dart';
+import 'package:appmobile/state/app_state.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+void Function(FlutterErrorDetails)? _originalFlutterErrorHandler;
+
+class _ImmediateJobRepository implements JobRepository {
+  @override
+  Future<List<Job>> getJobs() async => <Job>[];
+}
+
+OverlayCameraCaptureResult _capture({
+  required String filePath,
+  required String ambiente,
+  String? elemento,
+  String? material,
+  String? estado,
+}) {
+  return OverlayCameraCaptureResult(
+    filePath: filePath,
+    ambiente: ambiente,
+    elemento: elemento,
+    material: material,
+    estado: estado,
+    capturedAt: DateTime(2026, 1, 1),
+    latitude: -23.0,
+    longitude: -46.0,
+    accuracy: 5,
+  );
+}
+
+Future<void> _pumpReview(
+  WidgetTester tester, {
+  required List<OverlayCameraCaptureResult> captures,
+}) async {
+  tester.view.physicalSize = const Size(1440, 2560);
+  tester.view.devicePixelRatio = 1.0;
+
+  final appState = AppState(_ImmediateJobRepository());
+
+  await tester.pumpWidget(
+    MaterialApp(
+      home: ChangeNotifierProvider<AppState>.value(
+        value: appState,
+        child: InspectionReviewScreen(
+          captures: captures,
+          tipoImovel: 'Urbano',
+          cameFromCheckinStep1: false,
+        ),
+      ),
+    ),
+  );
+
+  await tester.pumpAndSettle();
+}
+
+void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+
+    _originalFlutterErrorHandler = FlutterError.onError;
+    FlutterError.onError = (details) {
+      final exceptionText = details.exceptionAsString();
+      if (exceptionText.contains('A RenderFlex overflowed')) {
+        return;
+      }
+      final handler = _originalFlutterErrorHandler;
+      if (handler != null) {
+        handler(details);
+        return;
+      }
+      FlutterError.presentError(details);
+    };
+  });
+
+  tearDown(() {
+    FlutterError.onError = _originalFlutterErrorHandler;
+    TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher.views.first.resetPhysicalSize();
+    TestWidgetsFlutterBinding.ensureInitialized().platformDispatcher.views.first.resetDevicePixelRatio();
+  });
+
+  testWidgets('shows review CTA and pending shortcut when there are pendencias', (tester) async {
+    await _pumpReview(
+      tester,
+      captures: [
+        _capture(filePath: '/tmp/a.jpg', ambiente: 'Cozinha'),
+      ],
+    );
+
+    expect(find.text('REVISAR E FINALIZAR'), findsOneWidget);
+    expect(find.text('Ir para principal pendência'), findsOneWidget);
+  });
+
+  testWidgets('keeps voice commands collapsed by default', (tester) async {
+    await _pumpReview(
+      tester,
+      captures: [
+        _capture(filePath: '/tmp/a.jpg', ambiente: 'Cozinha', elemento: 'Piso', material: 'Cerâmica', estado: 'Bom'),
+      ],
+    );
+
+    await tester.scrollUntilVisible(
+      find.text('Comandos por voz (opcional)'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Comandos por voz (opcional)'), findsOneWidget);
+    expect(find.text('Comandos rápidos por voz'), findsNothing);
+  });
+
+  testWidgets('expands optional voice commands section on tap', (tester) async {
+    await _pumpReview(
+      tester,
+      captures: [
+        _capture(filePath: '/tmp/a.jpg', ambiente: 'Cozinha'),
+      ],
+    );
+
+    await tester.scrollUntilVisible(
+      find.text('Comandos por voz (opcional)'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Comandos por voz (opcional)'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Comandos rápidos por voz'), findsOneWidget);
+  });
+}

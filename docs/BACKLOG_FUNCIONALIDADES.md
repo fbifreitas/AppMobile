@@ -17,15 +17,19 @@ A sequência de implementação foi definida considerando:
 ```
 Step 1️⃣ (CRÍTICA) → BL-012 + BL-001
     ↓
-Step 2️⃣ (ALTA) → BL-002 + BL-008
+Step 2️⃣ (ALTA) → BL-002 + BL-008 + BL-015
     ↓
 Step 3️⃣ (ALTA) → BL-003 + BL-006
     ↓
 Step 4️⃣ (ALTA) → BL-010
     ↓
-Step 5️⃣ (MÉDIA) → BL-004, BL-005, BL-007, BL-009
+Step 5️⃣ (MÉDIA) → BL-004, BL-005, BL-007, BL-009, BL-016
   ↓
-Step 6️⃣ (DÉBITO TÉCNICO) → BL-013
+Step 6️⃣ (DÉBITO TÉCNICO) → BL-013 + BL-014
+  ↓
+Step 7️⃣ (BOAS PRÁTICAS) → BL-017, BL-018, BL-019, BL-020, BL-021, BL-022, BL-023, BL-024, BL-025, BL-026, BL-027, BL-028
+  ↓
+Step 8️⃣ (FUNCIONAL PRÓXIMO CICLO) → BL-029, BL-030, BL-031, BL-032, BL-033, BL-034, BL-035
 ```
 
 ---
@@ -38,15 +42,37 @@ Step 6️⃣ (DÉBITO TÉCNICO) → BL-013
 | **2️⃣ AGORA** | **BL-001** | **Integracao de envio do JSON final da vistoria para sistema web (API real)** | Pendente | 🔴 **CRÍTICA** | JSON de encerramento enviado para endpoint autenticado com retentativa e log de sucesso/erro |
 | 3️⃣ | BL-002 | Fila offline para exportacao/sincronizacao de vistorias finalizadas | Concluido | 🟠 Alta | Se sem internet, arquivo entra em fila local e sincroniza automaticamente ao reconectar |
 | 4️⃣ | BL-008 | Auditoria de fallback por etapa (checkin, step2, camera, review) | Concluido | 🟠 Alta | Relatorio interno mostra consistencia de payload e retomada por etapa |
-| 5️⃣ | BL-003 | Tela de detalhes da vistoria concluida (somente leitura) | Pendente | 🟠 Alta | Aba Vistorias permite abrir detalhes completos sem edicao |
-| 6️⃣ | BL-006 | Modo desenvolvedor: editor completo de mocks para menus dinamicos da camera | Pendente | 🟠 Alta | Painel dev permite editar cenarios e menus dinamicos sem alterar codigo |
-| 7️⃣ | BL-010 | Endurecimento de bloqueio de recursos dev em release final | Pendente | 🟠 Alta | Recursos dev nao aparecem para usuario final sem desbloqueio autorizado |
-| 8️⃣ | BL-004 | Exibir protocolo/ID externo no card e no historico de vistorias | Pendente | 🟡 Media | Card mostra ID do job e protocolo externo quando existir |
-| 9️⃣ | BL-005 | Regras de retencao e limpeza de arquivos JSON exportados | Pendente | 🟡 Media | Politica configuravel (ex.: manter ultimos N dias) com limpeza segura |
-| 🔟 | BL-007 | Seed de cenarios de QA por perfil (1, 3, 10 vistorias; ativas/concluidas) | Pendente | 🟡 Media | Um toque aplica cenarios pre-definidos para homologacao |
-| 1️⃣1️⃣ | BL-009 | Telemetria de fluxo (inicio, retomada, conclusao, falhas de integracao) | Pendente | 🟡 Media | Eventos minimos registrados para diagnostico operacional |
+| 5️⃣ | BL-015 | Associar capturas iniciadas na camera com checkin etapa 2 e revisao | Em andamento | 🟠 Alta | Captura iniciada fora da etapa 2 atualiza cards/pendencias obrigatorias no checkin e na revisao |
+| 6️⃣ | BL-003 | Tela de detalhes da vistoria concluida (somente leitura) | Concluido | 🟠 Alta | Aba Vistorias permite abrir detalhes completos sem edicao |
+| 7️⃣ | BL-006 | Modo desenvolvedor: editor completo de mocks para menus dinamicos da camera | Pendente | 🟠 Alta | Painel dev permite editar cenarios e menus dinamicos sem alterar codigo |
+| 8️⃣ | BL-010 | Endurecimento de bloqueio de recursos dev em release final | Pendente | 🟠 Alta | Recursos dev nao aparecem para usuario final sem desbloqueio autorizado |
+| 9️⃣ | BL-004 | Exibir protocolo/ID externo no card e no historico de vistorias | Pendente | 🟡 Media | Card mostra ID do job e protocolo externo quando existir |
+| 🔟 | BL-005 | Regras de retencao e limpeza de arquivos JSON exportados | Pendente | 🟡 Media | Politica configuravel (ex.: manter ultimos N dias) com limpeza segura |
+| 1️⃣1️⃣ | BL-016 | Diretorio de exportacao JSON configuravel para conferencia operacional | Pendente | 🟡 Media | Export permite alternar destino (interno/externo) sem perder rastreabilidade e fluxo de sync |
+| 1️⃣2️⃣ | BL-007 | Seed de cenarios de QA por perfil (1, 3, 10 vistorias; ativas/concluidas) | Pendente | 🟡 Media | Um toque aplica cenarios pre-definidos para homologacao |
+| 1️⃣3️⃣ | BL-009 | Telemetria de fluxo (inicio, retomada, conclusao, falhas de integracao) | Pendente | 🟡 Media | Eventos minimos registrados para diagnostico operacional |
 | ⏸️  | BL-011 | Flavors de distribuicao (prod, internal, dev) | Adiado | 🟡 Media | Entrypoints e pipeline separados para builds internos e producao |
 | 🔧 | BL-013 | Auditoria de Clean Code e SOLID (débito técnico) | Planejado | 🔵 Baixa (pos-funcional) | Relatorio técnico com achados, plano de refatoracao e aplicacao incremental por modulo sem regressao funcional |
+| 🧪 | BL-014 | Evolução da suíte de testes com prática TDD (débito técnico) | Planejado | 🔵 Baixa (pos-funcional) | Cobertura de testes ampliada por fluxo crítico, com testes criados/atualizados a cada entrega funcional |
+| 🧱 | BL-017 | Contract testing de APIs mobile-backend | Planejado | 🟠 Alta | Contratos de request/response validados em CI para endpoints críticos (config dinâmica e sync) |
+| 🧬 | BL-018 | Mutation testing para regras críticas | Planejado | 🟡 Media | Mutation score mínimo definido e monitorado para serviços críticos |
+| 📈 | BL-019 | Quality gate de cobertura por módulo | Planejado | 🟠 Alta | CI bloqueia merge quando cobertura mínima por módulo regredir |
+| 🧭 | BL-020 | Fronteiras de arquitetura e inversão de dependência | Planejado | 🟠 Alta | Camadas desacopladas com interfaces explícitas entre domínio, aplicação e infraestrutura |
+| ⚠️ | BL-021 | Estratégia padronizada de tratamento de erros | Planejado | 🟠 Alta | Erros tipados, mensagens consistentes e ausência de catch silencioso nos fluxos críticos |
+| 🔗 | BL-022 | Observabilidade com correlation id por vistoria | Planejado | 🟡 Media | Eventos de ponta a ponta rastreáveis por job/correlation id |
+| 🔐 | BL-023 | Hardening de segurança e gestão de secrets | Planejado | 🟠 Alta | Segredos fora do código, validação de configuração e checklist de segurança em release |
+| ⚡ | BL-024 | Performance budgets em fluxos críticos | Planejado | 🟡 Media | Metas de tempo por etapa monitoradas com alerta de regressão |
+| 📦 | BL-025 | Governança de dependências e vulnerabilidades | Planejado | 🟡 Media | Rotina de atualização com scanner e política de correção de CVEs |
+| 🧾 | BL-026 | ADRs para decisões arquiteturais | Planejado | 🟡 Media | Decisões técnicas relevantes registradas com contexto e trade-offs |
+| 🚩 | BL-027 | Ciclo de vida de feature flags | Planejado | 🟡 Media | Processo de criação, auditoria e remoção de flags sem acúmulo técnico |
+| ✅ | BL-028 | Definition of Done reforçada | Planejado | 🟠 Alta | Entrega só conclui com testes, observabilidade mínima, documentação e checklist QA |
+| 🗓️ | BL-029 | Agenda em calendário com jobs agendados do usuário | Pendente | 🟠 Alta | Aba Agenda exibe calendário mensal/semanal com jobs por data e navegação para detalhes |
+| 🔔 | BL-030 | Sininho de mensagens com central backend-app e push | Pendente | 🔴 Crítica | Mensagens vinculadas a job/proposta aparecem na central e geram notificação no celular mesmo com app fechado |
+| 🔐 | BL-031 | Tela de login e autenticação do App | Pendente | 🔴 Crítica | Usuário autentica com backend, sessão persistida com expiração/renovação e logout seguro |
+| 🧾 | BL-032 | Onboarding de usuários CLT e PJ no app | Pendente | 🔴 Crítica | Fluxo coleta dados obrigatórios por tipo (CLT/PJ), incluindo dados pessoais e bancários para PJ |
+| ⏳ | BL-033 | Estado aguardando aprovação do cadastro (backoffice) | Pendente | 🟠 Alta | Após onboarding, usuário sem aprovação visualiza tela estática de aguardando aprovação com atualização de status |
+| ⚙️ | BL-034 | Configurações para atualização de dados cadastrais | Pendente | 🟠 Alta | Menu configurações permite editar os mesmos dados do onboarding com validação e envio ao backend |
+| 🧑 | BL-035 | Foto do usuário no topo com captura e atualização | Pendente | 🟠 Alta | Foto do onboarding aparece no topo da Home e pode ser atualizada por captura de câmera (sem galeria) |
 
 ---
 
@@ -64,6 +90,9 @@ Criar fila offline para armazenar vistorias finalizadas quando nao houver conect
 ### BL-008
 Implementar auditoria de fallback por etapa (checkin, step2, camera e review) para identificar inconsistencias de payload e problemas de retomada.
 
+### BL-015
+Garantir que capturas iniciadas diretamente pela camera (fora do fluxo da etapa 2) sejam conciliadas automaticamente com os requisitos do checkin etapa 2 e com as pendencias da revisao final.
+
 ### BL-003
 Disponibilizar tela de detalhes da vistoria concluida em modo somente leitura, acessivel pela aba Vistorias, sem qualquer possibilidade de edicao.
 
@@ -79,6 +108,9 @@ Exibir identificadores operacionais (ID do job e protocolo externo) no card da h
 ### BL-005
 Definir politica de retencao e limpeza dos JSONs exportados, com regras seguras para manter historico util sem crescimento indefinido de armazenamento.
 
+### BL-016
+Permitir configuracao do diretorio de exportacao do JSON final (interno e/ou externo para conferencia operacional), mantendo consistencia com fila offline e rastreabilidade por job.
+
 ### BL-007
 Criar seeds de QA pre-definidos (ex.: 1, 3 e 10 vistorias, ativas e concluidas) para acelerar homologacao e testes de apresentacao.
 
@@ -90,6 +122,78 @@ Estruturar flavors de distribuicao (prod, internal e dev) para separar pacotes e
 
 ### BL-013
 Realizar auditoria arquitetural e de qualidade de codigo (Clean Code e SOLID), consolidando debitos tecnicos e plano de refatoracao para execucao quando o backlog funcional estiver menor.
+
+### BL-014
+Evoluir a suíte de testes do app com prática TDD contínua, cobrindo regras de negócio críticas, fluxos de fallback/retomada e integrações, evitando avanço funcional sem proteção de testes.
+
+### BL-017
+Adicionar contract tests entre mobile e backend para validar schemas e evitar quebra silenciosa de integrações críticas.
+
+### BL-018
+Aplicar mutation testing em serviços críticos para medir efetividade real da suíte de testes além da cobertura tradicional.
+
+### BL-019
+Estabelecer quality gates por módulo para impedir regressão de cobertura em serviços, estados e fluxos principais.
+
+### BL-020
+Fortalecer fronteiras arquiteturais com inversão de dependência, reduzindo acoplamento entre UI e infraestrutura.
+
+### BL-021
+Padronizar tratamento de erros com tipagem e mensagens consistentes para usuário, suporte e observabilidade.
+
+### BL-022
+Implantar correlation id por vistoria para rastrear eventos de início, retomada, exportação, sync e falhas.
+
+### BL-023
+Endurecer segurança operacional do app e pipeline com política de secrets, validações e checklist de release seguro.
+
+### BL-024
+Definir performance budgets por fluxo crítico e monitorar regressões de tempo no ciclo de entrega.
+
+### BL-025
+Criar governança contínua de dependências, atualizações e vulnerabilidades com critérios de resposta.
+
+### BL-026
+Adotar ADRs para registrar decisões arquiteturais e reduzir retrabalho em mudanças estruturais.
+
+### BL-027
+Padronizar ciclo de vida de feature flags para evitar acúmulo de código morto e inconsistências de comportamento.
+
+### BL-028
+Reforçar Definition of Done com critérios obrigatórios de teste, qualidade técnica, QA e documentação.
+
+### BL-029
+Implementar a aba Agenda com visualização em calendário para o usuário consultar os jobs agendados por dia, semana e mês.
+
+### BL-030
+Evoluir o sininho de mensagens para central de comunicação backend-app, sempre vinculada a job ou proposta, com push notification mesmo com aplicativo fechado.
+
+### BL-031
+Introduzir autenticação com tela de login, gerenciamento de sessão e proteção de acesso às áreas internas do app.
+
+### BL-032
+Criar onboarding de novos usuários para perfis CLT e PJ, com coleta de dados cadastrais completos e captura de foto pelo app.
+
+### BL-033
+Adicionar tela de aguardando aprovação de cadastro para usuários onboarded que dependem de liberação do backoffice.
+
+### BL-034
+Disponibilizar atualização cadastral no menu de configurações, mantendo consistência com os campos definidos no onboarding.
+
+### BL-035
+Exibir foto do usuário na Home e permitir atualização por câmera, sem upload da galeria, preparando base para validação facial futura.
+
+---
+
+## Lista de evolução de testes (débito técnico)
+
+1. BT-TEST-001 [Em progresso]: mapear cobertura atual por módulo (state, services, screens) e identificar lacunas.
+2. BT-TEST-002 [Concluído]: criar testes de unidade para `checkin_dynamic_config_service.dart` (parse, fallback, cache).
+3. BT-TEST-003 [Concluído]: criar testes de unidade para `inspection_sync_service.dart` e `inspection_sync_queue_service.dart` (sucesso, falha, retry).
+4. BT-TEST-004: criar testes da auditoria de fallback (`inspection_fallback_audit_service.dart`) para cenários saudável, alerta e falha.
+5. BT-TEST-005: criar testes de widget para aba Vistorias e detalhe read-only (`completed_inspections_screen.dart` e `completed_inspection_detail_screen.dart`).
+6. BT-TEST-006: adicionar regra de PR/CI para exigir alteração de teste quando houver alteração funcional.
+7. BT-TEST-007: registrar baseline de cobertura e meta incremental por sprint.
 
 ---
 
@@ -182,6 +286,13 @@ O campo `obrigatorio` é crítico pois bloqueia finalização se não atendido (
 3. Decisao sobre destino dos arquivos locais (apenas cache local ou sincronizacao obrigatoria).
 4. **Define contrato de API para checkin sessions configurável (BL-012)**.
 5. **Cache local de sessões com fallback para config hardcoded se offline (BL-012)**.
+6. **Definir política de destino de exportacao JSON (BL-016) sem comprometer sync offline e limpeza (BL-005)**.
+7. **Definir contrato de agenda de jobs por usuário (BL-029) com data/hora/status e paginação**.
+8. **Definir contrato de mensagens vinculadas a job/proposta e eventos de push (BL-030)**.
+9. **Definir provedor de push notification e estratégia de token/device registration (BL-030)**.
+10. **Definir política de autenticação (login, refresh token, expiração e logout) para mobile (BL-031)**.
+11. **Definir fluxos e validações de onboarding CLT/PJ no backend e no app (BL-032/BL-033/BL-034)**.
+12. **Definir diretriz de captura de foto via câmera e regras anti-galeria para onboarding/perfil (BL-032/BL-035)**.
 
 ---
 
@@ -192,4 +303,5 @@ Ao pegar um item para implementar:
 2. ✅ Atualize o status de `Pendente` para `Em Progresso`
 3. ✅ Crie branch com padrão: `feature/BL-XXX-descricao-curto`
 4. ✅ Commit com prefixo: `feat/BL-XXX: descrição`
-5. ✅ Atualize este arquivo ao terminar (marque como `Concluído`)
+5. ✅ Aplicar TDD no ciclo: escrever/ajustar teste, implementar, validar `flutter analyze` e `flutter test`
+6. ✅ Atualize este arquivo ao terminar (marque como `Concluído`)

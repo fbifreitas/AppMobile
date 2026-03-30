@@ -1,12 +1,16 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:provider/provider.dart';
 
+import '../config/checkin_step2_config.dart';
+import '../models/checkin_step2_model.dart';
 import '../models/inspection_session_model.dart';
 import '../services/inspection_menu_service.dart';
 import '../services/voice_command_catalog_service.dart';
 import '../services/voice_command_parser_service.dart';
 import '../services/voice_input_service.dart';
+import '../state/app_state.dart';
 import '../widgets/voice_action_bar.dart';
 import '../widgets/voice_selector_sheet.dart';
 import 'inspection_review_screen.dart';
@@ -549,6 +553,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       }
 
       setState(() => _captures.add(result));
+      await _syncStep2DraftFromBatchCaptures();
       messenger.showSnackBar(
         SnackBar(
           content: Text(
@@ -565,7 +570,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     }
   }
 
-  void _finalizeBatch() {
+  void _finalizeBatch() async {
     if (_captures.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -574,6 +579,10 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       );
       return;
     }
+
+    await _syncStep2DraftFromBatchCaptures();
+
+    if (!mounted) return;
 
     Navigator.push(
       context,
@@ -585,6 +594,69 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _syncStep2DraftFromBatchCaptures() async {
+    if (!widget.cameFromCheckinStep1 || _captures.isEmpty || !mounted) return;
+
+    final appState = Provider.of<AppState>(context, listen: false);
+    final mergedStep2 = _buildStep2PayloadFromCaptures(
+      existingStep2Payload: appState.step2Payload,
+      captures: _captures,
+      tipoImovel: widget.tipoImovel,
+    );
+
+    final draft = appState.inspectionRecoveryDraft;
+    await appState.setInspectionRecoveryStage(
+      stageKey: draft?.stageKey ?? 'checkin_step1',
+      stageLabel: draft?.stageLabel ?? 'Check-in etapa 1',
+      routeName: draft?.routeName ?? '/checkin',
+      payload: {
+        ...appState.inspectionRecoveryPayload,
+        'step1': appState.step1Payload,
+        'step2': mergedStep2,
+      },
+    );
+  }
+
+  Map<String, dynamic> _buildStep2PayloadFromCaptures({
+    required Map<String, dynamic> existingStep2Payload,
+    required List<OverlayCameraCaptureResult> captures,
+    required String tipoImovel,
+  }) {
+    final tipo = TipoImovelExtension.fromString(tipoImovel);
+    var model = existingStep2Payload.isNotEmpty
+        ? CheckinStep2Model.fromMap(existingStep2Payload)
+        : CheckinStep2Model.empty(tipo);
+    final config = CheckinStep2Configs.byTipo(tipo);
+
+    for (final campo in config.camposFotos) {
+      OverlayCameraCaptureResult? matchedCapture;
+
+      for (final capture in captures.reversed) {
+        final sameAmbiente = capture.ambiente.trim().toLowerCase() ==
+            campo.cameraAmbiente.trim().toLowerCase();
+        final sameElemento = campo.cameraElementoInicial == null ||
+            capture.elemento?.trim().toLowerCase() ==
+                campo.cameraElementoInicial!.trim().toLowerCase();
+
+        if (sameAmbiente && sameElemento) {
+          matchedCapture = capture;
+          break;
+        }
+      }
+
+      if (matchedCapture != null) {
+        model = model.setPhoto(
+          fieldId: campo.id,
+          titulo: campo.titulo,
+          imagePath: matchedCapture.filePath,
+          geoPoint: matchedCapture.toGeoPointData(),
+        );
+      }
+    }
+
+    return model.toMap();
   }
 
   @override

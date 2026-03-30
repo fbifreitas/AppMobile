@@ -14,7 +14,15 @@ class InspectionSyncResult {
 }
 
 class InspectionSyncService {
-  const InspectionSyncService();
+  const InspectionSyncService({
+    String? baseUrl,
+    String? authToken,
+    String? syncEndpoint,
+    HttpClient Function()? httpClientFactory,
+  })  : _baseUrlOverride = baseUrl,
+        _authTokenOverride = authToken,
+        _syncEndpointOverride = syncEndpoint,
+        _httpClientFactory = httpClientFactory;
 
   static const String _baseUrl = String.fromEnvironment('APP_API_BASE_URL');
   static const String _authToken = String.fromEnvironment('APP_API_TOKEN');
@@ -23,7 +31,16 @@ class InspectionSyncService {
     defaultValue: '/api/mobile/inspections/finalized',
   );
 
-  bool get isConfigured => _baseUrl.trim().isNotEmpty;
+  final String? _baseUrlOverride;
+  final String? _authTokenOverride;
+  final String? _syncEndpointOverride;
+  final HttpClient Function()? _httpClientFactory;
+
+  String get _resolvedBaseUrl => (_baseUrlOverride ?? _baseUrl).trim();
+  String get _resolvedAuthToken => (_authTokenOverride ?? _authToken).trim();
+  String get _resolvedSyncEndpoint => (_syncEndpointOverride ?? _syncEndpoint).trim();
+
+  bool get isConfigured => _resolvedBaseUrl.isNotEmpty;
 
   Future<InspectionSyncResult> syncFinalInspection(Map<String, dynamic> payload) async {
     if (!isConfigured) {
@@ -34,17 +51,20 @@ class InspectionSyncService {
     }
 
     try {
-      final normalizedBase = _baseUrl.endsWith('/') ? _baseUrl.substring(0, _baseUrl.length - 1) : _baseUrl;
-      final normalizedPath = _syncEndpoint.startsWith('/') ? _syncEndpoint : '/$_syncEndpoint';
+      final baseUrl = _resolvedBaseUrl;
+      final syncEndpoint = _resolvedSyncEndpoint;
+      final normalizedBase = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+      final normalizedPath = syncEndpoint.startsWith('/') ? syncEndpoint : '/$syncEndpoint';
       final uri = Uri.parse('$normalizedBase$normalizedPath');
 
-      final client = HttpClient();
+      final client = (_httpClientFactory ?? HttpClient.new)();
       try {
         final request = await client.postUrl(uri);
         request.headers.set(HttpHeaders.contentTypeHeader, 'application/json');
         request.headers.set(HttpHeaders.acceptHeader, 'application/json');
-        if (_authToken.trim().isNotEmpty) {
-          request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $_authToken');
+        final authToken = _resolvedAuthToken;
+        if (authToken.isNotEmpty) {
+          request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $authToken');
         }
 
         request.add(utf8.encode(jsonEncode(payload)));

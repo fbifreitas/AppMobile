@@ -1,0 +1,124 @@
+import 'dart:convert';
+
+import 'package:appmobile/config/checkin_step2_config.dart';
+import 'package:appmobile/services/checkin_dynamic_config_service.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+void main() {
+  const defaultTipos = <String>['Urbano', 'Rural'];
+  const defaultSubtipos = <String, List<String>>{
+    'Urbano': <String>['Apartamento'],
+    'Rural': <String>['Sitio'],
+  };
+  const defaultContextos = <String>['Rua'];
+
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
+  test('loadStep1Config returns fallback when cache is absent', () async {
+    final service = CheckinDynamicConfigService.instance;
+
+    final result = await service.loadStep1Config(
+      fallbackTipos: defaultTipos,
+      fallbackSubtiposPorTipo: defaultSubtipos,
+      fallbackContextos: defaultContextos,
+    );
+
+    expect(result.tipos, defaultTipos);
+    expect(result.contextos, defaultContextos);
+    expect(result.subtiposPorTipo['Urbano'], <String>['Apartamento']);
+  });
+
+  test('loadStep1Config reads cached configuration', () async {
+    final cached = {
+      'step1': {
+        'tipos': <String>['Comercial'],
+        'contextos': <String>['Area interna', 'Area externa'],
+        'subtiposPorTipo': {
+          'Comercial': <String>['Loja', 'Galpao'],
+        },
+      },
+    };
+
+    SharedPreferences.setMockInitialValues({
+      'checkin_dynamic_step1_config_v1': jsonEncode(cached),
+    });
+
+    final service = CheckinDynamicConfigService.instance;
+    final result = await service.loadStep1Config(
+      fallbackTipos: defaultTipos,
+      fallbackSubtiposPorTipo: defaultSubtipos,
+      fallbackContextos: defaultContextos,
+    );
+
+    expect(result.tipos, <String>['Comercial']);
+    expect(result.contextos, <String>['Area interna', 'Area externa']);
+    expect(result.subtiposPorTipo['Comercial'], <String>['Loja', 'Galpao']);
+  });
+
+  test('parseStep2ConfigMap parses dynamic photo fields and options', () {
+    final service = CheckinDynamicConfigService.instance;
+    final fallback = CheckinStep2Configs.byTipo(TipoImovel.urbano);
+
+    final raw = <String, dynamic>{
+      'tituloTela': 'Check-in Configuravel',
+      'subtituloTela': 'Etapa externa configuravel',
+      'camposFotos': <Map<String, dynamic>>[
+        {
+          'id': 'fachada_nbr',
+          'titulo': 'Fachada NBR',
+          'icon': 'home_work_outlined',
+          'obrigatorio': true,
+          'cameraMacroLocal': 'Rua',
+          'cameraAmbiente': 'Fachada',
+          'cameraElementoInicial': 'Visao geral',
+        },
+      ],
+      'gruposOpcoes': <Map<String, dynamic>>[
+        {
+          'id': 'infra',
+          'titulo': 'Infraestrutura',
+          'multiplaEscolha': true,
+          'permiteObservacao': true,
+          'opcoes': <Map<String, dynamic>>[
+            {'id': 'agua', 'label': 'Rede de agua'},
+          ],
+        },
+      ],
+    };
+
+    final parsed = service.parseStep2ConfigMap(
+      tipo: TipoImovel.urbano,
+      raw: raw,
+      fallback: fallback,
+    );
+
+    expect(parsed.tituloTela, 'Check-in Configuravel');
+    expect(parsed.subtituloTela, 'Etapa externa configuravel');
+    expect(parsed.camposFotos.length, 1);
+    expect(parsed.camposFotos.first.id, 'fachada_nbr');
+    expect(parsed.camposFotos.first.obrigatorio, isTrue);
+    expect(parsed.gruposOpcoes.length, 1);
+    expect(parsed.gruposOpcoes.first.id, 'infra');
+    expect(parsed.gruposOpcoes.first.opcoes.first.id, 'agua');
+  });
+
+  test('parseStep2ConfigMap returns fallback when dynamic fields are invalid', () {
+    final service = CheckinDynamicConfigService.instance;
+    final fallback = CheckinStep2Configs.byTipo(TipoImovel.rural);
+
+    final parsed = service.parseStep2ConfigMap(
+      tipo: TipoImovel.rural,
+      raw: const <String, dynamic>{
+        'camposFotos': <Map<String, dynamic>>[],
+      },
+      fallback: fallback,
+    );
+
+    expect(parsed.tituloTela, fallback.tituloTela);
+    expect(parsed.camposFotos.length, fallback.camposFotos.length);
+    expect(parsed.camposFotos.first.id, fallback.camposFotos.first.id);
+  });
+}
