@@ -22,7 +22,7 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.PROJECT_AUTOMATION_TOKEN }}
-          PROJECT_OWNER: fbifreitas
+          PROJECT_OWNER: "@me"
           PROJECT_NUMBER: '1'
           PROJECT_ID: PVT_kwHOECRsGc4BTNJY
         run: ./infra/scripts/sync_project_visuals.ps1
