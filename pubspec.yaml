@@ -1,7 +1,7 @@
 name: appmobile
 description: App Mobile para vistoria operacional com captura, revisão, voz e suporte assistivo.
 publish_to: 'none'
-version: 1.2.12+20
+version: 1.2.12+21
 
 environment:
   sdk: ">=3.7.0 <4.0.0"
