@@ -182,6 +182,35 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         }
 
         if (tipoImovel != null) {
+          // Rebuild back-stack: CheckinScreen → CheckinStep2Screen → InspectionReviewScreen
+          // so the user can navigate back through the flow instead of landing on Home.
+          final tipoBase = tipoImovel.split(' •').first.trim();
+          final initialData = appState.step2Payload.isNotEmpty
+              ? CheckinStep2Model.fromMap(appState.step2Payload)
+              : null;
+
+          Navigator.push(
+            context,
+            PageRouteBuilder<void>(
+              pageBuilder: (_, __, ___) => const CheckinScreen(),
+              transitionDuration: Duration.zero,
+              reverseTransitionDuration: Duration.zero,
+            ),
+          );
+          Navigator.push(
+            context,
+            PageRouteBuilder<void>(
+              pageBuilder: (_, __, ___) => CheckinStep2Screen(
+                tipoImovel: tipoBase,
+                initialData: initialData,
+                onContinue: (model) async {
+                  await appState.persistStep2Draft(model.toMap());
+                },
+              ),
+              transitionDuration: Duration.zero,
+              reverseTransitionDuration: Duration.zero,
+            ),
+          );
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -202,6 +231,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             : null;
 
         if (tipoImovel != null) {
+          // Push CheckinScreen silently so the user can go back to step 1.
+          Navigator.push(
+            context,
+            PageRouteBuilder<void>(
+              pageBuilder: (_, __, ___) => const CheckinScreen(),
+              transitionDuration: Duration.zero,
+              reverseTransitionDuration: Duration.zero,
+            ),
+          );
           Navigator.push(
             context,
             MaterialPageRoute(
