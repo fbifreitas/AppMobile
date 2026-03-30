@@ -29,19 +29,21 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final HomeLocationService _homeLocationService = const HomeLocationService();
   final HomeBootstrapService _homeBootstrapService = const HomeBootstrapService();
   final InspectionSyncQueueService _syncQueueService =
       const InspectionSyncQueueService();
 
   bool _bootstrapped = false;
+  bool _refreshingLocation = false;
   int _currentTabIndex = 0;
   HomeLocationSnapshot _locationSnapshot = HomeLocationSnapshot.initial();
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || _bootstrapped) return;
@@ -79,7 +81,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _refreshLocation() async {
-    if (!mounted) return;
+    if (!mounted || _refreshingLocation) return;
+    _refreshingLocation = true;
 
     setState(() {
       _locationSnapshot = _locationSnapshot.copyWith(
@@ -88,28 +91,32 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     });
 
-    final updatedSnapshot = await _homeLocationService.refresh(
-      current: _locationSnapshot,
-      readCurrentLocation: () async {
-        final position = await LocationService().getCurrentLocation();
-        return HomeLocationPoint(
-          latitude: position.latitude,
-          longitude: position.longitude,
-        );
-      },
-      writeLocation: (latitude, longitude) {
-        context.read<AppState>().atualizarUltimaLocalizacao(
-              latitude,
-              longitude,
-            );
-      },
-    );
+    try {
+      final updatedSnapshot = await _homeLocationService.refresh(
+        current: _locationSnapshot,
+        readCurrentLocation: () async {
+          final position = await LocationService().getCurrentLocation();
+          return HomeLocationPoint(
+            latitude: position.latitude,
+            longitude: position.longitude,
+          );
+        },
+        writeLocation: (latitude, longitude) {
+          context.read<AppState>().atualizarUltimaLocalizacao(
+                latitude,
+                longitude,
+              );
+        },
+      );
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    setState(() {
-      _locationSnapshot = updatedSnapshot;
-    });
+      setState(() {
+        _locationSnapshot = updatedSnapshot;
+      });
+    } finally {
+      _refreshingLocation = false;
+    }
   }
 
   Future<void> _handleNavigateToJob({
@@ -125,6 +132,20 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     await mapService.abrirBuscaPorEndereco(address);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed && _currentTabIndex == 0) {
+      _refreshLocation();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   Future<void> _handleStartInspection({

@@ -149,4 +149,44 @@ void main() {
     );
     expect(button.onPressed, isNotNull);
   });
+
+  testWidgets('uses apartment radius when job subtype is apartamento',
+      (tester) async {
+    final appState = AppState(_ImmediateJobRepository());
+    appState.developerModeEnabled = false;
+    appState.permitirIniciarLonge = false;
+    appState.jobs = [
+      buildJob(
+        tipo: 'Urbano',
+        subtipo: 'Apartamento',
+        latitude: -23.0009,
+        longitude: -46.0000,
+      ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: JobsSection(
+            appState: appState,
+            currentLatitude: -23.0000,
+            currentLongitude: -46.0000,
+            useDistanceMetrics: true,
+            onNavigateToJob: ({
+              required double? latitude,
+              required double? longitude,
+              required String address,
+            }) async {},
+            onStartInspection: (_) async {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Raio: 150m'), findsOneWidget);
+    final button = tester.widget<ElevatedButton>(
+      find.widgetWithText(ElevatedButton, 'INICIAR VISTORIA'),
+    );
+    expect(button.onPressed, isNotNull);
+  });
 }

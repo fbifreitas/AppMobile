@@ -103,15 +103,19 @@ class FakeJobRepository implements JobRepository, MockJobRepositoryController {
         longitude: -46.6333,
         nomeCliente: 'Ricardo (Prop.)',
         telefoneCliente: '11999999999',
+        tipoImovel: 'Urbano',
+        subtipoImovel: 'Casa',
       ),
       Job(
         id: '2',
         titulo: 'Apartamento - Condominio Spazio Belem',
         endereco: 'Av. Alvaro Ramos, 760 Apto 102',
-        latitude: -23.546747,
-        longitude: -46.591367,
+        latitude: -23.5440650,
+        longitude: -46.5864270,
         nomeCliente: 'Fabio Freitas (Prop.)',
         telefoneCliente: '11988888888',
+        tipoImovel: 'Urbano',
+        subtipoImovel: 'Apartamento',
       ),
     ];
   }
