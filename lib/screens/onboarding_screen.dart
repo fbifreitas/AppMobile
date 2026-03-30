@@ -15,30 +15,25 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final _pageController = PageController();
 
-  String _tipoSelecionado = 'CLT';
   int _currentPage = 0;
 
   final _nomeController = TextEditingController();
-  final _cpfController = TextEditingController();
   final _cnpjController = TextEditingController();
   final _bancoController = TextEditingController();
   final _agenciaController = TextEditingController();
   final _contaController = TextEditingController();
 
-  final _formKeyStep1 = GlobalKey<FormState>();
-  final _formKeyStep2 = GlobalKey<FormState>();
+  final _formKeyDadosPessoais = GlobalKey<FormState>();
+  final _formKeyDadosBancarios = GlobalKey<FormState>();
 
   bool _loading = false;
 
-  bool get _isPj => _tipoSelecionado == 'PJ';
-
-  int get _totalPages => _isPj ? 3 : 2;
+  int get _totalPages => 2;
 
   @override
   void dispose() {
     _pageController.dispose();
     _nomeController.dispose();
-    _cpfController.dispose();
     _cnpjController.dispose();
     _bancoController.dispose();
     _agenciaController.dispose();
@@ -47,10 +42,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _nextPage() {
-    bool valid = true;
-    if (_currentPage == 1) {
-      valid = _formKeyStep2.currentState?.validate() ?? false;
-    }
+    final valid =
+        _currentPage == 0
+            ? (_formKeyDadosPessoais.currentState?.validate() ?? false)
+            : (_formKeyDadosBancarios.currentState?.validate() ?? false);
     if (!valid) return;
 
     if (_currentPage < _totalPages - 1) {
@@ -73,11 +68,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Future<void> _submit() async {
-    final formValid = _formKeyStep2.currentState?.validate() ?? false;
-    if (_isPj) {
-      final bankValid = _formKeyStep1.currentState?.validate() ?? false;
-      if (!formValid && !bankValid) return;
-    } else if (!formValid) {
+    final formValid = _formKeyDadosPessoais.currentState?.validate() ?? false;
+    final bankValid = _formKeyDadosBancarios.currentState?.validate() ?? false;
+    if (!formValid || !bankValid) {
       return;
     }
 
@@ -88,9 +81,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
       await authState.completeOnboarding(
         nome: _nomeController.text,
-        tipo: _tipoSelecionado,
-        cpf: _isPj ? null : _cpfController.text,
-        cnpj: _isPj ? _cnpjController.text : null,
+        tipo: 'PJ',
+        cnpj: _cnpjController.text,
       );
 
       appState.setUsuarioNomeCompleto(_nomeController.text);
@@ -104,44 +96,39 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Cadastro'),
-        leading: _currentPage > 0
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: _prevPage,
-              )
-            : null,
+        title: const Text('Cadastro PJ'),
+        leading:
+            _currentPage > 0
+                ? IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: _prevPage,
+                )
+                : null,
       ),
       body: Column(
         children: [
-          _OnboardingProgress(
-            current: _currentPage + 1,
-            total: _totalPages,
-          ),
+          _OnboardingProgress(current: _currentPage + 1, total: _totalPages),
           Expanded(
             child: PageView(
               controller: _pageController,
               physics: const NeverScrollableScrollPhysics(),
               onPageChanged: (page) => setState(() => _currentPage = page),
               children: [
-                _StepTipoUsuario(
-                  selected: _tipoSelecionado,
-                  onChanged: (tipo) => setState(() => _tipoSelecionado = tipo),
-                ),
                 _StepDadosPessoais(
-                  formKey: _formKeyStep2,
-                  isPj: _isPj,
+                  formKey: _formKeyDadosPessoais,
                   nomeController: _nomeController,
-                  cpfController: _cpfController,
                   cnpjController: _cnpjController,
+                  cnpjValidator: _validateCnpj,
                 ),
-                if (_isPj)
-                  _StepDadosBancarios(
-                    formKey: _formKeyStep1,
-                    bancoController: _bancoController,
-                    agenciaController: _agenciaController,
-                    contaController: _contaController,
-                  ),
+                _StepDadosBancarios(
+                  formKey: _formKeyDadosBancarios,
+                  bancoController: _bancoController,
+                  agenciaController: _agenciaController,
+                  contaController: _contaController,
+                  bancoValidator: _validateBanco,
+                  agenciaValidator: _validateAgencia,
+                  contaValidator: _validateConta,
+                ),
               ],
             ),
           ),
@@ -150,23 +137,79 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             child: FilledButton(
               key: const Key('onboarding_next_button'),
               onPressed: _loading ? null : _nextPage,
-              child: _loading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
+              child:
+                  _loading
+                      ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                      : Text(
+                        _currentPage < _totalPages - 1
+                            ? 'Continuar'
+                            : 'Concluir',
                       ),
-                    )
-                  : Text(
-                      _currentPage < _totalPages - 1 ? 'Continuar' : 'Concluir',
-                    ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  String? _validateCnpj(String? value) {
+    final digits = (value ?? '').replaceAll(RegExp(r'\D'), '');
+    if (digits.length != 14) {
+      return 'Informe um CNPJ válido com 14 dígitos';
+    }
+    if (RegExp(r'^(\d)\1{13}$').hasMatch(digits)) {
+      return 'CNPJ inválido';
+    }
+    if (!_isValidCnpjDigits(digits)) {
+      return 'CNPJ inválido';
+    }
+    return null;
+  }
+
+  bool _isValidCnpjDigits(String digits) {
+    int calc(List<int> factors, String base) {
+      var sum = 0;
+      for (var i = 0; i < factors.length; i++) {
+        sum += int.parse(base[i]) * factors[i];
+      }
+      final mod = sum % 11;
+      return mod < 2 ? 0 : 11 - mod;
+    }
+
+    final first = calc([5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2], digits);
+    final second = calc([6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2], digits);
+    return digits.endsWith('$first$second');
+  }
+
+  String? _validateBanco(String? value) {
+    final text = (value ?? '').trim();
+    if (text.length < 3) {
+      return 'Informe o banco (mínimo 3 caracteres)';
+    }
+    return null;
+  }
+
+  String? _validateAgencia(String? value) {
+    final cleaned = (value ?? '').trim();
+    if (!RegExp(r'^\d{3,6}$').hasMatch(cleaned)) {
+      return 'Agência inválida (3 a 6 dígitos)';
+    }
+    return null;
+  }
+
+  String? _validateConta(String? value) {
+    final cleaned = (value ?? '').trim();
+    if (!RegExp(r'^\d{4,12}([\-\s]?[0-9Xx])?$').hasMatch(cleaned)) {
+      return 'Conta inválida';
+    }
+    return null;
   }
 }
 
@@ -204,141 +247,18 @@ class _OnboardingProgress extends StatelessWidget {
   }
 }
 
-class _StepTipoUsuario extends StatelessWidget {
-  const _StepTipoUsuario({
-    required this.selected,
-    required this.onChanged,
-  });
-
-  final String selected;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(24),
-      children: [
-        const Text(
-          'Qual é o seu vínculo?',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Selecione o tipo de cadastro para configurar seus dados.',
-          style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-        ),
-        const SizedBox(height: 28),
-        _TipoCard(
-          key: const Key('tipo_clt'),
-          titulo: 'CLT',
-          descricao: 'Trabalhador com carteira assinada',
-          icon: Icons.badge_outlined,
-          selected: selected == 'CLT',
-          onTap: () => onChanged('CLT'),
-        ),
-        const SizedBox(height: 12),
-        _TipoCard(
-          key: const Key('tipo_pj'),
-          titulo: 'PJ',
-          descricao: 'Pessoa Jurídica / Prestador de serviços',
-          icon: Icons.business_outlined,
-          selected: selected == 'PJ',
-          onTap: () => onChanged('PJ'),
-        ),
-      ],
-    );
-  }
-}
-
-class _TipoCard extends StatelessWidget {
-  const _TipoCard({
-    super.key,
-    required this.titulo,
-    required this.descricao,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String titulo;
-  final String descricao;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primaryLight : AppColors.surface,
-          border: Border.all(
-            color: selected ? AppColors.primary : AppColors.border,
-            width: selected ? 2 : 1,
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color: selected ? AppColors.primary : AppColors.textSecondary,
-              size: 28,
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    titulo,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: selected
-                          ? AppColors.primary
-                          : AppColors.textPrimary,
-                    ),
-                  ),
-                  Text(
-                    descricao,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (selected)
-              const Icon(Icons.check_circle, color: AppColors.primary),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _StepDadosPessoais extends StatelessWidget {
   const _StepDadosPessoais({
     required this.formKey,
-    required this.isPj,
     required this.nomeController,
-    required this.cpfController,
     required this.cnpjController,
+    required this.cnpjValidator,
   });
 
   final GlobalKey<FormState> formKey;
-  final bool isPj;
   final TextEditingController nomeController;
-  final TextEditingController cpfController;
   final TextEditingController cnpjController;
+  final String? Function(String?) cnpjValidator;
 
   @override
   Widget build(BuildContext context) {
@@ -348,12 +268,17 @@ class _StepDadosPessoais extends StatelessWidget {
         padding: const EdgeInsets.all(24),
         children: [
           const Text(
-            'Seus dados',
+            'Dados da empresa',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary,
             ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Cadastro focado em prestador PJ. Preencha CNPJ válido para continuar.',
+            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 20),
           TextFormField(
@@ -365,36 +290,22 @@ class _StepDadosPessoais extends StatelessWidget {
               prefixIcon: Icon(Icons.person_outline),
               border: OutlineInputBorder(),
             ),
-            validator: (v) =>
-                (v == null || v.trim().isEmpty) ? 'Informe o nome' : null,
+            validator:
+                (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Informe o nome' : null,
           ),
           const SizedBox(height: 16),
-          if (!isPj)
-            TextFormField(
-              key: const Key('onboarding_cpf_field'),
-              controller: cpfController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'CPF',
-                prefixIcon: Icon(Icons.credit_card_outlined),
-                border: OutlineInputBorder(),
-              ),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Informe o CPF' : null,
+          TextFormField(
+            key: const Key('onboarding_cnpj_field'),
+            controller: cnpjController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'CNPJ',
+              prefixIcon: Icon(Icons.business_outlined),
+              border: OutlineInputBorder(),
             ),
-          if (isPj)
-            TextFormField(
-              key: const Key('onboarding_cnpj_field'),
-              controller: cnpjController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'CNPJ',
-                prefixIcon: Icon(Icons.business_outlined),
-                border: OutlineInputBorder(),
-              ),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Informe o CNPJ' : null,
-            ),
+            validator: cnpjValidator,
+          ),
         ],
       ),
     );
@@ -407,12 +318,18 @@ class _StepDadosBancarios extends StatelessWidget {
     required this.bancoController,
     required this.agenciaController,
     required this.contaController,
+    required this.bancoValidator,
+    required this.agenciaValidator,
+    required this.contaValidator,
   });
 
   final GlobalKey<FormState> formKey;
   final TextEditingController bancoController;
   final TextEditingController agenciaController;
   final TextEditingController contaController;
+  final String? Function(String?) bancoValidator;
+  final String? Function(String?) agenciaValidator;
+  final String? Function(String?) contaValidator;
 
   @override
   Widget build(BuildContext context) {
@@ -443,8 +360,7 @@ class _StepDadosBancarios extends StatelessWidget {
               prefixIcon: Icon(Icons.account_balance_outlined),
               border: OutlineInputBorder(),
             ),
-            validator: (v) =>
-                (v == null || v.trim().isEmpty) ? 'Informe o banco' : null,
+            validator: bancoValidator,
           ),
           const SizedBox(height: 16),
           Row(
@@ -459,8 +375,7 @@ class _StepDadosBancarios extends StatelessWidget {
                     labelText: 'Agência',
                     border: OutlineInputBorder(),
                   ),
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Informe' : null,
+                  validator: agenciaValidator,
                 ),
               ),
               const SizedBox(width: 12),
@@ -474,8 +389,7 @@ class _StepDadosBancarios extends StatelessWidget {
                     labelText: 'Conta',
                     border: OutlineInputBorder(),
                   ),
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Informe' : null,
+                  validator: contaValidator,
                 ),
               ),
             ],

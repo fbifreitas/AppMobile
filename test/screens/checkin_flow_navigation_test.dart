@@ -191,7 +191,7 @@ void main() {
       expect(find.text('Registros fotográficos'), findsOneWidget);
       expect(find.text('Fachada'), findsOneWidget);
       expect(find.text('Logradouro'), findsOneWidget);
-      expect(find.widgetWithText(FilledButton, 'Capturar'), findsNWidgets(3));
+      expect(find.widgetWithText(FilledButton, 'Capturar'), findsNWidgets(4));
       expect(find.text('Foto obrigatória'), findsAtLeastNWidgets(2));
 
       expect(find.text('Infraestrutura e serviços'), findsOneWidget);
@@ -302,7 +302,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 600));
 
       expect(find.text('Menu de vistoria'), findsOneWidget);
-      expect(find.text('Fotos obrigatórias do check-in'), findsOneWidget);
+      expect(find.text('Revisão de fotos'), findsOneWidget);
 
       final navigator = tester.state<NavigatorState>(
         find.byType(Navigator).first,

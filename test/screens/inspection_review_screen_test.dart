@@ -214,7 +214,7 @@ void main() {
       ],
     );
 
-    expect(find.textContaining('Ver pendências da vistoria'), findsOneWidget);
+    expect(find.text('Revisão de fotos obrigatórias'), findsOneWidget);
     expect(find.text('Fotos obrigatórias do check-in'), findsOneWidget);
     expect(find.text('Fotos capturadas'), findsOneWidget);
   });
@@ -300,8 +300,8 @@ void main() {
       expect(find.text('Fachada'), findsOneWidget);
       expect(find.text('Logradouro'), findsOneWidget);
       expect(find.text('Obrigatório atendido'), findsNWidgets(2));
-      expect(find.text('Obrigatório — pendente de captura'), findsOneWidget);
-      expect(find.text('Capturar'), findsOneWidget);
+      expect(find.text('Obrigatório — pendente de captura'), findsNWidgets(2));
+      expect(find.text('Capturar'), findsNWidgets(2));
     },
   );
 
@@ -345,13 +345,13 @@ void main() {
         flowCoordinator: flowCoordinator,
       );
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Capturar'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Capturar').first);
       await tester.pumpAndSettle();
 
       expect(flowCoordinator.overlayOpenCount, 1);
       expect(flowCoordinator.lastOverlayTitle, 'Acesso ao imóvel');
       expect(find.text('Obrigatório atendido'), findsNWidgets(3));
-      expect(find.widgetWithText(FilledButton, 'Capturar'), findsNothing);
+      expect(find.widgetWithText(FilledButton, 'Capturar'), findsOneWidget);
     },
   );
 
@@ -366,10 +366,7 @@ void main() {
               filePath: '/tmp/classificada.jpg',
               ambiente: 'Cozinha',
             ).toMap(),
-            _capture(
-              filePath: '/tmp/nova.jpg',
-              ambiente: 'Sala',
-            ).toMap(),
+            _capture(filePath: '/tmp/nova.jpg', ambiente: 'Sala').toMap(),
           ],
           'capturesRevisadas': [
             {

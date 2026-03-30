@@ -63,6 +63,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   final GlobalKey _closingSectionKey = GlobalKey();
 
   String? _expandedSubtype;
+  bool _checkinAccordionExpanded = true;
+  bool _capturedAccordionExpanded = true;
 
   static const _elementos = <String>[
     'Visão geral',
@@ -295,12 +297,18 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
             ),
             const SizedBox(height: 12),
             InspectionTechnicalSummaryCard(summary: technicalSummary),
+            if (technicalSummary.pendingMatrix.totalBlocking > 0) ...[
+              const SizedBox(height: 8),
+              TechnicalPendingMatrixCard(
+                matrix: technicalSummary.pendingMatrix,
+                onOpenPending: _handlePendingShortcut,
+              ),
+            ],
             const SizedBox(height: 8),
-            _buildPendenciasSection(
+            _buildReviewAccordionsSection(
               context: context,
               groups: groups,
               checkinStatuses: checkinStatuses,
-              technicalSummary: technicalSummary,
             ),
             if (technicalSummary.requiresJustification) ...[
               const SizedBox(height: 12),
@@ -409,7 +417,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
               _ProgressGroupChip(
                 label: 'Fotos capturadas',
                 value: '${summary.classified}/${summary.total}',
-                isDone: summary.total > 0 && summary.classified == summary.total,
+                isDone:
+                    summary.total > 0 && summary.classified == summary.total,
               ),
             ],
           ),
@@ -421,17 +430,27 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   Future<void> _handlePendingShortcut(TechnicalRuleResult item) async {
     switch (item.stage) {
       case TechnicalRuleStage.checkin:
+        setState(() {
+          _checkinAccordionExpanded = true;
+        });
+        await Future<void>.delayed(const Duration(milliseconds: 16));
         await _scrollToSection(_checkinPendingSectionKey);
         break;
       case TechnicalRuleStage.capture:
+        setState(() {
+          _capturedAccordionExpanded = true;
+        });
+        await Future<void>.delayed(const Duration(milliseconds: 16));
         await _scrollToSection(_capturedPhotosSectionKey);
         break;
       case TechnicalRuleStage.review:
         if (item.subtipo != null && item.subtipo!.trim().isNotEmpty) {
           setState(() {
             _expandedSubtype = item.subtipo!.trim();
+            _capturedAccordionExpanded = true;
           });
         }
+        await Future<void>.delayed(const Duration(milliseconds: 16));
         await _scrollToSection(_capturedPhotosSectionKey);
         break;
       case TechnicalRuleStage.finalization:
@@ -451,107 +470,165 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     );
   }
 
-  Widget _buildPendenciasSection({
+  Widget _buildReviewAccordionsSection({
     required BuildContext context,
     required List<_NodeGroup> groups,
     required List<_CheckinRequirementStatus> checkinStatuses,
-    required InspectionTechnicalSummary technicalSummary,
   }) {
     final checkinPendencias =
         checkinStatuses.where((status) => !status.isDone).length;
-    final fotosPendentes = groups.fold<int>(
+    final hasCheckinPending = checkinPendencias > 0;
+    final capturedPendencias = groups.fold<int>(
       0,
       (sum, group) => sum + group.pending,
     );
-    final totalPendencias =
-        technicalSummary.pendingMatrix.totalBlocking +
-        checkinPendencias +
-        fotosPendentes;
-    final hasPendencias = totalPendencias > 0;
+    final hasCapturedPending = capturedPendencias > 0;
 
-    return ExpansionTile(
-      initiallyExpanded: hasPendencias,
-      tilePadding: const EdgeInsets.symmetric(horizontal: 4),
-      childrenPadding: EdgeInsets.zero,
-      title: Text(
-        hasPendencias
-            ? 'Ver pendências da vistoria ($totalPendencias)'
-            : 'Vistoria revisada',
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-          fontWeight: FontWeight.w700,
-          color: hasPendencias ? Colors.orange.shade800 : Colors.green.shade700,
-        ),
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (technicalSummary.pendingMatrix.totalBlocking > 0) ...[
-          TechnicalPendingMatrixCard(
-            matrix: technicalSummary.pendingMatrix,
-            onOpenPending: _handlePendingShortcut,
-          ),
-          const SizedBox(height: 12),
-        ],
-        if (checkinStatuses.isNotEmpty) ...[
-          Container(
-            key: _checkinPendingSectionKey,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Fotos obrigatórias do check-in',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-                fontSize: 16,
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          ...checkinStatuses.map(
-            (status) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _CheckinRequirementCard(
-                status: status,
-                onCapture:
-                    status.isDone
-                        ? null
-                        : () => _captureMissingRequirement(status),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-        ],
-        Container(
-          key: _capturedPhotosSectionKey,
-          alignment: Alignment.centerLeft,
-          child: Text(
-            'Fotos capturadas',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              fontSize: 16,
-            ),
+        Text(
+          'Revisão de fotos obrigatórias',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w800,
+            fontSize: 16,
           ),
         ),
         const SizedBox(height: 10),
-        ...groups.map(
-          (group) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _NodeCard(
-              group: group,
-              initiallyExpanded:
-                  _expandedSubtype == null
-                      ? group.pending > 0
-                      : _expandedSubtype == group.title,
-              onExpansionChanged: (expanded) {
-                setState(() {
-                  _expandedSubtype = expanded ? group.title : null;
-                });
-              },
-              onChanged: () => setState(() {}),
-              onApplySubtype: () => _applySubtype(group),
-              onApplySimilar: (source) => _applySimilar(group, source),
-              onAcceptSuggestions: () => _acceptSuggestions(group),
-              onEditItem: _editItem,
-            ),
+        _buildReviewAccordion(
+          key: _checkinPendingSectionKey,
+          title: 'Fotos obrigatórias do check-in',
+          isOk: !hasCheckinPending,
+          subtitle:
+              hasCheckinPending
+                  ? '$checkinPendencias pendência(s) para captura'
+                  : 'Todas as fotos obrigatórias foram registradas',
+          expanded: _checkinAccordionExpanded,
+          onExpansionChanged:
+              (expanded) => setState(() => _checkinAccordionExpanded = expanded),
+          child:
+              checkinStatuses.isEmpty
+                  ? const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      'Sem requisitos obrigatórios para este tipo de imóvel.',
+                    ),
+                  )
+                  : Column(
+                    children:
+                        checkinStatuses
+                            .map(
+                              (status) => Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: _CheckinRequirementCard(
+                                  status: status,
+                                  onCapture:
+                                      status.isDone
+                                          ? null
+                                          : () => _captureMissingRequirement(status),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                  ),
+        ),
+        const SizedBox(height: 12),
+        _buildReviewAccordion(
+          key: _capturedPhotosSectionKey,
+          title: 'Fotos capturadas',
+          isOk: !hasCapturedPending,
+          subtitle:
+              hasCapturedPending
+                  ? '$capturedPendencias pendência(s) de classificação'
+                  : 'Todas as fotos capturadas estão classificadas',
+          expanded: _capturedAccordionExpanded,
+          onExpansionChanged:
+              (expanded) => setState(() => _capturedAccordionExpanded = expanded),
+          child: Column(
+            children:
+                groups
+                    .map(
+                      (group) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _NodeCard(
+                          group: group,
+                          initiallyExpanded:
+                              _expandedSubtype == null
+                                  ? group.pending > 0
+                                  : _expandedSubtype == group.title,
+                          onExpansionChanged: (expanded) {
+                            setState(() {
+                              _expandedSubtype = expanded ? group.title : null;
+                            });
+                          },
+                          onChanged: () => setState(() {}),
+                          onApplySubtype: () => _applySubtype(group),
+                          onApplySimilar: (source) => _applySimilar(group, source),
+                          onAcceptSuggestions: () => _acceptSuggestions(group),
+                          onEditItem: _editItem,
+                        ),
+                      ),
+                    )
+                    .toList(),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildReviewAccordion({
+    required GlobalKey key,
+    required String title,
+    required bool isOk,
+    required String subtitle,
+    required bool expanded,
+    required ValueChanged<bool> onExpansionChanged,
+    required Widget child,
+  }) {
+    final status = isOk ? _VisualStatus.ok : _VisualStatus.pending;
+
+    return Container(
+      key: key,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: status.borderColor.withValues(alpha: 0.30)),
+      ),
+      child: ExpansionTile(
+        initiallyExpanded: expanded,
+        onExpansionChanged: onExpansionChanged,
+        tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        title: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: status.subtitleColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            _StatusPill(status: status, label: isOk ? 'OK' : 'NOK'),
+          ],
+        ),
+        children: [child],
+      ),
     );
   }
 

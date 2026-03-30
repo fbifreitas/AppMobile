@@ -57,6 +57,7 @@ void main() {
 
     expect(find.text('Hub operacional'), findsOneWidget);
     expect(find.text('Centrais integradas'), findsOneWidget);
+    expect(find.text('Resetar mock de onboarding'), findsOneWidget);
   });
 
   testWidgets('OperationalHubScreen delegates item navigation to coordinator', (

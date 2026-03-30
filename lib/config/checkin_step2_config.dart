@@ -142,6 +142,15 @@ class CheckinStep2Configs {
           cameraElementoInicial: 'Portão',
           obrigatorio: true,
         ),
+        CheckinStep2PhotoFieldConfig(
+          id: 'entorno',
+          titulo: 'Entorno',
+          icon: Icons.landscape_outlined,
+          cameraMacroLocal: 'Rua',
+          cameraAmbiente: 'Entorno',
+          cameraElementoInicial: 'Visão geral',
+          obrigatorio: true,
+        ),
       ],
       gruposOpcoes: [
         CheckinStep2OptionGroupConfig(

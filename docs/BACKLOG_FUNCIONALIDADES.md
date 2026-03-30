@@ -86,15 +86,15 @@ Step 8️⃣ (FUNCIONAL PRÓXIMO CICLO) → BL-029, BL-030, BL-031, BL-032, BL-0
 | ⏳ | BL-033 | Estado aguardando aprovação do cadastro (backoffice) | Concluido | 🟠 Alta | Após onboarding, usuário sem aprovação visualiza tela estática de aguardando aprovação com atualização de status |
 | ⚙️ | BL-034 | Configurações para atualização de dados cadastrais | Concluido | 🟠 Alta | Menu configurações permite editar os mesmos dados do onboarding com validação e envio ao backend |
 | 🧑 | BL-035 | Foto do usuário no topo com captura e atualização | Concluido | 🟠 Alta | Foto do onboarding aparece no topo da Home e pode ser atualizada por captura de câmera (sem galeria) |
-| 4️⃣0️⃣ | BL-040 | Corrigir consistência NBR: obrigatoriedade de Entorno no Checkin Etapa 2 e Revisão | Pendente | 🔴 Crítica | Entorno obrigatório deve ser consistente em Checkin Etapa 2 e Pendências Técnicas; ação "Ir para pendência" não pode travar fluxo |
-| 4️⃣1️⃣ | BL-041 | Reorganizar Revisão de Fotos com acordeões de obrigatórias e capturadas no bloco inferior | Pendente | 🟠 Alta | Bloco "Revisão de Fotos Obrigatórias" deve ficar abaixo, com dois acordeões independentes e estados visuais OK/NOK |
+| 4️⃣0️⃣ | BL-040 | Corrigir consistência NBR: obrigatoriedade de Entorno no Checkin Etapa 2 e Revisão | Concluído | 🔴 Crítica | Entorno obrigatório deve ser consistente em Checkin Etapa 2 e Pendências Técnicas; ação "Ir para pendência" não pode travar fluxo |
+| 4️⃣1️⃣ | BL-041 | Reorganizar Revisão de Fotos com acordeões de obrigatórias e capturadas no bloco inferior | Concluído | 🟠 Alta | Bloco "Revisão de Fotos Obrigatórias" deve ficar abaixo, com dois acordeões independentes e estados visuais OK/NOK |
 | 4️⃣2️⃣ | BL-042 | Exibir ID do JOB em Novas Propostas e simular aceite por deslize com movimentação de card | Pendente | 🟠 Alta | Card de proposta mostra ID do job e, ao aceitar, sai de propostas e entra em "Meus Jobs Agendados" via mock atualizado |
 | 4️⃣3️⃣ | BL-043 | Remover overlay fixo de comandos rápidos por voz na câmera | Pendente | 🟡 Media | Componente de voz não pode cobrir a área principal de captura/classificação |
 | 4️⃣4️⃣ | BL-044 | Adicionar colapso lateral dos menus dinâmicos da câmera com abertura padrão expandida | Pendente | 🟠 Alta | Menu lateral inicia expandido e permite ocultar/mostrar via controle lateral sem impactar captura |
 | 4️⃣5️⃣ | BL-045 | Mover exportação da vistoria de Configurações para Hub Operacional | Pendente | 🟡 Media | Entrada de exportação deve estar no Hub Operacional e removida de Configurações |
-| 4️⃣6️⃣ | BL-046 | Corrigir logout em Configurações com retorno para tela de login (mock) | Pendente | 🔴 Crítica | Ação "Sair da conta" limpa sessão mock e retorna para login consistentemente |
-| 4️⃣7️⃣ | BL-047 | Ajustar onboarding do app para fluxo exclusivamente PJ com validações de CNPJ/Agência/Conta/Banco | Pendente | 🔴 Crítica | Tela inicial não deve pedir CLT/PJ e campos PJ devem validar formato e consistência mínima |
-| 4️⃣8️⃣ | BL-048 | Criar ação no Hub Operacional para resetar mock de onboarding | Pendente | 🟠 Alta | Operador deve conseguir zerar estado de onboarding para reteste sem reinstalar app |
+| 4️⃣6️⃣ | BL-046 | Corrigir logout em Configurações com retorno para tela de login (mock) | Concluído | 🔴 Crítica | Ação "Sair da conta" limpa sessão mock e retorna para login consistentemente |
+| 4️⃣7️⃣ | BL-047 | Ajustar onboarding do app para fluxo exclusivamente PJ com validações de CNPJ/Agência/Conta/Banco | Concluído | 🔴 Crítica | Tela inicial não deve pedir CLT/PJ e campos PJ devem validar formato e consistência mínima |
+| 4️⃣8️⃣ | BL-048 | Criar ação no Hub Operacional para resetar mock de onboarding | Concluído | 🟠 Alta | Operador deve conseguir zerar estado de onboarding para reteste sem reinstalar app |
 | 4️⃣9️⃣ | BL-049 | Consolidar GitHub Project como fonte primária do backlog com sincronização total dos itens BL | Em andamento | 🟠 Alta | Todos os BL (pendentes, em andamento, concluídos e adiados) devem existir no board com status e critérios atualizados |
 
 ---
@@ -293,8 +293,12 @@ Observacao 2026-03-30 (CONCLUIDO): foto de usuario exibida no header da Home, co
 ### BL-040
 Corrigir divergência entre Checkin Etapa 2 e Revisão para o item obrigatório "Entorno", eliminando falso verde no checkin e bloqueio ao usar "Ir para pendência".
 
+Observacao 2026-03-30 (CONCLUIDO): campo obrigatório "Entorno" adicionado ao Checkin Etapa 2 (urbano) e refletido na revisão/pêndencias. Atalhos "Ir para pendência" agora expandem a seção de destino antes do scroll para evitar travamento de fluxo.
+
 ### BL-041
 Reorganizar o bloco de revisão de fotos para a área inferior com agrupamento "Revisão de Fotos Obrigatórias", contendo dois acordeões independentes: "Fotos Obrigatórias" e "Fotos Capturadas".
+
+Observacao 2026-03-30 (CONCLUIDO): bloco inferior foi remodelado com dois acordeões independentes e status visual OK/NOK para cada grupo.
 
 ### BL-042
 No card de Novas Propostas, exibir ID do JOB e implementar simulação do aceite por deslize, movendo o item aceito para "Meus Jobs Agendados" no mock.
@@ -311,11 +315,17 @@ Transferir a funcionalidade de exportação da vistoria do menu Configurações 
 ### BL-046
 Corrigir o fluxo de "Sair da conta" em Configurações para funcionar em mock e retornar para a tela inicial de login.
 
+Observacao 2026-03-30 (CONCLUIDO): logout em Configurações limpa sessão mock completa (email/perfil/documentos), retorna para a raiz e exibe Login de forma consistente.
+
 ### BL-047
 Simplificar onboarding do app para perfil PJ (sem seletor CLT/PJ) e aplicar validações de CNPJ, Agência, Conta e Banco.
 
+Observacao 2026-03-30 (CONCLUIDO): onboarding passou a iniciar direto no fluxo PJ (2 etapas), removendo seletor CLT/PJ e validando CNPJ (14 dígitos + DV), banco, agência e conta.
+
 ### BL-048
 Adicionar no Hub Operacional uma ação de reset do mock de onboarding para permitir retestes completos do fluxo.
+
+Observacao 2026-03-30 (CONCLUIDO): Hub Operacional recebeu ação "Resetar mock de onboarding", retornando o usuário ao estado de cadastro sem reinstalar o app.
 
 ### BL-049
 Consolidar o GitHub Project como fonte principal do backlog, garantindo sincronização integral dos itens BL e status com rastreabilidade.

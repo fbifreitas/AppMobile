@@ -120,8 +120,36 @@ class AuthState extends ChangeNotifier {
   Future<void> logout() async {
     _status = AppAuthStatus.unauthenticated;
     _userEmail = null;
+    _userNome = null;
+    _userTipo = null;
+    _userCpf = null;
+    _userCnpj = null;
     await _preferencesRepository.setString(_statusKey, _status.name);
     await _preferencesRepository.remove(_userEmailKey);
+    await _preferencesRepository.remove(_userNomeKey);
+    await _preferencesRepository.remove(_userTipoKey);
+    await _preferencesRepository.remove(_userCpfKey);
+    await _preferencesRepository.remove(_userCnpjKey);
+    notifyListeners();
+  }
+
+  Future<void> resetOnboardingForMock() async {
+    _userNome = null;
+    _userTipo = null;
+    _userCpf = null;
+    _userCnpj = null;
+
+    _status =
+        (_userEmail?.trim().isNotEmpty ?? false)
+            ? AppAuthStatus.onboarding
+            : AppAuthStatus.unauthenticated;
+
+    await _preferencesRepository.setString(_statusKey, _status.name);
+    await _preferencesRepository.remove(_userNomeKey);
+    await _preferencesRepository.remove(_userTipoKey);
+    await _preferencesRepository.remove(_userCpfKey);
+    await _preferencesRepository.remove(_userCnpjKey);
+
     notifyListeners();
   }
 }

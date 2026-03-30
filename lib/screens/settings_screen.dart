@@ -62,9 +62,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final packageInfo = await PackageInfo.fromPlatform();
       if (!mounted) return;
       setState(() {
-        final versionLabel = packageInfo.buildNumber.isNotEmpty
-            ? 'v${packageInfo.version}+${packageInfo.buildNumber}'
-            : 'v${packageInfo.version}';
+        final versionLabel =
+            packageInfo.buildNumber.isNotEmpty
+                ? 'v${packageInfo.version}+${packageInfo.buildNumber}'
+                : 'v${packageInfo.version}';
         _appVersion = versionLabel;
       });
     } catch (_) {
@@ -152,9 +153,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ? 'Configuração salva. Diretório externo indisponível neste dispositivo; usando interno automaticamente.'
             : 'Configurações atualizadas.';
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(exportTargetMessage)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(exportTargetMessage)));
   }
 
   Future<void> _captureUserPhoto() async {
@@ -170,9 +171,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await context.read<AppState>().updateUserPhoto(photo.path);
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Foto de perfil atualizada.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Foto de perfil atualizada.')));
   }
 
   @override
@@ -218,9 +219,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     !kIsWeb && (appState.userPhotoPath?.isNotEmpty ?? false)
                         ? FileImage(File(appState.userPhotoPath!))
                         : null,
-                child: (kIsWeb || !(appState.userPhotoPath?.isNotEmpty ?? false))
-                    ? const Icon(Icons.person, color: Colors.grey)
-                    : null,
+                child:
+                    (kIsWeb || !(appState.userPhotoPath?.isNotEmpty ?? false))
+                        ? const Icon(Icons.person, color: Colors.grey)
+                        : null,
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -244,41 +246,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: const Icon(Icons.manage_accounts_outlined),
             label: const Text('Atualizar dados cadastrais'),
           ),
-          if (appState.developerToolsUnlocked && appState.developerModeEnabled)
-            ...[
-              const Divider(height: 28),
-              const Text(
-                'Ferramentas do desenvolvedor',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+          if (appState.developerToolsUnlocked &&
+              appState.developerModeEnabled) ...[
+            const Divider(height: 28),
+            const Text(
+              'Ferramentas do desenvolvedor',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Habilitar ferramenta do desenvolvedor'),
+              subtitle: const Text(
+                'Controla a exibição do ícone do hub técnico na Home.',
               ),
-              const SizedBox(height: 8),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Habilitar ferramenta do desenvolvedor'),
-                subtitle: const Text(
-                  'Controla a exibição do ícone do hub técnico na Home.',
-                ),
-                value: appState.developerModeEnabled,
-                onChanged: (value) async {
-                  if (!value) {
-                    await appState.lockDeveloperTools();
-                    return;
-                  }
-                  await appState.setDeveloperModeEnabled(true);
-                },
+              value: appState.developerModeEnabled,
+              onChanged: (value) async {
+                if (!value) {
+                  await appState.lockDeveloperTools();
+                  return;
+                }
+                await appState.setDeveloperModeEnabled(true);
+              },
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Permitir iniciar longe do local'),
+              subtitle: const Text(
+                'Quando desligado, o botão de vistoria depende da distância real até o imóvel.',
               ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Permitir iniciar longe do local'),
-                subtitle: const Text(
-                  'Quando desligado, o botão de vistoria depende da distância real até o imóvel.',
-                ),
-                value: appState.permitirIniciarLonge,
-                onChanged: (value) async {
-                  await appState.setPermitirIniciarLonge(value);
-                },
-              ),
-            ],
+              value: appState.permitirIniciarLonge,
+              onChanged: (value) async {
+                await appState.setPermitirIniciarLonge(value);
+              },
+            ),
+          ],
           const Divider(height: 28),
           const Text(
             'Exportação da vistoria',
@@ -347,6 +349,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           OutlinedButton.icon(
             onPressed: () async {
               await context.read<AuthState>().logout();
+              if (!mounted) return;
+              Navigator.of(context).popUntil((route) => route.isFirst);
             },
             icon: const Icon(Icons.logout),
             label: const Text('Sair da conta'),

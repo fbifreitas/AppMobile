@@ -7,6 +7,7 @@ import '../services/home_location_service.dart';
 import '../services/location_service.dart';
 import '../services/operational_hub_registry_service.dart';
 import '../state/app_state.dart';
+import '../state/auth_state.dart';
 import '../widgets/home/location_status_card.dart';
 import '../widgets/home/startup_status_card.dart';
 import '../widgets/operational_hub_grid.dart';
@@ -170,6 +171,21 @@ class _OperationalHubScreenState extends State<OperationalHubScreen> {
     );
   }
 
+  Future<void> _resetOnboardingMock() async {
+    final authState = context.read<AuthState>();
+    await authState.resetOnboardingForMock();
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Onboarding mock resetado. Reinicie o cadastro para validar o fluxo PJ.',
+        ),
+      ),
+    );
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
   @override
   Widget build(BuildContext context) {
     final items = const OperationalHubRegistryService().items();
@@ -218,6 +234,32 @@ class _OperationalHubScreenState extends State<OperationalHubScreen> {
             onReadCurrentLocation: _readCurrentLocationForTestConfig,
             onUseCurrentLocation: _useCurrentLocationAsConfigured,
             onSave: _saveTestAddressConfig,
+          ),
+          const SizedBox(height: 16),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Ferramentas de cadastro mock',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Use para reiniciar o onboarding sem reinstalar o app.',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: _resetOnboardingMock,
+                    icon: const Icon(Icons.restart_alt_outlined),
+                    label: const Text('Resetar mock de onboarding'),
+                  ),
+                ],
+              ),
+            ),
           ),
           const SizedBox(height: 16),
           OperationalHubGrid(
