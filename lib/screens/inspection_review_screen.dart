@@ -195,12 +195,13 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   Map<String, dynamic> _buildStep2PayloadFromCaptures(
     Map<String, dynamic> existingStep2Payload,
   ) {
+    final appState = Provider.of<AppState>(context, listen: false);
     final tipo = _resolvedTipoImovel();
     var model =
         existingStep2Payload.isNotEmpty
             ? CheckinStep2Model.fromMap(existingStep2Payload)
             : CheckinStep2Model.empty(tipo);
-    final config = CheckinStep2Configs.byTipo(tipo);
+    final config = _resolveStep2ConfigForTipo(tipo, appState);
 
     for (final campo in config.camposFotos) {
       if (model.isPhotoCaptured(campo.id)) continue;
@@ -232,6 +233,26 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     }
 
     return model.toMap();
+  }
+
+  CheckinStep2Config _resolveStep2ConfigForTipo(
+    TipoImovel tipo,
+    AppState appState,
+  ) {
+    final fallbackConfig = CheckinStep2Configs.byTipo(tipo);
+    final dynamicStep2Raw = appState.inspectionRecoveryPayload['step2Config'];
+    if (dynamicStep2Raw is! Map) {
+      return fallbackConfig;
+    }
+
+    final dynamicStep2Map = Map<String, dynamic>.from(
+      dynamicStep2Raw.map((key, value) => MapEntry('$key', value)),
+    );
+    return _dynamicConfigService.parseStep2ConfigMap(
+      tipo: tipo,
+      raw: dynamicStep2Map,
+      fallback: fallbackConfig,
+    );
   }
 
   TipoImovel _resolvedTipoImovel() {
@@ -677,6 +698,42 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                 ),
               ),
             ),
+          if (summary.photoCountPolicyPending > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Builder(
+                builder: (context) {
+                  final appState = Provider.of<AppState>(context, listen: false);
+                  final config = _resolveStep2ConfigForTipo(
+                    _resolvedTipoImovel(),
+                    appState,
+                  );
+                  final totalCaptures = _capturesCurrent.length;
+                  final minMsg =
+                      totalCaptures < config.minFotos
+                          ? 'Mínimo de ${config.minFotos} foto(s) não atingido.'
+                          : null;
+                  final maxFotos = config.maxFotos;
+                  final maxMsg =
+                      maxFotos != null && maxFotos > 0 && totalCaptures > maxFotos
+                          ? 'Máximo de $maxFotos foto(s) excedido.'
+                          : null;
+                  final message = [
+                    if (minMsg != null) minMsg,
+                    if (maxMsg != null) maxMsg,
+                  ].join(' ');
+
+                  return Text(
+                    message,
+                    style: TextStyle(
+                      color: Colors.orange.shade800,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
+                  );
+                },
+              ),
+            ),
           if (!technicalSummary.canProceedWith(
             _technicalJustificationController.text,
           ))
@@ -707,13 +764,30 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         _items.where((item) => item.status == _PhotoStatus.classified).length;
     final missingCheckin =
         _buildCheckinRequirements().where((item) => !item.isDone).length;
+    final photoCountPolicyPending = _buildPhotoCountPolicyPending();
     return _ReviewSummary(
       total: _items.length,
       photoPending: photoPending,
       missingCheckin: missingCheckin,
+      photoCountPolicyPending: photoCountPolicyPending,
       suggested: suggested,
       classified: classified,
     );
+  }
+
+  int _buildPhotoCountPolicyPending() {
+    final appState = Provider.of<AppState>(context, listen: false);
+    final config = _resolveStep2ConfigForTipo(_resolvedTipoImovel(), appState);
+    final totalCaptures = _capturesCurrent.length;
+
+    if (totalCaptures < config.minFotos) {
+      return 1;
+    }
+    final maxFotos = config.maxFotos;
+    if (maxFotos != null && maxFotos > 0 && totalCaptures > maxFotos) {
+      return 1;
+    }
+    return 0;
   }
 
   List<_NodeGroup> _buildGroups() {
@@ -747,24 +821,12 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   List<_CheckinRequirementStatus> _buildCheckinRequirements() {
     final appState = Provider.of<AppState>(context, listen: false);
     final tipo = _resolvedTipoImovel();
-    final fallbackConfig = CheckinStep2Configs.byTipo(tipo);
     final persistedStep2Model =
         appState.step2Payload.isNotEmpty
             ? CheckinStep2Model.fromMap(appState.step2Payload)
             : CheckinStep2Model.empty(tipo);
 
-    CheckinStep2Config config = fallbackConfig;
-    final dynamicStep2Raw = appState.inspectionRecoveryPayload['step2Config'];
-    if (dynamicStep2Raw is Map) {
-      final dynamicStep2Map = Map<String, dynamic>.from(
-        dynamicStep2Raw.map((key, value) => MapEntry('$key', value)),
-      );
-      config = _dynamicConfigService.parseStep2ConfigMap(
-        tipo: tipo,
-        raw: dynamicStep2Map,
-        fallback: fallbackConfig,
-      );
-    }
+    final config = _resolveStep2ConfigForTipo(tipo, appState);
 
     return config.camposFotos.where((campo) => campo.obrigatorio).map((campo) {
       final hasEvidence = _items.any((item) {
@@ -1079,7 +1141,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   }
 
   Map<String, dynamic> _buildInspectionExportPayload(AppState appState) {
-    final captures = widget.captures.map((capture) => capture.toMap()).toList();
+    final captures = _capturesCurrent.map((capture) => capture.toMap()).toList();
     final reviewedCaptures =
         _items
             .map(
@@ -1847,6 +1909,7 @@ class _ReviewSummary {
   final int total;
   final int photoPending;
   final int missingCheckin;
+  final int photoCountPolicyPending;
   final int suggested;
   final int classified;
 
@@ -1854,9 +1917,10 @@ class _ReviewSummary {
     required this.total,
     required this.photoPending,
     required this.missingCheckin,
+    required this.photoCountPolicyPending,
     required this.suggested,
     required this.classified,
   });
 
-  int get totalPending => photoPending + missingCheckin;
+  int get totalPending => photoPending + missingCheckin + photoCountPolicyPending;
 }

@@ -83,6 +83,8 @@ class CheckinStep2Config {
   final TipoImovel tipoImovel;
   final String tituloTela;
   final String subtituloTela;
+  final int minFotos;
+  final int? maxFotos;
   final List<CheckinStep2PhotoFieldConfig> camposFotos;
   final List<CheckinStep2OptionGroupConfig> gruposOpcoes;
 
@@ -90,6 +92,8 @@ class CheckinStep2Config {
     required this.tipoImovel,
     required this.tituloTela,
     required this.subtituloTela,
+    this.minFotos = 0,
+    this.maxFotos,
     required this.camposFotos,
     required this.gruposOpcoes,
   });
@@ -114,6 +118,7 @@ class CheckinStep2Configs {
       tipoImovel: TipoImovel.urbano,
       tituloTela: 'Check-in Vistoria',
       subtituloTela: 'Pré Vistoria Externa',
+      minFotos: 4,
       camposFotos: [
         CheckinStep2PhotoFieldConfig(
           id: 'fachada',
@@ -216,6 +221,7 @@ class CheckinStep2Configs {
       tipoImovel: TipoImovel.rural,
       tituloTela: 'Check-in Vistoria',
       subtituloTela: 'Pré Vistoria Externa',
+      minFotos: 3,
       camposFotos: [
         CheckinStep2PhotoFieldConfig(
           id: 'acesso_principal',
@@ -265,6 +271,7 @@ class CheckinStep2Configs {
       tipoImovel: TipoImovel.comercial,
       tituloTela: 'Check-in Vistoria',
       subtituloTela: 'Pré Vistoria Externa',
+      minFotos: 3,
       camposFotos: [
         CheckinStep2PhotoFieldConfig(
           id: 'fachada_comercial',
@@ -314,6 +321,7 @@ class CheckinStep2Configs {
       tipoImovel: TipoImovel.industrial,
       tituloTela: 'Check-in Vistoria',
       subtituloTela: 'Pré Vistoria Externa',
+      minFotos: 3,
       camposFotos: [
         CheckinStep2PhotoFieldConfig(
           id: 'acesso_industrial',

@@ -105,22 +105,23 @@ void main() {
     expect(parsed.gruposOpcoes.first.opcoes.first.id, 'agua');
   });
 
-  test('parseStep2ConfigMap returns fallback when dynamic fields are invalid', () {
-    final service = CheckinDynamicConfigService.instance;
-    final fallback = CheckinStep2Configs.byTipo(TipoImovel.rural);
+  test(
+    'parseStep2ConfigMap returns fallback when dynamic fields are invalid',
+    () {
+      final service = CheckinDynamicConfigService.instance;
+      final fallback = CheckinStep2Configs.byTipo(TipoImovel.rural);
 
-    final parsed = service.parseStep2ConfigMap(
-      tipo: TipoImovel.rural,
-      raw: const <String, dynamic>{
-        'camposFotos': <Map<String, dynamic>>[],
-      },
-      fallback: fallback,
-    );
+      final parsed = service.parseStep2ConfigMap(
+        tipo: TipoImovel.rural,
+        raw: const <String, dynamic>{'camposFotos': <Map<String, dynamic>>[]},
+        fallback: fallback,
+      );
 
-    expect(parsed.tituloTela, fallback.tituloTela);
-    expect(parsed.camposFotos.length, fallback.camposFotos.length);
-    expect(parsed.camposFotos.first.id, fallback.camposFotos.first.id);
-  });
+      expect(parsed.tituloTela, fallback.tituloTela);
+      expect(parsed.camposFotos.length, fallback.camposFotos.length);
+      expect(parsed.camposFotos.first.id, fallback.camposFotos.first.id);
+    },
+  );
 
   test('loadStep1Config reads developer mock document when enabled', () async {
     final service = CheckinDynamicConfigService.instance;
@@ -148,41 +149,81 @@ void main() {
     expect(result.subtiposPorTipo['Comercial'], <String>['Loja']);
   });
 
-  test('loadStep2Config resolves byTipo node from developer mock document', () async {
+  test(
+    'loadStep2Config resolves byTipo node from developer mock document',
+    () async {
+      final service = CheckinDynamicConfigService.instance;
+      final fallback = CheckinStep2Configs.byTipo(TipoImovel.urbano);
+
+      await service.configureDeveloperMock(
+        enabled: true,
+        documentJson: jsonEncode({
+          'step2': {
+            'byTipo': {
+              'urbano': {
+                'tituloTela': 'Tela dinâmica mock',
+                'subtituloTela': 'Subtítulo mock',
+                'camposFotos': [
+                  {
+                    'id': 'fachada_mock',
+                    'titulo': 'Fachada mock',
+                    'icon': 'home_work_outlined',
+                    'obrigatorio': true,
+                    'cameraMacroLocal': 'Rua',
+                    'cameraAmbiente': 'Fachada',
+                  },
+                ],
+              },
+            },
+          },
+        }),
+      );
+
+      final parsed = await service.loadStep2Config(
+        tipo: TipoImovel.urbano,
+        fallback: fallback,
+      );
+
+      expect(parsed.tituloTela, 'Tela dinâmica mock');
+      expect(parsed.camposFotos.first.id, 'fachada_mock');
+      expect(parsed.camposFotos.first.obrigatorio, isTrue);
+    },
+  );
+
+  test('parseStep2ConfigMap parses min/max photos policy', () {
     final service = CheckinDynamicConfigService.instance;
     final fallback = CheckinStep2Configs.byTipo(TipoImovel.urbano);
 
-    await service.configureDeveloperMock(
-      enabled: true,
-      documentJson: jsonEncode({
-        'step2': {
-          'byTipo': {
-            'urbano': {
-              'tituloTela': 'Tela dinâmica mock',
-              'subtituloTela': 'Subtítulo mock',
-              'camposFotos': [
-                {
-                  'id': 'fachada_mock',
-                  'titulo': 'Fachada mock',
-                  'icon': 'home_work_outlined',
-                  'obrigatorio': true,
-                  'cameraMacroLocal': 'Rua',
-                  'cameraAmbiente': 'Fachada',
-                },
-              ],
-            },
-          },
-        },
-      }),
-    );
-
-    final parsed = await service.loadStep2Config(
+    final parsed = service.parseStep2ConfigMap(
       tipo: TipoImovel.urbano,
+      raw: <String, dynamic>{
+        'minFotos': 5,
+        'maxFotos': 12,
+        'camposFotos': <Map<String, dynamic>>[
+          {
+            'id': 'fachada_dynamic',
+            'titulo': 'Fachada dinâmica',
+            'icon': 'home_work_outlined',
+            'obrigatorio': true,
+            'cameraMacroLocal': 'Rua',
+            'cameraAmbiente': 'Fachada',
+          },
+        ],
+      },
       fallback: fallback,
     );
 
-    expect(parsed.tituloTela, 'Tela dinâmica mock');
-    expect(parsed.camposFotos.first.id, 'fachada_mock');
-    expect(parsed.camposFotos.first.obrigatorio, isTrue);
+    expect(parsed.minFotos, 5);
+    expect(parsed.maxFotos, 12);
+  });
+
+  test('serializeStep2Config exports min/max photos policy', () {
+    final service = CheckinDynamicConfigService.instance;
+    final fallback = CheckinStep2Configs.byTipo(TipoImovel.comercial);
+
+    final serialized = service.serializeStep2Config(fallback);
+
+    expect(serialized['minFotos'], fallback.minFotos);
+    expect(serialized['maxFotos'], fallback.maxFotos);
   });
 }

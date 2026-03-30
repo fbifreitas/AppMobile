@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../config/checkin_step2_config.dart';
 import '../models/checkin_step2_model.dart';
 import '../models/inspection_session_model.dart';
+import '../services/checkin_dynamic_config_service.dart';
 import '../services/inspection_flow_coordinator.dart';
 import '../state/app_state.dart';
 import '../state/inspection_state.dart';
@@ -76,6 +77,7 @@ class InspectionMenuScreen extends StatelessWidget {
                 totalFotos: session.totalCapturedPhotos,
                 obrigatorias: _countCompletedMandatoryFields(
                   session: session,
+                  inspectionRecoveryPayload: appState.inspectionRecoveryPayload,
                   step2Payload: appState.step2Payload,
                 ),
                 gpsEnabled: session.gpsEnabled,
@@ -121,12 +123,22 @@ class InspectionMenuScreen extends StatelessWidget {
 
   int _countCompletedMandatoryFields({
     required InspectionSession session,
+    required Map<String, dynamic> inspectionRecoveryPayload,
     required Map<String, dynamic> step2Payload,
   }) {
-    final tipo = TipoImovelExtension.fromString(
-      session.tipoImovel.trim(),
-    );
-    final config = CheckinStep2Configs.byTipo(tipo);
+    final tipo = TipoImovelExtension.fromString(session.tipoImovel.trim());
+    final fallbackConfig = CheckinStep2Configs.byTipo(tipo);
+    final dynamicStep2Raw = inspectionRecoveryPayload['step2Config'];
+    final config =
+        dynamicStep2Raw is Map
+            ? CheckinDynamicConfigService.instance.parseStep2ConfigMap(
+              tipo: tipo,
+              raw: Map<String, dynamic>.from(
+                dynamicStep2Raw.map((key, value) => MapEntry('$key', value)),
+              ),
+              fallback: fallbackConfig,
+            )
+            : fallbackConfig;
     final mandatoryFields = config.camposFotos.where((f) => f.obrigatorio);
 
     if (mandatoryFields.isEmpty) return 0;
@@ -142,8 +154,7 @@ class InspectionMenuScreen extends StatelessWidget {
 
     int count = 0;
     for (final field in mandatoryFields) {
-      final isCaptured =
-          persistedModel?.isPhotoCaptured(field.id) ?? false;
+      final isCaptured = persistedModel?.isPhotoCaptured(field.id) ?? false;
       if (isCaptured) {
         count++;
       }

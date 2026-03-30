@@ -173,6 +173,22 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
   Future<void> _handleCapture(CheckinStep2PhotoFieldConfig field) async {
     final messenger = ScaffoldMessenger.of(context);
 
+    final maxFotos = _config.maxFotos;
+    if (maxFotos != null && maxFotos > 0) {
+      final currentCaptured = _capturedPhotosCount();
+      final alreadyCaptured = _model.isPhotoCaptured(field.id);
+      if (currentCaptured >= maxFotos && !alreadyCaptured) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              'Máximo de $maxFotos foto(s) atingido para esta vistoria.',
+            ),
+          ),
+        );
+        return;
+      }
+    }
+
     try {
       final buildContext = context;
 
@@ -348,6 +364,10 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
   }
 
   Widget _buildHeader(ThemeData theme) {
+    final maxLabel =
+      _config.maxFotos != null && _config.maxFotos! > 0
+        ? 'máx ${_config.maxFotos}'
+        : 'máx livre';
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
@@ -386,7 +406,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Preencha as evidências externas do imóvel.',
+            'Preencha as evidências externas do imóvel. Mín ${_config.minFotos} • $maxLabel',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.75),
             ),
@@ -397,6 +417,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
   }
 
   Widget _buildPhotosSection(ThemeData theme) {
+    final photoLimitReached = _isPhotoLimitReached();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -415,11 +436,24 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
             icon: field.icon,
             busy: _busy && _busyFieldId == field.id,
             photoInfo: _model.fotos[field.id],
-            onCapture: () => _handleCapture(field),
+            onCapture:
+                photoLimitReached && !_model.isPhotoCaptured(field.id)
+                    ? null
+                    : () => _handleCapture(field),
           ),
         ),
       ],
     );
+  }
+
+  int _capturedPhotosCount() {
+    return _model.fotos.values.where((answer) => answer.hasImage).length;
+  }
+
+  bool _isPhotoLimitReached() {
+    final maxFotos = _config.maxFotos;
+    if (maxFotos == null || maxFotos <= 0) return false;
+    return _capturedPhotosCount() >= maxFotos;
   }
 
   Widget _buildDynamicOptionsSection(ThemeData theme) {
@@ -549,7 +583,7 @@ class _PhotoCaptureCard extends StatelessWidget {
   final bool busy;
   final IconData icon;
   final CheckinStep2PhotoAnswer? photoInfo;
-  final VoidCallback onCapture;
+  final VoidCallback? onCapture;
 
   const _PhotoCaptureCard({
     required this.titulo,

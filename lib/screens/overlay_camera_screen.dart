@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../config/checkin_step2_config.dart';
 import '../models/checkin_step2_model.dart';
 import '../models/inspection_session_model.dart';
+import '../services/checkin_dynamic_config_service.dart';
 import '../services/inspection_menu_service.dart';
 import '../services/voice_command_catalog_service.dart';
 import '../services/voice_command_parser_service.dart';
@@ -664,7 +665,19 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     var model = existingStep2Payload.isNotEmpty
         ? CheckinStep2Model.fromMap(existingStep2Payload)
         : CheckinStep2Model.empty(tipo);
-    final config = CheckinStep2Configs.byTipo(tipo);
+    final appState = Provider.of<AppState>(context, listen: false);
+    final fallbackConfig = CheckinStep2Configs.byTipo(tipo);
+    final dynamicStep2Raw = appState.inspectionRecoveryPayload['step2Config'];
+    final config =
+        dynamicStep2Raw is Map
+            ? CheckinDynamicConfigService.instance.parseStep2ConfigMap(
+              tipo: tipo,
+              raw: Map<String, dynamic>.from(
+                dynamicStep2Raw.map((key, value) => MapEntry('$key', value)),
+              ),
+              fallback: fallbackConfig,
+            )
+            : fallbackConfig;
 
     for (final campo in config.camposFotos) {
       OverlayCameraCaptureResult? matchedCapture;

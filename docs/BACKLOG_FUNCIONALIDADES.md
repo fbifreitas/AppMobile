@@ -97,6 +97,7 @@ Step 8️⃣ (FUNCIONAL PRÓXIMO CICLO) → BL-029, BL-030, BL-031, BL-032, BL-0
 | 4️⃣8️⃣ | BL-048 | Criar ação no Hub Operacional para resetar mock de onboarding | Concluído | 🟠 Alta | Operador deve conseguir zerar estado de onboarding para reteste sem reinstalar app |
 | 4️⃣9️⃣ | BL-049 | Consolidar GitHub Project como fonte primária do backlog com sincronização total dos itens BL | Em andamento | 🟠 Alta | Todos os BL (pendentes, em andamento, concluídos e adiados) devem existir no board com status e critérios atualizados |
 | 5️⃣0️⃣ | BL-050 | Corrigir botão "Concluir" do onboarding encoberto pelo rodapé do Android | Em andamento | 🟠 Alta | Botão final do onboarding deve permanecer totalmente visível em Android (botões/gestos), permitindo concluir o fluxo sem obstrução |
+| 5️⃣1️⃣ | BL-051 | Unificar persistência dinâmica de obrigatoriedade e política de fotos (mín/máx) entre Checkin, Câmera, Revisão e Menu | Em andamento | 🔴 Crítica | Mesma regra dinâmica deve governar validação e indicadores em todas as telas, com suporte a mínimo/máximo de fotos sem divergência de payload |
 
 ---
 
@@ -333,6 +334,11 @@ Consolidar o GitHub Project como fonte principal do backlog, garantindo sincroni
 
 ### BL-050
 Corrigir a área de ação final do onboarding para evitar que o botão "Concluir" fique encoberto pela barra de navegação do Android, garantindo conclusão do fluxo com usabilidade consistente.
+
+### BL-051
+Unificar a persistência e o consumo das regras dinâmicas de obrigatoriedade entre Checkin Etapa 1/2, Câmera, Revisão e Menu de Vistoria, preparando o app para receber parâmetros normativos do módulo web (incluindo mínimo/máximo de fotos).
+
+Observacao 2026-03-30 (Em andamento): refatoração big-bang aplicada no fluxo mobile para consumir `step2Config` dinâmica de forma consistente em Revisão, Câmera em lote e Menu de Vistoria; export final da revisão passou a usar a lista de capturas atualizada em memória (incluindo capturas adicionadas na própria revisão); contrato dinâmico da etapa 2 recebeu suporte a `minFotos` e `maxFotos`, com validação de limite máximo na Etapa 2 e sinalização operacional na Revisão.
 
 ---
 

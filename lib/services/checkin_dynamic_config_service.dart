@@ -227,11 +227,20 @@ class CheckinDynamicConfigService {
 
     if (campos.isEmpty) return fallback;
 
+    final minFotos = _parseNonNegativeInt(raw['minFotos']) ?? fallback.minFotos;
+    final maxFotos = _parseNonNegativeInt(raw['maxFotos']) ?? fallback.maxFotos;
+    final normalizedMaxFotos =
+        maxFotos != null && maxFotos > 0 && maxFotos < minFotos
+            ? minFotos
+            : maxFotos;
+
     return CheckinStep2Config(
       tipoImovel: tipo,
       tituloTela: _optionalString(raw['tituloTela']) ?? fallback.tituloTela,
       subtituloTela:
           _optionalString(raw['subtituloTela']) ?? fallback.subtituloTela,
+      minFotos: minFotos,
+      maxFotos: normalizedMaxFotos,
       camposFotos: campos,
       gruposOpcoes: grupos.isNotEmpty ? grupos : fallback.gruposOpcoes,
     );
@@ -242,6 +251,8 @@ class CheckinDynamicConfigService {
       'tipoImovel': config.tipoImovel.name,
       'tituloTela': config.tituloTela,
       'subtituloTela': config.subtituloTela,
+        'minFotos': config.minFotos,
+        'maxFotos': config.maxFotos,
       'camposFotos':
           config.camposFotos
               .map(
@@ -401,6 +412,22 @@ class CheckinDynamicConfigService {
     if (value == null) return null;
     final text = '$value'.trim();
     return text.isEmpty ? null : text;
+  }
+
+  int? _parseNonNegativeInt(Object? value) {
+    if (value is int) {
+      return value < 0 ? 0 : value;
+    }
+    if (value is num) {
+      final parsed = value.toInt();
+      return parsed < 0 ? 0 : parsed;
+    }
+    if (value is String) {
+      final parsed = int.tryParse(value.trim());
+      if (parsed == null) return null;
+      return parsed < 0 ? 0 : parsed;
+    }
+    return null;
   }
 
   IconData _iconFromName(String rawIcon) {
