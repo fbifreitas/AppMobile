@@ -160,6 +160,14 @@ class _CompletedInspectionDetailScreenState
     if (value == false) return 'Não';
     return 'Não informado';
   }
+
+  String? _nonEmptyText(String? value) {
+    final normalized = value?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      return null;
+    }
+    return normalized;
+  }
 }
 
 class _InfoBlock extends StatelessWidget {

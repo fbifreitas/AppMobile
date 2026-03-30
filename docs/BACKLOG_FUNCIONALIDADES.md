@@ -53,8 +53,8 @@ Step 8️⃣ (FUNCIONAL PRÓXIMO CICLO) → BL-029, BL-030, BL-031, BL-032, BL-0
 | 4️⃣ | BL-008 | Auditoria de fallback por etapa (checkin, step2, camera, review) | Concluido | 🟠 Alta | Relatorio interno mostra consistencia de payload, retomada por etapa e pilha de navegacao ao retomar vistoria |
 | 5️⃣ | BL-015 | Associar capturas iniciadas na camera com checkin etapa 2 e revisao | Concluído | 🟠 Alta | Captura iniciada fora da etapa 2 atualiza cards/pendencias obrigatorias no checkin e preserva fotos anteriores na revisao |
 | 6️⃣ | BL-003 | Tela de detalhes da vistoria concluida (somente leitura) | Concluido | 🟠 Alta | Aba Vistorias permite abrir detalhes completos sem edicao |
-| 7️⃣ | BL-006 | Modo desenvolvedor: editor completo de mocks para menus dinamicos da camera | Pendente | 🟠 Alta | Painel dev permite editar cenarios e menus dinamicos sem alterar codigo |
-| 8️⃣ | BL-010 | Endurecimento de bloqueio de recursos dev em release final | Pendente | 🟠 Alta | Recursos dev nao aparecem para usuario final sem desbloqueio autorizado |
+| 7️⃣ | BL-006 | Modo desenvolvedor: editor completo de mocks para menus dinamicos da camera | Concluido | 🟠 Alta | Painel dev permite editar cenarios e menus dinamicos sem alterar codigo |
+| 8️⃣ | BL-010 | Endurecimento de bloqueio de recursos dev em release final | Concluido | 🟠 Alta | Recursos dev nao aparecem para usuario final sem desbloqueio autorizado |
 | 9️⃣ | BL-004 | Exibir protocolo/ID externo no card e no historico de vistorias | Concluido | 🟡 Media | Card mostra ID do job e protocolo externo quando existir |
 | 🔟 | BL-005 | Regras de retencao e limpeza de arquivos JSON exportados | Pendente | 🟡 Media | Politica configuravel (ex.: manter ultimos N dias) com limpeza segura |
 | 1️⃣1️⃣ | BL-016 | Diretorio de exportacao JSON configuravel para conferencia operacional | Concluido | 🟡 Media | Export permite alternar destino (interno/externo) sem perder rastreabilidade e fluxo de sync |
@@ -79,13 +79,13 @@ Step 8️⃣ (FUNCIONAL PRÓXIMO CICLO) → BL-029, BL-030, BL-031, BL-032, BL-0
 | 🧾 | BL-026 | ADRs para decisões arquiteturais | Planejado | 🟡 Media | Decisões técnicas relevantes registradas com contexto e trade-offs |
 | 🚩 | BL-027 | Ciclo de vida de feature flags | Planejado | 🟡 Media | Processo de criação, auditoria e remoção de flags sem acúmulo técnico |
 | ✅ | BL-028 | Definition of Done reforçada | Planejado | 🟠 Alta | Entrega só conclui com testes, observabilidade mínima, documentação e checklist QA |
-| 🗓️ | BL-029 | Agenda em calendário com jobs agendados do usuário | Pendente | 🟠 Alta | Aba Agenda exibe calendário mensal/semanal com jobs por data e navegação para detalhes |
-| 🔔 | BL-030 | Sininho de mensagens com central backend-app e push | Pendente | 🔴 Crítica | Mensagens vinculadas a job/proposta aparecem na central e geram notificação no celular mesmo com app fechado |
-| 🔐 | BL-031 | Tela de login e autenticação do App | Pendente | 🔴 Crítica | Usuário autentica com backend, sessão persistida com expiração/renovação e logout seguro |
-| 🧾 | BL-032 | Onboarding de usuários CLT e PJ no app | Pendente | 🔴 Crítica | Fluxo coleta dados obrigatórios por tipo (CLT/PJ), incluindo dados pessoais e bancários para PJ |
-| ⏳ | BL-033 | Estado aguardando aprovação do cadastro (backoffice) | Pendente | 🟠 Alta | Após onboarding, usuário sem aprovação visualiza tela estática de aguardando aprovação com atualização de status |
-| ⚙️ | BL-034 | Configurações para atualização de dados cadastrais | Pendente | 🟠 Alta | Menu configurações permite editar os mesmos dados do onboarding com validação e envio ao backend |
-| 🧑 | BL-035 | Foto do usuário no topo com captura e atualização | Pendente | 🟠 Alta | Foto do onboarding aparece no topo da Home e pode ser atualizada por captura de câmera (sem galeria) |
+| 🗓️ | BL-029 | Agenda em calendário com jobs agendados do usuário | Concluido | 🟠 Alta | Aba Agenda exibe calendário mensal/semanal com jobs por data e navegação para detalhes |
+| 🔔 | BL-030 | Sininho de mensagens com central backend-app e push | Concluido | 🔴 Crítica | Mensagens vinculadas a job/proposta aparecem na central e geram notificação no celular mesmo com app fechado |
+| 🔐 | BL-031 | Tela de login e autenticação do App | Concluido | 🔴 Crítica | Usuário autentica com backend, sessão persistida com expiração/renovação e logout seguro |
+| 🧾 | BL-032 | Onboarding de usuários CLT e PJ no app | Concluido | 🔴 Crítica | Fluxo coleta dados obrigatórios por tipo (CLT/PJ), incluindo dados pessoais e bancários para PJ |
+| ⏳ | BL-033 | Estado aguardando aprovação do cadastro (backoffice) | Concluido | 🟠 Alta | Após onboarding, usuário sem aprovação visualiza tela estática de aguardando aprovação com atualização de status |
+| ⚙️ | BL-034 | Configurações para atualização de dados cadastrais | Concluido | 🟠 Alta | Menu configurações permite editar os mesmos dados do onboarding com validação e envio ao backend |
+| 🧑 | BL-035 | Foto do usuário no topo com captura e atualização | Concluido | 🟠 Alta | Foto do onboarding aparece no topo da Home e pode ser atualizada por captura de câmera (sem galeria) |
 
 ---
 
@@ -128,8 +128,12 @@ Disponibilizar tela de detalhes da vistoria concluida em modo somente leitura, a
 ### BL-006
 Expandir o painel de modo desenvolvedor para editar mocks completos, incluindo menus dinamicos de camera e cenarios de teste sem alteracao de codigo.
 
+Observacao 2026-03-30 (CONCLUIDO): painel de mock ganhou presets QA (1/3/10), edicao de JSON de configuracao dinamica, resposta de sync e editor avancado para agenda e mensagens com aplicacao em runtime.
+
 ### BL-010
 Fortalecer bloqueios de recursos de desenvolvimento em build de release para impedir exposicao acidental de funcionalidades internas ao usuario final.
+
+Observacao 2026-03-30 (CONCLUIDO): acesso a recursos dev bloqueado em release no estado global, com feedback de bloqueio nas configuracoes e protecao de tela no painel de mocks sem desbloqueio autorizado.
 
 ### BL-004
 Exibir identificadores operacionais (ID do job e protocolo externo) no card da home e no historico, facilitando rastreio e suporte.
@@ -242,23 +246,37 @@ Reforçar Definition of Done com critérios obrigatórios de teste, qualidade t�
 ### BL-029
 Implementar a aba Agenda com visualização em calendário para o usuário consultar os jobs agendados por dia, semana e mês.
 
+Observacao 2026-03-30 (CONCLUIDO): criada aba Agenda com grade mensal, marcacao de dias com jobs e lista de compromissos por dia selecionado.
+
 ### BL-030
 Evoluir o sininho de mensagens para central de comunicação backend-app, sempre vinculada a job ou proposta, com push notification mesmo com aplicativo fechado.
+
+Observacao 2026-03-30 (CONCLUIDO): central de mensagens implementada com contador de nao lidas no header, marcacao individual/geral de leitura e alimentacao por mocks do painel dev para simulacao de push/backend.
 
 ### BL-031
 Introduzir autenticação com tela de login, gerenciamento de sessão e proteção de acesso às áreas internas do app.
 
+Observacao 2026-03-30 (CONCLUIDO): fluxo de autenticacao com estado persistido, logout seguro e roteamento condicional para login/onboarding/aguardando aprovacao/home.
+
 ### BL-032
 Criar onboarding de novos usuários para perfis CLT e PJ, com coleta de dados cadastrais completos e captura de foto pelo app.
+
+Observacao 2026-03-30 (CONCLUIDO): onboarding em etapas com selecao CLT/PJ, dados pessoais e bloco bancario para PJ, integrado ao estado de autenticacao.
 
 ### BL-033
 Adicionar tela de aguardando aprovação de cadastro para usuários onboarded que dependem de liberação do backoffice.
 
+Observacao 2026-03-30 (CONCLUIDO): tela dedicada de aguardando aprovacao adicionada, com acao de verificacao de status e simulacao de aprovacao em ambiente de desenvolvimento.
+
 ### BL-034
 Disponibilizar atualização cadastral no menu de configurações, mantendo consistência com os campos definidos no onboarding.
 
+Observacao 2026-03-30 (CONCLUIDO): configuracoes agora possuem entrada de atualizacao cadastral com persistencia de nome/documento e sincronizacao com dados exibidos no app.
+
 ### BL-035
 Exibir foto do usuário na Home e permitir atualização por câmera, sem upload da galeria, preparando base para validação facial futura.
+
+Observacao 2026-03-30 (CONCLUIDO): foto de usuario exibida no header da Home, com atualizacao por captura de camera nas configuracoes e persistencia local da referencia da imagem.
 
 ---
 

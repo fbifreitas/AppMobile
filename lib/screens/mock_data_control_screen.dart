@@ -1,6 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/agenda_item.dart';
+import '../models/app_message.dart';
 import '../models/job_status.dart';
 import '../services/checkin_dynamic_config_service.dart';
 import '../services/inspection_sync_service.dart';
@@ -18,6 +22,8 @@ class _MockDataControlScreenState extends State<MockDataControlScreen> {
   final TextEditingController _completedController = TextEditingController(text: '1');
   final TextEditingController _checkinConfigController = TextEditingController();
   final TextEditingController _syncResponseController = TextEditingController();
+  final TextEditingController _messagesController = TextEditingController();
+  final TextEditingController _agendaController = TextEditingController();
   final CheckinDynamicConfigService _checkinConfigService =
       CheckinDynamicConfigService.instance;
   final InspectionSyncService _syncService = const InspectionSyncService();
@@ -82,6 +88,16 @@ class _MockDataControlScreenState extends State<MockDataControlScreen> {
       '  }\n'
       '}';
 
+      static const String _defaultMessagesMock =
+        '[\n'
+        '  {"id":"msg-dev-1","titulo":"Push mock","corpo":"Mensagem simulada pelo painel dev","jobId":"job-001","timestamp":"2026-03-30T12:00:00Z","lida":false}\n'
+        ']';
+
+      static const String _defaultAgendaMock =
+        '[\n'
+        '  {"id":"ag-dev-1","titulo":"Agenda mock","endereco":"Rua de Teste, 123","jobId":"job-001","data":"2026-03-31T09:00:00","status":"agendado"}\n'
+        ']';
+
   @override
   void initState() {
     super.initState();
@@ -104,6 +120,8 @@ class _MockDataControlScreenState extends State<MockDataControlScreen> {
           (syncSettings['responseJson'] as String?)?.trim().isNotEmpty == true
               ? syncSettings['responseJson'] as String
               : _defaultSyncResponseMock;
+      _messagesController.text = _defaultMessagesMock;
+      _agendaController.text = _defaultAgendaMock;
     });
   }
 
@@ -113,7 +131,15 @@ class _MockDataControlScreenState extends State<MockDataControlScreen> {
     _completedController.dispose();
     _checkinConfigController.dispose();
     _syncResponseController.dispose();
+    _messagesController.dispose();
+    _agendaController.dispose();
     super.dispose();
+  }
+
+  Future<void> _applyPreset(int active, int completed) async {
+    _activeController.text = '$active';
+    _completedController.text = '$completed';
+    await _applyPlan(append: false);
   }
 
   int _parseCount(String value) {
@@ -190,9 +216,88 @@ class _MockDataControlScreenState extends State<MockDataControlScreen> {
     }
   }
 
+  Future<void> _applyAdvancedMockData() async {
+    setState(() => _busy = true);
+    try {
+      final appState = context.read<AppState>();
+      final rawMessages = jsonDecode(_messagesController.text);
+      final rawAgenda = jsonDecode(_agendaController.text);
+
+      if (rawMessages is! List || rawAgenda is! List) {
+        throw const FormatException('JSON deve ser lista.');
+      }
+
+      final messages = rawMessages
+          .map((item) => _parseMessage(Map<String, dynamic>.from(item as Map)))
+          .toList();
+      final agenda = rawAgenda
+          .map((item) => _parseAgendaItem(Map<String, dynamic>.from(item as Map)))
+          .toList();
+
+      appState.setMockMensagens(messages);
+      appState.setMockAgendaItems(agenda);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Mensagens e agenda mock aplicadas.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Falha ao aplicar JSON avançado: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  AppMessage _parseMessage(Map<String, dynamic> map) {
+    return AppMessage(
+      id: map['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      titulo: map['titulo']?.toString() ?? 'Mensagem',
+      corpo: map['corpo']?.toString() ?? '',
+      jobId: map['jobId']?.toString(),
+      timestamp: DateTime.tryParse(map['timestamp']?.toString() ?? '') ?? DateTime.now(),
+      lida: map['lida'] == true,
+    );
+  }
+
+  AgendaItem _parseAgendaItem(Map<String, dynamic> map) {
+    final statusName = map['status']?.toString() ?? 'agendado';
+    final status = AgendaItemStatus.values.firstWhere(
+      (s) => s.name == statusName,
+      orElse: () => AgendaItemStatus.agendado,
+    );
+
+    return AgendaItem(
+      id: map['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      titulo: map['titulo']?.toString() ?? 'Job agenda',
+      endereco: map['endereco']?.toString() ?? '',
+      jobId: map['jobId']?.toString(),
+      data: DateTime.tryParse(map['data']?.toString() ?? '') ?? DateTime.now(),
+      status: status,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
+
+    if (!appState.devAccessAllowed) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Painel de dados mock')),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'Acesso bloqueado. Recursos dev não ficam disponíveis sem desbloqueio autorizado.',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+
     final total = appState.jobs.length;
     final active = appState.jobs
         .where((job) => job.status != JobStatus.finalizado)
@@ -244,6 +349,25 @@ class _MockDataControlScreenState extends State<MockDataControlScreen> {
             onPressed: _busy ? null : () => _applyPlan(append: true),
             icon: const Icon(Icons.add_box_outlined),
             label: const Text('Adicionar ao cenário atual'),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              OutlinedButton(
+                onPressed: _busy ? null : () => _applyPreset(1, 0),
+                child: const Text('Preset QA: 1 ativa'),
+              ),
+              OutlinedButton(
+                onPressed: _busy ? null : () => _applyPreset(3, 1),
+                child: const Text('Preset QA: 3+1'),
+              ),
+              OutlinedButton(
+                onPressed: _busy ? null : () => _applyPreset(10, 5),
+                child: const Text('Preset QA: 10+5'),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           OutlinedButton.icon(
@@ -317,6 +441,39 @@ class _MockDataControlScreenState extends State<MockDataControlScreen> {
             onPressed: _busy ? null : _saveDeveloperIntegrationMocks,
             icon: const Icon(Icons.save_outlined),
             label: Text(_busy ? 'Salvando...' : 'Salvar mocks de integração'),
+          ),
+          const SizedBox(height: 20),
+          const Divider(),
+          const SizedBox(height: 8),
+          const Text(
+            'Editor completo de cenários (BL-006)',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _messagesController,
+            minLines: 4,
+            maxLines: 10,
+            decoration: const InputDecoration(
+              labelText: 'JSON de mensagens mock (BL-030)',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _agendaController,
+            minLines: 4,
+            maxLines: 10,
+            decoration: const InputDecoration(
+              labelText: 'JSON de agenda mock (BL-029)',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: _busy ? null : _applyAdvancedMockData,
+            icon: const Icon(Icons.data_array_outlined),
+            label: const Text('Aplicar mock avançado'),
           ),
         ],
       ),

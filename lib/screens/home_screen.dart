@@ -16,6 +16,7 @@ import 'overlay_camera_screen.dart';
 import '../widgets/home/home_header.dart';
 import '../widgets/home/jobs_section.dart';
 import '../widgets/home/proposals_section.dart';
+import 'agenda_screen.dart';
 import 'completed_inspections_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -258,6 +259,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           children: [
             HomeHeader(
               firstName: appState.primeiroNome,
+              unreadMessages: appState.mensagensNaoLidas,
+              photoPath: appState.userPhotoPath,
               onNotificationsTap: _openNotifications,
               onSettingsTap: _openSettings,
               onHubTap: _openOperationalHub,
@@ -292,12 +295,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ),
       ),
       const CompletedInspectionsScreen(),
-      const Center(
-        child: Text(
-          'Agenda em evolucao',
-          style: TextStyle(color: Colors.black54, fontWeight: FontWeight.w600),
-        ),
-      ),
+      const AgendaScreen(),
     ];
 
     return Scaffold(

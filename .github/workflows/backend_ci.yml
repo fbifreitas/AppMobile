@@ -1,0 +1,51 @@
+name: Backend CI
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "apps/backend/**"
+      - ".github/workflows/backend_ci.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "apps/backend/**"
+      - ".github/workflows/backend_ci.yml"
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: apps/backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: apps/backend/pom.xml
+
+      - name: Build
+        run: mvn package -DskipTests -q
+
+      - name: Test
+        run: mvn test -q
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: backoffice-api-jar
+          path: apps/backend/target/*.jar
+          if-no-files-found: error

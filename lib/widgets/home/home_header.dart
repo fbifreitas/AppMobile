@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 
 import '../../theme/app_colors.dart';
 
@@ -6,6 +9,8 @@ class HomeHeader extends StatelessWidget {
   const HomeHeader({
     super.key,
     required this.firstName,
+    required this.unreadMessages,
+    required this.photoPath,
     required this.onNotificationsTap,
     required this.onSettingsTap,
     required this.onHubTap,
@@ -13,6 +18,8 @@ class HomeHeader extends StatelessWidget {
   });
 
   final String firstName;
+  final int unreadMessages;
+  final String? photoPath;
   final VoidCallback onNotificationsTap;
   final VoidCallback onSettingsTap;
   final VoidCallback onHubTap;
@@ -23,7 +30,7 @@ class HomeHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _HeaderAvatar(),
+        _HeaderAvatar(photoPath: photoPath),
         const SizedBox(width: 10),
         Expanded(
           child: Column(
@@ -59,7 +66,7 @@ class HomeHeader extends StatelessWidget {
             _HeaderIconButton(
               icon: Icons.notifications_none,
               onTap: onNotificationsTap,
-              badge: '3',
+              badge: unreadMessages > 0 ? '$unreadMessages' : null,
             ),
             const SizedBox(width: 8),
             _HeaderIconButton(
@@ -81,43 +88,53 @@ class HomeHeader extends StatelessWidget {
 }
 
 class _HeaderAvatar extends StatelessWidget {
-  const _HeaderAvatar();
+  const _HeaderAvatar({this.photoPath});
 
   static const _avatarUrl = 'https://i.pravatar.cc/150?img=3';
+  final String? photoPath;
 
   @override
   Widget build(BuildContext context) {
+    final hasLocal = photoPath != null && photoPath!.trim().isNotEmpty;
     return ClipOval(
       child: SizedBox(
         width: 42,
         height: 42,
-        child: Image.network(
-          _avatarUrl,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) {
-            return Container(
-              color: AppColors.primaryLight,
-              alignment: Alignment.center,
-              child: const Icon(
-                Icons.person,
-                color: AppColors.primary,
-                size: 22,
+        child: hasLocal && !kIsWeb
+            ? Image.file(
+                File(photoPath!),
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _fallbackAvatar(),
+              )
+            : Image.network(
+                _avatarUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _fallbackAvatar(),
+                loadingBuilder: (context, child, progress) {
+                  if (progress == null) return child;
+                  return Container(
+                    color: AppColors.primaryLight,
+                    alignment: Alignment.center,
+                    child: const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  );
+                },
               ),
-            );
-          },
-          loadingBuilder: (context, child, progress) {
-            if (progress == null) return child;
-            return Container(
-              color: AppColors.primaryLight,
-              alignment: Alignment.center,
-              child: const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            );
-          },
-        ),
+      ),
+    );
+  }
+
+  Widget _fallbackAvatar() {
+    return Container(
+      color: AppColors.primaryLight,
+      alignment: Alignment.center,
+      child: const Icon(
+        Icons.person,
+        color: AppColors.primary,
+        size: 22,
       ),
     );
   }

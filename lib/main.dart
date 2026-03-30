@@ -3,8 +3,12 @@ import 'package:provider/provider.dart';
 
 import 'repositories/fake_job_repository.dart';
 import 'repositories/preferences_repository.dart';
+import 'screens/awaiting_approval_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/login_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'state/app_state.dart';
+import 'state/auth_state.dart';
 import 'state/inspection_state.dart';
 import 'theme/app_colors.dart';
 
@@ -20,6 +24,9 @@ void main() {
         ),
         ChangeNotifierProvider(
           create: (_) => InspectionState(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => AuthState(const SharedPreferencesRepository()),
         ),
       ],
       child: const MyApp(),
@@ -93,7 +100,32 @@ class MyApp extends StatelessWidget {
           type: BottomNavigationBarType.fixed,
         ),
       ),
-      home: const HomeScreen(),
+      home: const _AppEntryPoint(),
     );
+  }
+}
+
+class _AppEntryPoint extends StatelessWidget {
+  const _AppEntryPoint();
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthState>();
+    if (auth.loading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    switch (auth.status) {
+      case AppAuthStatus.unauthenticated:
+        return const LoginScreen();
+      case AppAuthStatus.onboarding:
+        return const OnboardingScreen();
+      case AppAuthStatus.awaitingApproval:
+        return const AwaitingApprovalScreen();
+      case AppAuthStatus.active:
+        return const HomeScreen();
+    }
   }
 }

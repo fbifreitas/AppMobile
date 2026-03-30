@@ -9,6 +9,8 @@ void main() {
         home: Scaffold(
           body: HomeHeader(
             firstName: 'Felipe',
+            unreadMessages: 3,
+            photoPath: null,
             onNotificationsTap: () {},
             onSettingsTap: () {},
             onHubTap: () {},
@@ -32,6 +34,8 @@ void main() {
         home: Scaffold(
           body: HomeHeader(
             firstName: 'Felipe',
+            unreadMessages: 0,
+            photoPath: null,
             onNotificationsTap: () {},
             onSettingsTap: () {},
             onHubTap: () {},
