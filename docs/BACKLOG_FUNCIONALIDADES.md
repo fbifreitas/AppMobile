@@ -25,7 +25,7 @@ Step 4️⃣ (ALTA) → BL-010
     ↓
 Step 5️⃣ (MÉDIA) → BL-004, BL-005, BL-007, BL-009, BL-016
   ↓
-Step 6️⃣ (DÉBITO TÉCNICO) → BL-013 + BL-014
+Step 6️⃣ (DÉBITO TÉCNICO) → BL-013 + BL-014 + BL-036
   ↓
 Step 7️⃣ (BOAS PRÁTICAS) → BL-017, BL-018, BL-019, BL-020, BL-021, BL-022, BL-023, BL-024, BL-025, BL-026, BL-027, BL-028
   ↓
@@ -52,6 +52,7 @@ Step 8️⃣ (FUNCIONAL PRÓXIMO CICLO) → BL-029, BL-030, BL-031, BL-032, BL-0
 | 1️⃣2️⃣ | BL-007 | Seed de cenarios de QA por perfil (1, 3, 10 vistorias; ativas/concluidas) | Pendente | 🟡 Media | Um toque aplica cenarios pre-definidos para homologacao |
 | 1️⃣3️⃣ | BL-009 | Telemetria de fluxo (inicio, retomada, conclusao, falhas de integracao) | Pendente | 🟡 Media | Eventos minimos registrados para diagnostico operacional |
 | ⏸️  | BL-011 | Flavors de distribuicao (prod, internal, dev) | Adiado | 🟡 Media | Entrypoints e pipeline separados para builds internos e producao |
+| ⚡ | BL-036 | Cache de Flutter/pub no pipeline CI (débito técnico) | Pendente | 🔵 Baixa (pos-funcional) | Pipeline reduz tempo de build cacheando `.pub-cache` e `.dart_tool` com chave baseada em `pubspec.lock` |
 | 🔧 | BL-013 | Auditoria de Clean Code e SOLID (débito técnico) | Planejado | 🔵 Baixa (pos-funcional) | Relatorio técnico com achados, plano de refatoracao e aplicacao incremental por modulo sem regressao funcional |
 | 🧪 | BL-014 | Evolução da suíte de testes com prática TDD (débito técnico) | Planejado | 🔵 Baixa (pos-funcional) | Cobertura de testes ampliada por fluxo crítico, com testes criados/atualizados a cada entrega funcional |
 | 🧱 | BL-017 | Contract testing de APIs mobile-backend | Planejado | 🟠 Alta | Contratos de request/response validados em CI para endpoints críticos (config dinâmica e sync) |
@@ -119,6 +120,18 @@ Registrar telemetria minima do fluxo de vistoria (inicio, retomada, conclusao e 
 
 ### BL-011
 Estruturar flavors de distribuicao (prod, internal e dev) para separar pacotes e pipelines quando estiver proximo ao go-live.
+
+### BL-036
+Adicionar cache de dependências Flutter/pub ao workflow do GitHub Actions (`android_ci.yml`) usando `actions/cache@v4`, cacheando `.pub-cache` e `.dart_tool` com chave baseada em `pubspec.lock`. Reduz o tempo de execução do job de build (atualmente 8-15 min) eliminando o download repetido de pacotes a cada run.
+
+```yaml
+- uses: actions/cache@v4
+  with:
+    path: |
+      ~/.pub-cache
+      .dart_tool
+    key: ${{ runner.os }}-pub-${{ hashFiles('pubspec.lock') }}
+```
 
 ### BL-013
 Realizar auditoria arquitetural e de qualidade de codigo (Clean Code e SOLID), consolidando debitos tecnicos e plano de refatoracao para execucao quando o backlog funcional estiver menor.

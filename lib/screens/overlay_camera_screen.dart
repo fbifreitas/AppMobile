@@ -202,6 +202,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   PredictedSelection? _predictedSelection;
   String? _contextSuggestionSummary;
   final List<OverlayCameraCaptureResult> _captures = [];
+  bool _hasPreviousPhotos = false;
 
   static const Map<String, List<String>> _materiaisPorElemento = {
     'Piso': ['Cerâmico', 'Porcelanato', 'Madeira', 'Concreto'],
@@ -254,6 +255,8 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
 
   bool get _showMacroLocalSelector => widget.preselectedMacroLocal == null;
 
+  bool get _hasAnyCaptures => _captures.isNotEmpty || _hasPreviousPhotos;
+
   @override
   void initState() {
     super.initState();
@@ -261,6 +264,11 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     _ambiente = widget.initialAmbiente;
     _elemento = widget.initialElemento;
     _setup();
+    if (widget.cameFromCheckinStep1) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _loadPreviousPhotosState(),
+      );
+    }
   }
 
   Future<void> _setup() async {
@@ -570,15 +578,18 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     }
   }
 
-  void _finalizeBatch() async {
-    if (_captures.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Capture pelo menos uma foto antes de finalizar.'),
-        ),
-      );
-      return;
+  void _loadPreviousPhotosState() {
+    if (!mounted) return;
+    final step2 = Provider.of<AppState>(context, listen: false).step2Payload;
+    if (step2.isEmpty) return;
+    final model = CheckinStep2Model.fromMap(step2);
+    if (model.fotos.values.any((f) => f.hasImage)) {
+      setState(() => _hasPreviousPhotos = true);
     }
+  }
+
+  void _finalizeBatch() async {
+    if (!_hasAnyCaptures) return;
 
     await _syncStep2DraftFromBatchCaptures();
 
@@ -829,7 +840,9 @@ Future<void> _handleCameraVoiceCommand(VoiceCommandMatch match) async {
                         const Spacer(),
                         _glassButton(
                           icon: Icons.checklist_outlined,
-                          onTap: widget.singleCaptureMode ? null : _finalizeBatch,
+                          onTap: (!widget.singleCaptureMode && _hasAnyCaptures)
+                              ? _finalizeBatch
+                              : null,
                         ),
                       ],
                     ),
@@ -1005,12 +1018,7 @@ VoiceActionBar(
                           ),
                         ),
                         const Spacer(),
-                        _circleAction(
-                          icon: Icons.fact_check_outlined,
-                          onTap: widget.singleCaptureMode
-                              ? () => Navigator.of(context).pop()
-                              : _finalizeBatch,
-                        ),
+                        _buildFinalizeButton(),
                       ],
                     ),
                   ],
@@ -1058,6 +1066,91 @@ VoiceActionBar(
           shape: BoxShape.circle,
         ),
         child: Icon(icon, color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _buildFinalizeButton() {
+    if (widget.singleCaptureMode) {
+      return _circleAction(
+        icon: Icons.fact_check_outlined,
+        onTap: () => Navigator.of(context).pop(),
+      );
+    }
+
+    if (!_hasAnyCaptures) {
+      return Container(
+        width: 52,
+        height: 52,
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.20),
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(
+          Icons.fact_check_outlined,
+          color: Colors.white38,
+          size: 22,
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: _finalizeBatch,
+      child: Container(
+        height: 52,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE65100),
+          borderRadius: BorderRadius.circular(26),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.deepOrange.withValues(alpha: 0.45),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.fact_check_outlined,
+              color: Colors.white,
+              size: 18,
+            ),
+            const SizedBox(width: 6),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Revisar',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+                Text(
+                  _captures.isNotEmpty
+                      ? '${_captures.length} nova(s)'
+                      : 'fotos anteriores',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 9,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 4),
+            const Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.white70,
+              size: 12,
+            ),
+          ],
+        ),
       ),
     );
   }
