@@ -10,10 +10,6 @@ on:
       - "infra/scripts/sync_project_visuals.ps1"
       - "docs/GITHUB_PROJECTS_GESTAO_BACKLOG.md"
 
-permissions:
-  contents: read
-  repository-projects: write
-
 jobs:
   sync-project-visuals:
     runs-on: windows-latest
