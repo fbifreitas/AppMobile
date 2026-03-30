@@ -109,6 +109,7 @@ Future<void> _pumpReview(
   required List<OverlayCameraCaptureResult> captures,
   String tipoImovel = 'Urbano',
   Map<String, dynamic>? persistedStep2Payload,
+  Map<String, dynamic>? persistedRecoveryPayload,
   InspectionFlowCoordinator flowCoordinator =
       const DefaultInspectionFlowCoordinator(),
 }) async {
@@ -126,6 +127,21 @@ Future<void> _pumpReview(
       ),
     );
     await appState.persistStep2Draft(persistedStep2Payload);
+  } else if (persistedRecoveryPayload != null) {
+    appState.selecionarJob(
+      Job(
+        id: 'job-1',
+        titulo: 'Vistoria A',
+        endereco: 'Rua A, 1',
+        nomeCliente: 'Cliente A',
+      ),
+    );
+    await appState.setInspectionRecoveryStage(
+      stageKey: 'inspection_review',
+      stageLabel: 'Revisão final',
+      routeName: '/inspection_review',
+      payload: persistedRecoveryPayload,
+    );
   }
 
   await tester.pumpWidget(
@@ -215,7 +231,7 @@ void main() {
     expect(find.text('Comandos rápidos por voz'), findsNothing);
   });
 
-  testWidgets('uses simplified progress header without top metric chips', (
+  testWidgets('shows top grouping chips for required and captured photos', (
     tester,
   ) async {
     await _pumpReview(
@@ -232,8 +248,20 @@ void main() {
     );
 
     expect(find.text('Revisão de fotos'), findsOneWidget);
-    expect(find.text('Concluídas'), findsNothing);
-    expect(find.text('Pendências'), findsNothing);
+    expect(find.textContaining('Fotos obrigatórias:'), findsOneWidget);
+    expect(find.textContaining('Fotos capturadas:'), findsOneWidget);
+  });
+
+  testWidgets('renders pending shortcut action in technical matrix', (
+    tester,
+  ) async {
+    await _pumpReview(
+      tester,
+      captures: [_capture(filePath: '/tmp/a.jpg', ambiente: 'Cozinha')],
+    );
+
+    expect(find.text('Pendências técnicas da vistoria'), findsOneWidget);
+    expect(find.text('Ir para pendência'), findsWidgets);
   });
 
   testWidgets(
@@ -324,6 +352,50 @@ void main() {
       expect(flowCoordinator.lastOverlayTitle, 'Acesso ao imóvel');
       expect(find.text('Obrigatório atendido'), findsNWidgets(3));
       expect(find.widgetWithText(FilledButton, 'Capturar'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'keeps reviewed classification after reopening review with new camera captures',
+    (tester) async {
+      final recoveryPayload = {
+        'review': {
+          'tipoImovel': 'Urbano • Apartamento',
+          'captures': [
+            _capture(
+              filePath: '/tmp/classificada.jpg',
+              ambiente: 'Cozinha',
+            ).toMap(),
+            _capture(
+              filePath: '/tmp/nova.jpg',
+              ambiente: 'Sala',
+            ).toMap(),
+          ],
+          'capturesRevisadas': [
+            {
+              'filePath': '/tmp/classificada.jpg',
+              'ambiente': 'Cozinha',
+              'elemento': 'Piso',
+              'material': 'Cerâmica',
+              'estado': 'Bom',
+              'isComplete': true,
+            },
+          ],
+        },
+      };
+
+      await _pumpReview(
+        tester,
+        captures: [
+          _capture(filePath: '/tmp/classificada.jpg', ambiente: 'Cozinha'),
+          _capture(filePath: '/tmp/nova.jpg', ambiente: 'Sala'),
+        ],
+        tipoImovel: 'Urbano • Apartamento',
+        persistedRecoveryPayload: recoveryPayload,
+      );
+
+      expect(find.text('1/2 classificadas'), findsOneWidget);
+      expect(find.textContaining('Fotos capturadas: 1/2'), findsOneWidget);
     },
   );
 }
