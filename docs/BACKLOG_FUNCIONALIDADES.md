@@ -73,7 +73,7 @@ Step 8️⃣ (FUNCIONAL PRÓXIMO CICLO) → BL-029, BL-030, BL-031, BL-032, BL-0
 | 🧭 | BL-020 | Fronteiras de arquitetura e inversão de dependência | Planejado | 🟠 Alta | Camadas desacopladas com interfaces explícitas entre domínio, aplicação e infraestrutura |
 | ⚠️ | BL-021 | Estratégia padronizada de tratamento de erros | Planejado | 🟠 Alta | Erros tipados, mensagens consistentes e ausência de catch silencioso nos fluxos críticos |
 | 🔗 | BL-022 | Observabilidade com correlation id por vistoria | Planejado | 🟡 Media | Eventos de ponta a ponta rastreáveis por job/correlation id |
-| 🔐 | BL-023 | Hardening de segurança e gestão de secrets | Planejado | 🟠 Alta | Segredos fora do código, validação de configuração e checklist de segurança em release |
+| 🔐 | BL-023 | Hardening de segurança e gestão de secrets | Em andamento | 🟠 Alta | Segredos fora do código, validação de configuração e checklist de segurança em release |
 | ⚡ | BL-024 | Performance budgets em fluxos críticos | Planejado | 🟡 Media | Metas de tempo por etapa monitoradas com alerta de regressão |
 | 📦 | BL-025 | Governança de dependências e vulnerabilidades | Planejado | 🟡 Media | Rotina de atualização com scanner e política de correção de CVEs |
 | 🧾 | BL-026 | ADRs para decisões arquiteturais | Planejado | 🟡 Media | Decisões técnicas relevantes registradas com contexto e trade-offs |
@@ -227,6 +227,8 @@ Implantar correlation id por vistoria para rastrear eventos de início, retomada
 
 ### BL-023
 Endurecer segurança operacional do app e pipeline com política de secrets, validações e checklist de release seguro.
+
+Observacao 2026-03-30 (Em andamento): workflows de deploy backend/web ajustados para validar `VPS_HOST`, `VPS_USER` e `VPS_SSH_KEY` antes da etapa SSH, com skip explicito quando os segredos nao estiverem configurados. Em revisao final de compatibilidade no parser do GitHub Actions.
 
 ### BL-024
 Definir performance budgets por fluxo crítico e monitorar regressões de tempo no ciclo de entrega.

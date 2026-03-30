@@ -55,14 +55,14 @@ jobs:
           if-no-files-found: error
 
   deploy-staging:
-    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'staging')
+    if: github.event_name == 'push' || inputs.target == 'staging'
     runs-on: ubuntu-latest
     needs: build
     environment: staging
 
     steps:
       - name: Check VPS secrets
-        id: check_vps
+        id: check_vps_staging
         shell: bash
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
@@ -76,7 +76,7 @@ jobs:
           fi
 
       - name: Deploy backend to VPS (staging)
-        if: steps.check_vps.outputs.ready == 'true'
+        if: steps.check_vps_staging.outputs.ready == 'true'
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -89,18 +89,18 @@ jobs:
             docker compose -f infra/docker-compose.yml exec -T api wget -qO- http://localhost:8080/actuator/health || true
 
       - name: Skip deploy without VPS secrets
-        if: steps.check_vps.outputs.ready != 'true'
+        if: steps.check_vps_staging.outputs.ready != 'true'
         run: echo "Deploy de staging ignorado: configure VPS_HOST, VPS_USER e VPS_SSH_KEY nos secrets do GitHub."
 
   deploy-production:
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'production'
+    if: github.event_name == 'workflow_dispatch' && inputs.target == 'production'
     runs-on: ubuntu-latest
     needs: build
     environment: production
 
     steps:
       - name: Check VPS secrets
-        id: check_vps
+        id: check_vps_production
         shell: bash
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
@@ -114,7 +114,7 @@ jobs:
           fi
 
       - name: Deploy backend to VPS (production)
-        if: steps.check_vps.outputs.ready == 'true'
+        if: steps.check_vps_production.outputs.ready == 'true'
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -127,5 +127,5 @@ jobs:
             docker compose -f infra/docker-compose.yml exec -T api wget -qO- http://localhost:8080/actuator/health || true
 
       - name: Skip deploy without VPS secrets
-        if: steps.check_vps.outputs.ready != 'true'
+        if: steps.check_vps_production.outputs.ready != 'true'
         run: echo "Deploy de production ignorado: configure VPS_HOST, VPS_USER e VPS_SSH_KEY nos secrets do GitHub."
