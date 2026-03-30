@@ -9,6 +9,7 @@ import '../models/job_status.dart';
 import '../state/app_state.dart';
 import '../models/technical_check_requirement_input.dart';
 import '../models/technical_evidence_input.dart';
+import '../models/technical_rule_result.dart';
 import '../services/inspection_technical_summary_service.dart';
 import '../services/inspection_flow_coordinator.dart';
 import '../widgets/inspection_technical_summary_card.dart';
@@ -50,13 +51,17 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   final InspectionTechnicalSummaryService _technicalSummaryService =
       const InspectionTechnicalSummaryService();
   final VoiceInputService _voiceService = VoiceInputService();
-  final InspectionExportService _exportService =
-      const InspectionExportService();
+  final InspectionExportService _exportService = InspectionExportService();
   final InspectionSyncService _syncService = const InspectionSyncService();
   final InspectionSyncQueueService _syncQueueService =
       const InspectionSyncQueueService();
   final CheckinDynamicConfigService _dynamicConfigService =
       CheckinDynamicConfigService.instance;
+
+  final GlobalKey _checkinPendingSectionKey = GlobalKey();
+  final GlobalKey _capturedPhotosSectionKey = GlobalKey();
+  final GlobalKey _closingSectionKey = GlobalKey();
+
   String? _expandedSubtype;
 
   static const _elementos = <String>[
@@ -106,10 +111,46 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   void initState() {
     super.initState();
     _items = widget.captures.map(_EditableCapture.fromCapture).toList();
+    _hydrateReviewedItemsFromRecovery();
     _capturesCurrent = List.of(widget.captures);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _persistReviewState();
     });
+  }
+
+  void _hydrateReviewedItemsFromRecovery() {
+    final appState = Provider.of<AppState>(context, listen: false);
+    final savedReview = appState.inspectionRecoveryPayload['review'];
+    if (savedReview is! Map) return;
+
+    final reviewedRaw = savedReview['capturesRevisadas'];
+    if (reviewedRaw is! List) return;
+
+    final reviewedByPath = <String, Map<String, dynamic>>{};
+    for (final raw in reviewedRaw) {
+      if (raw is! Map) continue;
+      final map = Map<String, dynamic>.from(
+        raw.map((key, value) => MapEntry('$key', value)),
+      );
+      final filePath = '${map['filePath'] ?? ''}'.trim();
+      if (filePath.isEmpty) continue;
+      reviewedByPath[filePath] = map;
+    }
+
+    if (reviewedByPath.isEmpty) return;
+
+    for (final item in _items) {
+      final reviewed = reviewedByPath[item.filePath];
+      if (reviewed == null) continue;
+
+      item.ambiente = _nonEmptyText(reviewed['ambiente']) ?? item.ambiente;
+      item.elemento = _nonEmptyText(reviewed['elemento']);
+      item.material = _nonEmptyText(reviewed['material']);
+      item.estado = _nonEmptyText(reviewed['estado']);
+
+      final isComplete = reviewed['isComplete'] == true;
+      item.recalculateStatus(forceClassified: isComplete);
+    }
   }
 
   Future<void> _persistReviewState() async {
@@ -128,9 +169,25 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
           'tipoImovel': widget.tipoImovel,
           'captures':
               _capturesCurrent.map((capture) => capture.toMap()).toList(),
+          'capturesRevisadas': _serializeReviewedCaptures(),
         },
       },
     );
+  }
+
+  List<Map<String, dynamic>> _serializeReviewedCaptures() {
+    return _items
+        .map(
+          (item) => {
+            'filePath': item.filePath,
+            'ambiente': item.ambiente,
+            'elemento': item.elemento,
+            'material': item.material,
+            'estado': item.estado,
+            'isComplete': item.status == _PhotoStatus.classified,
+          },
+        )
+        .toList();
   }
 
   Map<String, dynamic> _buildStep2PayloadFromCaptures(
@@ -231,7 +288,11 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         body: ListView(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
           children: [
-            _buildProgressCard(context, summary),
+            _buildProgressCard(
+              context,
+              summary,
+              checkinStatuses: checkinStatuses,
+            ),
             const SizedBox(height: 12),
             InspectionTechnicalSummaryCard(summary: technicalSummary),
             const SizedBox(height: 8),
@@ -285,11 +346,18 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         .toList();
   }
 
-  Widget _buildProgressCard(BuildContext context, _ReviewSummary summary) {
+  Widget _buildProgressCard(
+    BuildContext context,
+    _ReviewSummary summary, {
+    required List<_CheckinRequirementStatus> checkinStatuses,
+  }) {
     final progress =
         summary.total == 0
             ? 0.0
             : (summary.classified / summary.total).clamp(0.0, 1.0);
+    final requiredDone =
+        checkinStatuses.where((status) => status.isDone).length;
+    final requiredTotal = checkinStatuses.length;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -328,8 +396,58 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
             borderRadius: BorderRadius.circular(999),
             child: LinearProgressIndicator(minHeight: 8, value: progress),
           ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _ProgressGroupChip(
+                label: 'Fotos obrigatórias',
+                value: '$requiredDone/$requiredTotal',
+                isDone: requiredTotal > 0 && requiredDone == requiredTotal,
+              ),
+              _ProgressGroupChip(
+                label: 'Fotos capturadas',
+                value: '${summary.classified}/${summary.total}',
+                isDone: summary.total > 0 && summary.classified == summary.total,
+              ),
+            ],
+          ),
         ],
       ),
+    );
+  }
+
+  Future<void> _handlePendingShortcut(TechnicalRuleResult item) async {
+    switch (item.stage) {
+      case TechnicalRuleStage.checkin:
+        await _scrollToSection(_checkinPendingSectionKey);
+        break;
+      case TechnicalRuleStage.capture:
+        await _scrollToSection(_capturedPhotosSectionKey);
+        break;
+      case TechnicalRuleStage.review:
+        if (item.subtipo != null && item.subtipo!.trim().isNotEmpty) {
+          setState(() {
+            _expandedSubtype = item.subtipo!.trim();
+          });
+        }
+        await _scrollToSection(_capturedPhotosSectionKey);
+        break;
+      case TechnicalRuleStage.finalization:
+        await _scrollToSection(_closingSectionKey);
+        break;
+    }
+  }
+
+  Future<void> _scrollToSection(GlobalKey key) async {
+    final context = key.currentContext;
+    if (context == null) return;
+    await Scrollable.ensureVisible(
+      context,
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOut,
+      alignment: 0.08,
     );
   }
 
@@ -366,15 +484,22 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       ),
       children: [
         if (technicalSummary.pendingMatrix.totalBlocking > 0) ...[
-          TechnicalPendingMatrixCard(matrix: technicalSummary.pendingMatrix),
+          TechnicalPendingMatrixCard(
+            matrix: technicalSummary.pendingMatrix,
+            onOpenPending: _handlePendingShortcut,
+          ),
           const SizedBox(height: 12),
         ],
         if (checkinStatuses.isNotEmpty) ...[
-          Text(
-            'Fotos obrigatórias do check-in',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              fontSize: 16,
+          Container(
+            key: _checkinPendingSectionKey,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Fotos obrigatórias do check-in',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                fontSize: 16,
+              ),
             ),
           ),
           const SizedBox(height: 10),
@@ -392,11 +517,15 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
           ),
           const SizedBox(height: 12),
         ],
-        Text(
-          'Fotos capturadas',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w800,
-            fontSize: 16,
+        Container(
+          key: _capturedPhotosSectionKey,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            'Fotos capturadas',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              fontSize: 16,
+            ),
           ),
         ),
         const SizedBox(height: 10),
@@ -432,6 +561,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     InspectionTechnicalSummary technicalSummary,
   ) {
     return Container(
+      key: _closingSectionKey,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Theme.of(
@@ -617,6 +747,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         item.recalculateStatus(forceClassified: true);
       }
     });
+    _persistReviewState();
   }
 
   void _acceptSuggestions(_NodeGroup group) {
@@ -627,6 +758,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         }
       }
     });
+    _persistReviewState();
   }
 
   void _applySimilar(_NodeGroup group, _EditableCapture source) {
@@ -636,6 +768,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         item.recalculateStatus(forceClassified: true);
       }
     });
+    _persistReviewState();
   }
 
   Future<void> _editItem(_EditableCapture item) async {
@@ -738,7 +871,10 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         );
       },
     );
-    if (edited == true && mounted) setState(() {});
+    if (edited == true && mounted) {
+      setState(() {});
+      _persistReviewState();
+    }
   }
 
   Future<void> _finishInspection(BuildContext context, int pendingCount) async {
@@ -852,6 +988,13 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     final text = input.trim();
     if (text.length <= 120) return text;
     return '${text.substring(0, 120)}...';
+  }
+
+  String? _nonEmptyText(Object? value) {
+    if (value == null) return null;
+    final text = '$value'.trim();
+    if (text.isEmpty) return null;
+    return text;
   }
 
   Map<String, dynamic> _buildInspectionExportPayload(AppState appState) {
@@ -1343,6 +1486,55 @@ class _StatusPill extends StatelessWidget {
                 fontWeight: FontWeight.w800,
                 fontSize: 11,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProgressGroupChip extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool isDone;
+
+  const _ProgressGroupChip({
+    required this.label,
+    required this.value,
+    required this.isDone,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final background =
+        isDone
+            ? Colors.green.withValues(alpha: 0.12)
+            : Colors.orange.withValues(alpha: 0.12);
+    final foreground = isDone ? Colors.green.shade800 : Colors.orange.shade800;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: background,
+        border: Border.all(color: foreground.withValues(alpha: 0.28)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isDone ? Icons.check_circle_outline : Icons.info_outline,
+            size: 14,
+            color: foreground,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '$label: $value',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: foreground,
             ),
           ),
         ],

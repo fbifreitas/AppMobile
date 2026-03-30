@@ -5,10 +5,12 @@ import '../models/technical_rule_result.dart';
 
 class TechnicalPendingMatrixCard extends StatelessWidget {
   final TechnicalPendingMatrix matrix;
+  final ValueChanged<TechnicalRuleResult>? onOpenPending;
 
   const TechnicalPendingMatrixCard({
     super.key,
     required this.matrix,
+    this.onOpenPending,
   });
 
   @override
@@ -41,16 +43,24 @@ class TechnicalPendingMatrixCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Matriz de pendências técnicas',
+            'Pendências técnicas da vistoria',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                   fontSize: 16,
                 ),
           ),
+          const SizedBox(height: 4),
+          Text(
+            'Veja o que falta e use o atalho para ir direto ao ponto de ajuste.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
           const SizedBox(height: 10),
           ...sections.map((section) => Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: _StageSection(section: section),
+                child: _StageSection(
+                  section: section,
+                  onOpenPending: onOpenPending,
+                ),
               )),
         ],
       ),
@@ -60,9 +70,11 @@ class TechnicalPendingMatrixCard extends StatelessWidget {
 
 class _StageSection extends StatelessWidget {
   final _SectionData section;
+  final ValueChanged<TechnicalRuleResult>? onOpenPending;
 
   const _StageSection({
     required this.section,
+    this.onOpenPending,
   });
 
   @override
@@ -102,7 +114,22 @@ class _StageSection extends StatelessWidget {
                     children: [
                       Text(item.title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
                       const SizedBox(height: 4),
-                      Text(item.description, style: const TextStyle(fontSize: 12)),
+                      Text(
+                        _friendlyDescription(item),
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      if (onOpenPending != null) ...[
+                        const SizedBox(height: 8),
+                        TextButton.icon(
+                          onPressed: () => onOpenPending!.call(item),
+                          icon: const Icon(Icons.near_me_outlined, size: 16),
+                          label: const Text('Ir para pendência'),
+                          style: TextButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -112,6 +139,19 @@ class _StageSection extends StatelessWidget {
         }),
       ],
     );
+  }
+}
+
+String _friendlyDescription(TechnicalRuleResult item) {
+  switch (item.stage) {
+    case TechnicalRuleStage.checkin:
+      return 'No check-in obrigatório: ${item.description}';
+    case TechnicalRuleStage.capture:
+      return 'Nas fotos capturadas: ${item.description}';
+    case TechnicalRuleStage.review:
+      return 'Na revisão das fotos: ${item.description}';
+    case TechnicalRuleStage.finalization:
+      return 'Na etapa de finalização: ${item.description}';
   }
 }
 

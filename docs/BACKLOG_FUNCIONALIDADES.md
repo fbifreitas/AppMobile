@@ -32,7 +32,7 @@ Step 3️⃣ (ALTA) → BL-003 + BL-006
     ↓
 Step 4️⃣ (ALTA) → BL-010
     ↓
-Step 5️⃣ (MÉDIA) → BL-004, BL-005, BL-007, BL-009, BL-016
+Step 5️⃣ (MÉDIA) → BL-004, BL-005, BL-007, BL-009, BL-016, BL-037, BL-038, BL-039
   ↓
 Step 6️⃣ (DÉBITO TÉCNICO) → BL-013 + BL-014 + BL-036
   ↓
@@ -57,9 +57,12 @@ Step 8️⃣ (FUNCIONAL PRÓXIMO CICLO) → BL-029, BL-030, BL-031, BL-032, BL-0
 | 8️⃣ | BL-010 | Endurecimento de bloqueio de recursos dev em release final | Pendente | 🟠 Alta | Recursos dev nao aparecem para usuario final sem desbloqueio autorizado |
 | 9️⃣ | BL-004 | Exibir protocolo/ID externo no card e no historico de vistorias | Pendente | 🟡 Media | Card mostra ID do job e protocolo externo quando existir |
 | 🔟 | BL-005 | Regras de retencao e limpeza de arquivos JSON exportados | Pendente | 🟡 Media | Politica configuravel (ex.: manter ultimos N dias) com limpeza segura |
-| 1️⃣1️⃣ | BL-016 | Diretorio de exportacao JSON configuravel para conferencia operacional | Pendente | 🟡 Media | Export permite alternar destino (interno/externo) sem perder rastreabilidade e fluxo de sync |
-| 1️⃣2️⃣ | BL-007 | Seed de cenarios de QA por perfil (1, 3, 10 vistorias; ativas/concluidas) | Pendente | 🟡 Media | Um toque aplica cenarios pre-definidos para homologacao |
-| 1️⃣3️⃣ | BL-009 | Telemetria de fluxo (inicio, retomada, conclusao, falhas de integracao) | Pendente | 🟡 Media | Eventos minimos registrados para diagnostico operacional |
+| 1️⃣1️⃣ | BL-016 | Diretorio de exportacao JSON configuravel para conferencia operacional | Concluido | 🟡 Media | Export permite alternar destino (interno/externo) sem perder rastreabilidade e fluxo de sync |
+| 1️⃣2️⃣ | BL-037 | Matriz de pendencia tecnica com linguagem operacional e acao guiada | Em andamento | 🟠 Alta | Matriz apresenta texto simples e link/acao direta para levar o usuario ao ponto exato da pendencia no fluxo |
+| 1️⃣3️⃣ | BL-038 | Preservar classificacao revisada ao retornar da camera para revisao | Em andamento | 🟠 Alta | Fotos ja classificadas nao regressam para status laranja ao adicionar nova captura e voltar para revisao |
+| 1️⃣4️⃣ | BL-039 | Agrupar revisao no topo por fotos obrigatorias e fotos capturadas | Em andamento | 🟡 Media | Topo da revisao exibe agrupadores claros de obrigatorias e capturadas, alinhado ao bloco de pendencias |
+| 1️⃣5️⃣ | BL-007 | Seed de cenarios de QA por perfil (1, 3, 10 vistorias; ativas/concluidas) | Pendente | 🟡 Media | Um toque aplica cenarios pre-definidos para homologacao |
+| 1️⃣6️⃣ | BL-009 | Telemetria de fluxo (inicio, retomada, conclusao, falhas de integracao) | Pendente | 🟡 Media | Eventos minimos registrados para diagnostico operacional |
 | ⏸️  | BL-011 | Flavors de distribuicao (prod, internal, dev) | Adiado | 🟡 Media | Entrypoints e pipeline separados para builds internos e producao |
 | ⚡ | BL-036 | Cache de Flutter/pub no pipeline CI (débito técnico) | Pendente | 🔵 Baixa (pos-funcional) | Pipeline reduz tempo de build cacheando `.pub-cache` e `.dart_tool` com chave baseada em `pubspec.lock` |
 | 🔧 | BL-013 | Auditoria de Clean Code e SOLID (débito técnico) | Planejado | 🔵 Baixa (pos-funcional) | Relatorio técnico com achados, plano de refatoracao e aplicacao incremental por modulo sem regressao funcional |
@@ -136,6 +139,40 @@ Definir politica de retencao e limpeza dos JSONs exportados, com regras seguras 
 
 ### BL-016
 Permitir configuracao do diretorio de exportacao do JSON final (interno e/ou externo para conferencia operacional), mantendo consistencia com fila offline e rastreabilidade por job.
+
+Observacao 2026-03-30 (CONCLUIDO): adicionada configuracao em `Configuracoes` para destino da exportacao (interno/externo) e subdiretorio customizavel. A resolucao efetiva aplica fallback automatico para interno quando externo nao estiver disponivel, preservando o fluxo de sincronizacao e a rastreabilidade por job.
+
+Observacao 2026-03-30: apos revisao UX do Menu de Vistoria, os itens BL-037, BL-038 e BL-039 foram priorizados para entrar na sequencia do BL-016.
+
+### BL-037
+Evoluir a matriz de pendencia tecnica para linguagem comum ao usuario operacional, com mensagens objetivas e acao guiada por pendencia.
+
+Observacao 2026-03-30 (Em andamento): matriz atualizada com linguagem mais operacional e atalho "Ir para pendencia" para navegação direta dentro da tela de revisão.
+
+Detalhamento:
+1. Reescrever descricoes tecnicas em texto orientado a tarefa.
+2. Adicionar link/botao "ir para pendencia" para levar ao ponto correto do fluxo (check-in, camera ou revisao).
+3. Exibir contexto minimo: o que falta, onde resolver e como confirmar conclusao.
+
+### BL-038
+Garantir preservacao da classificacao ja revisada quando o usuario retorna da camera com novas fotos.
+
+Observacao 2026-03-30 (Em andamento): revisao passou a persistir e reidratar capturas revisadas no draft de recovery, mantendo classificacoes existentes ao voltar da camera para a revisao.
+
+Detalhamento:
+1. Reconciliar capturas novas sem resetar classificacao existente.
+2. Manter status verde dos itens ja classificados quando nao houver alteracao de conteudo/classificacao.
+3. Cobrir com testes de navegacao e regressao do fluxo revisao -> camera -> revisao.
+
+### BL-039
+Reorganizar o topo da revisao de fotos com agrupadores equivalentes ao bloco de pendencias.
+
+Observacao 2026-03-30 (Em andamento): topo da revisão atualizado com agrupadores de "Fotos obrigatorias" e "Fotos capturadas", com contadores de progresso por grupo.
+
+Detalhamento:
+1. Separar "Fotos obrigatorias" e "Fotos capturadas" no topo da tela.
+2. Mostrar totais e progresso por agrupador para leitura rapida.
+3. Alinhar semantica visual com a secao "Ver pendencias de vistoria".
 
 ### BL-007
 Criar seeds de QA pre-definidos (ex.: 1, 3 e 10 vistorias, ativas e concluidas) para acelerar homologacao e testes de apresentacao.

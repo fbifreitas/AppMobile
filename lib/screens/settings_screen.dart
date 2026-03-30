@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 
+import '../services/inspection_export_service.dart';
 import '../state/app_state.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -15,6 +16,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   static const int _developerModeTapThreshold = 7;
 
   late TextEditingController _nomeController;
+  late TextEditingController _exportFolderController;
+
+  final InspectionExportService _exportService = InspectionExportService();
+
+  InspectionExportDirectoryMode _exportMode =
+      InspectionExportDirectoryMode.internal;
+  bool _loadingExportSettings = true;
+  bool _usingExternalExportBase = false;
+
   int _versionTapCount = 0;
   String _appVersion = 'vcarregando...';
 
@@ -23,7 +33,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     final appState = context.read<AppState>();
     _nomeController = TextEditingController(text: appState.usuarioNomeCompleto);
+    _exportFolderController = TextEditingController(text: 'inspection_exports');
     _loadAppVersion();
+    _loadExportSettings();
+  }
+
+  Future<void> _loadExportSettings() async {
+    final settings = await _exportService.resolveEffectiveSettings();
+    if (!mounted) return;
+
+    setState(() {
+      _exportMode = settings.mode;
+      _usingExternalExportBase = settings.usingExternalBase;
+      _exportFolderController.text = settings.folderName;
+      _loadingExportSettings = false;
+    });
   }
 
   Future<void> _loadAppVersion() async {
@@ -48,6 +72,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void dispose() {
     _nomeController.dispose();
+    _exportFolderController.dispose();
     super.dispose();
   }
 
@@ -98,10 +123,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _saveSettings() async {
     final appState = context.read<AppState>();
     appState.setUsuarioNomeCompleto(_nomeController.text.trim());
+    await _exportService.configureExportDirectory(
+      mode: _exportMode,
+      folderName: _exportFolderController.text,
+    );
+
+    final effectiveSettings = await _exportService.resolveEffectiveSettings();
 
     if (!mounted) return;
+    setState(() {
+      _usingExternalExportBase = effectiveSettings.usingExternalBase;
+    });
+
+    final exportTargetMessage =
+        effectiveSettings.mode == InspectionExportDirectoryMode.external &&
+                !effectiveSettings.usingExternalBase
+            ? 'Configuração salva. Diretório externo indisponível neste dispositivo; usando interno automaticamente.'
+            : 'Configurações atualizadas.';
+
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Configurações atualizadas.')),
+      SnackBar(content: Text(exportTargetMessage)),
     );
   }
 
@@ -131,6 +172,68 @@ class _SettingsScreenState extends State<SettingsScreen> {
               border: OutlineInputBorder(),
             ),
           ),
+          const Divider(height: 28),
+          const Text(
+            'Exportação da vistoria',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (_loadingExportSettings)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: LinearProgressIndicator(),
+            )
+          else ...[
+            DropdownButtonFormField<InspectionExportDirectoryMode>(
+              initialValue: _exportMode,
+              decoration: const InputDecoration(
+                labelText: 'Destino da exportação JSON',
+                border: OutlineInputBorder(),
+              ),
+              items: const [
+                DropdownMenuItem(
+                  value: InspectionExportDirectoryMode.internal,
+                  child: Text('Interno (recomendado)'),
+                ),
+                DropdownMenuItem(
+                  value: InspectionExportDirectoryMode.external,
+                  child: Text('Externo (quando disponível)'),
+                ),
+              ],
+              onChanged: (value) {
+                if (value == null) return;
+                setState(() {
+                  _exportMode = value;
+                });
+              },
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _exportFolderController,
+              decoration: const InputDecoration(
+                labelText: 'Subdiretório de exportação',
+                border: OutlineInputBorder(),
+                helperText:
+                    'Exemplo: inspection_exports ou operacao/json/vistorias',
+              ),
+            ),
+            if (_exportMode == InspectionExportDirectoryMode.external &&
+                !_usingExternalExportBase)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Text(
+                  'Neste dispositivo, o diretório externo pode não estar disponível. O app fará fallback automático para o diretório interno.',
+                  style: TextStyle(
+                    color: Colors.deepOrange,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+          ],
           if (appState.developerToolsUnlocked &&
               appState.developerModeEnabled) ...[
             const Divider(height: 28),

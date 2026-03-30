@@ -3,8 +3,43 @@ import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
 
+import '../repositories/preferences_repository.dart';
+
+enum InspectionExportDirectoryMode { internal, external }
+
+class InspectionExportDirectorySettings {
+  final InspectionExportDirectoryMode mode;
+  final String folderName;
+  final bool usingExternalBase;
+
+  const InspectionExportDirectorySettings({
+    required this.mode,
+    required this.folderName,
+    required this.usingExternalBase,
+  });
+}
+
 class InspectionExportService {
-  const InspectionExportService();
+  InspectionExportService({
+    PreferencesRepository? preferencesRepository,
+    Future<Directory> Function()? appDocumentsDirectoryResolver,
+    Future<Directory?> Function()? externalStorageDirectoryResolver,
+  })  : _preferencesRepository =
+            preferencesRepository ?? const SharedPreferencesRepository(),
+        _appDocumentsDirectoryResolver =
+            appDocumentsDirectoryResolver ?? getApplicationDocumentsDirectory,
+        _externalStorageDirectoryResolver =
+            externalStorageDirectoryResolver ?? getExternalStorageDirectory;
+
+  static const String _defaultFolderName = 'inspection_exports';
+  static const String _modePreferenceKey =
+      'inspection_export_directory_mode_v1';
+  static const String _folderPreferenceKey =
+      'inspection_export_directory_folder_v1';
+
+  final PreferencesRepository _preferencesRepository;
+  final Future<Directory> Function() _appDocumentsDirectoryResolver;
+  final Future<Directory?> Function() _externalStorageDirectoryResolver;
 
   Future<String> export(Map<String, dynamic> payload) async {
     final directory = await _resolveExportDirectory();
@@ -23,9 +58,87 @@ class InspectionExportService {
     return file.path;
   }
 
+  Future<void> configureExportDirectory({
+    required InspectionExportDirectoryMode mode,
+    required String folderName,
+  }) async {
+    final normalizedFolder = _normalizeFolderName(folderName);
+
+    await _preferencesRepository.setString(
+      _modePreferenceKey,
+      mode.name,
+    );
+    await _preferencesRepository.setString(
+      _folderPreferenceKey,
+      normalizedFolder,
+    );
+  }
+
+  Future<InspectionExportDirectorySettings> loadDirectorySettings() async {
+    final modeRaw = await _preferencesRepository.getString(_modePreferenceKey);
+    final folderRaw =
+        await _preferencesRepository.getString(_folderPreferenceKey);
+
+    final mode =
+        modeRaw == InspectionExportDirectoryMode.external.name
+            ? InspectionExportDirectoryMode.external
+            : InspectionExportDirectoryMode.internal;
+    final folderName = _normalizeFolderName(folderRaw ?? _defaultFolderName);
+
+    return InspectionExportDirectorySettings(
+      mode: mode,
+      folderName: folderName,
+      usingExternalBase: false,
+    );
+  }
+
+  Future<InspectionExportDirectorySettings> resolveEffectiveSettings() async {
+    final configured = await loadDirectorySettings();
+    final usingExternalBase =
+        configured.mode == InspectionExportDirectoryMode.external &&
+        await _resolveExternalBaseDirectory() != null;
+
+    return InspectionExportDirectorySettings(
+      mode: configured.mode,
+      folderName: configured.folderName,
+      usingExternalBase: usingExternalBase,
+    );
+  }
+
   Future<Directory> _resolveExportDirectory() async {
-    final base = await getApplicationDocumentsDirectory();
-    return Directory('${base.path}/inspection_exports');
+    final settings = await loadDirectorySettings();
+    final normalizedFolder = _normalizeFolderName(settings.folderName);
+
+    Directory? base;
+    if (settings.mode == InspectionExportDirectoryMode.external) {
+      base = await _resolveExternalBaseDirectory();
+    }
+    base ??= await _appDocumentsDirectoryResolver();
+
+    return Directory('${base.path}/$normalizedFolder');
+  }
+
+  Future<Directory?> _resolveExternalBaseDirectory() async {
+    try {
+      return await _externalStorageDirectoryResolver();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String _normalizeFolderName(String input) {
+    final trimmed = input.trim();
+    if (trimmed.isEmpty) return _defaultFolderName;
+    final normalized = trimmed.replaceAll('\\', '/');
+    final segments = normalized
+        .split('/')
+        .map((segment) => segment.trim())
+        .where((segment) =>
+            segment.isNotEmpty && segment != '.' && segment != '..')
+        .toList();
+
+    if (segments.isEmpty) return _defaultFolderName;
+    return segments.join('/');
   }
 
   Future<Map<String, dynamic>?> loadLatestPayloadForJob(String jobId) async {

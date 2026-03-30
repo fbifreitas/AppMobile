@@ -21,7 +21,7 @@ class CompletedInspectionDetailScreen extends StatefulWidget {
 
 class _CompletedInspectionDetailScreenState
     extends State<CompletedInspectionDetailScreen> {
-  final InspectionExportService _exportService = const InspectionExportService();
+  final InspectionExportService _exportService = InspectionExportService();
 
   late Future<Map<String, dynamic>?> _payloadFuture;
 
