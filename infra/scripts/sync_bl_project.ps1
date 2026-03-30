@@ -16,9 +16,9 @@ function Resolve-GitHubCli {
 
 $gh = Resolve-GitHubCli
 
-$projectNumber = 1
-$owner = 'fbifreitas'
-$projectId = 'PVT_kwHOECRsGc4BTNJY'
+$projectNumber = if ($env:PROJECT_NUMBER) { [int]$env:PROJECT_NUMBER } else { 1 }
+$owner = if ($env:PROJECT_OWNER) { $env:PROJECT_OWNER } else { 'fbifreitas' }
+$projectId = if ($env:PROJECT_ID) { $env:PROJECT_ID } else { 'PVT_kwHOECRsGc4BTNJY' }
 
 $fieldStatus = 'PVTSSF_lAHOECRsGc4BTNJYzhAg4tI'
 $optTodo = 'f75ad846'

@@ -29,9 +29,9 @@ function Ensure-SingleSelectField($ghPath, $projectNumber, $owner, $name, $optio
 }
 
 $gh = Resolve-GitHubCli
-$projectNumber = 1
-$owner = 'fbifreitas'
-$projectId = 'PVT_kwHOECRsGc4BTNJY'
+$projectNumber = if ($env:PROJECT_NUMBER) { [int]$env:PROJECT_NUMBER } else { 1 }
+$owner = if ($env:PROJECT_OWNER) { $env:PROJECT_OWNER } else { 'fbifreitas' }
+$projectId = if ($env:PROJECT_ID) { $env:PROJECT_ID } else { 'PVT_kwHOECRsGc4BTNJY' }
 
 $semaforo = Ensure-SingleSelectField $gh $projectNumber $owner 'Semaforo' 'Em andamento,Impedido,Done'
 $termometro = Ensure-SingleSelectField $gh $projectNumber $owner 'Termometro Backlog' 'Alta (Vermelho),Media (Laranja),Baixa (Azul)'

@@ -155,6 +155,11 @@ Regras aplicadas:
 Script base:
 1. `infra/scripts/sync_project_visuals.ps1`
 
+Pre-requisito para execucao no GitHub Actions:
+1. Configurar o secret `PROJECT_AUTOMATION_TOKEN`
+2. O token deve ter permissao para ler e editar o GitHub Project do usuario
+3. Sem esse secret, o workflow faz `skip` sem falhar a esteira
+
 ## Mapeamento inicial sugerido
 Registrar imediatamente os itens atuais:
 
