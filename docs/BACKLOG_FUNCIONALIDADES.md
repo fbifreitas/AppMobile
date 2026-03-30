@@ -96,6 +96,7 @@ Step 8️⃣ (FUNCIONAL PRÓXIMO CICLO) → BL-029, BL-030, BL-031, BL-032, BL-0
 | 4️⃣7️⃣ | BL-047 | Ajustar onboarding do app para fluxo exclusivamente PJ com validações de CNPJ/Agência/Conta/Banco | Concluído | 🔴 Crítica | Tela inicial não deve pedir CLT/PJ e campos PJ devem validar formato e consistência mínima |
 | 4️⃣8️⃣ | BL-048 | Criar ação no Hub Operacional para resetar mock de onboarding | Concluído | 🟠 Alta | Operador deve conseguir zerar estado de onboarding para reteste sem reinstalar app |
 | 4️⃣9️⃣ | BL-049 | Consolidar GitHub Project como fonte primária do backlog com sincronização total dos itens BL | Em andamento | 🟠 Alta | Todos os BL (pendentes, em andamento, concluídos e adiados) devem existir no board com status e critérios atualizados |
+| 5️⃣0️⃣ | BL-050 | Corrigir botão "Concluir" do onboarding encoberto pelo rodapé do Android | Em andamento | 🟠 Alta | Botão final do onboarding deve permanecer totalmente visível em Android (botões/gestos), permitindo concluir o fluxo sem obstrução |
 
 ---
 
@@ -329,6 +330,9 @@ Observacao 2026-03-30 (CONCLUIDO): Hub Operacional recebeu ação "Resetar mock 
 
 ### BL-049
 Consolidar o GitHub Project como fonte principal do backlog, garantindo sincronização integral dos itens BL e status com rastreabilidade.
+
+### BL-050
+Corrigir a área de ação final do onboarding para evitar que o botão "Concluir" fique encoberto pela barra de navegação do Android, garantindo conclusão do fluxo com usabilidade consistente.
 
 ---
 

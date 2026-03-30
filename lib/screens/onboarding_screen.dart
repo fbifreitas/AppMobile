@@ -132,8 +132,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(20),
+          SafeArea(
+            top: false,
+            minimum: const EdgeInsets.fromLTRB(20, 12, 20, 20),
             child: FilledButton(
               key: const Key('onboarding_next_button'),
               onPressed: _loading ? null : _nextPage,
