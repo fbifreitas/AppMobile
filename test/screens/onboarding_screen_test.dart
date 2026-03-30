@@ -39,21 +39,27 @@ class _MemoryPreferencesRepository implements PreferencesRepository {
 }
 
 void main() {
-  Future<void> pumpOnboarding(WidgetTester tester) async {
-    final preferences = _MemoryPreferencesRepository();
+  Future<_MemoryPreferencesRepository> pumpOnboarding(
+    WidgetTester tester, {
+    _MemoryPreferencesRepository? preferences,
+  }) async {
+    final prefs = preferences ?? _MemoryPreferencesRepository();
 
     await tester.pumpWidget(
       MultiProvider(
         providers: [
           ChangeNotifierProvider(
-            create: (_) => AppState(_ImmediateJobRepository(), preferences),
+            create: (_) => AppState(_ImmediateJobRepository(), prefs),
           ),
-          ChangeNotifierProvider(create: (_) => AuthState(preferences)),
+          ChangeNotifierProvider(create: (_) => AuthState(prefs)),
         ],
-        child: const MaterialApp(home: OnboardingScreen()),
+        child: MaterialApp(
+          home: const OnboardingScreen(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
+    return prefs;
   }
 
   testWidgets('onboarding starts directly in PJ flow', (tester) async {
@@ -83,5 +89,39 @@ void main() {
 
     expect(find.text('CNPJ inválido'), findsOneWidget);
     expect(find.byKey(const Key('onboarding_banco_field')), findsNothing);
+  });
+
+  testWidgets('onboarding conclui com dados validos de PJ', (tester) async {
+    final prefs = await pumpOnboarding(tester);
+
+    await tester.enterText(
+      find.byKey(const Key('onboarding_nome_field')),
+      'ACM',
+    );
+    await tester.enterText(
+      find.byKey(const Key('onboarding_cnpj_field')),
+      '18.914.249/0001-78',
+    );
+
+    await tester.tap(find.byKey(const Key('onboarding_next_button')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('onboarding_banco_field')),
+      '341',
+    );
+    await tester.enterText(
+      find.byKey(const Key('onboarding_agencia_field')),
+      '2965',
+    );
+    await tester.enterText(
+      find.byKey(const Key('onboarding_conta_field')),
+      '055508',
+    );
+
+    await tester.tap(find.byKey(const Key('onboarding_next_button')));
+    await tester.pumpAndSettle();
+
+    expect(await prefs.getString('auth_status'), AppAuthStatus.awaitingApproval.name);
   });
 }

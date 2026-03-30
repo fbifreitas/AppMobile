@@ -5,11 +5,12 @@ import '../repositories/preferences_repository.dart';
 enum AppAuthStatus { unauthenticated, onboarding, awaitingApproval, active }
 
 class AuthState extends ChangeNotifier {
-  AuthState(this._preferencesRepository) {
-    _load();
+  AuthState(this._preferencesRepository) : _loadFuture = Future<void>.value() {
+    _loadFuture = _load();
   }
 
   final PreferencesRepository _preferencesRepository;
+  Future<void> _loadFuture;
 
   static const _statusKey = 'auth_status';
   static const _userEmailKey = 'auth_user_email';
@@ -52,7 +53,14 @@ class AuthState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> _ensureLoaded() async {
+    if (_loading) {
+      await _loadFuture;
+    }
+  }
+
   Future<void> login(String email) async {
+    await _ensureLoaded();
     final trimmed = email.trim();
     if (trimmed.isEmpty) return;
     _userEmail = trimmed;
@@ -73,6 +81,7 @@ class AuthState extends ChangeNotifier {
     String? cpf,
     String? cnpj,
   }) async {
+    await _ensureLoaded();
     _userNome = nome.trim();
     _userTipo = tipo;
     _userCpf = cpf?.trim();
@@ -91,6 +100,7 @@ class AuthState extends ChangeNotifier {
   }
 
   Future<void> activateAccount() async {
+    await _ensureLoaded();
     _status = AppAuthStatus.active;
     await _preferencesRepository.setString(_statusKey, _status.name);
     notifyListeners();
@@ -101,6 +111,7 @@ class AuthState extends ChangeNotifier {
     String? cpf,
     String? cnpj,
   }) async {
+    await _ensureLoaded();
     final trimmedNome = nome.trim();
     if (trimmedNome.isNotEmpty) {
       _userNome = trimmedNome;
@@ -118,6 +129,7 @@ class AuthState extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    await _ensureLoaded();
     _status = AppAuthStatus.unauthenticated;
     _userEmail = null;
     _userNome = null;
@@ -134,6 +146,7 @@ class AuthState extends ChangeNotifier {
   }
 
   Future<void> resetOnboardingForMock() async {
+    await _ensureLoaded();
     _userNome = null;
     _userTipo = null;
     _userCpf = null;

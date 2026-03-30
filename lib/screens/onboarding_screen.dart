@@ -46,7 +46,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         _currentPage == 0
             ? (_formKeyDadosPessoais.currentState?.validate() ?? false)
             : (_formKeyDadosBancarios.currentState?.validate() ?? false);
-    if (!valid) return;
+    if (!valid) {
+      final message =
+          _currentPage == 0
+              ? 'Preencha os dados da empresa para continuar.'
+              : 'Preencha os dados bancários para continuar.';
+      _showMessage(message);
+      return;
+    }
 
     if (_currentPage < _totalPages - 1) {
       _pageController.nextPage(
@@ -68,9 +75,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Future<void> _submit() async {
-    final formValid = _formKeyDadosPessoais.currentState?.validate() ?? false;
+    final formValid =
+        _validateNome(_nomeController.text) == null &&
+        _validateCnpj(_cnpjController.text) == null;
     final bankValid = _formKeyDadosBancarios.currentState?.validate() ?? false;
-    if (!formValid || !bankValid) {
+    if (!formValid) {
+      if (_currentPage != 0) {
+        await _pageController.animateToPage(
+          0,
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeInOut,
+        );
+      }
+      _showMessage('Revise os dados da empresa para concluir.');
+      return;
+    }
+
+    if (!bankValid) {
+      _showMessage('Revise os dados bancários para concluir.');
       return;
     }
 
@@ -86,9 +108,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       );
 
       appState.setUsuarioNomeCompleto(_nomeController.text);
+    } catch (_) {
+      _showMessage(
+        'Nao foi possivel concluir o cadastro agora. Tente novamente.',
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -174,6 +207,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return null;
   }
 
+  String? _validateNome(String? value) {
+    return (value == null || value.trim().isEmpty) ? 'Informe o nome' : null;
+  }
+
   bool _isValidCnpjDigits(String digits) {
     int calc(List<int> factors, String base) {
       var sum = 0;
@@ -198,19 +235,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   String? _validateAgencia(String? value) {
-    final cleaned = (value ?? '').trim();
-    if (!RegExp(r'^\d{3,6}$').hasMatch(cleaned)) {
-      return 'Agência inválida (3 a 6 dígitos)';
+    final normalized = _normalizeBankToken(value);
+    if (normalized.length < 3 || normalized.length > 7) {
+      return 'Agência inválida';
     }
     return null;
   }
 
   String? _validateConta(String? value) {
-    final cleaned = (value ?? '').trim();
-    if (!RegExp(r'^\d{4,12}([\-\s]?[0-9Xx])?$').hasMatch(cleaned)) {
+    final normalized = _normalizeBankToken(value);
+    if (normalized.length < 4 || normalized.length > 13) {
       return 'Conta inválida';
     }
     return null;
+  }
+
+  String _normalizeBankToken(String? value) {
+    final cleaned = (value ?? '').trim();
+    return cleaned.replaceAll(RegExp(r'[^0-9Xx]'), '');
   }
 }
 
@@ -291,9 +333,7 @@ class _StepDadosPessoais extends StatelessWidget {
               prefixIcon: Icon(Icons.person_outline),
               border: OutlineInputBorder(),
             ),
-            validator:
-                (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Informe o nome' : null,
+            validator: (v) => (v == null || v.trim().isEmpty) ? 'Informe o nome' : null,
           ),
           const SizedBox(height: 16),
           TextFormField(
