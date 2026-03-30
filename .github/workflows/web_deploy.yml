@@ -63,7 +63,22 @@ jobs:
     needs: build
     environment: staging
     steps:
+      - name: Check VPS secrets
+        id: check_vps
+        shell: bash
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          if [[ -n "$VPS_HOST" && -n "$VPS_USER" && -n "$VPS_SSH_KEY" ]]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Deploy web to VPS (staging)
+        if: steps.check_vps.outputs.ready == 'true'
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -75,13 +90,32 @@ jobs:
             docker compose -f infra/docker-compose.yml up -d --build web
             docker compose -f infra/docker-compose.yml exec -T web wget -qO- http://localhost:3000/health || true
 
+      - name: Skip deploy without VPS secrets
+        if: steps.check_vps.outputs.ready != 'true'
+        run: echo "Deploy web de staging ignorado: configure VPS_HOST, VPS_USER e VPS_SSH_KEY nos secrets do GitHub."
+
   deploy-production:
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'production'
     runs-on: ubuntu-latest
     needs: build
     environment: production
     steps:
+      - name: Check VPS secrets
+        id: check_vps
+        shell: bash
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          if [[ -n "$VPS_HOST" && -n "$VPS_USER" && -n "$VPS_SSH_KEY" ]]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Deploy web to VPS (production)
+        if: steps.check_vps.outputs.ready == 'true'
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -92,3 +126,7 @@ jobs:
             git pull origin main
             docker compose -f infra/docker-compose.yml up -d --build web
             docker compose -f infra/docker-compose.yml exec -T web wget -qO- http://localhost:3000/health || true
+
+      - name: Skip deploy without VPS secrets
+        if: steps.check_vps.outputs.ready != 'true'
+        run: echo "Deploy web de production ignorado: configure VPS_HOST, VPS_USER e VPS_SSH_KEY nos secrets do GitHub."
