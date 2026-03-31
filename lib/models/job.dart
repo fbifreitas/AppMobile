@@ -39,6 +39,6 @@ class Job {
     this.distanciaKm,
     this.idExterno,
     this.protocoloExterno,
-  })  : checklist = checklist ?? [],
-        fotos = fotos ?? [];
+  }) : checklist = checklist ?? [],
+       fotos = fotos ?? [];
 }

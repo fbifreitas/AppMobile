@@ -27,8 +27,9 @@ void main() {
     expect(find.byIcon(Icons.dashboard_customize_outlined), findsOneWidget);
   });
 
-  testWidgets('HomeHeader hides hub button when developer mode is disabled',
-      (tester) async {
+  testWidgets('HomeHeader hides hub button when developer mode is disabled', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(

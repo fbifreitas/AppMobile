@@ -46,6 +46,8 @@ class _FakeInspectionFlowCoordinator extends InspectionFlowCoordinator {
     String? preselectedMacroLocal,
     String? initialAmbiente,
     String? initialElemento,
+    String? initialMaterial,
+    String? initialEstado,
     required bool cameFromCheckinStep1,
   }) async {
     overlayOpenCount += 1;
@@ -352,6 +354,85 @@ void main() {
       expect(flowCoordinator.lastOverlayTitle, 'Acesso ao imóvel');
       expect(find.text('Obrigatório atendido'), findsNWidgets(3));
       expect(find.widgetWithText(FilledButton, 'Capturar'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'uses persisted dynamic step2 config to mark fulfilled mandatory fields',
+    (tester) async {
+      final geoPoint = GeoPointData(
+        latitude: -23.0,
+        longitude: -46.0,
+        accuracy: 5,
+        capturedAt: DateTime(2026, 3, 30),
+      );
+
+      final persistedStep2 =
+          CheckinStep2Model.empty(TipoImovel.urbano)
+              .setPhoto(
+                fieldId: 'sala_principal',
+                titulo: 'Sala principal',
+                imagePath: '/tmp/sala.jpg',
+                geoPoint: geoPoint,
+              )
+              .toMap();
+
+      await _pumpReview(
+        tester,
+        captures: const [],
+        tipoImovel: 'Urbano • Apartamento',
+        persistedRecoveryPayload: {
+          'step2': persistedStep2,
+          'step2Config': {
+            'tituloTela': 'Etapa 2 dinâmica',
+            'camposFotos': [
+              {
+                'id': 'sala_principal',
+                'titulo': 'Sala principal',
+                'cameraMacroLocal': 'Interna',
+                'cameraAmbiente': 'Sala principal',
+                'obrigatorio': true,
+              },
+            ],
+          },
+        },
+      );
+
+      expect(find.text('Sala principal'), findsOneWidget);
+      expect(find.text('Obrigatório atendido'), findsOneWidget);
+      expect(find.text('Obrigatório — pendente de captura'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'handles malformed persisted step2 payload and keeps mandatory pending indicator',
+    (tester) async {
+      await _pumpReview(
+        tester,
+        captures: const [],
+        tipoImovel: 'Urbano • Apartamento',
+        persistedRecoveryPayload: {
+          'step2': {
+            'fotos': 'invalid-structure',
+          },
+          'step2Config': {
+            'tituloTela': 'Etapa 2 dinâmica',
+            'camposFotos': [
+              {
+                'id': 'sala_principal',
+                'titulo': 'Sala principal',
+                'cameraMacroLocal': 'Interna',
+                'cameraAmbiente': 'Sala principal',
+                'obrigatorio': true,
+              },
+            ],
+          },
+        },
+      );
+
+      expect(find.text('Fotos obrigatórias do check-in'), findsOneWidget);
+      expect(find.text('Sala principal'), findsOneWidget);
+      expect(find.text('Obrigatório — pendente de captura'), findsOneWidget);
     },
   );
 

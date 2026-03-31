@@ -544,6 +544,45 @@ class InspectionMenuService {
     ).map((item) => item.label).toList();
   }
 
+  Future<List<String>> getCameraLevelOrder({
+    required String propertyType,
+    String? subtipo,
+  }) async {
+    await ensureLoaded();
+    final levels = _package?.cameraLevelsFor(
+      propertyType: propertyType,
+      subtipo: subtipo,
+    );
+    if (levels == null || levels.isEmpty) {
+      return const <String>[
+        'macroLocal',
+        'ambiente',
+        'elemento',
+        'material',
+        'estado',
+      ];
+    }
+
+    final result = <String>[];
+    for (final level in levels) {
+      final id = level.id.trim();
+      if (id.isEmpty) {
+        continue;
+      }
+      result.add(id);
+    }
+
+    return result.isNotEmpty
+        ? result
+        : const <String>[
+          'macroLocal',
+          'ambiente',
+          'elemento',
+          'material',
+          'estado',
+        ];
+  }
+
   Future<List<String>> getAmbientes({
     required String propertyType,
     required String macroLocal,

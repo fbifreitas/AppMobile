@@ -162,7 +162,9 @@ class _CalendarGrid extends StatelessWidget {
     for (var day = 1; day <= daysInMonth; day++) {
       final date = DateTime(year, month, day);
       final selected =
-          selectedDay.year == year && selectedDay.month == month && selectedDay.day == day;
+          selectedDay.year == year &&
+          selectedDay.month == month &&
+          selectedDay.day == day;
       final withItems = hasItems(date);
 
       cells.add(
@@ -174,9 +176,10 @@ class _CalendarGrid extends StatelessWidget {
               color: selected ? AppColors.primary : AppColors.surface,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: selected
-                    ? AppColors.primary
-                    : withItems
+                color:
+                    selected
+                        ? AppColors.primary
+                        : withItems
                         ? AppColors.success
                         : AppColors.border,
               ),
@@ -251,16 +254,26 @@ class _AgendaCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             item.endereco,
-            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+            ),
           ),
           const SizedBox(height: 6),
           Row(
             children: [
-              const Icon(Icons.schedule, size: 14, color: AppColors.textSecondary),
+              const Icon(
+                Icons.schedule,
+                size: 14,
+                color: AppColors.textSecondary,
+              ),
               const SizedBox(width: 4),
               Text(
                 '${item.data.hour.toString().padLeft(2, '0')}:${item.data.minute.toString().padLeft(2, '0')}',
-                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(width: 10),
               Container(

@@ -12,10 +12,11 @@ class CompletedInspectionsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
-    final completedJobs = appState.jobs
-        .where((job) => job.status == JobStatus.finalizado)
-        .toList()
-      ..sort((a, b) => b.id.compareTo(a.id));
+    final completedJobs =
+        appState.jobs
+            .where((job) => job.status == JobStatus.finalizado)
+            .toList()
+          ..sort((a, b) => b.id.compareTo(a.id));
 
     if (completedJobs.isEmpty) {
       return const Center(
@@ -60,94 +61,94 @@ class CompletedInspectionsScreen extends StatelessWidget {
                 border: Border.all(color: AppColors.border),
               ),
               child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Colors.green,
-                        shape: BoxShape.circle,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: Colors.green,
+                          shape: BoxShape.circle,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'CONCLUIDA',
-                      style: TextStyle(
-                        color: Colors.green,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 11,
+                      const SizedBox(width: 8),
+                      const Text(
+                        'CONCLUIDA',
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 11,
+                        ),
                       ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'JOB #${job.id}',
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 11,
+                        ),
+                      ),
+                      const Spacer(),
+                      const Icon(
+                        Icons.chevron_right,
+                        size: 18,
+                        color: AppColors.textSecondary,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    job.titulo,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
                     ),
-                    const SizedBox(width: 8),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    job.endereco,
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 11,
+                    ),
+                  ),
+                  if (_nonEmpty(job.idExterno) != null) ...[
+                    const SizedBox(height: 4),
                     Text(
-                      'JOB #${job.id}',
+                      'ID externo: ${_nonEmpty(job.idExterno)}',
                       style: const TextStyle(
                         color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                  if (_nonEmpty(job.protocoloExterno) != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      'Protocolo: ${_nonEmpty(job.protocoloExterno)}',
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                  if ((job.nomeCliente).trim().isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      job.nomeCliente,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
                         fontSize: 11,
                       ),
                     ),
-                    const Spacer(),
-                    const Icon(
-                      Icons.chevron_right,
-                      size: 18,
-                      color: AppColors.textSecondary,
-                    ),
                   ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  job.titulo,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  job.endereco,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 11,
-                  ),
-                ),
-                if (_nonEmpty(job.idExterno) != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    'ID externo: ${_nonEmpty(job.idExterno)}',
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
                 ],
-                if (_nonEmpty(job.protocoloExterno) != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    'Protocolo: ${_nonEmpty(job.protocoloExterno)}',
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-                if ((job.nomeCliente).trim().isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    job.nomeCliente,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ],
               ),
             ),
           ),

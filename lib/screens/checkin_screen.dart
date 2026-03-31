@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../config/inspection_menu_package.dart';
 import '../models/checkin_step2_model.dart';
 import '../services/checkin_dynamic_config_service.dart';
 import '../services/inspection_flow_coordinator.dart';
@@ -24,10 +25,13 @@ class CheckinScreen extends StatefulWidget {
 }
 
 class _CheckinScreenState extends State<CheckinScreen> {
+  static const String _contextLevelId = 'contexto';
+
   bool? clientePresente;
   String? tipoImovel;
   String? subtipoImovel;
   String? porOndeComecar;
+  Map<String, String> _niveisSelecionados = {};
 
   static const List<String> _defaultTipos = <String>[
     'Urbano',
@@ -60,6 +64,8 @@ class _CheckinScreenState extends State<CheckinScreen> {
         ),
       );
   List<String> _contextos = List<String>.from(_defaultContextos);
+  List<ConfigLevelDefinition> _step1Levels = const [];
+  Map<String, List<ConfigLevelDefinition>> _step1LevelsByTipoSubtipo = const {};
 
   final VoiceInputService _voiceService = VoiceInputService();
   bool _hydrated = false;
@@ -84,6 +90,8 @@ class _CheckinScreenState extends State<CheckinScreen> {
       _tipos = dynamicConfig.tipos;
       _subtiposPorTipo = dynamicConfig.subtiposPorTipo;
       _contextos = dynamicConfig.contextos;
+      _step1Levels = dynamicConfig.levels;
+      _step1LevelsByTipoSubtipo = dynamicConfig.levelsByTipoSubtipo;
 
       if (tipoImovel != null && !_tipos.contains(tipoImovel)) {
         tipoImovel = null;
@@ -101,6 +109,8 @@ class _CheckinScreenState extends State<CheckinScreen> {
       if (porOndeComecar != null && !_contextos.contains(porOndeComecar)) {
         porOndeComecar = null;
       }
+
+      _sanitizeSelectedLevels();
 
       _loadingDynamicConfig = false;
     });
@@ -125,6 +135,17 @@ class _CheckinScreenState extends State<CheckinScreen> {
     tipoImovel = payload['tipoImovel'] as String?;
     subtipoImovel = payload['subtipoImovel'] as String?;
     porOndeComecar = payload['porOndeComecar'] as String?;
+
+    final rawLevels = payload['niveis'];
+    if (rawLevels is Map) {
+      _niveisSelecionados = rawLevels.map(
+        (key, value) => MapEntry('$key', '$value'),
+      );
+    }
+
+    if (porOndeComecar != null && porOndeComecar!.trim().isNotEmpty) {
+      _niveisSelecionados[_contextLevelId] = porOndeComecar!.trim();
+    }
   }
 
   Future<void> _persistStep1() async {
@@ -134,7 +155,82 @@ class _CheckinScreenState extends State<CheckinScreen> {
       tipoImovel: tipoImovel,
       subtipoImovel: subtipoImovel,
       porOndeComecar: porOndeComecar,
+      niveis: _niveisSelecionados,
     );
+  }
+
+  List<ConfigLevelDefinition> _resolveActiveStep1Levels() {
+    if (_step1Levels.isEmpty) {
+      return <ConfigLevelDefinition>[
+        ConfigLevelDefinition(
+          id: _contextLevelId,
+          label: 'Por onde deseja começar?',
+          required: true,
+          dependsOn: null,
+          options: _contextos,
+        ),
+      ];
+    }
+
+    if (tipoImovel == null || subtipoImovel == null) {
+      return _step1Levels;
+    }
+
+    final typedKey =
+        '${tipoImovel!.trim().toLowerCase()}::${subtipoImovel!.trim().toLowerCase()}';
+    final bySubtype = _step1LevelsByTipoSubtipo[typedKey];
+    if (bySubtype != null && bySubtype.isNotEmpty) {
+      return bySubtype;
+    }
+    return _step1Levels;
+  }
+
+  List<String> _optionsForLevel(ConfigLevelDefinition level) {
+    if (level.id == _contextLevelId) {
+      return level.options.isNotEmpty ? level.options : _contextos;
+    }
+    return level.options;
+  }
+
+  void _sanitizeSelectedLevels() {
+    final activeLevels = _resolveActiveStep1Levels();
+    final activeIds = activeLevels.map((level) => level.id).toSet();
+    final next = <String, String>{};
+
+    for (final entry in _niveisSelecionados.entries) {
+      if (!activeIds.contains(entry.key)) {
+        continue;
+      }
+
+      final level = activeLevels.firstWhere((item) => item.id == entry.key);
+      final options = _optionsForLevel(level);
+      if (options.isNotEmpty && !options.contains(entry.value)) {
+        continue;
+      }
+
+      if (level.dependsOn != null && level.dependsOn!.trim().isNotEmpty) {
+        final parentValue = next[level.dependsOn!.trim()];
+        if (parentValue == null || parentValue.isEmpty) {
+          continue;
+        }
+      }
+
+      next[entry.key] = entry.value;
+    }
+
+    _niveisSelecionados = next;
+    porOndeComecar = _niveisSelecionados[_contextLevelId] ?? porOndeComecar;
+  }
+
+  bool _hasRequiredLevelsSelected() {
+    final activeLevels = _resolveActiveStep1Levels();
+    for (final level in activeLevels.where((item) => item.required)) {
+      final selected = _niveisSelecionados[level.id];
+      if (selected == null || selected.trim().isEmpty) {
+        return false;
+      }
+    }
+    return true;
   }
 
   CheckinStep2Model? _readInitialStep2(AppState appState) {
@@ -315,6 +411,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
                           setState(() {
                             tipoImovel = tipo;
                             subtipoImovel = null;
+                            _sanitizeSelectedLevels();
                           });
                           await _persistStep1();
                         },
@@ -337,34 +434,17 @@ class _CheckinScreenState extends State<CheckinScreen> {
                           label: Text(subtipo),
                           selected: subtipoImovel == subtipo,
                           onSelected: (_) async {
-                            setState(() => subtipoImovel = subtipo);
+                            setState(() {
+                              subtipoImovel = subtipo;
+                              _sanitizeSelectedLevels();
+                            });
                             await _persistStep1();
                           },
                         );
                       }).toList(),
                 ),
               ],
-              const SizedBox(height: 16),
-              _buildSectionTitle(
-                label: 'Por onde deseja começar?',
-                onVoiceTap: _selectContextoByVoice,
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children:
-                    _contextos.map((ctx) {
-                      return ChoiceChip(
-                        label: Text(ctx),
-                        selected: porOndeComecar == ctx,
-                        onSelected: (_) async {
-                          setState(() => porOndeComecar = ctx);
-                          await _persistStep1();
-                        },
-                      );
-                    }).toList(),
-              ),
+              ..._buildDynamicStep1Levels(),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
@@ -501,31 +581,131 @@ class _CheckinScreenState extends State<CheckinScreen> {
     await _persistStep1();
   }
 
-  Future<void> _selectContextoByVoice() async {
+  Future<void> _selectLevelByVoice(
+    ConfigLevelDefinition level,
+    List<String> options,
+  ) async {
+    if (options.isEmpty) {
+      _mostrarInfo('Nível "${level.label}" sem opções configuradas.');
+      return;
+    }
+
     final selected = await VoiceSelectorSheet.open(
       context,
       voiceService: _voiceService,
-      options: _contextos,
-      title: 'Por onde deseja começar?',
-      currentValue: porOndeComecar,
+      options: options,
+      title: level.label,
+      currentValue: _niveisSelecionados[level.id],
     );
     if (selected == null || !mounted) return;
-    setState(() => porOndeComecar = selected);
+
+    setState(() {
+      _niveisSelecionados[level.id] = selected;
+      if (level.id == _contextLevelId) {
+        porOndeComecar = selected;
+      }
+      _sanitizeSelectedLevels();
+    });
     await _persistStep1();
+  }
+
+  List<Widget> _buildDynamicStep1Levels() {
+    final activeLevels = _resolveActiveStep1Levels();
+    if (activeLevels.isEmpty) {
+      return const [];
+    }
+
+    final widgets = <Widget>[];
+    for (final level in activeLevels) {
+      widgets.add(const SizedBox(height: 16));
+
+      final dependency = level.dependsOn?.trim();
+      final dependencySatisfied =
+          dependency == null ||
+          dependency.isEmpty ||
+          (_niveisSelecionados[dependency]?.trim().isNotEmpty ?? false);
+      final options = _optionsForLevel(level);
+
+      widgets.add(
+        _buildSectionTitle(
+          label: level.label,
+          onVoiceTap: () => _selectLevelByVoice(level, options),
+        ),
+      );
+      widgets.add(const SizedBox(height: 8));
+
+      if (!dependencySatisfied) {
+        widgets.add(
+          Text(
+            'Selecione primeiro $dependency.',
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+            ),
+          ),
+        );
+        continue;
+      }
+
+      if (options.isEmpty) {
+        widgets.add(
+          Text(
+            'Sem opções configuradas para este nível.',
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+            ),
+          ),
+        );
+        continue;
+      }
+
+      widgets.add(
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children:
+              options.map((option) {
+                return ChoiceChip(
+                  label: Text(option),
+                  selected: _niveisSelecionados[level.id] == option,
+                  onSelected: (_) async {
+                    setState(() {
+                      _niveisSelecionados[level.id] = option;
+                      if (level.id == _contextLevelId) {
+                        porOndeComecar = option;
+                      }
+                      _sanitizeSelectedLevels();
+                    });
+                    await _persistStep1();
+                  },
+                );
+              }).toList(),
+        ),
+      );
+    }
+
+    return widgets;
   }
 
   Future<void> _handleConfirm() async {
     if (clientePresente != true ||
         tipoImovel == null ||
         subtipoImovel == null ||
-        porOndeComecar == null) {
+        !_hasRequiredLevelsSelected()) {
       _mostrarInfo(
-        'Preencha presença, tipo, subtipo e por onde deseja começar.',
+        'Preencha presença, tipo, subtipo e os níveis obrigatórios.',
       );
       return;
     }
 
     await _persistStep1();
+
+    final initialMacroLocal = _resolveInitialMacroLocal();
+    final initialAmbiente = _resolveInitialAmbiente();
+    final initialElemento = _resolveInitialElemento();
+    final initialMaterial = _resolveInitialMaterial();
+    final initialEstado = _resolveInitialEstado();
 
     if (!mounted) return;
     await widget.flowCoordinator.openOverlayCamera(
@@ -533,9 +713,72 @@ class _CheckinScreenState extends State<CheckinScreen> {
       title: 'COLETA',
       tipoImovel: tipoImovel!,
       subtipoImovel: subtipoImovel!,
-      preselectedMacroLocal: porOndeComecar,
+      preselectedMacroLocal: initialMacroLocal,
+      initialAmbiente: initialAmbiente,
+      initialElemento: initialElemento,
+      initialMaterial: initialMaterial,
+      initialEstado: initialEstado,
       cameFromCheckinStep1: true,
     );
+  }
+
+  String? _resolveInitialMacroLocal() {
+    return _resolveFirstLevelValue(const <String>[
+      'macroLocal',
+      'macro_local',
+      'area_foto',
+      'areaFoto',
+      _contextLevelId,
+      'porOndeComecar',
+    ]);
+  }
+
+  String? _resolveInitialAmbiente() {
+    return _resolveFirstLevelValue(const <String>[
+      'ambiente',
+      'local_foto',
+      'localFoto',
+      'local',
+      'cameraAmbiente',
+    ]);
+  }
+
+  String? _resolveInitialElemento() {
+    return _resolveFirstLevelValue(const <String>[
+      'elemento',
+      'cameraElementoInicial',
+      'item',
+    ]);
+  }
+
+  String? _resolveInitialMaterial() {
+    return _resolveFirstLevelValue(const <String>['material', 'materiais']);
+  }
+
+  String? _resolveInitialEstado() {
+    return _resolveFirstLevelValue(const <String>['estado', 'condicao']);
+  }
+
+  String? _resolveFirstLevelValue(List<String> aliases) {
+    for (final key in aliases) {
+      final direct = _niveisSelecionados[key];
+      if (direct != null && direct.trim().isNotEmpty) {
+        return direct.trim();
+      }
+
+      final fallback =
+          _niveisSelecionados.entries
+              .firstWhere(
+                (entry) => entry.key.trim().toLowerCase() == key.toLowerCase(),
+                orElse: () => const MapEntry('', ''),
+              )
+              .value;
+      if (fallback.trim().isNotEmpty) {
+        return fallback.trim();
+      }
+    }
+
+    return null;
   }
 
   Future<void> _abrirWhatsApp(String? telefone) async {

@@ -4,18 +4,37 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/checkin_step2_model.dart';
 import '../config/checkin_step2_config.dart';
+import '../config/inspection_menu_package.dart';
 
 class CheckinStep1DynamicConfig {
   final List<String> tipos;
   final Map<String, List<String>> subtiposPorTipo;
   final List<String> contextos;
+  final List<ConfigLevelDefinition> levels;
+  final Map<String, List<ConfigLevelDefinition>> levelsByTipoSubtipo;
 
   const CheckinStep1DynamicConfig({
     required this.tipos,
     required this.subtiposPorTipo,
     required this.contextos,
+    required this.levels,
+    required this.levelsByTipoSubtipo,
   });
+
+  List<ConfigLevelDefinition> levelsFor({
+    required String tipo,
+    required String subtipo,
+  }) {
+    final typedKey =
+        '${tipo.trim().toLowerCase()}::${subtipo.trim().toLowerCase()}';
+    final bySubtype = levelsByTipoSubtipo[typedKey];
+    if (bySubtype != null && bySubtype.isNotEmpty) {
+      return bySubtype;
+    }
+    return levels;
+  }
 }
 
 class CheckinDynamicConfigService {
@@ -80,6 +99,16 @@ class CheckinDynamicConfigService {
     required Map<String, List<String>> fallbackSubtiposPorTipo,
     required List<String> fallbackContextos,
   }) async {
+    final fallbackLevels = <ConfigLevelDefinition>[
+      ConfigLevelDefinition(
+        id: 'contexto',
+        label: 'Por onde deseja começar?',
+        required: true,
+        dependsOn: null,
+        options: List<String>.from(fallbackContextos),
+      ),
+    ];
+
     final fallback = CheckinStep1DynamicConfig(
       tipos: List<String>.from(fallbackTipos),
       subtiposPorTipo: Map<String, List<String>>.fromEntries(
@@ -88,6 +117,8 @@ class CheckinDynamicConfigService {
         ),
       ),
       contextos: List<String>.from(fallbackContextos),
+      levels: fallbackLevels,
+      levelsByTipoSubtipo: const {},
     );
 
     Map<String, dynamic>? document = await _readDeveloperMockDocument();
@@ -102,34 +133,34 @@ class CheckinDynamicConfigService {
       document ??= await _readCache(_step1CacheKey);
     }
 
-    final step1Node = _extractMap(document?['step1']) ?? document;
-    if (step1Node == null) return fallback;
-
-    final tipos = _extractStringList(step1Node['tipos']);
-    final contextos = _extractStringList(step1Node['contextos']);
-    final rawSubtipos = _extractMap(step1Node['subtiposPorTipo']);
-
-    if (tipos.isEmpty ||
-        contextos.isEmpty ||
-        rawSubtipos == null ||
-        rawSubtipos.isEmpty) {
+    if (document == null) {
       return fallback;
     }
 
-    final subtiposPorTipo = <String, List<String>>{};
-    rawSubtipos.forEach((key, value) {
-      final list = _extractStringList(value);
-      if (list.isNotEmpty) {
-        subtiposPorTipo[key.toString()] = list;
-      }
-    });
-
-    if (subtiposPorTipo.isEmpty) return fallback;
+    final package = InspectionMenuPackage.fromJson(document);
+    final step1Config = package.step1Config;
+    if (step1Config == null || !step1Config.isValid) return fallback;
 
     return CheckinStep1DynamicConfig(
-      tipos: tipos,
-      subtiposPorTipo: subtiposPorTipo,
-      contextos: contextos,
+      tipos: List<String>.from(step1Config.tipos),
+      subtiposPorTipo: Map<String, List<String>>.fromEntries(
+        step1Config.subtiposPorTipo.entries.map(
+          (entry) => MapEntry(entry.key, List<String>.from(entry.value)),
+        ),
+      ),
+      contextos: List<String>.from(step1Config.contextos),
+      levels:
+          step1Config.levels.isNotEmpty
+              ? List<ConfigLevelDefinition>.from(step1Config.levels)
+              : fallbackLevels,
+      levelsByTipoSubtipo: Map<String, List<ConfigLevelDefinition>>.fromEntries(
+        step1Config.levelsBySubtipo.entries.map(
+          (entry) => MapEntry(
+            entry.key,
+            List<ConfigLevelDefinition>.from(entry.value),
+          ),
+        ),
+      ),
     );
   }
 
@@ -151,10 +182,64 @@ class CheckinDynamicConfigService {
       document ??= await _readCache(cacheKey);
     }
 
-    final step2Node = _extractStep2Node(document, tipo);
+    final step2Node =
+        document == null
+            ? null
+            : InspectionMenuPackage.fromJson(document).step2For(tipo.name);
     if (step2Node == null) return fallback;
 
     return parseStep2ConfigMap(tipo: tipo, raw: step2Node, fallback: fallback);
+  }
+
+  CheckinStep2Config resolveStoredStep2Config({
+    required TipoImovel tipo,
+    required Map<String, dynamic> inspectionRecoveryPayload,
+  }) {
+    final fallback = CheckinStep2Configs.byTipo(tipo);
+    final dynamicStep2Raw = inspectionRecoveryPayload['step2Config'];
+    if (dynamicStep2Raw is! Map) {
+      return fallback;
+    }
+
+    return parseStep2ConfigMap(
+      tipo: tipo,
+      raw: Map<String, dynamic>.from(
+        dynamicStep2Raw.map((key, value) => MapEntry('$key', value)),
+      ),
+      fallback: fallback,
+    );
+  }
+
+  CheckinStep2Model restoreStep2Model({
+    required TipoImovel tipo,
+    required Map<String, dynamic> step2Payload,
+  }) {
+    if (step2Payload.isEmpty) {
+      return CheckinStep2Model.empty(tipo);
+    }
+
+    try {
+      return CheckinStep2Model.fromMap(step2Payload);
+    } catch (_) {
+      return CheckinStep2Model.empty(tipo);
+    }
+  }
+
+  int countCompletedMandatoryFields({
+    required TipoImovel tipo,
+    required Map<String, dynamic> inspectionRecoveryPayload,
+    required Map<String, dynamic> step2Payload,
+  }) {
+    final config = resolveStoredStep2Config(
+      tipo: tipo,
+      inspectionRecoveryPayload: inspectionRecoveryPayload,
+    );
+    final model = restoreStep2Model(tipo: tipo, step2Payload: step2Payload);
+
+    return config.camposFotos
+        .where((field) => field.obrigatorio)
+        .where((field) => model.isPhotoCaptured(field.id))
+        .length;
   }
 
   CheckinStep2Config parseStep2ConfigMap({
@@ -375,42 +460,12 @@ class CheckinDynamicConfigService {
     }
   }
 
-  Map<String, dynamic>? _extractStep2Node(
-    Map<String, dynamic>? document,
-    TipoImovel tipo,
-  ) {
-    final step2Container = _extractMap(document?['step2']) ?? document;
-    if (step2Container == null) return null;
-
-    final byTipo =
-        _extractMap(step2Container['byTipo']) ??
-        _extractMap(step2Container['porTipo']) ??
-        _extractMap(step2Container['tipos']);
-
-    if (byTipo == null || byTipo.isEmpty) {
-      return step2Container;
-    }
-
-    final key = tipo.name;
-    return _extractMap(byTipo[key]) ??
-        _extractMap(byTipo[key.toLowerCase()]) ??
-        _extractMap(byTipo[key.toUpperCase()]);
-  }
-
   Map<String, dynamic>? _extractMap(Object? value) {
     if (value is Map<String, dynamic>) return value;
     if (value is Map) {
       return value.map((key, dynamic item) => MapEntry('$key', item));
     }
     return null;
-  }
-
-  List<String> _extractStringList(Object? value) {
-    if (value is! List) return const [];
-    return value
-        .map((item) => '$item'.trim())
-        .where((item) => item.isNotEmpty)
-        .toList();
   }
 
   String? _optionalString(Object? value) {

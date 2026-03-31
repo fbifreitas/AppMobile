@@ -17,14 +17,13 @@ void main() {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(
-          create: (_) => AppState(
-            FakeJobRepository(),
-            const SharedPreferencesRepository(),
-          ),
+          create:
+              (_) => AppState(
+                FakeJobRepository(),
+                const SharedPreferencesRepository(),
+              ),
         ),
-        ChangeNotifierProvider(
-          create: (_) => InspectionState(),
-        ),
+        ChangeNotifierProvider(create: (_) => InspectionState()),
         ChangeNotifierProvider(
           create: (_) => AuthState(const SharedPreferencesRepository()),
         ),
@@ -112,9 +111,7 @@ class _AppEntryPoint extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthState>();
     if (auth.loading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     switch (auth.status) {

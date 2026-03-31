@@ -31,10 +31,10 @@ class InspectionSyncService {
     String? authToken,
     String? syncEndpoint,
     HttpClient Function()? httpClientFactory,
-  })  : _baseUrlOverride = baseUrl,
-        _authTokenOverride = authToken,
-        _syncEndpointOverride = syncEndpoint,
-        _httpClientFactory = httpClientFactory;
+  }) : _baseUrlOverride = baseUrl,
+       _authTokenOverride = authToken,
+       _syncEndpointOverride = syncEndpoint,
+       _httpClientFactory = httpClientFactory;
 
   static const String _baseUrl = String.fromEnvironment('APP_API_BASE_URL');
   static const String _authToken = String.fromEnvironment('APP_API_TOKEN');
@@ -42,8 +42,10 @@ class InspectionSyncService {
     'APP_INSPECTION_SYNC_ENDPOINT',
     defaultValue: '/api/mobile/inspections/finalized',
   );
-  static const String _devMockEnabledKey = 'dev_mock_inspection_sync_enabled_v1';
-  static const String _devMockResponseKey = 'dev_mock_inspection_sync_response_v1';
+  static const String _devMockEnabledKey =
+      'dev_mock_inspection_sync_enabled_v1';
+  static const String _devMockResponseKey =
+      'dev_mock_inspection_sync_response_v1';
 
   final String? _baseUrlOverride;
   final String? _authTokenOverride;
@@ -52,7 +54,8 @@ class InspectionSyncService {
 
   String get _resolvedBaseUrl => (_baseUrlOverride ?? _baseUrl).trim();
   String get _resolvedAuthToken => (_authTokenOverride ?? _authToken).trim();
-  String get _resolvedSyncEndpoint => (_syncEndpointOverride ?? _syncEndpoint).trim();
+  String get _resolvedSyncEndpoint =>
+      (_syncEndpointOverride ?? _syncEndpoint).trim();
 
   bool get isConfigured => _resolvedBaseUrl.isNotEmpty;
 
@@ -90,7 +93,9 @@ class InspectionSyncService {
     };
   }
 
-  Future<InspectionSyncResult> syncFinalInspection(Map<String, dynamic> payload) async {
+  Future<InspectionSyncResult> syncFinalInspection(
+    Map<String, dynamic> payload,
+  ) async {
     final devMockResult = await _resolveDeveloperMockResult();
     if (devMockResult != null) {
       return devMockResult;
@@ -106,8 +111,12 @@ class InspectionSyncService {
     try {
       final baseUrl = _resolvedBaseUrl;
       final syncEndpoint = _resolvedSyncEndpoint;
-      final normalizedBase = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
-      final normalizedPath = syncEndpoint.startsWith('/') ? syncEndpoint : '/$syncEndpoint';
+      final normalizedBase =
+          baseUrl.endsWith('/')
+              ? baseUrl.substring(0, baseUrl.length - 1)
+              : baseUrl;
+      final normalizedPath =
+          syncEndpoint.startsWith('/') ? syncEndpoint : '/$syncEndpoint';
       final uri = Uri.parse('$normalizedBase$normalizedPath');
 
       final client = (_httpClientFactory ?? HttpClient.new)();
@@ -117,7 +126,10 @@ class InspectionSyncService {
         request.headers.set(HttpHeaders.acceptHeader, 'application/json');
         final authToken = _resolvedAuthToken;
         if (authToken.isNotEmpty) {
-          request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $authToken');
+          request.headers.set(
+            HttpHeaders.authorizationHeader,
+            'Bearer $authToken',
+          );
         }
 
         request.add(utf8.encode(jsonEncode(payload)));
@@ -169,7 +181,9 @@ class InspectionSyncService {
     required int statusCode,
     required String responseBody,
   }) {
-    final decoded = _extractMap(responseBody.trim().isEmpty ? null : jsonDecodeSafe(responseBody));
+    final decoded = _extractMap(
+      responseBody.trim().isEmpty ? null : jsonDecodeSafe(responseBody),
+    );
     final data = _extractMap(decoded?['data']);
     final isSuccess = statusCode >= 200 && statusCode < 300;
 
@@ -190,7 +204,8 @@ class InspectionSyncService {
       data?['created_date'],
     );
 
-    final message = _pickFirstText(decoded?['message']) ??
+    final message =
+        _pickFirstText(decoded?['message']) ??
         (isSuccess
             ? 'Sincronização concluída com sucesso.'
             : (responseBody.trim().isEmpty

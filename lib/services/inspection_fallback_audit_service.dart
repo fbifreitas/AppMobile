@@ -6,9 +6,7 @@ import 'checkin_dynamic_config_service.dart';
 class InspectionFallbackAuditService {
   const InspectionFallbackAuditService();
 
-  FallbackAuditReport build({
-    required InspectionRecoveryDraft? draft,
-  }) {
+  FallbackAuditReport build({required InspectionRecoveryDraft? draft}) {
     final checks = <FallbackAuditCheck>[];
 
     if (draft == null) {
@@ -41,7 +39,8 @@ class InspectionFallbackAuditService {
         id: 'stage_route_consistency',
         stage: 'global',
         title: 'Consistencia entre etapa e rota',
-        detail: 'Etapa atual: ${draft.stageKey} | Rota atual: ${draft.routeName}',
+        detail:
+            'Etapa atual: ${draft.stageKey} | Rota atual: ${draft.routeName}',
         passed: _isRouteConsistent(draft.stageKey, draft.routeName),
       ),
     );
@@ -71,7 +70,8 @@ class InspectionFallbackAuditService {
         id: 'step1_required_fields',
         stage: 'checkin_step1',
         title: 'Campos minimos da etapa 1',
-        detail: 'clientePresente, tipoImovel, subtipoImovel e porOndeComecar devem existir.',
+        detail:
+            'clientePresente, tipoImovel, subtipoImovel e porOndeComecar devem existir.',
         passed: _hasStep1RequiredFields(step1),
       ),
     );
@@ -91,20 +91,20 @@ class InspectionFallbackAuditService {
         id: 'step2_photos_structure',
         stage: 'checkin_step2',
         title: 'Estrutura de fotos da etapa 2 valida',
-        detail: 'Campo fotos deve existir e ser um mapa de respostas de captura.',
+        detail:
+            'Campo fotos deve existir e ser um mapa de respostas de captura.',
         passed: _mapOrEmpty(step2['fotos']).isNotEmpty,
       ),
     );
 
-    final tipo = TipoImovelExtension.fromString('${step1['tipoImovel'] ?? 'Urbano'}');
-    final fallbackConfig = CheckinStep2Configs.byTipo(tipo);
-    final parsedConfig = CheckinDynamicConfigService.instance.parseStep2ConfigMap(
-      tipo: tipo,
-      raw: step2ConfigRaw.isEmpty
-          ? const <String, dynamic>{}
-          : Map<String, dynamic>.from(step2ConfigRaw),
-      fallback: fallbackConfig,
+    final tipo = TipoImovelExtension.fromString(
+      '${step1['tipoImovel'] ?? 'Urbano'}',
     );
+    final parsedConfig = CheckinDynamicConfigService.instance
+        .resolveStoredStep2Config(
+          tipo: tipo,
+          inspectionRecoveryPayload: {'step2Config': step2ConfigRaw},
+        );
 
     final pendingMandatory = _pendingMandatoryFields(
       fotos: _mapOrEmpty(step2['fotos']),
@@ -116,9 +116,10 @@ class InspectionFallbackAuditService {
         id: 'step2_mandatory_coverage',
         stage: 'checkin_step2',
         title: 'Cobertura dos obrigatorios da etapa 2',
-        detail: pendingMandatory.isEmpty
-            ? 'Todos obrigatorios atendidos.'
-            : 'Pendentes: ${pendingMandatory.join(', ')}',
+        detail:
+            pendingMandatory.isEmpty
+                ? 'Todos obrigatorios atendidos.'
+                : 'Pendentes: ${pendingMandatory.join(', ')}',
         passed: pendingMandatory.isEmpty,
       ),
     );
@@ -138,7 +139,8 @@ class InspectionFallbackAuditService {
         id: 'review_capture_list',
         stage: 'inspection_review',
         title: 'Lista de capturas na revisao',
-        detail: 'Review deve conter lista de capturas para retomada da etapa final.',
+        detail:
+            'Review deve conter lista de capturas para retomada da etapa final.',
         passed: review['captures'] is List,
         warning: review.isNotEmpty && review['captures'] is! List,
       ),
@@ -149,7 +151,8 @@ class InspectionFallbackAuditService {
         id: 'checkpoint_chain',
         stage: 'global',
         title: 'Cadeia de checkpoints por etapa',
-        detail: 'Draft deve ter step1 -> step2 -> review conforme avancar de rota.',
+        detail:
+            'Draft deve ter step1 -> step2 -> review conforme avancar de rota.',
         passed: _hasCheckpointChain(
           routeName: draft.routeName,
           step1: step1,

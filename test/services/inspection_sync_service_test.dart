@@ -13,7 +13,9 @@ void main() {
   test('returns not configured when base url is empty', () async {
     const service = InspectionSyncService(baseUrl: '   ');
 
-    final result = await service.syncFinalInspection(const {'job': {'id': '1'}});
+    final result = await service.syncFinalInspection(const {
+      'job': {'id': '1'},
+    });
 
     expect(result.success, isFalse);
     expect(result.statusCode, isNull);
@@ -43,11 +45,9 @@ void main() {
       syncEndpoint: '/sync',
     );
 
-    final result = await service.syncFinalInspection(
-      const {
-        'job': {'id': 'job-123'},
-      },
-    );
+    final result = await service.syncFinalInspection(const {
+      'job': {'id': 'job-123'},
+    });
 
     expect(result.success, isTrue);
     expect(result.statusCode, 201);
@@ -73,7 +73,9 @@ void main() {
       syncEndpoint: '/sync',
     );
 
-    final result = await service.syncFinalInspection(const {'job': {'id': 'job-500'}});
+    final result = await service.syncFinalInspection(const {
+      'job': {'id': 'job-500'},
+    });
 
     expect(result.success, isFalse);
     expect(result.statusCode, 500);
@@ -86,7 +88,9 @@ void main() {
       syncEndpoint: '/sync',
     );
 
-    final result = await service.syncFinalInspection(const {'job': {'id': 'job-fail'}});
+    final result = await service.syncFinalInspection(const {
+      'job': {'id': 'job-fail'},
+    });
 
     expect(result.success, isFalse);
     expect(result.message, contains('Falha ao sincronizar com backend'));
@@ -101,7 +105,9 @@ void main() {
           '{"success":true,"message":"Processo criado com sucesso","process_id":"mock-001","process_number":"190108","data":{"id":"mock-001","status":"Em Andamento","updated_date":"2026-03-30T18:00:00Z"}}',
     );
 
-    final result = await service.syncFinalInspection(const {'job': {'id': 'job-1'}});
+    final result = await service.syncFinalInspection(const {
+      'job': {'id': 'job-1'},
+    });
 
     expect(result.success, isTrue);
     expect(result.statusCode, 200);

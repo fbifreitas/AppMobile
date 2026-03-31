@@ -24,25 +24,26 @@ class NotificationsScreen extends StatelessWidget {
             ),
         ],
       ),
-      body: mensagens.isEmpty
-          ? const Center(
-              child: Text(
-                'Nenhuma mensagem no momento.',
-                style: TextStyle(color: AppColors.textSecondary),
+      body:
+          mensagens.isEmpty
+              ? const Center(
+                child: Text(
+                  'Nenhuma mensagem no momento.',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+              )
+              : ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: mensagens.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemBuilder: (context, index) {
+                  final msg = mensagens[index];
+                  return _MessageCard(
+                    msg: msg,
+                    onTap: () => appState.marcarMensagemLida(msg.id),
+                  );
+                },
               ),
-            )
-          : ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: mensagens.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (context, index) {
-                final msg = mensagens[index];
-                return _MessageCard(
-                  msg: msg,
-                  onTap: () => appState.marcarMensagemLida(msg.id),
-                );
-              },
-            ),
     );
   }
 }

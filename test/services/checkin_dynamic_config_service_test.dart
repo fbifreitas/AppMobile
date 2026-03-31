@@ -149,6 +149,53 @@ void main() {
     expect(result.subtiposPorTipo['Comercial'], <String>['Loja']);
   });
 
+  test('loadStep1Config resolves levels by subtype when provided', () async {
+    final service = CheckinDynamicConfigService.instance;
+    await service.configureDeveloperMock(
+      enabled: true,
+      documentJson: jsonEncode({
+        'step1': {
+          'tipos': <String>['Urbano'],
+          'contextos': <String>['Rua'],
+          'levels': [
+            {
+              'id': 'contexto',
+              'label': 'Por onde deseja começar?',
+              'required': true,
+              'options': <String>['Rua'],
+            },
+          ],
+          'subtiposPorTipo': {
+            'Urbano': <String>['Apartamento'],
+          },
+          'levelsBySubtipo': {
+            'Urbano': {
+              'Apartamento': [
+                {
+                  'id': 'torre',
+                  'label': 'Torre',
+                  'required': false,
+                  'options': <String>['A', 'B'],
+                },
+              ],
+            },
+          },
+        },
+      }),
+    );
+
+    final result = await service.loadStep1Config(
+      fallbackTipos: defaultTipos,
+      fallbackSubtiposPorTipo: defaultSubtipos,
+      fallbackContextos: defaultContextos,
+    );
+
+    expect(
+      result.levelsFor(tipo: 'Urbano', subtipo: 'Apartamento').first.id,
+      'torre',
+    );
+  });
+
   test(
     'loadStep2Config resolves byTipo node from developer mock document',
     () async {

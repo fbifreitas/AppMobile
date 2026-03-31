@@ -53,9 +53,7 @@ void main() {
           ),
           ChangeNotifierProvider(create: (_) => AuthState(prefs)),
         ],
-        child: MaterialApp(
-          home: const OnboardingScreen(),
-        ),
+        child: MaterialApp(home: const OnboardingScreen()),
       ),
     );
     await tester.pumpAndSettle();
@@ -122,6 +120,9 @@ void main() {
     await tester.tap(find.byKey(const Key('onboarding_next_button')));
     await tester.pumpAndSettle();
 
-    expect(await prefs.getString('auth_status'), AppAuthStatus.awaitingApproval.name);
+    expect(
+      await prefs.getString('auth_status'),
+      AppAuthStatus.awaitingApproval.name,
+    );
   });
 }

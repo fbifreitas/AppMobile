@@ -1,7 +1,16 @@
+import 'package:appmobile/models/job.dart';
 import 'package:appmobile/models/proposal_offer.dart';
+import 'package:appmobile/repositories/job_repository.dart';
+import 'package:appmobile/state/app_state.dart';
 import 'package:appmobile/widgets/home/proposals_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+
+class _FakeJobRepository implements JobRepository {
+  @override
+  Future<List<Job>> getJobs() async => [];
+}
 
 Finder findRichTextContaining(String text) {
   return find.byWidgetPredicate(
@@ -46,6 +55,7 @@ void main() {
     expect(findRichTextContaining('Agendamento: 28/03/2026 às 15:45'),
         findsOneWidget);
     expect(find.text('DESLIZE PARA ACEITAR'), findsOneWidget);
+    expect(find.text('ID: 1'), findsOneWidget);
   });
 
   testWidgets('calls callback when swiping to accept', (tester) async {
@@ -62,11 +72,14 @@ void main() {
     ProposalOffer? accepted;
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: ProposalsSection(
-            propostas: [proposta],
-            onAcceptProposal: (item) => accepted = item,
+      ChangeNotifierProvider<AppState>(
+        create: (_) => AppState(_FakeJobRepository()),
+        child: MaterialApp(
+          home: Scaffold(
+            body: ProposalsSection(
+              propostas: [proposta],
+              onAcceptProposal: (item) => accepted = item,
+            ),
           ),
         ),
       ),

@@ -15,19 +15,22 @@ class TechnicalPendingMatrixCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sections = <_SectionData>[
-      _SectionData('Check-in', matrix.checkin),
-      _SectionData('Captura', matrix.capture),
-      _SectionData('Revisão', matrix.review),
-      _SectionData('Finalização', matrix.finalization),
-    ].where((item) => item.items.isNotEmpty).toList();
+    final sections =
+        <_SectionData>[
+          _SectionData('Check-in', matrix.checkin),
+          _SectionData('Captura', matrix.capture),
+          _SectionData('Revisão', matrix.review),
+          _SectionData('Finalização', matrix.finalization),
+        ].where((item) => item.items.isNotEmpty).toList();
 
     if (sections.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.22),
+          color: Theme.of(
+            context,
+          ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.22),
         ),
         child: const Text('Nenhuma pendência técnica identificada.'),
       );
@@ -37,7 +40,9 @@ class TechnicalPendingMatrixCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.22),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.22),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -45,9 +50,9 @@ class TechnicalPendingMatrixCard extends StatelessWidget {
           Text(
             'Pendências técnicas da vistoria',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 16,
-                ),
+              fontWeight: FontWeight.w800,
+              fontSize: 16,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -55,13 +60,15 @@ class TechnicalPendingMatrixCard extends StatelessWidget {
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 10),
-          ...sections.map((section) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _StageSection(
-                  section: section,
-                  onOpenPending: onOpenPending,
-                ),
-              )),
+          ...sections.map(
+            (section) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _StageSection(
+                section: section,
+                onOpenPending: onOpenPending,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -72,10 +79,7 @@ class _StageSection extends StatelessWidget {
   final _SectionData section;
   final ValueChanged<TechnicalRuleResult>? onOpenPending;
 
-  const _StageSection({
-    required this.section,
-    this.onOpenPending,
-  });
+  const _StageSection({required this.section, this.onOpenPending});
 
   @override
   Widget build(BuildContext context) {
@@ -84,9 +88,9 @@ class _StageSection extends StatelessWidget {
       children: [
         Text(
           section.title,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 6),
         ...section.items.map((item) {
@@ -103,7 +107,9 @@ class _StageSection extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(
-                  item.isBlocking ? Icons.report_problem_outlined : Icons.info_outline,
+                  item.isBlocking
+                      ? Icons.report_problem_outlined
+                      : Icons.info_outline,
                   color: color,
                   size: 18,
                 ),
@@ -112,7 +118,13 @@ class _StageSection extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(item.title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                      Text(
+                        item.title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                        ),
+                      ),
                       const SizedBox(height: 4),
                       Text(
                         _friendlyDescription(item),
@@ -126,7 +138,10 @@ class _StageSection extends StatelessWidget {
                           label: const Text('Ir para pendência'),
                           style: TextButton.styleFrom(
                             visualDensity: VisualDensity.compact,
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 0,
+                            ),
                           ),
                         ),
                       ],

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/checkin_step2_model.dart';
 import '../models/home_location_snapshot.dart';
 import '../models/job.dart';
+import '../config/checkin_step2_config.dart';
 import '../services/app_navigation_coordinator.dart';
 import '../services/home_bootstrap_service.dart';
 import '../services/home_location_service.dart';
+import '../services/checkin_dynamic_config_service.dart';
 import '../services/inspection_flow_coordinator.dart';
 import '../services/inspection_sync_queue_service.dart';
 import '../services/location_service.dart';
@@ -196,7 +197,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         if (tipoImovel != null) {
           final initialData =
               appState.step2Payload.isNotEmpty
-                  ? CheckinStep2Model.fromMap(appState.step2Payload)
+                  ? CheckinDynamicConfigService.instance.restoreStep2Model(
+                    tipo: TipoImovelExtension.fromString(tipoImovel),
+                    step2Payload: appState.step2Payload,
+                  )
                   : null;
 
           widget.flowCoordinator.restoreReviewRecoveryFlow(
@@ -216,7 +220,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         final tipoImovel = appState.step1Payload['tipoImovel'] as String?;
         final initialData =
             appState.step2Payload.isNotEmpty
-                ? CheckinStep2Model.fromMap(appState.step2Payload)
+                ? CheckinDynamicConfigService.instance.restoreStep2Model(
+                  tipo: TipoImovelExtension.fromString(
+                    tipoImovel ?? 'Urbano',
+                  ),
+                  step2Payload: appState.step2Payload,
+                )
                 : null;
 
         if (tipoImovel != null) {

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../config/checkin_step2_config.dart';
-import '../models/checkin_step2_model.dart';
 import '../models/job_status.dart';
 import '../state/app_state.dart';
 import '../models/technical_check_requirement_input.dart';
@@ -197,10 +196,10 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   ) {
     final appState = Provider.of<AppState>(context, listen: false);
     final tipo = _resolvedTipoImovel();
-    var model =
-        existingStep2Payload.isNotEmpty
-            ? CheckinStep2Model.fromMap(existingStep2Payload)
-            : CheckinStep2Model.empty(tipo);
+    var model = _dynamicConfigService.restoreStep2Model(
+      tipo: tipo,
+      step2Payload: existingStep2Payload,
+    );
     final config = _resolveStep2ConfigForTipo(tipo, appState);
 
     for (final campo in config.camposFotos) {
@@ -239,19 +238,9 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     TipoImovel tipo,
     AppState appState,
   ) {
-    final fallbackConfig = CheckinStep2Configs.byTipo(tipo);
-    final dynamicStep2Raw = appState.inspectionRecoveryPayload['step2Config'];
-    if (dynamicStep2Raw is! Map) {
-      return fallbackConfig;
-    }
-
-    final dynamicStep2Map = Map<String, dynamic>.from(
-      dynamicStep2Raw.map((key, value) => MapEntry('$key', value)),
-    );
-    return _dynamicConfigService.parseStep2ConfigMap(
+    return _dynamicConfigService.resolveStoredStep2Config(
       tipo: tipo,
-      raw: dynamicStep2Map,
-      fallback: fallbackConfig,
+      inspectionRecoveryPayload: appState.inspectionRecoveryPayload,
     );
   }
 
@@ -526,7 +515,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                   : 'Todas as fotos obrigatórias foram registradas',
           expanded: _checkinAccordionExpanded,
           onExpansionChanged:
-              (expanded) => setState(() => _checkinAccordionExpanded = expanded),
+              (expanded) =>
+                  setState(() => _checkinAccordionExpanded = expanded),
           child:
               checkinStatuses.isEmpty
                   ? const Padding(
@@ -546,7 +536,9 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                                   onCapture:
                                       status.isDone
                                           ? null
-                                          : () => _captureMissingRequirement(status),
+                                          : () => _captureMissingRequirement(
+                                            status,
+                                          ),
                                 ),
                               ),
                             )
@@ -564,7 +556,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                   : 'Todas as fotos capturadas estão classificadas',
           expanded: _capturedAccordionExpanded,
           onExpansionChanged:
-              (expanded) => setState(() => _capturedAccordionExpanded = expanded),
+              (expanded) =>
+                  setState(() => _capturedAccordionExpanded = expanded),
           child: Column(
             children:
                 groups
@@ -584,7 +577,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                           },
                           onChanged: () => setState(() {}),
                           onApplySubtype: () => _applySubtype(group),
-                          onApplySimilar: (source) => _applySimilar(group, source),
+                          onApplySimilar:
+                              (source) => _applySimilar(group, source),
                           onAcceptSuggestions: () => _acceptSuggestions(group),
                           onEditItem: _editItem,
                         ),
@@ -703,7 +697,10 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
               padding: const EdgeInsets.only(top: 6),
               child: Builder(
                 builder: (context) {
-                  final appState = Provider.of<AppState>(context, listen: false);
+                  final appState = Provider.of<AppState>(
+                    context,
+                    listen: false,
+                  );
                   final config = _resolveStep2ConfigForTipo(
                     _resolvedTipoImovel(),
                     appState,
@@ -715,7 +712,9 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                           : null;
                   final maxFotos = config.maxFotos;
                   final maxMsg =
-                      maxFotos != null && maxFotos > 0 && totalCaptures > maxFotos
+                      maxFotos != null &&
+                              maxFotos > 0 &&
+                              totalCaptures > maxFotos
                           ? 'Máximo de $maxFotos foto(s) excedido.'
                           : null;
                   final message = [
@@ -821,10 +820,10 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   List<_CheckinRequirementStatus> _buildCheckinRequirements() {
     final appState = Provider.of<AppState>(context, listen: false);
     final tipo = _resolvedTipoImovel();
-    final persistedStep2Model =
-        appState.step2Payload.isNotEmpty
-            ? CheckinStep2Model.fromMap(appState.step2Payload)
-            : CheckinStep2Model.empty(tipo);
+    final persistedStep2Model = _dynamicConfigService.restoreStep2Model(
+      tipo: tipo,
+      step2Payload: appState.step2Payload,
+    );
 
     final config = _resolveStep2ConfigForTipo(tipo, appState);
 
@@ -1141,7 +1140,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   }
 
   Map<String, dynamic> _buildInspectionExportPayload(AppState appState) {
-    final captures = _capturesCurrent.map((capture) => capture.toMap()).toList();
+    final captures =
+        _capturesCurrent.map((capture) => capture.toMap()).toList();
     final reviewedCaptures =
         _items
             .map(
@@ -1922,5 +1922,6 @@ class _ReviewSummary {
     required this.classified,
   });
 
-  int get totalPending => photoPending + missingCheckin + photoCountPolicyPending;
+  int get totalPending =>
+      photoPending + missingCheckin + photoCountPolicyPending;
 }

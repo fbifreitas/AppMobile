@@ -7,10 +7,7 @@ import '../services/inspection_export_service.dart';
 import '../theme/app_colors.dart';
 
 class CompletedInspectionDetailScreen extends StatefulWidget {
-  const CompletedInspectionDetailScreen({
-    super.key,
-    required this.job,
-  });
+  const CompletedInspectionDetailScreen({super.key, required this.job});
 
   final Job job;
 
@@ -34,9 +31,7 @@ class _CompletedInspectionDetailScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Detalhes da vistoria'),
-      ),
+      appBar: AppBar(title: const Text('Detalhes da vistoria')),
       body: FutureBuilder<Map<String, dynamic>?>(
         future: _payloadFuture,
         builder: (context, snapshot) {
@@ -171,10 +166,7 @@ class _CompletedInspectionDetailScreenState
 }
 
 class _InfoBlock extends StatelessWidget {
-  const _InfoBlock({
-    required this.title,
-    required this.lines,
-  });
+  const _InfoBlock({required this.title, required this.lines});
 
   final String title;
   final List<String> lines;
@@ -265,7 +257,9 @@ class _Step2PhotosBlock extends StatelessWidget {
               child: Row(
                 children: [
                   Icon(
-                    hasImage ? Icons.check_circle : Icons.radio_button_unchecked,
+                    hasImage
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
                     size: 16,
                     color: hasImage ? Colors.green : Colors.grey,
                   ),

@@ -1,5 +1,87 @@
 import 'dart:convert';
 
+class ConfigLevelDefinition {
+  final String id;
+  final String label;
+  final bool required;
+  final String? dependsOn;
+  final List<String> options;
+
+  const ConfigLevelDefinition({
+    required this.id,
+    required this.label,
+    required this.required,
+    required this.dependsOn,
+    required this.options,
+  });
+
+  factory ConfigLevelDefinition.fromJson(Map<String, dynamic> json) {
+    final id = '${json['id'] ?? ''}'.trim();
+    final label = '${json['label'] ?? ''}'.trim();
+    return ConfigLevelDefinition(
+      id: id,
+      label: label,
+      required: json['required'] as bool? ?? true,
+      dependsOn: _optionalText(json['dependsOn']),
+      options: List<String>.from(json['options'] as List<dynamic>? ?? const []),
+    );
+  }
+
+  bool get isValid => id.isNotEmpty && label.isNotEmpty;
+}
+
+class CheckinStep1PackageConfig {
+  final List<String> tipos;
+  final Map<String, List<String>> subtiposPorTipo;
+  final List<String> contextos;
+  final List<ConfigLevelDefinition> levels;
+  final Map<String, List<ConfigLevelDefinition>> levelsBySubtipo;
+
+  const CheckinStep1PackageConfig({
+    required this.tipos,
+    required this.subtiposPorTipo,
+    required this.contextos,
+    required this.levels,
+    required this.levelsBySubtipo,
+  });
+
+  factory CheckinStep1PackageConfig.fromJson(Map<String, dynamic> json) {
+    final rawSubtipos = Map<String, dynamic>.from(
+      (json['subtiposPorTipo'] ?? const {}) as Map,
+    );
+
+    return CheckinStep1PackageConfig(
+      tipos: List<String>.from(json['tipos'] as List<dynamic>? ?? const []),
+      subtiposPorTipo: rawSubtipos.map(
+        (key, value) => MapEntry(
+          key,
+          List<String>.from(value as List<dynamic>? ?? const []),
+        ),
+      ),
+      contextos: List<String>.from(
+        json['contextos'] as List<dynamic>? ?? const [],
+      ),
+      levels: _parseLevelList(json['levels']),
+      levelsBySubtipo: _parseTypedSubtypeLevels(json['levelsBySubtipo']),
+    );
+  }
+
+  bool get isValid =>
+      tipos.isNotEmpty && contextos.isNotEmpty && subtiposPorTipo.isNotEmpty;
+
+  List<ConfigLevelDefinition> levelsFor({
+    required String tipo,
+    required String subtipo,
+  }) {
+    final key = _typedSubtypeKey(tipo: tipo, subtipo: subtipo);
+    final bySubtype = levelsBySubtipo[key];
+    if (bySubtype != null && bySubtype.isNotEmpty) {
+      return bySubtype;
+    }
+    return levels;
+  }
+}
+
 class FeatureFlagsConfig {
   final bool enablePredictionV3;
   final bool enableRecentSuggestionsV3;
@@ -198,8 +280,14 @@ class MacroLocalOption extends RankedMenuOption {
 
 class PropertyTypeCameraConfig {
   final List<MacroLocalOption> macroLocals;
+  final List<ConfigLevelDefinition> levels;
+  final Map<String, List<ConfigLevelDefinition>> levelsBySubtipo;
 
-  const PropertyTypeCameraConfig({required this.macroLocals});
+  const PropertyTypeCameraConfig({
+    required this.macroLocals,
+    required this.levels,
+    required this.levelsBySubtipo,
+  });
 
   factory PropertyTypeCameraConfig.fromJson(Map<String, dynamic> json) {
     return PropertyTypeCameraConfig(
@@ -211,24 +299,39 @@ class PropertyTypeCameraConfig {
                 ),
               )
               .toList(),
+      levels: _parseLevelList(json['levels']),
+      levelsBySubtipo: _parseSubtypeLevels(json['levelsBySubtipo']),
     );
+  }
+
+  List<ConfigLevelDefinition> levelsForSubtype(String subtipo) {
+    final key = subtipo.trim().toLowerCase();
+    final bySubtype = levelsBySubtipo[key];
+    if (bySubtype != null && bySubtype.isNotEmpty) {
+      return bySubtype;
+    }
+    return levels;
   }
 }
 
 class InspectionMenuPackage {
   final int packageVersion;
+  final CheckinStep1PackageConfig? step1Config;
   final FeatureFlagsConfig featureFlags;
   final RankingPolicyConfig rankingPolicy;
   final PredictionPolicyConfig predictionPolicy;
   final Map<String, List<String>> photoFieldOrder;
+  final Map<String, Map<String, dynamic>> step2ByType;
   final Map<String, PropertyTypeCameraConfig> propertyTypeConfigs;
 
   const InspectionMenuPackage({
     required this.packageVersion,
+    required this.step1Config,
     required this.featureFlags,
     required this.rankingPolicy,
     required this.predictionPolicy,
     required this.photoFieldOrder,
+    required this.step2ByType,
     required this.propertyTypeConfigs,
   });
 
@@ -238,9 +341,26 @@ class InspectionMenuPackage {
   }
 
   factory InspectionMenuPackage.fromJson(Map<String, dynamic> json) {
+    final step1Json =
+        json['step1'] is Map
+            ? Map<String, dynamic>.from((json['step1'] ?? const {}) as Map)
+            : null;
+    final step2Json =
+        json['step2'] is Map
+            ? Map<String, dynamic>.from((json['step2'] ?? const {}) as Map)
+            : <String, dynamic>{};
     final photoFieldOrderJson = Map<String, dynamic>.from(
-      (json['step2']?['photoFieldOrder'] ?? const {}) as Map,
+      (step2Json['photoFieldOrder'] ?? const {}) as Map,
     );
+    final step2ByTypeSource =
+        ((step2Json['byTipo'] as Map?)?.isNotEmpty ?? false)
+            ? step2Json['byTipo']
+            : ((step2Json['porTipo'] as Map?)?.isNotEmpty ?? false)
+            ? step2Json['porTipo']
+            : ((step2Json['tipos'] as Map?)?.isNotEmpty ?? false)
+            ? step2Json['tipos']
+            : const {};
+    final step2ByTypeJson = Map<String, dynamic>.from(step2ByTypeSource as Map);
     final cameraJson = Map<String, dynamic>.from(
       (json['camera'] ?? const {}) as Map,
     );
@@ -256,6 +376,10 @@ class InspectionMenuPackage {
 
     return InspectionMenuPackage(
       packageVersion: json['meta']?['packageVersion'] ?? 1,
+      step1Config:
+          step1Json == null
+              ? null
+              : CheckinStep1PackageConfig.fromJson(step1Json),
       featureFlags: FeatureFlagsConfig.fromJson(
         Map<String, dynamic>.from(json['featureFlags'] ?? const {}),
       ),
@@ -268,6 +392,9 @@ class InspectionMenuPackage {
       photoFieldOrder: photoFieldOrderJson.map(
         (key, value) =>
             MapEntry(key, List<String>.from(value as List<dynamic>)),
+      ),
+      step2ByType: step2ByTypeJson.map(
+        (key, value) => MapEntry(key, Map<String, dynamic>.from(value as Map)),
       ),
       propertyTypeConfigs: propertyTypesJson.map(
         (key, value) => MapEntry(
@@ -283,6 +410,7 @@ class InspectionMenuPackage {
   factory InspectionMenuPackage.fallback() {
     return const InspectionMenuPackage(
       packageVersion: 3,
+      step1Config: null,
       featureFlags: FeatureFlagsConfig.fallback(),
       rankingPolicy: RankingPolicyConfig.fallback(),
       predictionPolicy: PredictionPolicyConfig.fallback(),
@@ -304,8 +432,16 @@ class InspectionMenuPackage {
           'identificacao_industrial',
         ],
       },
+      step2ByType: {},
       propertyTypeConfigs: {},
     );
+  }
+
+  Map<String, dynamic>? step2For(String propertyType) {
+    final key = propertyType.trim();
+    return step2ByType[key] ??
+        step2ByType[key.toLowerCase()] ??
+        step2ByType[key.toUpperCase()];
   }
 
   PropertyTypeCameraConfig? configFor(String propertyType) {
@@ -317,4 +453,104 @@ class InspectionMenuPackage {
     final key = propertyType.trim().toLowerCase();
     return photoFieldOrder[key] ?? const [];
   }
+
+  List<ConfigLevelDefinition> cameraLevelsFor({
+    required String propertyType,
+    String? subtipo,
+  }) {
+    final config = configFor(propertyType);
+    if (config == null) {
+      return const [];
+    }
+    if (subtipo == null || subtipo.trim().isEmpty) {
+      return config.levels;
+    }
+    return config.levelsForSubtype(subtipo);
+  }
+}
+
+Map<String, List<ConfigLevelDefinition>> _parseSubtypeLevels(Object? value) {
+  if (value is! Map) {
+    return const {};
+  }
+
+  final source = Map<String, dynamic>.from(value);
+  final result = <String, List<ConfigLevelDefinition>>{};
+
+  source.forEach((subtipo, rawLevels) {
+    final normalizedSubtipo = subtipo.toString().trim().toLowerCase();
+    if (normalizedSubtipo.isEmpty) {
+      return;
+    }
+    final levels = _parseLevelList(rawLevels);
+    if (levels.isNotEmpty) {
+      result[normalizedSubtipo] = levels;
+    }
+  });
+
+  return result;
+}
+
+Map<String, List<ConfigLevelDefinition>> _parseTypedSubtypeLevels(
+  Object? value,
+) {
+  if (value is! Map) {
+    return const {};
+  }
+
+  final source = Map<String, dynamic>.from(value);
+  final result = <String, List<ConfigLevelDefinition>>{};
+
+  source.forEach((tipo, rawSubtipos) {
+    if (rawSubtipos is! Map) {
+      return;
+    }
+
+    final tipoText = tipo.toString().trim();
+    if (tipoText.isEmpty) {
+      return;
+    }
+
+    final subtipos = Map<String, dynamic>.from(rawSubtipos);
+    subtipos.forEach((subtipo, rawLevels) {
+      final subtipoText = subtipo.toString().trim();
+      if (subtipoText.isEmpty) {
+        return;
+      }
+
+      final levels = _parseLevelList(rawLevels);
+      if (levels.isNotEmpty) {
+        result[_typedSubtypeKey(tipo: tipoText, subtipo: subtipoText)] = levels;
+      }
+    });
+  });
+
+  return result;
+}
+
+List<ConfigLevelDefinition> _parseLevelList(Object? value) {
+  if (value is! List) {
+    return const [];
+  }
+
+  return value
+      .whereType<Map>()
+      .map(
+        (item) =>
+            ConfigLevelDefinition.fromJson(Map<String, dynamic>.from(item)),
+      )
+      .where((level) => level.isValid)
+      .toList();
+}
+
+String _typedSubtypeKey({required String tipo, required String subtipo}) {
+  return '${tipo.trim().toLowerCase()}::${subtipo.trim().toLowerCase()}';
+}
+
+String? _optionalText(Object? value) {
+  if (value == null) {
+    return null;
+  }
+  final text = '$value'.trim();
+  return text.isEmpty ? null : text;
 }

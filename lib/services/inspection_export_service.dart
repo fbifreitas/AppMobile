@@ -24,18 +24,21 @@ class InspectionExportService {
     PreferencesRepository? preferencesRepository,
     Future<Directory> Function()? appDocumentsDirectoryResolver,
     Future<Directory?> Function()? externalStorageDirectoryResolver,
-  })  : _preferencesRepository =
-            preferencesRepository ?? const SharedPreferencesRepository(),
-        _appDocumentsDirectoryResolver =
-            appDocumentsDirectoryResolver ?? getApplicationDocumentsDirectory,
-        _externalStorageDirectoryResolver =
-            externalStorageDirectoryResolver ?? getExternalStorageDirectory;
+  }) : _preferencesRepository =
+           preferencesRepository ?? const SharedPreferencesRepository(),
+       _appDocumentsDirectoryResolver =
+           appDocumentsDirectoryResolver ?? getApplicationDocumentsDirectory,
+       _externalStorageDirectoryResolver =
+           externalStorageDirectoryResolver ?? getExternalStorageDirectory;
 
   static const String _defaultFolderName = 'inspection_exports';
   static const String _modePreferenceKey =
       'inspection_export_directory_mode_v1';
   static const String _folderPreferenceKey =
       'inspection_export_directory_folder_v1';
+
+  static const String _retentionDaysKey = 'inspection_export_retention_days_v1';
+  static const int _defaultRetentionDays = 30;
 
   final PreferencesRepository _preferencesRepository;
   final Future<Directory> Function() _appDocumentsDirectoryResolver;
@@ -64,10 +67,7 @@ class InspectionExportService {
   }) async {
     final normalizedFolder = _normalizeFolderName(folderName);
 
-    await _preferencesRepository.setString(
-      _modePreferenceKey,
-      mode.name,
-    );
+    await _preferencesRepository.setString(_modePreferenceKey, mode.name);
     await _preferencesRepository.setString(
       _folderPreferenceKey,
       normalizedFolder,
@@ -76,8 +76,9 @@ class InspectionExportService {
 
   Future<InspectionExportDirectorySettings> loadDirectorySettings() async {
     final modeRaw = await _preferencesRepository.getString(_modePreferenceKey);
-    final folderRaw =
-        await _preferencesRepository.getString(_folderPreferenceKey);
+    final folderRaw = await _preferencesRepository.getString(
+      _folderPreferenceKey,
+    );
 
     final mode =
         modeRaw == InspectionExportDirectoryMode.external.name
@@ -130,12 +131,15 @@ class InspectionExportService {
     final trimmed = input.trim();
     if (trimmed.isEmpty) return _defaultFolderName;
     final normalized = trimmed.replaceAll('\\', '/');
-    final segments = normalized
-        .split('/')
-        .map((segment) => segment.trim())
-        .where((segment) =>
-            segment.isNotEmpty && segment != '.' && segment != '..')
-        .toList();
+    final segments =
+        normalized
+            .split('/')
+            .map((segment) => segment.trim())
+            .where(
+              (segment) =>
+                  segment.isNotEmpty && segment != '.' && segment != '..',
+            )
+            .toList();
 
     if (segments.isEmpty) return _defaultFolderName;
     return segments.join('/');
@@ -169,9 +173,8 @@ class InspectionExportService {
 
     await for (final entity in directory.list(followLinks: false)) {
       if (entity is! File) continue;
-      final fileName = entity.uri.pathSegments.isEmpty
-          ? ''
-          : entity.uri.pathSegments.last;
+      final fileName =
+          entity.uri.pathSegments.isEmpty ? '' : entity.uri.pathSegments.last;
       final normalized = Uri.decodeComponent(fileName);
       if (!normalized.startsWith(expectedPrefix) ||
           !normalized.endsWith('.json')) {
@@ -192,12 +195,65 @@ class InspectionExportService {
       } catch (_) {
         continue;
       }
-      if (latest == null || latestModified == null || modified.isAfter(latestModified)) {
+      if (latest == null ||
+          latestModified == null ||
+          modified.isAfter(latestModified)) {
         latest = file;
         latestModified = modified;
       }
     }
 
     return latest ?? candidates.first;
+  }
+
+  // ── Retention policy ───────────────────────────────────────────────────────
+
+  Future<void> configureRetentionDays(int days) async {
+    await _preferencesRepository.setString(
+      _retentionDaysKey,
+      days.clamp(0, 3650).toString(),
+    );
+  }
+
+  Future<int> loadRetentionDays() async {
+    final raw = await _preferencesRepository.getString(_retentionDaysKey);
+    if (raw == null) return _defaultRetentionDays;
+    return int.tryParse(raw) ?? _defaultRetentionDays;
+  }
+
+  /// Deletes export JSON files older than [retentionDays] days.
+  /// Pass [retentionDays] = 0 to skip (never purge).
+  /// Returns the number of files deleted.
+  Future<int> purgeOldExports({int? retentionDays}) async {
+    final days = retentionDays ?? await loadRetentionDays();
+    if (days <= 0) return 0;
+
+    final directory = await _resolveExportDirectory();
+    if (!await directory.exists()) return 0;
+
+    final cutoff = DateTime.now().subtract(Duration(days: days));
+    int deleted = 0;
+
+    await for (final entity in directory.list(followLinks: false)) {
+      if (entity is! File) continue;
+      final fileName =
+          entity.uri.pathSegments.isEmpty ? '' : entity.uri.pathSegments.last;
+      final normalized = Uri.decodeComponent(fileName);
+      if (!normalized.startsWith('vistoria_') ||
+          !normalized.endsWith('.json')) {
+        continue;
+      }
+      try {
+        final modified = await entity.lastModified();
+        if (modified.isBefore(cutoff)) {
+          await entity.delete();
+          deleted++;
+        }
+      } catch (_) {
+        // skip files that cannot be read or deleted
+      }
+    }
+
+    return deleted;
   }
 }

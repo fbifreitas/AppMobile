@@ -159,7 +159,18 @@ class OverlayCameraScreen extends StatefulWidget {
   final String? preselectedMacroLocal;
   final String? initialAmbiente;
   final String? initialElemento;
+  final String? initialMaterial;
+  final String? initialEstado;
   final bool cameFromCheckinStep1;
+  final bool skipDeviceInitialization;
+  final bool showVoiceActions;
+  final bool useTestMenuData;
+  final List<String>? testCameraLevelOrder;
+  final List<String> testMacroLocais;
+  final List<String> testAmbientes;
+  final List<String> testElementos;
+  final List<String> testMateriais;
+  final List<String> testEstados;
 
   const OverlayCameraScreen({
     super.key,
@@ -170,7 +181,18 @@ class OverlayCameraScreen extends StatefulWidget {
     this.preselectedMacroLocal,
     this.initialAmbiente,
     this.initialElemento,
+    this.initialMaterial,
+    this.initialEstado,
     this.cameFromCheckinStep1 = false,
+    this.skipDeviceInitialization = false,
+    this.showVoiceActions = true,
+    this.useTestMenuData = false,
+    this.testCameraLevelOrder,
+    this.testMacroLocais = const <String>[],
+    this.testAmbientes = const <String>[],
+    this.testElementos = const <String>[],
+    this.testMateriais = const <String>[],
+    this.testEstados = const <String>[],
   });
 
   @override
@@ -178,6 +200,14 @@ class OverlayCameraScreen extends StatefulWidget {
 }
 
 class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
+  static const List<String> _defaultCameraLevels = <String>[
+    'macroLocal',
+    'ambiente',
+    'elemento',
+    'material',
+    'estado',
+  ];
+
   final InspectionMenuService _menuService = InspectionMenuService.instance;
   final VoiceInputService _voiceService = VoiceInputService();
   final VoiceCommandParserService _voiceCommandParser =
@@ -204,11 +234,13 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   List<String> _estadosAtuais = const [];
   List<String> _recentAmbientes = const [];
   List<String> _recentElementos = const [];
+  List<String> _cameraLevelOrder = List<String>.from(_defaultCameraLevels);
 
   PredictedSelection? _predictedSelection;
   String? _contextSuggestionSummary;
   final List<OverlayCameraCaptureResult> _captures = [];
   bool _hasPreviousPhotos = false;
+  bool _selectorsCollapsed = false;
 
   String? get _predictionSummary {
     final prediction = _predictedSelection;
@@ -232,6 +264,8 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     _macroLocal = widget.preselectedMacroLocal;
     _ambiente = widget.initialAmbiente;
     _elemento = widget.initialElemento;
+    _material = widget.initialMaterial;
+    _estado = widget.initialEstado;
     _setup();
     if (widget.cameFromCheckinStep1) {
       WidgetsBinding.instance.addPostFrameCallback(
@@ -242,8 +276,39 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
 
   Future<void> _setup() async {
     try {
+      if (widget.useTestMenuData) {
+        if (!mounted) return;
+        setState(() {
+          _cameraLevelOrder = _normalizeCameraLevels(
+            widget.testCameraLevelOrder ?? _defaultCameraLevels,
+          );
+          _macroLocais = List<String>.from(widget.testMacroLocais);
+          _ambientesAtuais = List<String>.from(widget.testAmbientes);
+          _elementosAtuais = List<String>.from(widget.testElementos);
+          _materiaisAtuais = List<String>.from(widget.testMateriais);
+          _estadosAtuais = List<String>.from(widget.testEstados);
+          _loadingMenus = false;
+          _initializing = false;
+        });
+        return;
+      }
+
       await _menuService.ensureLoaded();
+      final configuredLevels = await _menuService.getCameraLevelOrder(
+        propertyType: widget.tipoImovel,
+        subtipo: widget.subtipoImovel,
+      );
+      _cameraLevelOrder = _normalizeCameraLevels(configuredLevels);
       await _reloadMenus(initialLoad: true);
+
+      if (widget.skipDeviceInitialization) {
+        if (!mounted) return;
+        setState(() {
+          _initializing = false;
+        });
+        return;
+      }
+
       await _ensureLocationReady();
 
       final cameras = await availableCameras();
@@ -291,6 +356,10 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
 
     if (macroLocal == null && !_showMacroLocalSelector) {
       macroLocal = widget.preselectedMacroLocal;
+    }
+
+    if (macroLocal == null && !_isCameraLevelEnabled('macroLocal')) {
+      macroLocal = macroLocals.isNotEmpty ? macroLocals.first : null;
     }
 
     if ((macroLocal == null || macroLocal.trim().isEmpty) &&
@@ -605,6 +674,29 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     }
   }
 
+  void _openVoiceSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      useSafeArea: true,
+      builder:
+          (_) => Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            child: VoiceActionBar(
+              voiceService: _voiceService,
+              parserService: _voiceCommandParser,
+              commands: _voiceCommandCatalog.cameraCommands(),
+              contextKey: 'camera',
+              title: 'Comandos rápidos por voz',
+              subtitle:
+                  'Ex.: capturar foto, abrir área, abrir local, abrir elemento.',
+              onCommand: _handleCameraVoiceCommand,
+            ),
+          ),
+    );
+  }
+
   void _finalizeBatch() async {
     if (!_hasAnyCaptures) return;
 
@@ -681,23 +773,16 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     required String tipoImovel,
   }) {
     final tipo = TipoImovelExtension.fromString(tipoImovel);
-    var model =
-        existingStep2Payload.isNotEmpty
-            ? CheckinStep2Model.fromMap(existingStep2Payload)
-            : CheckinStep2Model.empty(tipo);
+    var model = CheckinDynamicConfigService.instance.restoreStep2Model(
+      tipo: tipo,
+      step2Payload: existingStep2Payload,
+    );
     final appState = Provider.of<AppState>(context, listen: false);
-    final fallbackConfig = CheckinStep2Configs.byTipo(tipo);
-    final dynamicStep2Raw = appState.inspectionRecoveryPayload['step2Config'];
-    final config =
-        dynamicStep2Raw is Map
-            ? CheckinDynamicConfigService.instance.parseStep2ConfigMap(
-              tipo: tipo,
-              raw: Map<String, dynamic>.from(
-                dynamicStep2Raw.map((key, value) => MapEntry('$key', value)),
-              ),
-              fallback: fallbackConfig,
-            )
-            : fallbackConfig;
+    final config = CheckinDynamicConfigService.instance
+        .resolveStoredStep2Config(
+          tipo: tipo,
+          inspectionRecoveryPayload: appState.inspectionRecoveryPayload,
+        );
 
     for (final campo in config.camposFotos) {
       OverlayCameraCaptureResult? matchedCapture;
@@ -765,7 +850,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
         await _capture();
         return;
       case 'abrir_area':
-        if (_showMacroLocalSelector) {
+        if (_showMacroLocalSelector && _isCameraLevelEnabled('macroLocal')) {
           await _selectFromVoiceSheet(
             title: 'Área da foto',
             values: _macroLocais,
@@ -775,7 +860,9 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
         }
         return;
       case 'abrir_local':
-        if (_macroLocal != null && _ambientesAtuais.isNotEmpty) {
+        if (_isCameraLevelEnabled('ambiente') &&
+            _macroLocal != null &&
+            _ambientesAtuais.isNotEmpty) {
           await _selectFromVoiceSheet(
             title: 'Local da foto',
             values: _ambientesAtuais,
@@ -785,7 +872,9 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
         }
         return;
       case 'abrir_elemento':
-        if (_ambiente != null && _elementosAtuais.isNotEmpty) {
+        if (_isCameraLevelEnabled('elemento') &&
+            _ambiente != null &&
+            _elementosAtuais.isNotEmpty) {
           await _selectFromVoiceSheet(
             title: 'Elemento fotografado',
             values: _elementosAtuais,
@@ -795,7 +884,9 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
         }
         return;
       case 'abrir_material':
-        if (_elemento != null && _materiaisAtuais.isNotEmpty) {
+        if (_isCameraLevelEnabled('material') &&
+            _elemento != null &&
+            _materiaisAtuais.isNotEmpty) {
           await _selectFromVoiceSheet(
             title: 'Material',
             values: _materiaisAtuais,
@@ -810,7 +901,8 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
         }
         return;
       case 'abrir_estado':
-        if (_elemento != null &&
+        if (_isCameraLevelEnabled('estado') &&
+            _elemento != null &&
             (_materiaisAtuais.isEmpty || _material != null)) {
           await _selectFromVoiceSheet(
             title: 'Estado',
@@ -823,6 +915,142 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
         }
         return;
     }
+  }
+
+  List<String> _normalizeCameraLevels(List<String> rawLevels) {
+    final normalized = <String>[];
+    for (final raw in rawLevels) {
+      final mapped = _mapCameraLevelId(raw);
+      if (mapped == null) {
+        continue;
+      }
+      if (!normalized.contains(mapped)) {
+        normalized.add(mapped);
+      }
+    }
+
+    if (normalized.isEmpty) {
+      return List<String>.from(_defaultCameraLevels);
+    }
+    return normalized;
+  }
+
+  String? _mapCameraLevelId(String raw) {
+    final id = raw.trim().toLowerCase();
+    if (id.isEmpty) {
+      return null;
+    }
+
+    if (id == 'macrolocal' ||
+        id == 'macro_local' ||
+        id == 'contexto' ||
+        id == 'area_foto' ||
+        id == 'areafoto') {
+      return 'macroLocal';
+    }
+    if (id == 'ambiente' ||
+        id == 'local_foto' ||
+        id == 'localfoto' ||
+        id == 'local') {
+      return 'ambiente';
+    }
+    if (id == 'elemento' || id == 'item' || id == 'cameraelementoinicial') {
+      return 'elemento';
+    }
+    if (id == 'material' || id == 'materiais') {
+      return 'material';
+    }
+    if (id == 'estado' || id == 'condicao') {
+      return 'estado';
+    }
+
+    return null;
+  }
+
+  bool _isCameraLevelEnabled(String id) => _cameraLevelOrder.contains(id);
+
+  List<Widget> _buildCameraSelectors() {
+    final widgets = <Widget>[];
+
+    for (final level in _cameraLevelOrder) {
+      switch (level) {
+        case 'macroLocal':
+          if (_showMacroLocalSelector) {
+            widgets.add(const SizedBox(height: 8));
+            widgets.add(
+              _carouselCard(
+                title: 'Área da foto',
+                values: _macroLocais,
+                selected: _macroLocal,
+                onSelect: _selectMacroLocal,
+              ),
+            );
+          }
+          break;
+        case 'ambiente':
+          if (_macroLocal != null) {
+            widgets.add(const SizedBox(height: 8));
+            widgets.add(
+              _carouselCard(
+                title: 'Local da foto',
+                values: _ambientesAtuais,
+                selected: _ambiente,
+                onSelect: _selectAmbiente,
+              ),
+            );
+          }
+          break;
+        case 'elemento':
+          if (_ambiente != null && _elementosAtuais.isNotEmpty) {
+            widgets.add(const SizedBox(height: 8));
+            widgets.add(
+              _carouselCard(
+                title: 'Elemento fotografado',
+                values: _elementosAtuais,
+                selected: _elemento,
+                onSelect: _selectElemento,
+              ),
+            );
+          }
+          break;
+        case 'material':
+          if (_elemento != null && _materiaisAtuais.isNotEmpty) {
+            widgets.add(const SizedBox(height: 8));
+            widgets.add(
+              _carouselCard(
+                title: 'Material',
+                values: _materiaisAtuais,
+                selected: _material,
+                onSelect: (value) async {
+                  setState(() {
+                    _material = value;
+                    _estado = null;
+                  });
+                },
+              ),
+            );
+          }
+          break;
+        case 'estado':
+          if (_elemento != null &&
+              (_materiaisAtuais.isEmpty || _material != null)) {
+            widgets.add(const SizedBox(height: 8));
+            widgets.add(
+              _carouselCard(
+                title: 'Estado',
+                values: _estadosAtuais,
+                selected: _estado,
+                onSelect: (value) async {
+                  setState(() => _estado = value);
+                },
+              ),
+            );
+          }
+          break;
+      }
+    }
+
+    return widgets;
   }
 
   @override
@@ -896,6 +1124,13 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                           ),
                         ),
                         const Spacer(),
+                        if (widget.showVoiceActions)
+                          _glassButton(
+                            icon: Icons.mic_none,
+                            onTap: _openVoiceSheet,
+                          ),
+                        if (widget.showVoiceActions)
+                          const SizedBox(width: 8),
                         _glassButton(
                           icon: Icons.checklist_outlined,
                           onTap:
@@ -907,95 +1142,78 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                     ),
 
                     const SizedBox(height: 8),
-                    VoiceActionBar(
-                      voiceService: _voiceService,
-                      parserService: _voiceCommandParser,
-                      commands: _voiceCommandCatalog.cameraCommands(),
-                      contextKey: 'camera',
-                      title: 'Comandos rápidos por voz',
-                      subtitle:
-                          'Ex.: capturar foto, abrir área, abrir local, abrir elemento.',
-                      onCommand: _handleCameraVoiceCommand,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Tab de colapso lateral
+                        GestureDetector(
+                          onTap:
+                              () => setState(
+                                () =>
+                                    _selectorsCollapsed =
+                                        !_selectorsCollapsed,
+                              ),
+                          child: Container(
+                            width: 22,
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.50),
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(10),
+                                bottomLeft: Radius.circular(10),
+                              ),
+                            ),
+                            child: Icon(
+                              _selectorsCollapsed
+                                  ? Icons.chevron_right
+                                  : Icons.chevron_left,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                        // Painel de seletores (colapsável)
+                        if (!_selectorsCollapsed)
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ..._buildCameraSelectors(),
+                                if (_contextSuggestionSummary != null) ...[
+                                  const SizedBox(height: 8),
+                                  _hintCard(_contextSuggestionSummary!),
+                                ],
+                                if (_isCameraLevelEnabled('ambiente') &&
+                                    _recentAmbientes.isNotEmpty &&
+                                    _macroLocal != null) ...[
+                                  const SizedBox(height: 8),
+                                  _quickSuggestionCard(
+                                    title: 'Locais mais usados nesta área',
+                                    values: _recentAmbientes,
+                                    selected: _ambiente,
+                                    onSelect: _selectAmbiente,
+                                  ),
+                                ],
+                                if (_predictionSummary != null) ...[
+                                  const SizedBox(height: 8),
+                                  _hintCard(_predictionSummary!),
+                                ],
+                                if (_isCameraLevelEnabled('elemento') &&
+                                    _recentElementos.isNotEmpty &&
+                                    _ambiente != null) ...[
+                                  const SizedBox(height: 8),
+                                  _quickSuggestionCard(
+                                    title: 'Mais usados neste contexto',
+                                    values: _recentElementos,
+                                    selected: _elemento,
+                                    onSelect: _selectElemento,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                      ],
                     ),
-                    if (_showMacroLocalSelector) ...[
-                      const SizedBox(height: 8),
-                      _carouselCard(
-                        title: 'Área da foto',
-                        values: _macroLocais,
-                        selected: _macroLocal,
-                        onSelect: _selectMacroLocal,
-                      ),
-                    ],
-                    if (_macroLocal != null) ...[
-                      const SizedBox(height: 8),
-                      _carouselCard(
-                        title: 'Local da foto',
-                        values: _ambientesAtuais,
-                        selected: _ambiente,
-                        onSelect: _selectAmbiente,
-                      ),
-                    ],
-                    if (_contextSuggestionSummary != null) ...[
-                      const SizedBox(height: 8),
-                      _hintCard(_contextSuggestionSummary!),
-                    ],
-                    if (_recentAmbientes.isNotEmpty && _macroLocal != null) ...[
-                      const SizedBox(height: 8),
-                      _quickSuggestionCard(
-                        title: 'Locais mais usados nesta área',
-                        values: _recentAmbientes,
-                        selected: _ambiente,
-                        onSelect: _selectAmbiente,
-                      ),
-                    ],
-                    if (_ambiente != null && _elementosAtuais.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      _carouselCard(
-                        title: 'Elemento fotografado',
-                        values: _elementosAtuais,
-                        selected: _elemento,
-                        onSelect: _selectElemento,
-                      ),
-                    ],
-                    if (_predictionSummary != null) ...[
-                      const SizedBox(height: 8),
-                      _hintCard(_predictionSummary!),
-                    ],
-                    if (_recentElementos.isNotEmpty && _ambiente != null) ...[
-                      const SizedBox(height: 8),
-                      _quickSuggestionCard(
-                        title: 'Mais usados neste contexto',
-                        values: _recentElementos,
-                        selected: _elemento,
-                        onSelect: _selectElemento,
-                      ),
-                    ],
-                    if (_elemento != null && _materiaisAtuais.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      _carouselCard(
-                        title: 'Material',
-                        values: _materiaisAtuais,
-                        selected: _material,
-                        onSelect: (value) async {
-                          setState(() {
-                            _material = value;
-                            _estado = null;
-                          });
-                        },
-                      ),
-                    ],
-                    if (_elemento != null &&
-                        (_materiaisAtuais.isEmpty || _material != null)) ...[
-                      const SizedBox(height: 8),
-                      _carouselCard(
-                        title: 'Estado',
-                        values: _estadosAtuais,
-                        selected: _estado,
-                        onSelect: (value) async {
-                          setState(() => _estado = value);
-                        },
-                      ),
-                    ],
                   ],
                 ),
               ),

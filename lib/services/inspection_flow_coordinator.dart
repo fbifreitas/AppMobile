@@ -29,6 +29,8 @@ abstract class InspectionFlowCoordinator {
     String? preselectedMacroLocal,
     String? initialAmbiente,
     String? initialElemento,
+    String? initialMaterial,
+    String? initialEstado,
     required bool cameFromCheckinStep1,
   });
 
@@ -99,6 +101,8 @@ class DefaultInspectionFlowCoordinator implements InspectionFlowCoordinator {
     String? preselectedMacroLocal,
     String? initialAmbiente,
     String? initialElemento,
+    String? initialMaterial,
+    String? initialEstado,
     required bool cameFromCheckinStep1,
   }) {
     return Navigator.of(context).push<OverlayCameraCaptureResult>(
@@ -112,6 +116,8 @@ class DefaultInspectionFlowCoordinator implements InspectionFlowCoordinator {
               preselectedMacroLocal: preselectedMacroLocal,
               initialAmbiente: initialAmbiente,
               initialElemento: initialElemento,
+              initialMaterial: initialMaterial,
+              initialEstado: initialEstado,
               cameFromCheckinStep1: cameFromCheckinStep1,
             ),
       ),

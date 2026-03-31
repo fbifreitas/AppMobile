@@ -89,8 +89,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 prefixIcon: Icon(Icons.person_outline),
                 border: OutlineInputBorder(),
               ),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Informe o nome' : null,
+              validator:
+                  (v) =>
+                      (v == null || v.trim().isEmpty) ? 'Informe o nome' : null,
             ),
             const SizedBox(height: 16),
             if (!isPj)
@@ -131,16 +132,17 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             FilledButton(
               key: const Key('profile_save_button'),
               onPressed: _saving ? null : _save,
-              child: _saving
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text('Salvar alterações'),
+              child:
+                  _saving
+                      ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                      : const Text('Salvar alterações'),
             ),
           ],
         ),

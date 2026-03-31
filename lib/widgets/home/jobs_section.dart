@@ -6,11 +6,12 @@ import '../../services/location_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/app_colors.dart';
 
-typedef NavigateToJobCallback = Future Function({
-  required double? latitude,
-  required double? longitude,
-  required String address,
-});
+typedef NavigateToJobCallback =
+    Future Function({
+      required double? latitude,
+      required double? longitude,
+      required String address,
+    });
 
 typedef StartInspectionCallback = Future<void> Function(Job job);
 
@@ -34,9 +35,10 @@ class JobsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeJobs = appState.jobs
-        .where((job) => job.status != JobStatus.finalizado)
-        .toList();
+    final activeJobs =
+        appState.jobs
+            .where((job) => job.status != JobStatus.finalizado)
+            .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -101,10 +103,7 @@ class JobsSection extends StatelessWidget {
           Expanded(
             child: Text(
               'Carregando jobs...',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
             ),
           ),
         ],
@@ -318,12 +317,14 @@ class _RichJobCard extends StatelessWidget {
                 text: distanceInfo.label,
               ),
               _JobTag(
-                bg: distanceInfo.withinRange
-                    ? Colors.green.withValues(alpha: 0.12)
-                    : AppColors.warningLight,
-                fg: distanceInfo.withinRange
-                    ? Colors.green.shade800
-                    : AppColors.warning,
+                bg:
+                    distanceInfo.withinRange
+                        ? Colors.green.withValues(alpha: 0.12)
+                        : AppColors.warningLight,
+                fg:
+                    distanceInfo.withinRange
+                        ? Colors.green.shade800
+                        : AppColors.warning,
                 text: distanceInfo.rangeLabel,
               ),
               _JobTag(
@@ -386,17 +387,18 @@ class _RichJobCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: (canStart || showDevStart)
-                      ? () async {
-                          await onStartInspection();
-                        }
-                      : null,
+                  onPressed:
+                      (canStart || showDevStart)
+                          ? () async {
+                            await onStartInspection();
+                          }
+                          : null,
                   child: Text(
                     isRecoverable
                         ? 'RETOMAR VISTORIA'
                         : showDevStart
-                            ? 'INICIAR (DEV)'
-                            : 'INICIAR VISTORIA',
+                        ? 'INICIAR (DEV)'
+                        : 'INICIAR VISTORIA',
                     style: const TextStyle(fontSize: 11),
                   ),
                 ),
@@ -474,11 +476,7 @@ class _RichJobCard extends StatelessWidget {
 }
 
 class _JobTag extends StatelessWidget {
-  const _JobTag({
-    required this.bg,
-    required this.fg,
-    required this.text,
-  });
+  const _JobTag({required this.bg, required this.fg, required this.text});
 
   final Color bg;
   final Color fg;

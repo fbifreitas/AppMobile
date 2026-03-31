@@ -105,8 +105,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               ? Icons.visibility_outlined
                               : Icons.visibility_off_outlined,
                         ),
-                        onPressed: () =>
-                            setState(() => _obscureSenha = !_obscureSenha),
+                        onPressed:
+                            () =>
+                                setState(() => _obscureSenha = !_obscureSenha),
                       ),
                     ),
                     validator: (value) {
@@ -120,16 +121,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   FilledButton(
                     key: const Key('login_submit_button'),
                     onPressed: _loading ? null : _submit,
-                    child: _loading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text('Entrar'),
+                    child:
+                        _loading
+                            ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                            : const Text('Entrar'),
                   ),
                 ],
               ),

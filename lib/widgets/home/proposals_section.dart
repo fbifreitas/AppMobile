@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../models/job.dart';
+import '../../models/job_status.dart';
 import '../../models/proposal_offer.dart';
+import '../../state/app_state.dart';
 import '../../theme/app_colors.dart';
 
-class ProposalsSection extends StatelessWidget {
+class ProposalsSection extends StatefulWidget {
   const ProposalsSection({
     super.key,
     this.propostas,
@@ -39,9 +43,48 @@ class ProposalsSection extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
-    final itens = propostas ?? _mockPropostas;
+  State<ProposalsSection> createState() => _ProposalsSectionState();
+}
 
+class _ProposalsSectionState extends State<ProposalsSection> {
+  late List<ProposalOffer> _itens;
+
+  @override
+  void initState() {
+    super.initState();
+    _itens = List.of(widget.propostas ?? ProposalsSection._mockPropostas);
+  }
+
+  void _acceptProposal(ProposalOffer proposta) {
+    final appState = Provider.of<AppState>(context, listen: false);
+
+    final newJob = Job(
+      id: proposta.id,
+      titulo: 'Vistoria ${proposta.subtipoImovel ?? proposta.tipoImovel ?? 'Imóvel'}',
+      endereco: proposta.endereco,
+      status: JobStatus.novo,
+      nomeCliente: proposta.proprietario,
+      tipoImovel: proposta.tipoImovel,
+      subtipoImovel: proposta.subtipoImovel,
+    );
+
+    setState(() {
+      _itens.removeWhere((p) => p.id == proposta.id);
+    });
+
+    appState.adicionarJob(newJob);
+
+    widget.onAcceptProposal?.call(proposta);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Proposta ${proposta.id} aceita! Job adicionado aos seus jobs de hoje.'),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -55,7 +98,7 @@ class ProposalsSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        if (itens.isEmpty)
+        if (_itens.isEmpty)
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -72,10 +115,11 @@ class ProposalsSection extends StatelessWidget {
             ),
           )
         else
-          ...itens.map(
+          ..._itens.map(
             (item) => _ProposalCard(
+              key: ValueKey(item.id),
               proposta: item,
-              onAccept: () => onAcceptProposal?.call(item),
+              onAccept: () => _acceptProposal(item),
             ),
           ),
       ],
@@ -85,6 +129,7 @@ class ProposalsSection extends StatelessWidget {
 
 class _ProposalCard extends StatelessWidget {
   const _ProposalCard({
+    super.key,
     required this.proposta,
     required this.onAccept,
   });
@@ -145,6 +190,7 @@ class _ProposalCard extends StatelessWidget {
               spacing: 6,
               runSpacing: 6,
               children: [
+                _InfoTag(text: 'ID: ${proposta.id}'),
                 _InfoTag(text: '${proposta.distanciaKm.toStringAsFixed(1)} km de distância'),
                 if (proposta.tipoImovel != null)
                   _InfoTag(
@@ -273,10 +319,8 @@ class _SwipeToAccept extends StatelessWidget {
     return Dismissible(
       key: UniqueKey(),
       direction: DismissDirection.startToEnd,
-      confirmDismiss: (_) async {
-        onAccept();
-        return false;
-      },
+      confirmDismiss: (_) async => true,
+      onDismissed: (_) => onAccept(),
       background: Container(
         margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
         decoration: BoxDecoration(

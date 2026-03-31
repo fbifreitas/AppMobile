@@ -1,5 +1,7 @@
 import 'package:appmobile/models/checkin_step2_model.dart';
+import 'package:appmobile/config/checkin_step2_config.dart';
 import 'package:appmobile/models/inspection_session_model.dart';
+import 'package:appmobile/models/job.dart';
 import 'package:appmobile/repositories/fake_job_repository.dart';
 import 'package:appmobile/screens/inspection_menu_screen.dart';
 import 'package:appmobile/screens/overlay_camera_screen.dart';
@@ -39,6 +41,8 @@ class _FakeInspectionFlowCoordinator extends InspectionFlowCoordinator {
     String? preselectedMacroLocal,
     String? initialAmbiente,
     String? initialElemento,
+    String? initialMaterial,
+    String? initialEstado,
     required bool cameFromCheckinStep1,
   }) async {
     return null;
@@ -117,9 +121,7 @@ void main() {
           ChangeNotifierProvider<AppState>.value(
             value: AppState(FakeJobRepository()),
           ),
-          ChangeNotifierProvider<InspectionState>.value(
-            value: inspectionState,
-          ),
+          ChangeNotifierProvider<InspectionState>.value(value: inspectionState),
         ],
         child: MaterialApp(
           home: InspectionMenuScreen(flowCoordinator: flowCoordinator),
@@ -152,45 +154,130 @@ void main() {
     expect(flowCoordinator.lastReviewTipoImovel, 'Urbano • Apartamento');
   });
 
-  testWidgets('InspectionMenuScreen delegates environment card open to coordinator', (
-    tester,
-  ) async {
-    final flowCoordinator = _FakeInspectionFlowCoordinator();
-    final inspectionState = InspectionState(
-      localStorageService: _MemoryInspectionLocalStorageService(),
-    );
+  testWidgets(
+    'InspectionMenuScreen delegates environment card open to coordinator',
+    (tester) async {
+      final flowCoordinator = _FakeInspectionFlowCoordinator();
+      final inspectionState = InspectionState(
+        localStorageService: _MemoryInspectionLocalStorageService(),
+      );
 
-    await tester.pumpWidget(
-      MultiProvider(
-        providers: [
-          ChangeNotifierProvider<AppState>.value(
-            value: AppState(FakeJobRepository()),
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<AppState>.value(
+              value: AppState(FakeJobRepository()),
+            ),
+            ChangeNotifierProvider<InspectionState>.value(
+              value: inspectionState,
+            ),
+          ],
+          child: MaterialApp(
+            home: InspectionMenuScreen(flowCoordinator: flowCoordinator),
           ),
-          ChangeNotifierProvider<InspectionState>.value(
-            value: inspectionState,
-          ),
-        ],
-        child: MaterialApp(
-          home: InspectionMenuScreen(flowCoordinator: flowCoordinator),
         ),
-      ),
-    );
+      );
 
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
-    await inspectionState.startMockInspection(
-      tipoImovel: 'Urbano',
-      subtipoImovel: 'Apartamento',
-    );
-    await tester.pump();
+      await inspectionState.startMockInspection(
+        tipoImovel: 'Urbano',
+        subtipoImovel: 'Apartamento',
+      );
+      await tester.pump();
 
-    final salaCard = tester.widget<InkWell>(
-      find.ancestor(of: find.text('Sala'), matching: find.byType(InkWell)).first,
-    );
-    salaCard.onTap!.call();
-    await tester.pump();
+      final salaCard = tester.widget<InkWell>(
+        find
+            .ancestor(of: find.text('Sala'), matching: find.byType(InkWell))
+            .first,
+      );
+      salaCard.onTap!.call();
+      await tester.pump();
 
-    expect(flowCoordinator.cameraFlowOpenCount, 1);
-  });
+      expect(flowCoordinator.cameraFlowOpenCount, 1);
+    },
+  );
+
+  testWidgets(
+    'InspectionMenuScreen counts mandatory progress from persisted dynamic step2 config',
+    (tester) async {
+      final flowCoordinator = _FakeInspectionFlowCoordinator();
+      final inspectionState = InspectionState(
+        localStorageService: _MemoryInspectionLocalStorageService(),
+      );
+      final appState = AppState(FakeJobRepository());
+
+      appState.selecionarJob(
+        Job(
+          id: 'job-1',
+          titulo: 'Vistoria A',
+          endereco: 'Rua A, 1',
+          nomeCliente: 'Cliente A',
+        ),
+      );
+
+      await appState.setInspectionRecoveryStage(
+        stageKey: 'inspection_review',
+        stageLabel: 'Revisão final',
+        routeName: '/inspection_review',
+        payload: {
+          'step2Config': {
+            'tituloTela': 'Etapa 2 dinâmica',
+            'camposFotos': [
+              {
+                'id': 'sala_principal',
+                'titulo': 'Sala principal',
+                'cameraMacroLocal': 'Interna',
+                'cameraAmbiente': 'Sala principal',
+                'obrigatorio': true,
+              },
+            ],
+          },
+        },
+      );
+
+      final persistedStep2 =
+          CheckinStep2Model.empty(TipoImovel.urbano)
+              .setPhoto(
+                fieldId: 'sala_principal',
+                titulo: 'Sala principal',
+                imagePath: '/tmp/sala.jpg',
+                geoPoint: GeoPointData(
+                  latitude: -23.0,
+                  longitude: -46.0,
+                  accuracy: 5,
+                  capturedAt: DateTime(2026, 3, 30),
+                ),
+              )
+              .toMap();
+
+      await appState.persistStep2Draft(persistedStep2);
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<AppState>.value(value: appState),
+            ChangeNotifierProvider<InspectionState>.value(
+              value: inspectionState,
+            ),
+          ],
+          child: MaterialApp(
+            home: InspectionMenuScreen(flowCoordinator: flowCoordinator),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await inspectionState.startMockInspection(
+        tipoImovel: 'Urbano',
+        subtipoImovel: 'Apartamento',
+      );
+      await tester.pump();
+
+      expect(find.textContaining('1 mínimas'), findsOneWidget);
+    },
+  );
 }

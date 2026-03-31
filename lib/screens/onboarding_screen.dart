@@ -138,6 +138,30 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 )
                 : null,
       ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        minimum: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+        child: SizedBox(
+          height: 54,
+          child: FilledButton(
+            key: const Key('onboarding_next_button'),
+            onPressed: _loading ? null : _nextPage,
+            child:
+                _loading
+                    ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                    : Text(
+                      _currentPage < _totalPages - 1 ? 'Continuar' : 'Concluir',
+                    ),
+          ),
+        ),
+      ),
       body: Column(
         children: [
           _OnboardingProgress(current: _currentPage + 1, total: _totalPages),
@@ -163,29 +187,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   contaValidator: _validateConta,
                 ),
               ],
-            ),
-          ),
-          SafeArea(
-            top: false,
-            minimum: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-            child: FilledButton(
-              key: const Key('onboarding_next_button'),
-              onPressed: _loading ? null : _nextPage,
-              child:
-                  _loading
-                      ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                      : Text(
-                        _currentPage < _totalPages - 1
-                            ? 'Continuar'
-                            : 'Concluir',
-                      ),
             ),
           ),
         ],
@@ -333,7 +334,9 @@ class _StepDadosPessoais extends StatelessWidget {
               prefixIcon: Icon(Icons.person_outline),
               border: OutlineInputBorder(),
             ),
-            validator: (v) => (v == null || v.trim().isEmpty) ? 'Informe o nome' : null,
+            validator:
+                (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Informe o nome' : null,
           ),
           const SizedBox(height: 16),
           TextFormField(

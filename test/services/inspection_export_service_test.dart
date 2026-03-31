@@ -65,98 +65,111 @@ void main() {
     expect(settings.folderName, 'operacao/json/vistorias');
   });
 
-  test('export writes file using internal directory when configured as internal',
-      () async {
-    final prefs = _FakePreferencesRepository();
-    final appDir = await Directory.systemTemp.createTemp('app_export_internal');
-    addTearDown(() async {
-      if (await appDir.exists()) {
-        await appDir.delete(recursive: true);
-      }
-    });
+  test(
+    'export writes file using internal directory when configured as internal',
+    () async {
+      final prefs = _FakePreferencesRepository();
+      final appDir = await Directory.systemTemp.createTemp(
+        'app_export_internal',
+      );
+      addTearDown(() async {
+        if (await appDir.exists()) {
+          await appDir.delete(recursive: true);
+        }
+      });
 
-    final service = InspectionExportService(
-      preferencesRepository: prefs,
-      appDocumentsDirectoryResolver: () async => appDir,
-      externalStorageDirectoryResolver: () async => null,
-    );
+      final service = InspectionExportService(
+        preferencesRepository: prefs,
+        appDocumentsDirectoryResolver: () async => appDir,
+        externalStorageDirectoryResolver: () async => null,
+      );
 
-    await service.configureExportDirectory(
-      mode: InspectionExportDirectoryMode.internal,
-      folderName: 'inspection_exports',
-    );
+      await service.configureExportDirectory(
+        mode: InspectionExportDirectoryMode.internal,
+        folderName: 'inspection_exports',
+      );
 
-    final path = await service.export(_payload(jobId: 'job-1'));
+      final path = await service.export(_payload(jobId: 'job-1'));
 
-    expect(path, contains('inspection_exports'));
-    expect(await File(path).exists(), isTrue);
-  });
+      expect(path, contains('inspection_exports'));
+      expect(await File(path).exists(), isTrue);
+    },
+  );
 
-  test('export uses external directory when available and configured',
-      () async {
-    final prefs = _FakePreferencesRepository();
-    final appDir = await Directory.systemTemp.createTemp('app_export_app');
-    final externalDir =
-        await Directory.systemTemp.createTemp('app_export_external');
+  test(
+    'export uses external directory when available and configured',
+    () async {
+      final prefs = _FakePreferencesRepository();
+      final appDir = await Directory.systemTemp.createTemp('app_export_app');
+      final externalDir = await Directory.systemTemp.createTemp(
+        'app_export_external',
+      );
 
-    addTearDown(() async {
-      if (await appDir.exists()) {
-        await appDir.delete(recursive: true);
-      }
-      if (await externalDir.exists()) {
-        await externalDir.delete(recursive: true);
-      }
-    });
+      addTearDown(() async {
+        if (await appDir.exists()) {
+          await appDir.delete(recursive: true);
+        }
+        if (await externalDir.exists()) {
+          await externalDir.delete(recursive: true);
+        }
+      });
 
-    final service = InspectionExportService(
-      preferencesRepository: prefs,
-      appDocumentsDirectoryResolver: () async => appDir,
-      externalStorageDirectoryResolver: () async => externalDir,
-    );
+      final service = InspectionExportService(
+        preferencesRepository: prefs,
+        appDocumentsDirectoryResolver: () async => appDir,
+        externalStorageDirectoryResolver: () async => externalDir,
+      );
 
-    await service.configureExportDirectory(
-      mode: InspectionExportDirectoryMode.external,
-      folderName: 'json/vistorias',
-    );
+      await service.configureExportDirectory(
+        mode: InspectionExportDirectoryMode.external,
+        folderName: 'json/vistorias',
+      );
 
-    final path = await service.export(_payload(jobId: 'job-2'));
+      final path = await service.export(_payload(jobId: 'job-2'));
 
-    expect(path, contains('json/vistorias'));
-    expect(path.startsWith(externalDir.path), isTrue);
-  });
+      expect(path, contains('json/vistorias'));
+      expect(path.startsWith(externalDir.path), isTrue);
+    },
+  );
 
-  test('external mode falls back to internal when external base is unavailable',
-      () async {
-    final prefs = _FakePreferencesRepository();
-    final appDir = await Directory.systemTemp.createTemp('app_export_fallback');
-    addTearDown(() async {
-      if (await appDir.exists()) {
-        await appDir.delete(recursive: true);
-      }
-    });
+  test(
+    'external mode falls back to internal when external base is unavailable',
+    () async {
+      final prefs = _FakePreferencesRepository();
+      final appDir = await Directory.systemTemp.createTemp(
+        'app_export_fallback',
+      );
+      addTearDown(() async {
+        if (await appDir.exists()) {
+          await appDir.delete(recursive: true);
+        }
+      });
 
-    final service = InspectionExportService(
-      preferencesRepository: prefs,
-      appDocumentsDirectoryResolver: () async => appDir,
-      externalStorageDirectoryResolver: () async => null,
-    );
+      final service = InspectionExportService(
+        preferencesRepository: prefs,
+        appDocumentsDirectoryResolver: () async => appDir,
+        externalStorageDirectoryResolver: () async => null,
+      );
 
-    await service.configureExportDirectory(
-      mode: InspectionExportDirectoryMode.external,
-      folderName: 'exports',
-    );
+      await service.configureExportDirectory(
+        mode: InspectionExportDirectoryMode.external,
+        folderName: 'exports',
+      );
 
-    final effective = await service.resolveEffectiveSettings();
-    final path = await service.export(_payload(jobId: 'job-3'));
+      final effective = await service.resolveEffectiveSettings();
+      final path = await service.export(_payload(jobId: 'job-3'));
 
-    expect(effective.mode, InspectionExportDirectoryMode.external);
-    expect(effective.usingExternalBase, isFalse);
-    expect(path.startsWith(appDir.path), isTrue);
-  });
+      expect(effective.mode, InspectionExportDirectoryMode.external);
+      expect(effective.usingExternalBase, isFalse);
+      expect(path.startsWith(appDir.path), isTrue);
+    },
+  );
 
   test('loadLatestPayloadForJob returns latest exported payload', () async {
     final prefs = _FakePreferencesRepository();
-    final appDir = await Directory.systemTemp.createTemp('app_export_read_latest');
+    final appDir = await Directory.systemTemp.createTemp(
+      'app_export_read_latest',
+    );
     addTearDown(() async {
       if (await appDir.exists()) {
         await appDir.delete(recursive: true);

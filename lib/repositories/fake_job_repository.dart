@@ -51,8 +51,14 @@ class FakeJobRepository implements JobRepository, MockJobRepositoryController {
     bool append = false,
   }) async {
     final generated = <Job>[
-      ...List.generate(activeCount, (index) => _createGeneratedJob(index: index, completed: false)),
-      ...List.generate(completedCount, (index) => _createGeneratedJob(index: index, completed: true)),
+      ...List.generate(
+        activeCount,
+        (index) => _createGeneratedJob(index: index, completed: false),
+      ),
+      ...List.generate(
+        completedCount,
+        (index) => _createGeneratedJob(index: index, completed: true),
+      ),
     ];
 
     if (append) {
@@ -73,21 +79,20 @@ class FakeJobRepository implements JobRepository, MockJobRepositoryController {
     _jobs[index].status = status;
   }
 
-  Job _createGeneratedJob({
-    required int index,
-    required bool completed,
-  }) {
+  Job _createGeneratedJob({required int index, required bool completed}) {
     _generatedJobCounter += 1;
     final seq = _generatedJobCounter;
     return Job(
       id: '$seq',
-      titulo: completed
-          ? 'Vistoria concluida #$seq'
-          : 'Vistoria em andamento #$seq',
+      titulo:
+          completed
+              ? 'Vistoria concluida #$seq'
+              : 'Vistoria em andamento #$seq',
       endereco: 'Rua de Teste, ${120 + index} - Ambiente Mock',
       latitude: -23.55 + (index * 0.001),
       longitude: -46.63 - (index * 0.001),
-      nomeCliente: completed ? 'Cliente concluido #$seq' : 'Cliente ativo #$seq',
+      nomeCliente:
+          completed ? 'Cliente concluido #$seq' : 'Cliente ativo #$seq',
       telefoneCliente: '1199000${(seq % 10000).toString().padLeft(4, '0')}',
       tipoImovel: 'Urbano',
       subtipoImovel: 'Apartamento',

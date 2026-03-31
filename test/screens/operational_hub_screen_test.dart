@@ -92,7 +92,7 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     await tester.tap(checkinCard);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 200));
 
     expect(navigationCoordinator.lastOperationalHubItemId, 'checkin');
   });

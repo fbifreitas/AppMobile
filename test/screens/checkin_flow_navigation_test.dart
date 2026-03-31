@@ -9,6 +9,7 @@ import 'package:appmobile/models/job.dart';
 import 'package:appmobile/models/inspection_session_model.dart';
 import 'package:appmobile/repositories/job_repository.dart';
 import 'package:appmobile/screens/overlay_camera_screen.dart';
+import 'package:appmobile/services/checkin_dynamic_config_service.dart';
 import 'package:appmobile/services/inspection_flow_coordinator.dart';
 import 'package:appmobile/screens/checkin_screen.dart';
 import 'package:appmobile/screens/checkin_step2_screen.dart';
@@ -33,6 +34,11 @@ class _FakeInspectionFlowCoordinator extends InspectionFlowCoordinator {
   CheckinStep2Model? restoredInitialData;
   List<OverlayCameraCaptureResult> restoredCaptures =
       const <OverlayCameraCaptureResult>[];
+  String? lastPreselectedMacroLocal;
+  String? lastInitialAmbiente;
+  String? lastInitialElemento;
+  String? lastInitialMaterial;
+  String? lastInitialEstado;
 
   @override
   void openCheckin(BuildContext context, {bool silent = false}) {
@@ -58,8 +64,15 @@ class _FakeInspectionFlowCoordinator extends InspectionFlowCoordinator {
     String? preselectedMacroLocal,
     String? initialAmbiente,
     String? initialElemento,
+    String? initialMaterial,
+    String? initialEstado,
     required bool cameFromCheckinStep1,
   }) async {
+    lastPreselectedMacroLocal = preselectedMacroLocal;
+    lastInitialAmbiente = initialAmbiente;
+    lastInitialElemento = initialElemento;
+    lastInitialMaterial = initialMaterial;
+    lastInitialEstado = initialEstado;
     return null;
   }
 
@@ -162,6 +175,219 @@ void main() {
 
     await tester.tap(find.widgetWithText(ChoiceChip, 'Apartamento'));
     await tester.pumpAndSettle();
+  });
+
+  testWidgets('check-in etapa 1 renders dynamic levels from configuration', (
+    tester,
+  ) async {
+    final appState = AppState(_ImmediateJobRepository());
+    appState.selecionarJob(
+      Job(
+        id: 'job-1',
+        titulo: 'Vistoria A',
+        endereco: 'Rua A, 1',
+        nomeCliente: 'Cliente A',
+      ),
+    );
+
+    await CheckinDynamicConfigService.instance.configureDeveloperMock(
+      enabled: true,
+      documentJson: jsonEncode({
+        'step1': {
+          'tipos': ['Urbano'],
+          'contextos': ['Rua', 'Área interna'],
+          'subtiposPorTipo': {
+            'Urbano': ['Apartamento'],
+          },
+          'levels': [
+            {
+              'id': 'torre',
+              'label': 'Torre',
+              'required': false,
+              'options': ['Torre A', 'Torre B'],
+            },
+            {
+              'id': 'piso',
+              'label': 'Piso',
+              'required': true,
+              'dependsOn': 'torre',
+              'options': ['Térreo', '1º'],
+            },
+            {
+              'id': 'contexto',
+              'label': 'Por onde deseja começar?',
+              'required': true,
+              'options': ['Rua', 'Área interna'],
+            },
+          ],
+          'levelsBySubtipo': {
+            'Urbano': {'Apartamento': []},
+          },
+        },
+      }),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ChangeNotifierProvider<AppState>.value(
+          value: appState,
+          child: const CheckinScreen(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Sim'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Urbano'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Apartamento'));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('Torre'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Torre'), findsOneWidget);
+    expect(find.text('Piso'), findsOneWidget);
+    expect(find.text('Selecione primeiro torre.'), findsOneWidget);
+    expect(find.widgetWithText(ChoiceChip, 'Torre A'), findsOneWidget);
+    expect(find.widgetWithText(ChoiceChip, '1º'), findsNothing);
+
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Torre A'));
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(ChoiceChip, '1º'), findsOneWidget);
+  });
+
+  testWidgets('check-in etapa 1 forwards all selected levels to camera', (
+    tester,
+  ) async {
+    final appState = AppState(_ImmediateJobRepository());
+    final flowCoordinator = _FakeInspectionFlowCoordinator();
+    appState.selecionarJob(
+      Job(
+        id: 'job-1',
+        titulo: 'Vistoria A',
+        endereco: 'Rua A, 1',
+        nomeCliente: 'Cliente A',
+      ),
+    );
+
+    await CheckinDynamicConfigService.instance.configureDeveloperMock(
+      enabled: true,
+      documentJson: jsonEncode({
+        'step1': {
+          'tipos': ['Urbano'],
+          'contextos': ['Rua'],
+          'subtiposPorTipo': {
+            'Urbano': ['Apartamento'],
+          },
+          'levels': [
+            {
+              'id': 'area_foto',
+              'label': 'Área da foto',
+              'required': true,
+              'options': ['Rua'],
+            },
+            {
+              'id': 'ambiente',
+              'label': 'Ambiente',
+              'required': true,
+              'options': ['Fachada'],
+            },
+            {
+              'id': 'elemento',
+              'label': 'Elemento',
+              'required': true,
+              'options': ['Portão'],
+            },
+            {
+              'id': 'material',
+              'label': 'Material',
+              'required': true,
+              'options': ['Metal'],
+            },
+            {
+              'id': 'estado',
+              'label': 'Estado',
+              'required': true,
+              'options': ['Bom'],
+            },
+          ],
+        },
+      }),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ChangeNotifierProvider<AppState>.value(
+          value: appState,
+          child: CheckinScreen(flowCoordinator: flowCoordinator),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Sim'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Urbano'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Apartamento'));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('Área da foto'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Rua'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Fachada'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Portão'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Metal'));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.widgetWithText(ChoiceChip, 'Bom'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Bom'));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.widgetWithText(ElevatedButton, 'Confirmar e abrir a câmera'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.widgetWithText(ElevatedButton, 'Confirmar e abrir a câmera'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(flowCoordinator.lastPreselectedMacroLocal, 'Rua');
+    expect(flowCoordinator.lastInitialAmbiente, 'Fachada');
+    expect(flowCoordinator.lastInitialElemento, 'Portão');
+    expect(flowCoordinator.lastInitialMaterial, 'Metal');
+    expect(flowCoordinator.lastInitialEstado, 'Bom');
   });
 
   testWidgets(

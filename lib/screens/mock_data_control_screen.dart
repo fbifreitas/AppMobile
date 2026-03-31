@@ -49,10 +49,50 @@ class _MockDataControlScreenState extends State<MockDataControlScreen> {
       'step1': {
         'tipos': ['Urbano', 'Rural', 'Comercial'],
         'contextos': ['Rua', 'Área externa', 'Área interna'],
+        'levels': [
+          {
+            'id': 'contexto',
+            'label': 'Contexto inicial',
+            'required': true,
+            'options': ['Rua', 'Área externa', 'Área interna'],
+          },
+          {
+            'id': 'area_foto',
+            'label': 'Área da foto',
+            'required': true,
+            'dependsOn': 'contexto',
+            'options': ['Frontal', 'Lateral', 'Fundos'],
+          },
+        ],
         'subtiposPorTipo': {
           'Urbano': ['Apartamento', 'Casa'],
           'Rural': ['Sítio'],
           'Comercial': ['Loja'],
+        },
+        'levelsBySubtipo': {
+          'Urbano': {
+            'Apartamento': [
+              {
+                'id': 'torre',
+                'label': 'Torre',
+                'required': false,
+                'options': ['Torre A', 'Torre B'],
+              },
+              {
+                'id': 'piso',
+                'label': 'Piso',
+                'required': true,
+                'dependsOn': 'torre',
+                'options': ['Térreo', '1º', '2º', '3º'],
+              },
+              {
+                'id': 'contexto',
+                'label': 'Contexto inicial',
+                'required': true,
+                'options': ['Rua', 'Área externa', 'Área interna'],
+              },
+            ],
+          },
         },
       },
       'step2': {
@@ -113,6 +153,28 @@ class _MockDataControlScreenState extends State<MockDataControlScreen> {
         ],
         'byTipo': {
           'urbano': {
+            'levels': [
+              {'id': 'macroLocal', 'label': 'Área da foto'},
+              {'id': 'ambiente', 'label': 'Local da foto'},
+              {'id': 'elemento', 'label': 'Elemento'},
+              {'id': 'material', 'label': 'Material'},
+              {'id': 'estado', 'label': 'Estado'},
+            ],
+            'levelsBySubtipo': {
+              'Apartamento': [
+                {'id': 'torre', 'label': 'Torre', 'required': false},
+                {
+                  'id': 'piso',
+                  'label': 'Piso',
+                  'required': true,
+                  'dependsOn': 'torre',
+                },
+                {'id': 'ambiente', 'label': 'Local da foto'},
+                {'id': 'elemento', 'label': 'Elemento'},
+                {'id': 'material', 'label': 'Material'},
+                {'id': 'estado', 'label': 'Estado'},
+              ],
+            },
             'macroLocals': [
               {
                 'label': 'Rua',

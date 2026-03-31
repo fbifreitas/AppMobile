@@ -51,10 +51,7 @@ class HomeHeader extends StatelessWidget {
                 'Seu painel operacional de hoje',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 11,
-                ),
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
               ),
             ],
           ),
@@ -100,29 +97,30 @@ class _HeaderAvatar extends StatelessWidget {
       child: SizedBox(
         width: 42,
         height: 42,
-        child: hasLocal && !kIsWeb
-            ? Image.file(
-                File(photoPath!),
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _fallbackAvatar(),
-              )
-            : Image.network(
-                _avatarUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _fallbackAvatar(),
-                loadingBuilder: (context, child, progress) {
-                  if (progress == null) return child;
-                  return Container(
-                    color: AppColors.primaryLight,
-                    alignment: Alignment.center,
-                    child: const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  );
-                },
-              ),
+        child:
+            hasLocal && !kIsWeb
+                ? Image.file(
+                  File(photoPath!),
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => _fallbackAvatar(),
+                )
+                : Image.network(
+                  _avatarUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => _fallbackAvatar(),
+                  loadingBuilder: (context, child, progress) {
+                    if (progress == null) return child;
+                    return Container(
+                      color: AppColors.primaryLight,
+                      alignment: Alignment.center,
+                      child: const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    );
+                  },
+                ),
       ),
     );
   }
@@ -131,11 +129,7 @@ class _HeaderAvatar extends StatelessWidget {
     return Container(
       color: AppColors.primaryLight,
       alignment: Alignment.center,
-      child: const Icon(
-        Icons.person,
-        color: AppColors.primary,
-        size: 22,
-      ),
+      child: const Icon(Icons.person, color: AppColors.primary, size: 22),
     );
   }
 }
@@ -166,21 +160,14 @@ class _HeaderIconButton extends StatelessWidget {
               shape: BoxShape.circle,
               border: Border.all(color: AppColors.border),
             ),
-            child: Icon(
-              icon,
-              color: AppColors.primary,
-              size: 18,
-            ),
+            child: Icon(icon, color: AppColors.primary, size: 18),
           ),
           if (badge != null)
             Positioned(
               top: -4,
               right: -2,
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 5,
-                  vertical: 1,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                 decoration: BoxDecoration(
                   color: AppColors.danger,
                   borderRadius: BorderRadius.circular(10),

@@ -56,7 +56,7 @@ Step 8️⃣ (FUNCIONAL PRÓXIMO CICLO) → BL-029, BL-030, BL-031, BL-032, BL-0
 | 7️⃣ | BL-006 | Modo desenvolvedor: editor completo de mocks para menus dinamicos da camera | Concluido | 🟠 Alta | Painel dev permite editar cenarios e menus dinamicos sem alterar codigo |
 | 8️⃣ | BL-010 | Endurecimento de bloqueio de recursos dev em release final | Concluido | 🟠 Alta | Recursos dev nao aparecem para usuario final sem desbloqueio autorizado |
 | 9️⃣ | BL-004 | Exibir protocolo/ID externo no card e no historico de vistorias | Concluido | 🟡 Media | Card mostra ID do job e protocolo externo quando existir |
-| 🔟 | BL-005 | Regras de retencao e limpeza de arquivos JSON exportados | Pendente | 🟡 Media | Politica configuravel (ex.: manter ultimos N dias) com limpeza segura |
+| 🔟 | BL-005 | Regras de retencao e limpeza de arquivos JSON exportados | Concluído | 🟡 Media | Politica configuravel (ex.: manter ultimos N dias) com limpeza segura |
 | 1️⃣1️⃣ | BL-016 | Diretorio de exportacao JSON configuravel para conferencia operacional | Concluido | 🟡 Media | Export permite alternar destino (interno/externo) sem perder rastreabilidade e fluxo de sync |
 | 1️⃣2️⃣ | BL-037 | Matriz de pendencia tecnica com linguagem operacional e acao guiada | Concluido | 🟠 Alta | Matriz apresenta texto simples e link/acao direta para levar o usuario ao ponto exato da pendencia no fluxo |
 | 1️⃣3️⃣ | BL-038 | Preservar classificacao revisada ao retornar da camera para revisao | Concluido | 🟠 Alta | Fotos ja classificadas nao regressam para status laranja ao adicionar nova captura e voltar para revisao |
@@ -88,15 +88,15 @@ Step 8️⃣ (FUNCIONAL PRÓXIMO CICLO) → BL-029, BL-030, BL-031, BL-032, BL-0
 | 🧑 | BL-035 | Foto do usuário no topo com captura e atualização | Concluido | 🟠 Alta | Foto do onboarding aparece no topo da Home e pode ser atualizada por captura de câmera (sem galeria) |
 | 4️⃣0️⃣ | BL-040 | Corrigir consistência NBR: obrigatoriedade de Entorno no Checkin Etapa 2 e Revisão | Concluído | 🔴 Crítica | Entorno obrigatório deve ser consistente em Checkin Etapa 2 e Pendências Técnicas; ação "Ir para pendência" não pode travar fluxo |
 | 4️⃣1️⃣ | BL-041 | Reorganizar Revisão de Fotos com acordeões de obrigatórias e capturadas no bloco inferior | Concluído | 🟠 Alta | Bloco "Revisão de Fotos Obrigatórias" deve ficar abaixo, com dois acordeões independentes e estados visuais OK/NOK |
-| 4️⃣2️⃣ | BL-042 | Exibir ID do JOB em Novas Propostas e simular aceite por deslize com movimentação de card | Pendente | 🟠 Alta | Card de proposta mostra ID do job e, ao aceitar, sai de propostas e entra em "Meus Jobs Agendados" via mock atualizado |
-| 4️⃣3️⃣ | BL-043 | Remover overlay fixo de comandos rápidos por voz na câmera | Pendente | 🟡 Media | Componente de voz não pode cobrir a área principal de captura/classificação |
-| 4️⃣4️⃣ | BL-044 | Adicionar colapso lateral dos menus dinâmicos da câmera com abertura padrão expandida | Pendente | 🟠 Alta | Menu lateral inicia expandido e permite ocultar/mostrar via controle lateral sem impactar captura |
-| 4️⃣5️⃣ | BL-045 | Mover exportação da vistoria de Configurações para Hub Operacional | Pendente | 🟡 Media | Entrada de exportação deve estar no Hub Operacional e removida de Configurações |
+| 4️⃣2️⃣ | BL-042 | Exibir ID do JOB em Novas Propostas e simular aceite por deslize com movimentação de card | Concluído | 🟠 Alta | Card de proposta mostra ID do job e, ao aceitar, sai de propostas e entra em "Meus Jobs Agendados" via mock atualizado |
+| 4️⃣3️⃣ | BL-043 | Remover overlay fixo de comandos rápidos por voz na câmera | Concluído | 🟡 Media | Componente de voz não pode cobrir a área principal de captura/classificação |
+| 4️⃣4️⃣ | BL-044 | Adicionar colapso lateral dos menus dinâmicos da câmera com abertura padrão expandida | Concluído | 🟠 Alta | Menu lateral inicia expandido e permite ocultar/mostrar via controle lateral sem impactar captura |
+| 4️⃣5️⃣ | BL-045 | Mover exportação da vistoria de Configurações para Hub Operacional | Concluído | 🟡 Media | Entrada de exportação deve estar no Hub Operacional e removida de Configurações |
 | 4️⃣6️⃣ | BL-046 | Corrigir logout em Configurações com retorno para tela de login (mock) | Concluído | 🔴 Crítica | Ação "Sair da conta" limpa sessão mock e retorna para login consistentemente |
 | 4️⃣7️⃣ | BL-047 | Ajustar onboarding do app para fluxo exclusivamente PJ com validações de CNPJ/Agência/Conta/Banco | Concluído | 🔴 Crítica | Tela inicial não deve pedir CLT/PJ e campos PJ devem validar formato e consistência mínima |
 | 4️⃣8️⃣ | BL-048 | Criar ação no Hub Operacional para resetar mock de onboarding | Concluído | 🟠 Alta | Operador deve conseguir zerar estado de onboarding para reteste sem reinstalar app |
 | 4️⃣9️⃣ | BL-049 | Consolidar GitHub Project como fonte primária do backlog com sincronização total dos itens BL | Em andamento | 🟠 Alta | Todos os BL (pendentes, em andamento, concluídos e adiados) devem existir no board com status e critérios atualizados |
-| 5️⃣0️⃣ | BL-050 | Corrigir botão "Concluir" do onboarding encoberto pelo rodapé do Android | Em andamento | 🟠 Alta | Botão final do onboarding deve permanecer totalmente visível em Android (botões/gestos), permitindo concluir o fluxo sem obstrução |
+| 5️⃣0️⃣ | BL-050 | Corrigir botão "Concluir" do onboarding encoberto pelo rodapé do Android | Concluído | 🟠 Alta | Botão final do onboarding deve permanecer totalmente visível em Android (botões/gestos), permitindo concluir o fluxo sem obstrução |
 | 5️⃣1️⃣ | BL-051 | Unificar persistência dinâmica de obrigatoriedade e política de fotos (mín/máx) entre Checkin, Câmera, Revisão e Menu | Em andamento | 🔴 Crítica | Mesma regra dinâmica deve governar validação e indicadores em todas as telas, com suporte a mínimo/máximo de fotos sem divergência de payload |
 | 5️⃣2️⃣ | BL-052 | Unificar pacote de parametrização operacional do HUB para Check-in e Câmera por níveis | Em andamento | 🔴 Crítica | Mesmo documento do modo desenvolvedor deve definir menus do check-in e níveis da câmera, incluindo material e estado, sem contratos paralelos |
 
@@ -155,6 +155,8 @@ Observacao 2026-03-30 (CONCLUIDO): card da Home e lista de Vistorias concluidas 
 
 ### BL-005
 Definir politica de retencao e limpeza dos JSONs exportados, com regras seguras para manter historico util sem crescimento indefinido de armazenamento.
+
+Observacao 2026-03-31 (CONCLUIDO): configuracao de retencao (dias) adicionada ao Hub Operacional junto da configuracao de exportacao, com acao de limpeza imediata e politica persistida em preferencias. Servico de exportacao aplica limpeza segura por idade dos arquivos JSON de vistoria.
 
 ### BL-016
 Permitir configuracao do diretorio de exportacao do JSON final (interno e/ou externo para conferencia operacional), mantendo consistencia com fila offline e rastreabilidade por job.
@@ -306,6 +308,8 @@ Observacao 2026-03-30 (CONCLUIDO): bloco inferior foi remodelado com dois acorde
 ### BL-042
 No card de Novas Propostas, exibir ID do JOB e implementar simulação do aceite por deslize, movendo o item aceito para "Meus Jobs Agendados" no mock.
 
+**Implementado:** `ProposalsSection` convertido para `StatefulWidget` gerenciando lista local. ID exibido como `_InfoTag`. Swipe usa `confirmDismiss → true` + `onDismissed` para animação limpa. Aceite converte `ProposalOffer` em `Job` e adiciona em `AppState.jobs` via Provider. SnackBar de confirmação exibido. Testes: 2/2 ✅
+
 ### BL-043
 Remover o componente de comandos rápidos por voz da câmera por comprometer a área útil de captura e classificação.
 
@@ -314,6 +318,8 @@ Adicionar controle lateral para ocultar/mostrar menus dinâmicos na câmera, com
 
 ### BL-045
 Transferir a funcionalidade de exportação da vistoria do menu Configurações para o Hub Operacional.
+
+**Implementado:** Bloco "Exportação da vistoria" removido de `settings_screen.dart` (incluindo state fields `_exportFolderController`, `_exportMode`, `_loadingExportSettings`, `_usingExternalExportBase`, métodos `_loadExportSettings`, lógica de export em `_saveSettings` e UI do Divider ao botão). `_ExportSettingsCard` (StatefulWidget com estado próprio) adicionado ao `operational_hub_screen.dart`. 110/110 testes ✅
 
 ### BL-046
 Corrigir o fluxo de "Sair da conta" em Configurações para funcionar em mock e retornar para a tela inicial de login.
@@ -336,17 +342,33 @@ Consolidar o GitHub Project como fonte principal do backlog, garantindo sincroni
 ### BL-050
 Corrigir a área de ação final do onboarding para evitar que o botão "Concluir" fique encoberto pela barra de navegação do Android, garantindo conclusão do fluxo com usabilidade consistente.
 
+Observacao 2026-03-30 (Concluído): botão movido do `body` (Column) para `Scaffold.bottomNavigationBar` com `SafeArea(top: false, minimum: EdgeInsets.fromLTRB(20, 8, 20, 20))` e altura fixa de 54dp via `SizedBox`. O `Scaffold` gerencia corretamente o inset do rodapé do Android independente de modo de gestos ou botões de navegação. 3 testes passando.
+
 ### BL-051
 Unificar a persistência e o consumo das regras dinâmicas de obrigatoriedade entre Checkin Etapa 1/2, Câmera, Revisão e Menu de Vistoria, preparando o app para receber parâmetros normativos do módulo web (incluindo mínimo/máximo de fotos).
 
 Observacao 2026-03-30 (Em andamento): refatoração big-bang aplicada no fluxo mobile para consumir `step2Config` dinâmica de forma consistente em Revisão, Câmera em lote e Menu de Vistoria; export final da revisão passou a usar a lista de capturas atualizada em memória (incluindo capturas adicionadas na própria revisão); contrato dinâmico da etapa 2 recebeu suporte a `minFotos` e `maxFotos`, com validação de limite máximo na Etapa 2 e sinalização operacional na Revisão.
+
+Observacao 2026-03-30 (Em andamento): corrigida a persistencia do snapshot dinamico da Etapa 2 no draft de recuperacao para evitar perda de `step2Config` ao avancar/retomar o fluxo. Menu de Vistoria, Revisao, Camera e auditoria de fallback passaram a resolver a mesma configuracao persistida por um unico caminho no servico dinamico, reduzindo divergencia de indicador e obrigatorios entre telas.
+
+Observacao 2026-03-30 (Concluido): reforcado o caminho de persistencia do indicador em retomadas com payload parcial/corrompido da Etapa 2, substituindo parse direto por restauracao resiliente (`restoreStep2Model`) em Home/Revisao e adicionando regressao para manter sinalizacao de obrigatorios pendentes sem quebra de tela.
 
 ### BL-052
 Unificar no Hub Operacional um pacote único de parametrização para o modo desenvolvedor, deixando explícito o que pertence ao Check-in e o que pertence à Câmera, com organização por níveis configuráveis.
 
 Observacao 2026-03-30 (Em andamento): o documento JSON local do modo desenvolvedor passou a servir como fonte unificada para `step1`, `step2` e `camera`, eliminando a separação entre contrato de check-in e pacote isolado da câmera. A câmera agora pode consumir também níveis dinâmicos de `material` e `estado` por tipo de imóvel no mesmo documento salvo pelo HUB operacional. Próximo passo: evoluir o editor visual do HUB para manipular níveis sem edição manual de JSON.
 
+Observacao 2026-03-30 (Em andamento): o app passou a ter tambem unificacao no codigo de leitura do documento, com um pacote unico de configuracao compartilhado entre Check-in Etapa 1, Etapa 2 e Camera, reduzindo duplicacao de parser e abrindo caminho para evolucao por niveis e por subtipo sem contratos paralelos.
+
+Observacao 2026-03-30 (Em andamento): o pacote unificado passou a suportar niveis explicitos com resolucao por subtipo em `step1` e `camera` (`levels` e `levelsBySubtipo`), incluindo dependencia entre niveis (`dependsOn`) e fallback para niveis base quando nao houver override do subtipo.
+
+Observacao 2026-03-30 (Em andamento): Check-in Etapa 1 passou a renderizar niveis dinamicos em runtime a partir do pacote unificado (com selecao por chips, dependencia entre niveis e persistencia em `step1.niveis`), mantendo compatibilidade com `porOndeComecar` para o fluxo atual de abertura da camera.
+
 Observacao 2026-03-30 (Em andamento): definido checklist de validacao go/no-go para implantacao do pacote dinamico, cobrindo estrutura de niveis, dominio da informacao, regra normativa da Etapa 2, integracao entre telas e mock unificado do Hub Operacional (`docs/qa/CHECKLIST_GO_NO_GO_PACOTE_DINAMICO.md`).
+
+Observacao 2026-03-30 (Em andamento): cobertura de regressao da BL-052 foi ampliada no servico de menus para camera com cenarios de fallback por subtipo nao configurado, fallback padrao sem niveis e saneamento de IDs invalidos de niveis, reduzindo risco de divergencia de ordem/visibilidade em runtime.
+
+Observacao 2026-03-30 (Em andamento): adicionados testes de widget da camera para validar ordem e visibilidade dinamica dos seletores por nivel/subtipo (`test/screens/overlay_camera_screen_test.dart`), com modo deterministico de dados de teste na tela para evitar dependencia de inicializacao de hardware/servicos no ambiente de teste.
 
 ---
 

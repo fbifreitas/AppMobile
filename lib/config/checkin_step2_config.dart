@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum TipoImovel {
-  urbano,
-  rural,
-  comercial,
-  industrial,
-}
+enum TipoImovel { urbano, rural, comercial, industrial }
 
 extension TipoImovelExtension on TipoImovel {
   String get label {
@@ -57,10 +52,7 @@ class CheckinStep2OptionItemConfig {
   final String id;
   final String label;
 
-  const CheckinStep2OptionItemConfig({
-    required this.id,
-    required this.label,
-  });
+  const CheckinStep2OptionItemConfig({required this.id, required this.label});
 }
 
 class CheckinStep2OptionGroupConfig {
@@ -164,7 +156,10 @@ class CheckinStep2Configs {
           multiplaEscolha: false,
           opcoes: [
             CheckinStep2OptionItemConfig(id: 'asfalto', label: 'Asfalto'),
-            CheckinStep2OptionItemConfig(id: 'paralelepipedo', label: 'Paralelepípedo'),
+            CheckinStep2OptionItemConfig(
+              id: 'paralelepipedo',
+              label: 'Paralelepípedo',
+            ),
             CheckinStep2OptionItemConfig(id: 'bloquete', label: 'Bloquete'),
             CheckinStep2OptionItemConfig(id: 'terra', label: 'Terra'),
             CheckinStep2OptionItemConfig(id: 'mista', label: 'Mista'),
@@ -176,11 +171,26 @@ class CheckinStep2Configs {
           multiplaEscolha: true,
           opcoes: [
             CheckinStep2OptionItemConfig(id: 'calcada', label: 'Calçada'),
-            CheckinStep2OptionItemConfig(id: 'guia_sarjeta', label: 'Guia / Sarjeta'),
-            CheckinStep2OptionItemConfig(id: 'galeria_pluvial', label: 'Galeria pluvial'),
-            CheckinStep2OptionItemConfig(id: 'iluminacao_publica', label: 'Iluminação pública'),
-            CheckinStep2OptionItemConfig(id: 'arborizacao', label: 'Arborização'),
-            CheckinStep2OptionItemConfig(id: 'sinalizacao_viaria', label: 'Sinalização viária'),
+            CheckinStep2OptionItemConfig(
+              id: 'guia_sarjeta',
+              label: 'Guia / Sarjeta',
+            ),
+            CheckinStep2OptionItemConfig(
+              id: 'galeria_pluvial',
+              label: 'Galeria pluvial',
+            ),
+            CheckinStep2OptionItemConfig(
+              id: 'iluminacao_publica',
+              label: 'Iluminação pública',
+            ),
+            CheckinStep2OptionItemConfig(
+              id: 'arborizacao',
+              label: 'Arborização',
+            ),
+            CheckinStep2OptionItemConfig(
+              id: 'sinalizacao_viaria',
+              label: 'Sinalização viária',
+            ),
           ],
           permiteObservacao: true,
         ),
@@ -191,11 +201,20 @@ class CheckinStep2Configs {
           opcoes: [
             CheckinStep2OptionItemConfig(id: 'agua', label: 'Rede de água'),
             CheckinStep2OptionItemConfig(id: 'esgoto', label: 'Rede de esgoto'),
-            CheckinStep2OptionItemConfig(id: 'energia', label: 'Energia elétrica'),
+            CheckinStep2OptionItemConfig(
+              id: 'energia',
+              label: 'Energia elétrica',
+            ),
             CheckinStep2OptionItemConfig(id: 'telefonia', label: 'Telefonia'),
             CheckinStep2OptionItemConfig(id: 'internet', label: 'Internet'),
-            CheckinStep2OptionItemConfig(id: 'coleta_lixo', label: 'Coleta de lixo'),
-            CheckinStep2OptionItemConfig(id: 'transporte_publico', label: 'Transporte público'),
+            CheckinStep2OptionItemConfig(
+              id: 'coleta_lixo',
+              label: 'Coleta de lixo',
+            ),
+            CheckinStep2OptionItemConfig(
+              id: 'transporte_publico',
+              label: 'Transporte público',
+            ),
           ],
           permiteObservacao: true,
         ),
@@ -204,9 +223,18 @@ class CheckinStep2Configs {
           titulo: 'Características da localização',
           multiplaEscolha: true,
           opcoes: [
-            CheckinStep2OptionItemConfig(id: 'esquina', label: 'Imóvel de esquina'),
-            CheckinStep2OptionItemConfig(id: 'meio_quadra', label: 'Meio de quadra'),
-            CheckinStep2OptionItemConfig(id: 'condominio', label: 'Em condomínio'),
+            CheckinStep2OptionItemConfig(
+              id: 'esquina',
+              label: 'Imóvel de esquina',
+            ),
+            CheckinStep2OptionItemConfig(
+              id: 'meio_quadra',
+              label: 'Meio de quadra',
+            ),
+            CheckinStep2OptionItemConfig(
+              id: 'condominio',
+              label: 'Em condomínio',
+            ),
             CheckinStep2OptionItemConfig(id: 'avenida', label: 'Em avenida'),
             CheckinStep2OptionItemConfig(id: 'rua_local', label: 'Rua local'),
           ],
@@ -258,7 +286,10 @@ class CheckinStep2Configs {
           multiplaEscolha: true,
           opcoes: [
             CheckinStep2OptionItemConfig(id: 'rodovia', label: 'Rodovia'),
-            CheckinStep2OptionItemConfig(id: 'estrada_terra', label: 'Estrada de terra'),
+            CheckinStep2OptionItemConfig(
+              id: 'estrada_terra',
+              label: 'Estrada de terra',
+            ),
             CheckinStep2OptionItemConfig(id: 'cascalho', label: 'Cascalho'),
           ],
         ),
@@ -307,9 +338,15 @@ class CheckinStep2Configs {
           titulo: 'Infraestrutura',
           multiplaEscolha: true,
           opcoes: [
-            CheckinStep2OptionItemConfig(id: 'estacionamento', label: 'Estacionamento'),
+            CheckinStep2OptionItemConfig(
+              id: 'estacionamento',
+              label: 'Estacionamento',
+            ),
             CheckinStep2OptionItemConfig(id: 'calcada', label: 'Calçada'),
-            CheckinStep2OptionItemConfig(id: 'iluminacao_publica', label: 'Iluminação pública'),
+            CheckinStep2OptionItemConfig(
+              id: 'iluminacao_publica',
+              label: 'Iluminação pública',
+            ),
           ],
         ),
       ],
@@ -357,9 +394,18 @@ class CheckinStep2Configs {
           titulo: 'Infraestrutura',
           multiplaEscolha: true,
           opcoes: [
-            CheckinStep2OptionItemConfig(id: 'energia_trifasica', label: 'Energia trifásica'),
-            CheckinStep2OptionItemConfig(id: 'patio_manobra', label: 'Pátio de manobra'),
-            CheckinStep2OptionItemConfig(id: 'acesso_caminhoes', label: 'Acesso para caminhões'),
+            CheckinStep2OptionItemConfig(
+              id: 'energia_trifasica',
+              label: 'Energia trifásica',
+            ),
+            CheckinStep2OptionItemConfig(
+              id: 'patio_manobra',
+              label: 'Pátio de manobra',
+            ),
+            CheckinStep2OptionItemConfig(
+              id: 'acesso_caminhoes',
+              label: 'Acesso para caminhões',
+            ),
           ],
         ),
       ],

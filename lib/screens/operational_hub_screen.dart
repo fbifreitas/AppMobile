@@ -11,6 +11,7 @@ import '../state/auth_state.dart';
 import '../widgets/home/location_status_card.dart';
 import '../widgets/home/startup_status_card.dart';
 import '../widgets/operational_hub_grid.dart';
+import '../services/inspection_export_service.dart';
 
 class OperationalHubScreen extends StatefulWidget {
   final AppNavigationCoordinator navigationCoordinator;
@@ -262,6 +263,8 @@ class _OperationalHubScreenState extends State<OperationalHubScreen> {
             ),
           ),
           const SizedBox(height: 16),
+          const _ExportSettingsCard(),
+          const SizedBox(height: 16),
           OperationalHubGrid(
             items: items,
             onTap:
@@ -271,6 +274,227 @@ class _OperationalHubScreenState extends State<OperationalHubScreen> {
                 ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ExportSettingsCard extends StatefulWidget {
+  const _ExportSettingsCard();
+
+  @override
+  State<_ExportSettingsCard> createState() => _ExportSettingsCardState();
+}
+
+class _ExportSettingsCardState extends State<_ExportSettingsCard> {
+  final InspectionExportService _exportService = InspectionExportService();
+  late TextEditingController _folderController;
+
+  InspectionExportDirectoryMode _exportMode =
+      InspectionExportDirectoryMode.internal;
+  bool _loading = true;
+  bool _usingExternalBase = false;
+  late TextEditingController _retentionController;
+  bool _purging = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _folderController = TextEditingController(text: 'inspection_exports');
+    _loadSettings();
+    _retentionController = TextEditingController(text: '30');
+  }
+
+  @override
+  void dispose() {
+    _folderController.dispose();
+    _retentionController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadSettings() async {
+    try {
+      final settings = await _exportService.resolveEffectiveSettings();
+      final retentionDays = await _exportService.loadRetentionDays();
+      if (!mounted) return;
+      setState(() {
+        _exportMode = settings.mode;
+        _usingExternalBase = settings.usingExternalBase;
+        _folderController.text = settings.folderName;
+        _retentionController.text = retentionDays.toString();
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _saveSettings() async {
+    await _exportService.configureExportDirectory(
+      mode: _exportMode,
+      folderName: _folderController.text,
+    );
+    final retentionDays = int.tryParse(_retentionController.text.trim()) ?? 30;
+    await _exportService.configureRetentionDays(retentionDays.clamp(0, 3650));
+    final effectiveSettings = await _exportService.resolveEffectiveSettings();
+    if (!mounted) return;
+    setState(() {
+      _usingExternalBase = effectiveSettings.usingExternalBase;
+    });
+    final message =
+        effectiveSettings.mode == InspectionExportDirectoryMode.external &&
+                !effectiveSettings.usingExternalBase
+            ? 'Salvo. Diretório externo indisponível; usando interno automaticamente.'
+            : 'Configuração de exportação salva.';
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _purgeNow() async {
+    final retentionDays = int.tryParse(_retentionController.text.trim()) ?? 30;
+    if (retentionDays <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Retenção definida como 0: nenhum arquivo é excluído automaticamente.',
+          ),
+        ),
+      );
+      return;
+    }
+    setState(() => _purging = true);
+    final deleted = await _exportService.purgeOldExports(
+      retentionDays: retentionDays,
+    );
+    if (!mounted) return;
+    setState(() => _purging = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          deleted == 0
+              ? 'Nenhum arquivo removido (todos dentro do período de $retentionDays dias).'
+              : '$deleted arquivo(s) removido(s) com mais de $retentionDays dia(s).',
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Exportação da vistoria',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Configuração do destino dos JSONs exportados.',
+              style: TextStyle(fontSize: 12),
+            ),
+            const SizedBox(height: 12),
+            if (_loading)
+              const LinearProgressIndicator()
+            else ...[
+              DropdownButtonFormField<InspectionExportDirectoryMode>(
+                initialValue: _exportMode,
+                decoration: const InputDecoration(
+                  labelText: 'Destino da exportação JSON',
+                  border: OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(
+                    value: InspectionExportDirectoryMode.internal,
+                    child: Text('Interno (recomendado)'),
+                  ),
+                  DropdownMenuItem(
+                    value: InspectionExportDirectoryMode.external,
+                    child: Text('Externo (quando disponível)'),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() => _exportMode = value);
+                },
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _folderController,
+                decoration: const InputDecoration(
+                  labelText: 'Subdiretório de exportação',
+                  border: OutlineInputBorder(),
+                  helperText:
+                      'Exemplo: inspection_exports ou operacao/json/vistorias',
+                ),
+              ),
+              if (_exportMode == InspectionExportDirectoryMode.external &&
+                  !_usingExternalBase)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Text(
+                    'Neste dispositivo, o diretório externo pode não estar disponível. O app fará fallback automático para o diretório interno.',
+                    style: TextStyle(
+                      color: Colors.deepOrange,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 12),
+              const Divider(height: 28),
+              const Text(
+                'Retenção de arquivos',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Defina por quantos dias os JSONs exportados são mantidos. '
+                'Use 0 para nunca limpar automaticamente.',
+                style: TextStyle(fontSize: 12),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _retentionController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Dias de retenção (0 = nunca limpar)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  FilledButton(
+                    onPressed: _saveSettings,
+                    child: const Text('Salvar configuração'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: _purging ? null : _purgeNow,
+                    icon:
+                        _purging
+                            ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                            : const Icon(Icons.delete_sweep_outlined, size: 16),
+                    label: const Text('Limpar agora'),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -379,13 +603,6 @@ class _TestAddressConfigurationCard extends StatelessWidget {
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ],
-                    const SizedBox(height: 10),
-                    OutlinedButton(
-                      onPressed: onUseCurrentLocation,
-                      child: const Text(
-                        'Usar localização atual na configuração',
-                      ),
-                    ),
                   ],
                 ),
               ),

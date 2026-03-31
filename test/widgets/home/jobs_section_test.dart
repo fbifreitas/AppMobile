@@ -12,8 +12,9 @@ class _FakeJobRepository implements JobRepository {
 }
 
 void main() {
-  testWidgets('JobsSection renders distance label when location exists',
-      (tester) async {
+  testWidgets('JobsSection renders distance label when location exists', (
+    tester,
+  ) async {
     final appState = AppState(_FakeJobRepository());
     appState.jobs = [
       Job(
@@ -39,11 +40,12 @@ void main() {
             currentLatitude: -23.0,
             currentLongitude: -46.0,
             useDistanceMetrics: true,
-            onNavigateToJob: ({
-              required double? latitude,
-              required double? longitude,
-              required String address,
-            }) async {},
+            onNavigateToJob:
+                ({
+                  required double? latitude,
+                  required double? longitude,
+                  required String address,
+                }) async {},
             onStartInspection: (_) async {},
           ),
         ),

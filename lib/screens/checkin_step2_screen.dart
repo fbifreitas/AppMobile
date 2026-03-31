@@ -365,9 +365,9 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
 
   Widget _buildHeader(ThemeData theme) {
     final maxLabel =
-      _config.maxFotos != null && _config.maxFotos! > 0
-        ? 'máx ${_config.maxFotos}'
-        : 'máx livre';
+        _config.maxFotos != null && _config.maxFotos! > 0
+            ? 'máx ${_config.maxFotos}'
+            : 'máx livre';
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
