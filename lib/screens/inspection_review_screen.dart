@@ -288,10 +288,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                       )
                       : null,
               icon: const Icon(Icons.flag_outlined, size: 18),
-              label: Text(
-                summary.totalPending > 0
-                    ? 'REVISAR E FINALIZAR'
-                    : 'FINALIZAR VISTORIA',
+              label: const Text(
+                'FINALIZAR VISTORIA',
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
               ),
             ),
@@ -300,34 +298,18 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         body: ListView(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
           children: [
-            _buildProgressCard(
-              context,
-              summary,
-              checkinStatuses: checkinStatuses,
-            ),
-            const SizedBox(height: 12),
             InspectionTechnicalSummaryCard(summary: technicalSummary),
-            if (technicalSummary.pendingMatrix.totalBlocking > 0) ...[
-              const SizedBox(height: 8),
-              TechnicalPendingMatrixCard(
-                matrix: technicalSummary.pendingMatrix,
-                onOpenPending: _handlePendingShortcut,
-              ),
-            ],
+            const SizedBox(height: 8),
+            TechnicalPendingMatrixCard(
+              matrix: technicalSummary.pendingMatrix,
+              onOpenPending: _handlePendingShortcut,
+            ),
             const SizedBox(height: 8),
             _buildReviewAccordionsSection(
               context: context,
               groups: groups,
               checkinStatuses: checkinStatuses,
             ),
-            if (technicalSummary.requiresJustification) ...[
-              const SizedBox(height: 12),
-              TechnicalJustificationCard(
-                controller: _technicalJustificationController,
-                voiceService: _voiceService,
-                onChanged: (_) => setState(() {}),
-              ),
-            ],
             const SizedBox(height: 16),
             _buildClosingCard(context, summary, technicalSummary),
           ],
@@ -364,79 +346,6 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         .toList();
   }
 
-  Widget _buildProgressCard(
-    BuildContext context,
-    _ReviewSummary summary, {
-    required List<_CheckinRequirementStatus> checkinStatuses,
-  }) {
-    final progress =
-        summary.total == 0
-            ? 0.0
-            : (summary.classified / summary.total).clamp(0.0, 1.0);
-    final requiredDone =
-        checkinStatuses.where((status) => status.isDone).length;
-    final requiredTotal = checkinStatuses.length;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(
-          context,
-        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.32),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.10),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.map_outlined, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Revisão de fotos',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const Spacer(),
-              Text(
-                '${summary.classified}/${summary.total} classificadas',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(minHeight: 8, value: progress),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _ProgressGroupChip(
-                label: 'Fotos obrigatórias',
-                value: '$requiredDone/$requiredTotal',
-                isDone: requiredTotal > 0 && requiredDone == requiredTotal,
-              ),
-              _ProgressGroupChip(
-                label: 'Fotos capturadas',
-                value: '${summary.classified}/${summary.total}',
-                isDone:
-                    summary.total > 0 && summary.classified == summary.total,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _handlePendingShortcut(TechnicalRuleResult item) async {
     switch (item.stage) {
       case TechnicalRuleStage.checkin:
@@ -447,11 +356,24 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         await _scrollToSection(_checkinPendingSectionKey);
         break;
       case TechnicalRuleStage.capture:
-        setState(() {
-          _capturedAccordionExpanded = true;
-        });
-        await Future<void>.delayed(const Duration(milliseconds: 16));
-        await _scrollToSection(_capturedPhotosSectionKey);
+        final subtipo = item.subtipo?.trim();
+        final result = await widget.flowCoordinator.openOverlayCamera(
+          context,
+          title: subtipo?.isNotEmpty == true ? subtipo! : 'Captura obrigatória',
+          tipoImovel: widget.tipoImovel,
+          subtipoImovel: widget.tipoImovel,
+          singleCaptureMode: true,
+          initialAmbiente: subtipo,
+          cameFromCheckinStep1: false,
+        );
+        if (result != null && mounted) {
+          _capturesCurrent.add(result);
+          setState(() {
+            _items.add(_EditableCapture.fromCapture(result));
+            _capturedAccordionExpanded = true;
+          });
+          await _persistReviewState();
+        }
         break;
       case TechnicalRuleStage.review:
         if (item.subtipo != null && item.subtipo!.trim().isNotEmpty) {
@@ -460,7 +382,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
             _capturedAccordionExpanded = true;
           });
         }
-        await Future<void>.delayed(const Duration(milliseconds: 16));
+        await Future<void>.delayed(const Duration(milliseconds: 280));
         await _scrollToSection(_capturedPhotosSectionKey);
         break;
       case TechnicalRuleStage.finalization:
@@ -485,10 +407,55 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     required List<_NodeGroup> groups,
     required List<_CheckinRequirementStatus> checkinStatuses,
   }) {
+    final mandatoryCapturedItems = <_EditableCapture>[];
+    final mandatoryCapturedPaths = <String>{};
+
+    for (final status in checkinStatuses.where((status) => status.isDone)) {
+      final matched = _items.firstWhere(
+        (item) {
+          final sameAmbiente =
+              item.ambiente.trim().toLowerCase() ==
+              status.field.cameraAmbiente.trim().toLowerCase();
+          final sameElemento =
+              status.field.cameraElementoInicial == null ||
+              item.elemento?.trim().toLowerCase() ==
+                  status.field.cameraElementoInicial!.trim().toLowerCase();
+          final notUsed = !mandatoryCapturedPaths.contains(item.filePath);
+          return sameAmbiente && sameElemento && notUsed;
+        },
+        orElse:
+            () => _EditableCapture(
+              filePath: '',
+              macroLocal: null,
+              ambiente: '',
+              elemento: null,
+              material: null,
+              estado: null,
+              capturedAt: DateTime.fromMillisecondsSinceEpoch(0),
+              status: _PhotoStatus.pending,
+            ),
+      );
+      if (matched.filePath.isNotEmpty) {
+        mandatoryCapturedItems.add(matched);
+        mandatoryCapturedPaths.add(matched.filePath);
+      }
+    }
+
+    final mandatoryGroups = _buildGroupsForItems(mandatoryCapturedItems);
+    final capturedGroups = _buildGroupsForItems(
+      _items
+          .where((item) => !mandatoryCapturedPaths.contains(item.filePath))
+          .toList(),
+    );
+
     final checkinPendencias =
         checkinStatuses.where((status) => !status.isDone).length;
-    final hasCheckinPending = checkinPendencias > 0;
-    final capturedPendencias = groups.fold<int>(
+    final hasCheckinPending =
+        checkinPendencias > 0 ||
+        mandatoryGroups.any(
+          (group) => group.pending > 0 || group.suggested > 0,
+        );
+    final capturedPendencias = capturedGroups.fold<int>(
       0,
       (sum, group) => sum + group.pending,
     );
@@ -498,7 +465,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Revisão de fotos obrigatórias',
+          'Revisão de fotos',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w800,
             fontSize: 16,
@@ -517,33 +484,57 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
           onExpansionChanged:
               (expanded) =>
                   setState(() => _checkinAccordionExpanded = expanded),
-          child:
-              checkinStatuses.isEmpty
-                  ? const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Text(
-                      'Sem requisitos obrigatórios para este tipo de imóvel.',
+          child: Column(
+            children: [
+              if (mandatoryGroups.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    'Sem cartões de captura obrigatória disponíveis.',
+                  ),
+                )
+              else
+                ...mandatoryGroups
+                    .map(
+                      (group) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _NodeCard(
+                          group: group,
+                          initiallyExpanded:
+                              _expandedSubtype == null
+                                  ? group.pending > 0
+                                  : _expandedSubtype == group.title,
+                          onExpansionChanged: (expanded) {
+                            setState(() {
+                              _expandedSubtype = expanded ? group.title : null;
+                            });
+                          },
+                          onChanged: () => setState(() {}),
+                          onApplySubtype: () => _applySubtype(group),
+                          onApplySimilar:
+                              (source) => _applySimilar(group, source),
+                          onAcceptSuggestions: () => _acceptSuggestions(group),
+                          onEditItem: _editItem,
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ...checkinStatuses
+                  .map(
+                    (status) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _CheckinRequirementCard(
+                        status: status,
+                        onCapture:
+                            status.isDone
+                                ? null
+                                : () => _captureMissingRequirement(status),
+                      ),
                     ),
                   )
-                  : Column(
-                    children:
-                        checkinStatuses
-                            .map(
-                              (status) => Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
-                                child: _CheckinRequirementCard(
-                                  status: status,
-                                  onCapture:
-                                      status.isDone
-                                          ? null
-                                          : () => _captureMissingRequirement(
-                                            status,
-                                          ),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                  ),
+                  .toList(),
+            ],
+          ),
         ),
         const SizedBox(height: 12),
         _buildReviewAccordion(
@@ -560,7 +551,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                   setState(() => _capturedAccordionExpanded = expanded),
           child: Column(
             children:
-                groups
+                capturedGroups
                     .map(
                       (group) => Padding(
                         padding: const EdgeInsets.only(bottom: 12),
@@ -671,6 +662,14 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
               fontSize: 16,
             ),
           ),
+          if (technicalSummary.requiresJustification) ...[
+            const SizedBox(height: 10),
+            TechnicalJustificationCard(
+              controller: _technicalJustificationController,
+              voiceService: _voiceService,
+              onChanged: (_) => setState(() {}),
+            ),
+          ],
           const SizedBox(height: 10),
           VoiceTextField(
             controller: _observacaoController,
@@ -789,9 +788,9 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     return 0;
   }
 
-  List<_NodeGroup> _buildGroups() {
+  List<_NodeGroup> _buildGroupsForItems(List<_EditableCapture> sourceItems) {
     final map = <String, List<_EditableCapture>>{};
-    for (final item in _items) {
+    for (final item in sourceItems) {
       final key = item.ambiente.trim().isEmpty ? 'Sem subtipo' : item.ambiente;
       map.putIfAbsent(key, () => <_EditableCapture>[]).add(item);
     }
@@ -815,6 +814,10 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       return a.title.compareTo(b.title);
     });
     return groups;
+  }
+
+  List<_NodeGroup> _buildGroups() {
+    return _buildGroupsForItems(_items);
   }
 
   List<_CheckinRequirementStatus> _buildCheckinRequirements() {
@@ -1631,55 +1634,6 @@ class _StatusPill extends StatelessWidget {
                 fontWeight: FontWeight.w800,
                 fontSize: 11,
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProgressGroupChip extends StatelessWidget {
-  final String label;
-  final String value;
-  final bool isDone;
-
-  const _ProgressGroupChip({
-    required this.label,
-    required this.value,
-    required this.isDone,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final background =
-        isDone
-            ? Colors.green.withValues(alpha: 0.12)
-            : Colors.orange.withValues(alpha: 0.12);
-    final foreground = isDone ? Colors.green.shade800 : Colors.orange.shade800;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: background,
-        border: Border.all(color: foreground.withValues(alpha: 0.28)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            isDone ? Icons.check_circle_outline : Icons.info_outline,
-            size: 14,
-            color: foreground,
-          ),
-          const SizedBox(width: 6),
-          Text(
-            '$label: $value',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: foreground,
             ),
           ),
         ],

@@ -593,6 +593,13 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> resetSessionAfterLogout() async {
+    jobAtual = null;
+    ultimaLatitude = null;
+    ultimaLongitude = null;
+    await clearInspectionRecovery();
+  }
+
   void prioritizeRecoveryJob() {
     final draft = inspectionRecoveryDraft;
     if (draft == null) return;

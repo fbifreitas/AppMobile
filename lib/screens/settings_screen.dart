@@ -111,9 +111,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _saveSettings() async {
     final appState = context.read<AppState>();
     appState.setUsuarioNomeCompleto(_nomeController.text.trim());
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Configurações atualizadas.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Configurações atualizadas.')));
   }
 
   Future<void> _captureUserPhoto() async {
@@ -247,7 +247,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           OutlinedButton.icon(
             onPressed: () async {
               final authState = context.read<AuthState>();
+              final appState = context.read<AppState>();
               final navigator = Navigator.of(context);
+              await appState.resetSessionAfterLogout();
               await authState.logout();
               if (!mounted) return;
               navigator.popUntil((route) => route.isFirst);

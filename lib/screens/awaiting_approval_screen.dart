@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../state/app_state.dart';
 import '../state/auth_state.dart';
 import '../theme/app_colors.dart';
 
@@ -80,7 +81,10 @@ class AwaitingApprovalScreen extends StatelessWidget {
               ],
               const Spacer(),
               TextButton.icon(
-                onPressed: () => authState.logout(),
+                onPressed: () async {
+                  await context.read<AppState>().resetSessionAfterLogout();
+                  await authState.logout();
+                },
                 icon: const Icon(Icons.logout, size: 16),
                 label: const Text('Sair da conta'),
               ),

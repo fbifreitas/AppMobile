@@ -196,7 +196,7 @@ void main() {
       captures: [_capture(filePath: '/tmp/a.jpg', ambiente: 'Cozinha')],
     );
 
-    expect(find.text('REVISAR E FINALIZAR'), findsOneWidget);
+    expect(find.text('FINALIZAR VISTORIA'), findsOneWidget);
     expect(find.text('Ir para principal pendência'), findsNothing);
   });
 
@@ -216,7 +216,7 @@ void main() {
       ],
     );
 
-    expect(find.text('Revisão de fotos obrigatórias'), findsOneWidget);
+    expect(find.text('Revisão de fotos'), findsOneWidget);
     expect(find.text('Fotos obrigatórias do check-in'), findsOneWidget);
     expect(find.text('Fotos capturadas'), findsOneWidget);
   });
@@ -233,9 +233,7 @@ void main() {
     expect(find.text('Comandos rápidos por voz'), findsNothing);
   });
 
-  testWidgets('shows top grouping chips for required and captured photos', (
-    tester,
-  ) async {
+  testWidgets('does not render old top grouping chips frame', (tester) async {
     await _pumpReview(
       tester,
       captures: [
@@ -249,9 +247,9 @@ void main() {
       ],
     );
 
-    expect(find.text('Revisão de fotos'), findsOneWidget);
-    expect(find.textContaining('Fotos obrigatórias:'), findsOneWidget);
-    expect(find.textContaining('Fotos capturadas:'), findsOneWidget);
+    expect(find.textContaining('Fotos obrigatórias:'), findsNothing);
+    expect(find.textContaining('Fotos capturadas:'), findsNothing);
+    expect(find.textContaining('Revisão de fotos'), findsOneWidget);
   });
 
   testWidgets('renders pending shortcut action in technical matrix', (
@@ -412,9 +410,7 @@ void main() {
         captures: const [],
         tipoImovel: 'Urbano • Apartamento',
         persistedRecoveryPayload: {
-          'step2': {
-            'fotos': 'invalid-structure',
-          },
+          'step2': {'fotos': 'invalid-structure'},
           'step2Config': {
             'tituloTela': 'Etapa 2 dinâmica',
             'camposFotos': [
@@ -472,8 +468,11 @@ void main() {
         persistedRecoveryPayload: recoveryPayload,
       );
 
-      expect(find.text('1/2 classificadas'), findsOneWidget);
-      expect(find.textContaining('Fotos capturadas: 1/2'), findsOneWidget);
+      expect(find.text('Fotos capturadas'), findsOneWidget);
+      expect(
+        find.textContaining('1 pendência(s) de classificação'),
+        findsOneWidget,
+      );
     },
   );
 }
