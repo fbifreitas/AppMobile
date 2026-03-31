@@ -494,45 +494,40 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                   ),
                 )
               else
-                ...mandatoryGroups
-                    .map(
-                      (group) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _NodeCard(
-                          group: group,
-                          initiallyExpanded:
-                              _expandedSubtype == null
-                                  ? group.pending > 0
-                                  : _expandedSubtype == group.title,
-                          onExpansionChanged: (expanded) {
-                            setState(() {
-                              _expandedSubtype = expanded ? group.title : null;
-                            });
-                          },
-                          onChanged: () => setState(() {}),
-                          onApplySubtype: () => _applySubtype(group),
-                          onApplySimilar:
-                              (source) => _applySimilar(group, source),
-                          onAcceptSuggestions: () => _acceptSuggestions(group),
-                          onEditItem: _editItem,
-                        ),
-                      ),
-                    )
-                    .toList(),
-              ...checkinStatuses
-                  .map(
-                    (status) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _CheckinRequirementCard(
-                        status: status,
-                        onCapture:
-                            status.isDone
-                                ? null
-                                : () => _captureMissingRequirement(status),
-                      ),
+                ...mandatoryGroups.map(
+                  (group) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _NodeCard(
+                      group: group,
+                      initiallyExpanded:
+                          _expandedSubtype == null
+                              ? group.pending > 0
+                              : _expandedSubtype == group.title,
+                      onExpansionChanged: (expanded) {
+                        setState(() {
+                          _expandedSubtype = expanded ? group.title : null;
+                        });
+                      },
+                      onChanged: () => setState(() {}),
+                      onApplySubtype: () => _applySubtype(group),
+                      onApplySimilar: (source) => _applySimilar(group, source),
+                      onAcceptSuggestions: () => _acceptSuggestions(group),
+                      onEditItem: _editItem,
                     ),
-                  )
-                  .toList(),
+                  ),
+                ),
+              ...checkinStatuses.map(
+                (status) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _CheckinRequirementCard(
+                    status: status,
+                    onCapture:
+                        status.isDone
+                            ? null
+                            : () => _captureMissingRequirement(status),
+                  ),
+                ),
+              ),
             ],
           ),
         ),

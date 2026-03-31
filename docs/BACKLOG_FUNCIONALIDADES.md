@@ -260,6 +260,17 @@ Padronizar ciclo de vida de feature flags para evitar acúmulo de código morto 
 ### BL-028
 Reforçar Definition of Done com critérios obrigatórios de teste, qualidade técnica, QA e documentação.
 
+Lista básica operacional (obrigatória para todo pacote):
+1. Registrar demanda no backlog antes de implementar e manter status atualizado.
+2. Ler contexto completo do projeto e limitar mudanças ao escopo solicitado.
+3. Não remover código/arquivos fora do requisito explícito.
+4. Escrever/atualizar testes para o comportamento alterado (TDD sempre que viável).
+5. Executar `flutter analyze` antes de commit/push.
+6. Executar `flutter test` antes de commit/push.
+7. Validar e incrementar `version` no `pubspec.yaml` antes de merge/push/publicação.
+8. Usar mensagem de commit/publicação no padrão acordado: `[versão] - [tipo alteração]: [resumo curto em português]`.
+9. Atualizar documentação e observações do backlog no fechamento da entrega.
+
 ### BL-029
 Implementar a aba Agenda com visualização em calendário para o usuário consultar os jobs agendados por dia, semana e mês.
 

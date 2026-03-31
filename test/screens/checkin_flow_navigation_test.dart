@@ -14,6 +14,7 @@ import 'package:appmobile/services/inspection_flow_coordinator.dart';
 import 'package:appmobile/screens/checkin_screen.dart';
 import 'package:appmobile/screens/checkin_step2_screen.dart';
 import 'package:appmobile/screens/home_screen.dart';
+import 'package:appmobile/screens/inspection_review_screen.dart';
 import 'package:appmobile/state/app_state.dart';
 import 'package:appmobile/state/inspection_state.dart';
 import 'package:flutter/material.dart';
