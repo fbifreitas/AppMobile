@@ -91,32 +91,36 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  TextFormField(
-                    key: const Key('login_senha_field'),
-                    controller: _senhaController,
-                    obscureText: _obscureSenha,
-                    decoration: InputDecoration(
-                      labelText: 'Senha',
-                      prefixIcon: const Icon(Icons.lock_outlined),
-                      border: const OutlineInputBorder(),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscureSenha
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
+                    Semantics(
+                      label: 'Senha',
+                      textField: true,
+                      child: TextFormField(
+                        key: const Key('login_senha_field'),
+                        controller: _senhaController,
+                        obscureText: _obscureSenha,
+                        decoration: InputDecoration(
+                          labelText: 'Senha',
+                          prefixIcon: const Icon(Icons.lock_outlined),
+                          border: const OutlineInputBorder(),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscureSenha
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                            ),
+                            onPressed:
+                                () =>
+                                    setState(() => _obscureSenha = !_obscureSenha),
+                          ),
                         ),
-                        onPressed:
-                            () =>
-                                setState(() => _obscureSenha = !_obscureSenha),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Informe a senha';
+                          }
+                          return null;
+                        },
                       ),
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Informe a senha';
-                      }
-                      return null;
-                    },
-                  ),
                   const SizedBox(height: 28),
                   FilledButton(
                     key: const Key('login_submit_button'),
