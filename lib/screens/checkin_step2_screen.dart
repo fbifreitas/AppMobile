@@ -44,6 +44,10 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
   bool _busy = false;
   bool _loadingMenus = true;
   String? _busyFieldId;
+  bool _photosSectionExpanded = false;
+  bool _optionsSectionExpanded = false;
+  final Map<String, bool> _expandedOptionGroupIds = <String, bool>{};
+  final Map<String, bool> _expandedObservationGroupIds = <String, bool>{};
 
   @override
   void initState() {
@@ -71,6 +75,8 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
       _obsControllers[grupo.id] = TextEditingController(
         text: _model.respostas[grupo.id]?.observacao ?? '',
       );
+      _expandedOptionGroupIds[grupo.id] = false;
+      _expandedObservationGroupIds[grupo.id] = false;
     }
 
     _loadDynamicConfigAndMenus();
@@ -123,6 +129,8 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
       if (!nextGroupIds.contains(entry.key)) {
         entry.value.dispose();
         _obsControllers.remove(entry.key);
+        _expandedOptionGroupIds.remove(entry.key);
+        _expandedObservationGroupIds.remove(entry.key);
       }
     }
 
@@ -133,6 +141,8 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
           text: _model.respostas[group.id]?.observacao ?? '',
         ),
       );
+      _expandedOptionGroupIds.putIfAbsent(group.id, () => false);
+      _expandedObservationGroupIds.putIfAbsent(group.id, () => false);
     }
   }
 
@@ -298,14 +308,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
     );
 
     setState(() {
-      if (grupo.multiplaEscolha) {
-        _model = _model.toggleMultiOption(
-          groupId: grupo.id,
-          optionId: option.id,
-        );
-      } else {
-        _model = _model.setSingleOption(groupId: grupo.id, optionId: option.id);
-      }
+      _model = _model.toggleMultiOption(groupId: grupo.id, optionId: option.id);
     });
 
     await _persistCurrentModel(stageLabel: 'Check-in etapa 2');
@@ -418,28 +421,47 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
 
   Widget _buildPhotosSection(ThemeData theme) {
     final photoLimitReached = _isPhotoLimitReached();
+    final captured = _capturedPhotosCount();
+    final total = _camposFotosOrdenados.length;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Registros fotográficos',
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w700,
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: theme.dividerColor.withValues(alpha: 0.25),
+            ),
           ),
-        ),
-        const SizedBox(height: 10),
-        ..._camposFotosOrdenados.map(
-          (field) => _PhotoCaptureCard(
-            titulo: field.titulo,
-            obrigatorio: field.obrigatorio,
-            capturado: _model.isPhotoCaptured(field.id),
-            icon: field.icon,
-            busy: _busy && _busyFieldId == field.id,
-            photoInfo: _model.fotos[field.id],
-            onCapture:
-                photoLimitReached && !_model.isPhotoCaptured(field.id)
-                    ? null
-                    : () => _handleCapture(field),
+          child: ExpansionTile(
+            initiallyExpanded: _photosSectionExpanded,
+            onExpansionChanged:
+                (expanded) => setState(() => _photosSectionExpanded = expanded),
+            tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+            childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            title: Text(
+              'REGISTROS FOTOGRÁFICOS $captured/$total',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            children: [
+              ..._camposFotosOrdenados.map(
+                (field) => _PhotoCaptureCard(
+                  titulo: field.titulo,
+                  obrigatorio: field.obrigatorio,
+                  capturado: _model.isPhotoCaptured(field.id),
+                  icon: field.icon,
+                  busy: _busy && _busyFieldId == field.id,
+                  photoInfo: _model.fotos[field.id],
+                  onCapture:
+                      photoLimitReached && !_model.isPhotoCaptured(field.id)
+                          ? null
+                          : () => _handleCapture(field),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -457,22 +479,51 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
   }
 
   Widget _buildDynamicOptionsSection(ThemeData theme) {
+    final total = _config.gruposOpcoes.length;
+    final answered = _config.gruposOpcoes
+        .where((grupo) => _isGroupAnswered(grupo.id))
+        .length;
+    final complete = total > 0 && answered == total;
+    final statusColor =
+        complete ? Colors.green.shade700 : Colors.orange.shade700;
+    final statusBg =
+        complete ? Colors.green.shade50 : Colors.orange.shade50;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Infraestrutura e serviços',
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w700,
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: theme.dividerColor.withValues(alpha: 0.25),
+            ),
+          ),
+          child: ExpansionTile(
+            initiallyExpanded: _optionsSectionExpanded,
+            onExpansionChanged:
+                (expanded) => setState(() => _optionsSectionExpanded = expanded),
+            tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+            childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            title: Text(
+              'INFRAESTRUTURA E SERVIÇOS $answered/$total ${complete ? 'OK' : 'NOK'}',
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: statusColor,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            collapsedBackgroundColor: statusBg,
+            backgroundColor: statusBg,
+            children: [
+              ..._config.gruposOpcoes.map(
+                (grupo) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildOptionGroupCard(theme, grupo),
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 10),
-        ..._config.gruposOpcoes.map((grupo) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _buildOptionGroupCard(theme, grupo),
-          );
-        }),
       ],
     );
   }
@@ -482,97 +533,200 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
     CheckinStep2OptionGroupConfig grupo,
   ) {
     final resposta = _model.respostas[grupo.id];
+    final answered = _isGroupAnswered(grupo.id);
+    final expanded = _expandedOptionGroupIds[grupo.id] ?? false;
+    final answerSummary = _groupAnswerSummary(grupo);
+    final borderColor = answered
+        ? Colors.green.withValues(alpha: 0.35)
+        : theme.dividerColor.withValues(alpha: 0.20);
+    final cardColor = answered
+        ? Colors.green.withValues(alpha: 0.08)
+        : theme.colorScheme.surface;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.20)),
+        border: Border.all(color: borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  grupo.titulo,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
+          InkWell(
+            onTap: () {
+              setState(() {
+                _expandedOptionGroupIds[grupo.id] = !expanded;
+              });
+            },
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: _toLevel3TitleCase(grupo.titulo),
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                        ),
+                        if (answerSummary != null)
+                          TextSpan(
+                            text: ' [$answerSummary]',
+                            style: TextStyle(
+                              color: Colors.green.shade700,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              IconButton(
-                tooltip: 'Selecionar por voz',
-                onPressed: () => _selectGroupOptionByVoice(grupo),
-                icon: const Icon(Icons.mic_none, size: 18),
+                IconButton(
+                  tooltip: 'Selecionar por voz',
+                  onPressed: () => _selectGroupOptionByVoice(grupo),
+                  icon: const Icon(Icons.mic_none, size: 18),
+                ),
+                Icon(
+                  expanded ? Icons.expand_less : Icons.expand_more,
+                  color: answered
+                      ? Colors.green.shade700
+                      : theme.colorScheme.onSurfaceVariant,
+                ),
+              ],
+            ),
+          ),
+          if (expanded) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children:
+                  grupo.opcoes.map((opcao) {
+                    final selected =
+                        resposta?.selectedOptionIds.contains(opcao.id) ?? false;
+                    return FilterChip(
+                      label: Text(opcao.label),
+                      selected: selected,
+                      onSelected: (_) async {
+                        setState(() {
+                          _model = _model.toggleMultiOption(
+                            groupId: grupo.id,
+                            optionId: opcao.id,
+                          );
+                        });
+                        await _persistCurrentModel(
+                          stageLabel: 'Check-in etapa 2',
+                        );
+                      },
+                    );
+                  }).toList(),
+            ),
+            if (grupo.permiteObservacao) ...[
+              const SizedBox(height: 10),
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: theme.dividerColor.withValues(alpha: 0.25),
+                  ),
+                ),
+                child: ExpansionTile(
+                  initiallyExpanded: _expandedObservationGroupIds[grupo.id] ?? false,
+                  onExpansionChanged: (expandedObs) {
+                    setState(() {
+                      _expandedObservationGroupIds[grupo.id] = expandedObs;
+                    });
+                  },
+                  tilePadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 0,
+                  ),
+                  childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  title: const Text(
+                    'Observações',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                  ),
+                  children: [
+                    VoiceTextField(
+                      controller: _obsControllers[grupo.id]!,
+                      labelText: 'Observações',
+                      minLines: 2,
+                      maxLines: 3,
+                      voiceService: _voiceService,
+                      helperText: 'Toque no microfone para ditar a observação.',
+                      onChanged: (value) async {
+                        _model = _model.setObservacao(
+                          groupId: grupo.id,
+                          observacao: value,
+                        );
+                        await _persistCurrentModel(stageLabel: 'Check-in etapa 2');
+                      },
+                    ),
+                  ],
+                ),
               ),
             ],
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children:
-                grupo.opcoes.map((opcao) {
-                  final selected =
-                      resposta?.selectedOptionIds.contains(opcao.id) ?? false;
-                  return grupo.multiplaEscolha
-                      ? FilterChip(
-                        label: Text(opcao.label),
-                        selected: selected,
-                        onSelected: (_) async {
-                          setState(() {
-                            _model = _model.toggleMultiOption(
-                              groupId: grupo.id,
-                              optionId: opcao.id,
-                            );
-                          });
-                          await _persistCurrentModel(
-                            stageLabel: 'Check-in etapa 2',
-                          );
-                        },
-                      )
-                      : ChoiceChip(
-                        label: Text(opcao.label),
-                        selected: selected,
-                        onSelected: (_) async {
-                          setState(() {
-                            _model = _model.setSingleOption(
-                              groupId: grupo.id,
-                              optionId: opcao.id,
-                            );
-                          });
-                          await _persistCurrentModel(
-                            stageLabel: 'Check-in etapa 2',
-                          );
-                        },
-                      );
-                }).toList(),
-          ),
-          if (grupo.permiteObservacao) ...[
-            const SizedBox(height: 12),
-            VoiceTextField(
-              controller: _obsControllers[grupo.id]!,
-              labelText: 'Observações',
-              minLines: 2,
-              maxLines: 3,
-              voiceService: _voiceService,
-              helperText: 'Toque no microfone para ditar a observação.',
-              onChanged: (value) async {
-                _model = _model.setObservacao(
-                  groupId: grupo.id,
-                  observacao: value,
-                );
-                await _persistCurrentModel(stageLabel: 'Check-in etapa 2');
-              },
-            ),
           ],
         ],
       ),
     );
+  }
+
+  bool _isGroupAnswered(String groupId) {
+    final answer = _model.respostas[groupId];
+    if (answer == null) return false;
+    return answer.selectedOptionIds.isNotEmpty;
+  }
+
+  String _toLevel3TitleCase(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return value;
+
+    const lowerWords = <String>{'de', 'da', 'das', 'do', 'dos', 'e'};
+    final words = trimmed.split(RegExp(r'\s+'));
+
+    return words.asMap().entries.map((entry) {
+      final index = entry.key;
+      final original = entry.value;
+      final lower = original.toLowerCase();
+
+      if (index > 0 && lowerWords.contains(lower)) {
+        return lower;
+      }
+
+      if (original == original.toUpperCase() && original.length > 1) {
+        return original;
+      }
+
+      return '${lower[0].toUpperCase()}${lower.substring(1)}';
+    }).join(' ');
+  }
+
+  String? _groupAnswerSummary(CheckinStep2OptionGroupConfig grupo) {
+    final answer = _model.respostas[grupo.id];
+    if (answer == null || answer.selectedOptionIds.isEmpty) {
+      return null;
+    }
+
+    final labels = answer.selectedOptionIds
+        .map(
+          (id) => grupo.opcoes
+              .firstWhere(
+                (item) => item.id == id,
+                orElse: () => CheckinStep2OptionItemConfig(id: id, label: id),
+              )
+              .label,
+        )
+        .toList();
+
+    if (labels.isEmpty) return null;
+    if (labels.length == 1) return labels.first;
+    return '${labels.first} +${labels.length - 1}';
   }
 }
 

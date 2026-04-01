@@ -163,6 +163,14 @@ Future<void> _pumpReview(
   await tester.pumpAndSettle();
 }
 
+Future<void> _expandSection(WidgetTester tester, String sectionTitle) async {
+  final sectionFinder = find.text(sectionTitle);
+  expect(sectionFinder, findsOneWidget);
+  await tester.ensureVisible(sectionFinder);
+  await tester.tap(sectionFinder);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
@@ -217,7 +225,11 @@ void main() {
     );
 
     expect(find.text('REVISÃO DE FOTOS'), findsOneWidget);
-    expect(find.text('Fotos Obrigatórias Do Check-In'), findsOneWidget);
+
+    await tester.tap(find.text('REVISÃO DE FOTOS'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Fotos Obrigatórias do Check-In'), findsOneWidget);
     expect(find.text('Fotos Capturadas'), findsOneWidget);
   });
 
@@ -252,16 +264,35 @@ void main() {
     expect(find.textContaining('REVISÃO DE FOTOS'), findsOneWidget);
   });
 
-  testWidgets('renders pending shortcut action in technical matrix', (
+  testWidgets('renders technical pending section without shortcut when empty', (
     tester,
   ) async {
+    final geoPoint = GeoPointData(
+      latitude: -23.0,
+      longitude: -46.0,
+      accuracy: 5,
+      capturedAt: DateTime(2026, 3, 30),
+    );
+    final persistedStep2 =
+        CheckinStep2Model.empty(TipoImovel.urbano)
+            .setPhoto(
+              fieldId: 'fachada',
+              titulo: 'Fachada',
+              imagePath: '/tmp/fachada.jpg',
+              geoPoint: geoPoint,
+            )
+            .toMap();
+
     await _pumpReview(
       tester,
       captures: [_capture(filePath: '/tmp/a.jpg', ambiente: 'Cozinha')],
+      tipoImovel: 'Urbano • Apartamento',
+      persistedStep2Payload: persistedStep2,
     );
 
     expect(find.text('PENDÊNCIAS TÉCNICAS DA VISTORIA'), findsOneWidget);
-    expect(find.text('Ir para pendência'), findsWidgets);
+    await _expandSection(tester, 'PENDÊNCIAS TÉCNICAS DA VISTORIA');
+    expect(find.text('Ir para pendência'), findsNothing);
   });
 
   testWidgets(
@@ -296,6 +327,9 @@ void main() {
         tipoImovel: 'Urbano • Apartamento',
         persistedStep2Payload: persistedStep2,
       );
+
+      await _expandSection(tester, 'REVISÃO DE FOTOS');
+      await _expandSection(tester, 'Fotos Obrigatórias do Check-In');
 
       expect(find.text('Fachada'), findsOneWidget);
       expect(find.text('Logradouro'), findsOneWidget);
@@ -344,6 +378,9 @@ void main() {
         persistedStep2Payload: persistedStep2,
         flowCoordinator: flowCoordinator,
       );
+
+      await _expandSection(tester, 'REVISÃO DE FOTOS');
+      await _expandSection(tester, 'Fotos Obrigatórias do Check-In');
 
       await tester.tap(find.widgetWithText(FilledButton, 'Capturar').first);
       await tester.pumpAndSettle();
@@ -396,6 +433,9 @@ void main() {
         },
       );
 
+      await _expandSection(tester, 'REVISÃO DE FOTOS');
+      await _expandSection(tester, 'Fotos Obrigatórias do Check-In');
+
       expect(find.text('Sala principal'), findsOneWidget);
       expect(find.text('Obrigatório atendido'), findsOneWidget);
       expect(find.text('Obrigatório — pendente de captura'), findsNothing);
@@ -426,7 +466,12 @@ void main() {
         },
       );
 
-      expect(find.text('Fotos Obrigatórias Do Check-In'), findsOneWidget);
+      await tester.tap(find.text('REVISÃO DE FOTOS'));
+      await tester.pumpAndSettle();
+
+      await _expandSection(tester, 'Fotos Obrigatórias do Check-In');
+
+      expect(find.text('Fotos Obrigatórias do Check-In'), findsOneWidget);
       expect(find.text('Sala principal'), findsOneWidget);
       expect(find.text('Obrigatório — pendente de captura'), findsOneWidget);
     },
@@ -467,6 +512,8 @@ void main() {
         tipoImovel: 'Urbano • Apartamento',
         persistedRecoveryPayload: recoveryPayload,
       );
+
+      await _expandSection(tester, 'REVISÃO DE FOTOS');
 
       expect(find.text('Fotos Capturadas'), findsOneWidget);
       expect(

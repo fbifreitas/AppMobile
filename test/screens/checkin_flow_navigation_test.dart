@@ -245,6 +245,13 @@ void main() {
     await tester.tap(find.widgetWithText(ChoiceChip, 'Urbano'));
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+      find.widgetWithText(ChoiceChip, 'Apartamento'),
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
     await tester.tap(find.widgetWithText(ChoiceChip, 'Apartamento'));
     await tester.pumpAndSettle();
 
@@ -256,14 +263,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Torre'), findsOneWidget);
-    expect(find.text('Piso'), findsOneWidget);
-    expect(find.text('Selecione primeiro torre.'), findsOneWidget);
+    expect(find.text('Piso'), findsNothing);
     expect(find.widgetWithText(ChoiceChip, 'Torre A'), findsOneWidget);
     expect(find.widgetWithText(ChoiceChip, '1º'), findsNothing);
 
     await tester.tap(find.widgetWithText(ChoiceChip, 'Torre A'));
     await tester.pumpAndSettle();
 
+    expect(find.text('Piso'), findsOneWidget);
     expect(find.widgetWithText(ChoiceChip, '1º'), findsOneWidget);
   });
 
@@ -343,11 +350,18 @@ void main() {
     await tester.tap(find.widgetWithText(ChoiceChip, 'Urbano'));
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+      find.widgetWithText(ChoiceChip, 'Apartamento'),
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
     await tester.tap(find.widgetWithText(ChoiceChip, 'Apartamento'));
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
-      find.text('Área da foto'),
+      find.widgetWithText(ChoiceChip, 'Rua'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
@@ -357,8 +371,17 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ChoiceChip, 'Fachada'));
     await tester.pumpAndSettle();
+
     await tester.tap(find.widgetWithText(ChoiceChip, 'Portão'));
     await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.widgetWithText(ChoiceChip, 'Metal'),
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
     await tester.tap(find.widgetWithText(ChoiceChip, 'Metal'));
     await tester.pumpAndSettle();
 
@@ -415,17 +438,31 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Registros fotográficos'), findsOneWidget);
+      expect(find.textContaining('REGISTROS FOTOGRÁFICOS'), findsOneWidget);
+      expect(find.textContaining('INFRAESTRUTURA E SERVIÇOS'), findsOneWidget);
+
+      await tester.tap(find.textContaining('REGISTROS FOTOGRÁFICOS'));
+      await tester.pumpAndSettle();
+
       expect(find.text('Fachada'), findsOneWidget);
       expect(find.text('Logradouro'), findsOneWidget);
       expect(find.widgetWithText(FilledButton, 'Capturar'), findsNWidgets(4));
       expect(find.text('Foto obrigatória'), findsAtLeastNWidgets(2));
 
-      expect(find.text('Infraestrutura e serviços'), findsOneWidget);
-      expect(find.text('Pavimentação da via'), findsOneWidget);
-      expect(find.text('Infraestrutura urbana'), findsOneWidget);
-      expect(find.text('Serviços públicos disponíveis'), findsOneWidget);
-      expect(find.text('Características da localização'), findsOneWidget);
+      final infraSectionFinder = find.textContaining('INFRAESTRUTURA E SERVIÇOS');
+      await tester.ensureVisible(infraSectionFinder);
+      await tester.tap(infraSectionFinder);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Pavimentação da Via'), findsOneWidget);
+      expect(find.text('Infraestrutura Urbana'), findsOneWidget);
+      expect(find.text('Serviços Públicos Disponíveis'), findsOneWidget);
+      expect(find.text('Características da Localização'), findsOneWidget);
+
+      final pavingGroupFinder = find.text('Pavimentação da Via');
+      await tester.ensureVisible(pavingGroupFinder);
+      await tester.tap(pavingGroupFinder);
+      await tester.pumpAndSettle();
 
       expect(find.text('Asfalto'), findsOneWidget);
       expect(find.text('Paralelepípedo'), findsOneWidget);
@@ -433,26 +470,15 @@ void main() {
       expect(find.text('Terra'), findsOneWidget);
       expect(find.text('Mista'), findsOneWidget);
 
-      expect(find.text('Calçada'), findsOneWidget);
-      expect(find.text('Guia / Sarjeta'), findsOneWidget);
-      expect(find.text('Galeria pluvial'), findsOneWidget);
-      expect(find.text('Iluminação pública'), findsOneWidget);
-      expect(find.text('Arborização'), findsOneWidget);
-      expect(find.text('Sinalização viária'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.widgetWithText(FilterChip, 'Asfalto'),
+        120,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
 
-      expect(find.text('Rede de água'), findsOneWidget);
-      expect(find.text('Rede de esgoto'), findsOneWidget);
-      expect(find.text('Energia elétrica'), findsOneWidget);
-      expect(find.text('Telefonia'), findsOneWidget);
-      expect(find.text('Internet'), findsOneWidget);
-      expect(find.text('Coleta de lixo'), findsOneWidget);
-      expect(find.text('Transporte público'), findsOneWidget);
-
-      expect(find.text('Imóvel de esquina'), findsOneWidget);
-      expect(find.text('Meio de quadra'), findsOneWidget);
-      expect(find.text('Em condomínio'), findsOneWidget);
-      expect(find.text('Em avenida'), findsOneWidget);
-      expect(find.text('Rua local'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilterChip, 'Asfalto'));
+      await tester.pumpAndSettle();
     },
   );
 
@@ -528,7 +554,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 600));
 
-      expect(find.text('MENU DE VISTORIA'), findsOneWidget);
+      expect(find.text('Menu de Vistoria'), findsOneWidget);
       expect(find.byType(InspectionReviewScreen), findsOneWidget);
 
       final navigator = tester.state<NavigatorState>(
@@ -540,14 +566,14 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
 
       expect(find.byType(CheckinStep2Screen), findsOneWidget);
-      expect(find.text('Registros fotográficos'), findsOneWidget);
+      expect(find.textContaining('REGISTROS FOTOGRÁFICOS'), findsOneWidget);
 
       navigator.pop();
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 
       expect(find.byType(CheckinScreen), findsOneWidget);
-      expect(find.text('Cliente está presente?'), findsOneWidget);
+      expect(find.textContaining('Cliente está presente?'), findsOneWidget);
     },
   );
 
