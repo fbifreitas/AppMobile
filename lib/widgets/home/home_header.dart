@@ -64,17 +64,23 @@ class HomeHeader extends StatelessWidget {
               icon: Icons.notifications_none,
               onTap: onNotificationsTap,
               badge: unreadMessages > 0 ? '$unreadMessages' : null,
+              semanticLabel: 'Abrir notificacoes',
+              automationKey: 'home_header_notifications_button',
             ),
             const SizedBox(width: 8),
             _HeaderIconButton(
               icon: Icons.settings_outlined,
               onTap: onSettingsTap,
+              semanticLabel: 'Abrir configuracoes',
+              automationKey: 'home_header_settings_button',
             ),
             if (showHubButton) ...[
               const SizedBox(width: 8),
               _HeaderIconButton(
                 icon: Icons.dashboard_customize_outlined,
                 onTap: onHubTap,
+                semanticLabel: 'Abrir hub operacional',
+                automationKey: 'home_header_hub_button',
               ),
             ],
           ],
@@ -138,51 +144,60 @@ class _HeaderIconButton extends StatelessWidget {
   const _HeaderIconButton({
     required this.icon,
     required this.onTap,
+    required this.semanticLabel,
+    required this.automationKey,
     this.badge,
   });
 
   final IconData icon;
   final VoidCallback onTap;
+  final String semanticLabel;
+  final String automationKey;
   final String? badge;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.border),
+    return Semantics(
+      button: true,
+      label: semanticLabel,
+      child: GestureDetector(
+        key: ValueKey(automationKey),
+        onTap: onTap,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Icon(icon, color: AppColors.primary, size: 18),
             ),
-            child: Icon(icon, color: AppColors.primary, size: 18),
-          ),
-          if (badge != null)
-            Positioned(
-              top: -4,
-              right: -2,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                decoration: BoxDecoration(
-                  color: AppColors.danger,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  badge!,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 8,
-                    fontWeight: FontWeight.bold,
+            if (badge != null)
+              Positioned(
+                top: -4,
+                right: -2,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: AppColors.danger,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    badge!,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 8,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

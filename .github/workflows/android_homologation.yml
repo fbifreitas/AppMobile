@@ -1,0 +1,74 @@
+name: Android Homologation
+
+on:
+  push:
+    branches:
+      - 'release/**'
+      - 'homolog/**'
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  validate-and-build-homolog:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+          cache-dependency-path: |
+            **/*.gradle*
+            **/gradle-wrapper.properties
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+          pub-cache: true
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Build debug APK (homologation candidate)
+        run: flutter build apk --debug
+
+      - name: Upload homologation APK artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: app-homolog-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+
+        - name: Install Firebase CLI
+          run: npm install -g firebase-tools
+
+        - name: Distribute homolog APK to Firebase App Distribution (QA)
+          run: |
+            firebase appdistribution:distribute build/app/outputs/flutter-apk/app-debug.apk \
+              --app "${{ secrets.FIREBASE_APP_ID_ANDROID }}" \
+              --groups "testers-internos" \
+              --release-notes "Build de homologação automática via CI/CD."
+          env:
+            FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}

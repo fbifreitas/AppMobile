@@ -1,6 +1,8 @@
+> [31/03/2026] **Ajuste operacional:**
+> Esteira de distribuição Android ajustada para garantir que builds automáticos sejam enviados apenas ao grupo "prod-testers" no Firebase App Distribution. Builds manuais permitem seleção de grupo, com padrão "testers-internos". Mudança documentada para rastreabilidade e prevenção de erros operacionais. (Ver detalhes no plano operacional e workflows)
 # Backlog de Funcionalidades Nao Implementadas
 
-Atualizado em: 2026-03-30
+Atualizado em: 2026-03-31
 
 ## Objetivo
 Registrar funcionalidades pendentes para evolucao do AppMobile, com foco em priorizacao de produto e previsibilidade tecnica.
@@ -148,6 +150,8 @@ Fortalecer bloqueios de recursos de desenvolvimento em build de release para imp
 
 Observacao 2026-03-30 (CONCLUIDO): acesso a recursos dev bloqueado em release no estado global, com feedback de bloqueio nas configuracoes e protecao de tela no painel de mocks sem desbloqueio autorizado.
 
+Observacao 2026-03-31: bloqueio de acesso em release esta concluido, mas a remocao fisica do modulo desenvolvedor do binario final ainda nao foi aplicada.
+
 ### BL-004
 Exibir identificadores operacionais (ID do job e protocolo externo) no card da home e no historico, facilitando rastreio e suporte.
 
@@ -203,6 +207,17 @@ Registrar telemetria minima do fluxo de vistoria (inicio, retomada, conclusao e 
 
 ### BL-011
 Estruturar flavors de distribuicao (prod, internal e dev) para separar pacotes e pipelines quando estiver proximo ao go-live.
+
+Observacao 2026-03-31: item mantido como pre-requisito tecnico para reduzir tamanho real do pacote removendo codigo/dev tools do artefato de producao.
+
+### BL-053
+Remover modulo desenvolvedor do pacote final (empacotamento enxuto para producao).
+
+Status: Pendente
+Prioridade: Alta
+Criterio de pronto: build de producao sem telas/servicos/mock dev vinculados, validado por analise de tamanho de APK/AAB e checklist de regressao.
+
+Observacao 2026-03-31: fluxo Git atualizado para impedir push direto na main e exigir homologacao em `release/*`/`homolog/*` com smoke Maestro USB antes de PR.
 
 ### BL-036
 Adicionar cache de dependências Flutter/pub ao workflow do GitHub Actions (`android_ci.yml`) usando `actions/cache@v4`, cacheando `.pub-cache` e `.dart_tool` com chave baseada em `pubspec.lock`. Reduz o tempo de execução do job de build (atualmente 8-15 min) eliminando o download repetido de pacotes a cada run.
@@ -270,6 +285,8 @@ Lista básica operacional (obrigatória para todo pacote):
 7. Validar e incrementar `version` no `pubspec.yaml` antes de merge/push/publicação.
 8. Usar mensagem de commit/publicação no padrão acordado: `[versão] - [tipo alteração]: [resumo curto em português]`.
 9. Atualizar documentação e observações do backlog no fechamento da entrega.
+
+Observacao 2026-03-31: checklist operacional dedicado publicado em `docs/qa/CHECKLIST_OPERACIONAL_PRE_PUSH.md` para padronizar gate de backlog, testes, analyze, versionamento e padrão de commit antes do push.
 
 ### BL-029
 Implementar a aba Agenda com visualização em calendário para o usuário consultar os jobs agendados por dia, semana e mês.

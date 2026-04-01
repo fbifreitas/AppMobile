@@ -1,0 +1,15 @@
+appId: com.example.myapp
+---
+- extendedWaitUntil:
+    visible: "Bem-vindo ao App de Vistorias"
+    timeout: 12000
+- assertVisible: "Bem-vindo ao App de Vistorias"
+- tapOn: "E-mail"
+- eraseText
+- inputText: "maestro.teste@appmobile.local"
+- hideKeyboard
+- tapOn: "Senha"
+- eraseText
+- inputText: "123456"
+- hideKeyboard
+- tapOn: "Entrar"

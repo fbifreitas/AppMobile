@@ -18,7 +18,7 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  DEFAULT_TESTER_GROUP: testers-internos
+  DEFAULT_TESTER_GROUP: prod-testers
   DEFAULT_RELEASE_NOTES: Build distribuído automaticamente após Android CI verde
 
 jobs:
@@ -26,7 +26,7 @@ jobs:
     if: |
       (github.event_name == 'workflow_run' &&
        github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.head_branch == 'main') ||
+       (github.event.workflow_run.head_branch == 'main' || github.event.workflow_run.head_branch == 'release/prod')) ||
       github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
@@ -114,14 +114,16 @@ jobs:
               RELEASE_NOTES="${INPUT_NOTES} | versao ${APP_VERSION} | commit ${SHORT_SHA}"
             fi
 
+            # Permite seleção manual do grupo apenas em builds manuais
             if [ -z "$INPUT_GROUP" ]; then
-              TESTER_GROUP="${DEFAULT_TESTER_GROUP}"
+              TESTER_GROUP="testers-internos"
             else
               TESTER_GROUP="$INPUT_GROUP"
             fi
           else
+            # Builds automáticos de produção vão para prod-testers
             RELEASE_NOTES="Build ${APP_VERSION} (${SHORT_SHA}) distribuido automaticamente apos Android CI verde"
-            TESTER_GROUP="${DEFAULT_TESTER_GROUP}"
+            TESTER_GROUP="prod-testers"
           fi
 
           echo "app_version=${APP_VERSION}" >> $GITHUB_OUTPUT

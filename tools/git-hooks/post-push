@@ -1,0 +1,22 @@
+#!/bin/sh
+
+# Executa smoke funcional via USB após push em branch de homologacao.
+CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+
+case "$CURRENT_BRANCH" in
+  release/*|homolog/*)
+    echo "[post-push] Iniciando smoke Maestro via USB para $CURRENT_BRANCH..."
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "scripts/run_maestro_usb_smoke.ps1" -SkipBuild
+    STATUS=$?
+    if [ $STATUS -ne 0 ]; then
+      echo "[post-push] Smoke Maestro falhou com codigo $STATUS"
+      exit $STATUS
+    fi
+    echo "[post-push] Smoke Maestro concluido com sucesso."
+    ;;
+  *)
+    echo "[post-push] branch $CURRENT_BRANCH ignorada (somente release/* ou homolog/*)."
+    ;;
+esac
+
+exit 0

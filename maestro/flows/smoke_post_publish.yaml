@@ -1,0 +1,51 @@
+appId: com.example.myapp
+---
+- launchApp:
+    stopApp: true
+
+- runFlow:
+    when:
+      visible: "Bem-vindo ao App de Vistorias"
+    file: _bootstrap_login.yaml
+
+- runFlow:
+    when:
+      visible: "Cadastro PJ"
+    file: _bootstrap_onboarding.yaml
+
+- runFlow:
+    when:
+      visible: "Cadastro em análise"
+    file: _bootstrap_approval.yaml
+
+- runFlow:
+    when:
+      visible: "INICIAR VISTORIA"
+    commands:
+      - tapOn: "INICIAR VISTORIA"
+
+- extendedWaitUntil:
+    visible: "Menu de vistoria"
+    timeout: 20000
+- assertVisible: "Menu de vistoria"
+- back
+
+- runFlow:
+    when:
+      visible: "Hub Operacional"
+    commands:
+      - tapOn: "Hub Operacional"
+      - extendedWaitUntil:
+          visible: "Hub"
+          timeout: 15000
+      - back
+
+- runFlow:
+    when:
+      visible: "Central de Operação de Campo"
+    commands:
+      - tapOn: "Central de Operação de Campo"
+      - extendedWaitUntil:
+          visible: "Central"
+          timeout: 15000
+      - back
