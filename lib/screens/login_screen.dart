@@ -76,6 +76,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 36),
                   Semantics(
                     identifier: 'login_email_field',
+                    label: 'login_email_field',
                     textField: true,
                     child: TextFormField(
                       key: const Key('login_email_field'),
@@ -97,7 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 16),
                   Semantics(
                     identifier: 'login_senha_field',
-                    label: 'Senha',
+                    label: 'login_senha_field',
                     textField: true,
                     child: TextFormField(
                       key: const Key('login_senha_field'),
@@ -114,8 +115,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                 : Icons.visibility_off_outlined,
                           ),
                           onPressed:
-                              () =>
-                                  setState(() => _obscureSenha = !_obscureSenha),
+                              () => setState(
+                                () => _obscureSenha = !_obscureSenha,
+                              ),
                         ),
                       ),
                       validator: (value) {
@@ -129,6 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 28),
                   Semantics(
                     identifier: 'login_submit_button',
+                    label: 'login_submit_button',
                     button: true,
                     child: FilledButton(
                       key: const Key('login_submit_button'),

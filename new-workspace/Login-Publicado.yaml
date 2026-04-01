@@ -1,0 +1,26 @@
+appId: com.example.myapp
+tags:
+  - smoke
+  - login-publicado
+---
+- launchApp:
+    clearState: false
+
+# Se tela de login estiver visível, executa login
+- runFlow:
+    when:
+      visible: "E-mail|Email|Usuário"
+    commands:
+      - tapOn: "E-mail|Email|Usuário"
+      - inputText: "seu.usuario@teste.com"
+      - tapOn: "Senha"
+      - inputText: "123456"
+      - hideKeyboard
+      - tapOn: "Entrar|Acessar|Continuar|Avançar"
+
+# Valida destino final (já logado ou pós-login)
+- extendedWaitUntil:
+    visible: "Menu de vistoria|Início|Home"
+    timeout: 20000
+
+- takeScreenshot: "smoke-home"
