@@ -101,6 +101,8 @@ Step 8️⃣ (FUNCIONAL PRÓXIMO CICLO) → BL-029, BL-030, BL-031, BL-032, BL-0
 | 5️⃣0️⃣ | BL-050 | Corrigir botão "Concluir" do onboarding encoberto pelo rodapé do Android | Concluído | 🟠 Alta | Botão final do onboarding deve permanecer totalmente visível em Android (botões/gestos), permitindo concluir o fluxo sem obstrução |
 | 5️⃣1️⃣ | BL-051 | Unificar persistência dinâmica de obrigatoriedade e política de fotos (mín/máx) entre Checkin, Câmera, Revisão e Menu | Em andamento | 🔴 Crítica | Mesma regra dinâmica deve governar validação e indicadores em todas as telas, com suporte a mínimo/máximo de fotos sem divergência de payload |
 | 5️⃣2️⃣ | BL-052 | Unificar pacote de parametrização operacional do HUB para Check-in e Câmera por níveis | Em andamento | 🔴 Crítica | Mesmo documento do modo desenvolvedor deve definir menus do check-in e níveis da câmera, incluindo material e estado, sem contratos paralelos |
+| 5️⃣3️⃣ | BL-054 | UX progressiva no Check-in etapa 1 e 2 com acordeões por pergunta e resumo inline da resposta | Em andamento | 🟠 Alta | Exibir apenas a próxima pergunta pendente, colapsar respostas já preenchidas com status visual OK/NOK e manter feedback de progresso x/y durante o preenchimento |
+| 5️⃣4️⃣ | BL-055 | Revisar hierarquia visual e regras de casing por nível no Menu de Vistoria e Check-in Etapa 2 | Concluído | 🟠 Alta | Nível 1 em Title Case, nível 2 em CAIXA ALTA, nível 3 em Title Case, com acordeões iniciando recolhidos conforme regra operacional |
 
 ---
 
@@ -245,7 +247,17 @@ Realizar auditoria arquitetural e de qualidade de codigo (Clean Code e SOLID), c
 ### BL-014
 Evoluir a suíte de testes do app com prática TDD contínua, cobrindo regras de negócio críticas, fluxos de fallback/retomada e integrações, evitando avanço funcional sem proteção de testes.
 
-Observacao 2026-03-31 (Em andamento): iniciada migracao da automacao E2E de Patrol para Maestro para reduzir fragilidade operacional de execucao local e estabilizar fluxo critico de login em dispositivo fisico.
+Observacao 2026-03-31 (Em andamento): iniciada migracao da automacao E2E para Maestro para reduzir fragilidade operacional de execucao local e estabilizar fluxo critico de login em dispositivo fisico.
+
+### BL-054
+Aplicar UX progressiva no Check-in etapa 1 e etapa 2, exibindo somente a próxima pergunta pendente, mantendo as respostas preenchidas em modo colapsado com resumo na linha e status visual operacional.
+
+Observacao 2026-04-01 (Em andamento): iniciada implementacao de acordeoes por pergunta no check-in para reduzir deslocamento vertical e reforcar percepção de seguranca durante o preenchimento.
+
+### BL-055
+Aplicar revisão de taxonomia visual dos menus no fluxo de vistoria, corrigindo o entendimento de níveis de título e padronizando comportamento de collapse inicial por seção.
+
+Observacao 2026-04-01 (Concluído): ajuste aplicado no Menu de Vistoria (Nível 1 em Title Case; divisões da tela em CAIXA ALTA; subtítulos em Title Case) e na Etapa 2 com acordeões independentes iniciando recolhidos, mantendo compatibilidade com configuração dinâmica vinda do sistema web. Cobertura de regressão atualizada para os novos comportamentos de expansão.
 
 ### BL-017
 Adicionar contract tests entre mobile e backend para validar schemas e evitar quebra silenciosa de integrações críticas.
