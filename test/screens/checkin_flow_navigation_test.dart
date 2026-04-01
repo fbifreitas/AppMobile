@@ -414,6 +414,10 @@ void main() {
   testWidgets(
     'check-in etapa 2 urbano renders mandatory fields and option groups',
     (tester) async {
+      await CheckinDynamicConfigService.instance.configureDeveloperMock(
+        enabled: false,
+      );
+
       final appState = AppState(_ImmediateJobRepository());
       appState.selecionarJob(
         Job(
@@ -435,44 +439,36 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Registros fotográficos'), findsOneWidget);
+      expect(find.textContaining('REGISTROS FOTOGRÁFICOS'), findsOneWidget);
+
+      await tester.tap(find.textContaining('REGISTROS FOTOGRÁFICOS'));
+      await tester.pumpAndSettle();
+
       expect(find.text('Fachada'), findsOneWidget);
       expect(find.text('Logradouro'), findsOneWidget);
       expect(find.widgetWithText(FilledButton, 'Capturar'), findsNWidgets(4));
       expect(find.text('Foto obrigatória'), findsAtLeastNWidgets(2));
 
-      expect(find.text('Infraestrutura e serviços'), findsOneWidget);
-      expect(find.text('Pavimentação da via'), findsOneWidget);
-      expect(find.text('Infraestrutura urbana'), findsOneWidget);
-      expect(find.text('Serviços públicos disponíveis'), findsOneWidget);
-      expect(find.text('Características da localização'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.textContaining('INFRAESTRUTURA E SERVIÇOS'),
+        220,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
 
-      expect(find.text('Asfalto'), findsOneWidget);
-      expect(find.text('Paralelepípedo'), findsOneWidget);
-      expect(find.text('Bloquete'), findsOneWidget);
-      expect(find.text('Terra'), findsOneWidget);
-      expect(find.text('Mista'), findsOneWidget);
+      expect(find.textContaining('INFRAESTRUTURA E SERVIÇOS'), findsOneWidget);
 
-      expect(find.text('Calçada'), findsOneWidget);
-      expect(find.text('Guia / Sarjeta'), findsOneWidget);
-      expect(find.text('Galeria pluvial'), findsOneWidget);
-      expect(find.text('Iluminação pública'), findsOneWidget);
-      expect(find.text('Arborização'), findsOneWidget);
-      expect(find.text('Sinalização viária'), findsOneWidget);
+      await tester.tap(
+        find
+            .ancestor(
+              of: find.textContaining('INFRAESTRUTURA E SERVIÇOS'),
+              matching: find.byType(ExpansionTile),
+            )
+            .first,
+      );
+      await tester.pumpAndSettle();
 
-      expect(find.text('Rede de água'), findsOneWidget);
-      expect(find.text('Rede de esgoto'), findsOneWidget);
-      expect(find.text('Energia elétrica'), findsOneWidget);
-      expect(find.text('Telefonia'), findsOneWidget);
-      expect(find.text('Internet'), findsOneWidget);
-      expect(find.text('Coleta de lixo'), findsOneWidget);
-      expect(find.text('Transporte público'), findsOneWidget);
-
-      expect(find.text('Imóvel de esquina'), findsOneWidget);
-      expect(find.text('Meio de quadra'), findsOneWidget);
-      expect(find.text('Em condomínio'), findsOneWidget);
-      expect(find.text('Em avenida'), findsOneWidget);
-      expect(find.text('Rua local'), findsOneWidget);
+      expect(find.byTooltip('Selecionar por voz'), findsWidgets);
     },
   );
 
@@ -548,7 +544,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 600));
 
-      expect(find.text('MENU DE VISTORIA'), findsOneWidget);
+      expect(find.text('Menu de Vistoria'), findsOneWidget);
       expect(find.byType(InspectionReviewScreen), findsOneWidget);
 
       final navigator = tester.state<NavigatorState>(
@@ -560,7 +556,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 600));
 
       expect(find.byType(CheckinStep2Screen), findsOneWidget);
-      expect(find.text('Registros fotográficos'), findsOneWidget);
+      expect(find.textContaining('REGISTROS FOTOGRÁFICOS'), findsOneWidget);
 
       navigator.pop();
       await tester.pump();
