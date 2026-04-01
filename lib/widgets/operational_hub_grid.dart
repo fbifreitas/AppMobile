@@ -26,48 +26,53 @@ class OperationalHubGrid extends StatelessWidget {
       ),
       itemBuilder: (context, index) {
         final item = items[index];
-        return InkWell(
-          borderRadius: BorderRadius.circular(18),
-          onTap: () => onTap(item),
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: item.highlighted ? 0.32 : 0.22),
-              border: Border.all(
-                color: item.highlighted
-                    ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.20)
-                    : Colors.transparent,
+        return Semantics(
+          button: true,
+          label: item.title,
+          child: InkWell(
+            key: ValueKey('operational_hub_${item.id}'),
+            borderRadius: BorderRadius.circular(18),
+            onTap: () => onTap(item),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: item.highlighted ? 0.32 : 0.22),
+                border: Border.all(
+                  color: item.highlighted
+                      ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.20)
+                      : Colors.transparent,
+                ),
               ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(_iconFor(item.iconKey), size: 22),
-                const SizedBox(height: 10),
-                Text(
-                  item.title,
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
-                ),
-                const SizedBox(height: 6),
-                Expanded(
-                  child: Text(
-                    item.description,
-                    style: const TextStyle(fontSize: 11),
-                    maxLines: 4,
-                    overflow: TextOverflow.ellipsis,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(_iconFor(item.iconKey), size: 22),
+                  const SizedBox(height: 10),
+                  Text(
+                    item.title,
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  item.category,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: Theme.of(context).colorScheme.primary,
+                  const SizedBox(height: 6),
+                  Expanded(
+                    child: Text(
+                      item.description,
+                      style: const TextStyle(fontSize: 11),
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 6),
+                  Text(
+                    item.category,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );

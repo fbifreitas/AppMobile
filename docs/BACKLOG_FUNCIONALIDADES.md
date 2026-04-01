@@ -1,6 +1,8 @@
+> [31/03/2026] **Ajuste operacional:**
+> Esteira de distribuição Android ajustada para garantir que builds automáticos sejam enviados apenas ao grupo "prod-testers" no Firebase App Distribution. Builds manuais permitem seleção de grupo, com padrão "testers-internos". Mudança documentada para rastreabilidade e prevenção de erros operacionais. (Ver detalhes no plano operacional e workflows)
 # Backlog de Funcionalidades Nao Implementadas
 
-Atualizado em: 2026-03-30
+Atualizado em: 2026-03-31
 
 ## Objetivo
 Registrar funcionalidades pendentes para evolucao do AppMobile, com foco em priorizacao de produto e previsibilidade tecnica.
@@ -66,7 +68,7 @@ Step 8️⃣ (FUNCIONAL PRÓXIMO CICLO) → BL-029, BL-030, BL-031, BL-032, BL-0
 | ⏸️  | BL-011 | Flavors de distribuicao (prod, internal, dev) | Adiado | 🟡 Media | Entrypoints e pipeline separados para builds internos e producao |
 | ⚡ | BL-036 | Cache de Flutter/pub no pipeline CI (débito técnico) | Pendente | 🔵 Baixa (pos-funcional) | Pipeline reduz tempo de build cacheando `.pub-cache` e `.dart_tool` com chave baseada em `pubspec.lock` |
 | 🔧 | BL-013 | Auditoria de Clean Code e SOLID (débito técnico) | Planejado | 🔵 Baixa (pos-funcional) | Relatorio técnico com achados, plano de refatoracao e aplicacao incremental por modulo sem regressao funcional |
-| 🧪 | BL-014 | Evolução da suíte de testes com prática TDD (débito técnico) | Planejado | 🔵 Baixa (pos-funcional) | Cobertura de testes ampliada por fluxo crítico, com testes criados/atualizados a cada entrega funcional |
+| 🧪 | BL-014 | Evolução da suíte de testes com prática TDD (débito técnico) | Em andamento | 🔵 Baixa (pos-funcional) | Cobertura de testes ampliada por fluxo crítico, com testes criados/atualizados a cada entrega funcional |
 | 🧱 | BL-017 | Contract testing de APIs mobile-backend | Planejado | 🟠 Alta | Contratos de request/response validados em CI para endpoints críticos (config dinâmica e sync) |
 | 🧬 | BL-018 | Mutation testing para regras críticas | Planejado | 🟡 Media | Mutation score mínimo definido e monitorado para serviços críticos |
 | 📈 | BL-019 | Quality gate de cobertura por módulo | Planejado | 🟠 Alta | CI bloqueia merge quando cobertura mínima por módulo regredir |
@@ -148,6 +150,8 @@ Fortalecer bloqueios de recursos de desenvolvimento em build de release para imp
 
 Observacao 2026-03-30 (CONCLUIDO): acesso a recursos dev bloqueado em release no estado global, com feedback de bloqueio nas configuracoes e protecao de tela no painel de mocks sem desbloqueio autorizado.
 
+Observacao 2026-03-31: bloqueio de acesso em release esta concluido, mas a remocao fisica do modulo desenvolvedor do binario final ainda nao foi aplicada.
+
 ### BL-004
 Exibir identificadores operacionais (ID do job e protocolo externo) no card da home e no historico, facilitando rastreio e suporte.
 
@@ -190,6 +194,14 @@ Reorganizar o topo da revisao de fotos com agrupadores equivalentes ao bloco de 
 
 Observacao 2026-03-30 (CONCLUIDO): topo da revisao atualizado com agrupadores de "Fotos obrigatorias" e "Fotos capturadas", com contadores de progresso por grupo. Cobertura automatizada adicionada para preservar a leitura do resumo no topo.
 
+Observacao 2026-04-01 (Em andamento): retomada de ajustes UX no Menu de Vistoria para deduplicar itens obrigatorios com mesmo titulo (ex.: Fachada), exibir progresso x/y por bloco e reforcar navegacao do atalho "Ir para pendencia" com foco direto na secao correspondente.
+
+Observacao 2026-04-01 (Em andamento): estrutura visual do Menu de Vistoria padronizada por secoes em accordion (Pendencias tecnicas por etapa, Revisao de fotos e Encerramento), mantendo compatibilidade com validacoes automatizadas existentes.
+
+Observacao 2026-04-01 (Em andamento): padrao de texto aplicado no menu e telas irmas com primeiro nivel em caixa alta e niveis internos em Title Case para leitura operacional consistente.
+
+Observacao 2026-04-01 (CONCLUIDO): pendencias tecnicas passaram a refletir contagem por obrigatoriedade (x/y), com exibicao da etapa de Finalizacao e alinhamento do fluxo Maestro ao novo titulo em caixa alta no Menu de Vistoria.
+
 Detalhamento:
 1. Separar "Fotos obrigatorias" e "Fotos capturadas" no topo da tela.
 2. Mostrar totais e progresso por agrupador para leitura rapida.
@@ -203,6 +215,17 @@ Registrar telemetria minima do fluxo de vistoria (inicio, retomada, conclusao e 
 
 ### BL-011
 Estruturar flavors de distribuicao (prod, internal e dev) para separar pacotes e pipelines quando estiver proximo ao go-live.
+
+Observacao 2026-03-31: item mantido como pre-requisito tecnico para reduzir tamanho real do pacote removendo codigo/dev tools do artefato de producao.
+
+### BL-053
+Remover modulo desenvolvedor do pacote final (empacotamento enxuto para producao).
+
+Status: Pendente
+Prioridade: Alta
+Criterio de pronto: build de producao sem telas/servicos/mock dev vinculados, validado por analise de tamanho de APK/AAB e checklist de regressao.
+
+Observacao 2026-03-31: fluxo Git atualizado para impedir push direto na main e exigir homologacao em `release/*`/`homolog/*` com smoke Maestro USB antes de PR.
 
 ### BL-036
 Adicionar cache de dependências Flutter/pub ao workflow do GitHub Actions (`android_ci.yml`) usando `actions/cache@v4`, cacheando `.pub-cache` e `.dart_tool` com chave baseada em `pubspec.lock`. Reduz o tempo de execução do job de build (atualmente 8-15 min) eliminando o download repetido de pacotes a cada run.
@@ -221,6 +244,8 @@ Realizar auditoria arquitetural e de qualidade de codigo (Clean Code e SOLID), c
 
 ### BL-014
 Evoluir a suíte de testes do app com prática TDD contínua, cobrindo regras de negócio críticas, fluxos de fallback/retomada e integrações, evitando avanço funcional sem proteção de testes.
+
+Observacao 2026-03-31 (Em andamento): iniciada migracao da automacao E2E de Patrol para Maestro para reduzir fragilidade operacional de execucao local e estabilizar fluxo critico de login em dispositivo fisico.
 
 ### BL-017
 Adicionar contract tests entre mobile e backend para validar schemas e evitar quebra silenciosa de integrações críticas.
@@ -271,6 +296,8 @@ Lista básica operacional (obrigatória para todo pacote):
 8. Usar mensagem de commit/publicação no padrão acordado: `[versão] - [tipo alteração]: [resumo curto em português]`.
 9. Atualizar documentação e observações do backlog no fechamento da entrega.
 
+Observacao 2026-03-31: checklist operacional dedicado publicado em `docs/qa/CHECKLIST_OPERACIONAL_PRE_PUSH.md` para padronizar gate de backlog, testes, analyze, versionamento e padrão de commit antes do push.
+
 ### BL-029
 Implementar a aba Agenda com visualização em calendário para o usuário consultar os jobs agendados por dia, semana e mês.
 
@@ -285,6 +312,7 @@ Observacao 2026-03-30 (CONCLUIDO): central de mensagens implementada com contado
 Introduzir autenticação com tela de login, gerenciamento de sessão e proteção de acesso às áreas internas do app.
 
 Observacao 2026-03-30 (CONCLUIDO): fluxo de autenticacao com estado persistido, logout seguro e roteamento condicional para login/onboarding/aguardando aprovacao/home.
+Observacao 2026-03-31 (EM ANDAMENTO): reforcada a testabilidade da tela de login para automacao Maestro com identificadores semanticos estaveis em campos e botao de submit.
 
 ### BL-032
 Criar onboarding de novos usuários para perfis CLT e PJ, com coleta de dados cadastrais completos e captura de foto pelo app.

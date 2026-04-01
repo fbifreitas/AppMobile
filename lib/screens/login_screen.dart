@@ -74,64 +74,80 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 36),
-                  TextFormField(
-                    key: const Key('login_email_field'),
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'E-mail',
-                      prefixIcon: Icon(Icons.email_outlined),
-                      border: OutlineInputBorder(),
+                  Semantics(
+                    identifier: 'login_email_field',
+                    label: 'login_email_field',
+                    textField: true,
+                    child: TextFormField(
+                      key: const Key('login_email_field'),
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(
+                        labelText: 'E-mail',
+                        prefixIcon: Icon(Icons.email_outlined),
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Informe o e-mail';
+                        }
+                        return null;
+                      },
                     ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Informe o e-mail';
-                      }
-                      return null;
-                    },
                   ),
                   const SizedBox(height: 16),
-                  TextFormField(
-                    key: const Key('login_senha_field'),
-                    controller: _senhaController,
-                    obscureText: _obscureSenha,
-                    decoration: InputDecoration(
-                      labelText: 'Senha',
-                      prefixIcon: const Icon(Icons.lock_outlined),
-                      border: const OutlineInputBorder(),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscureSenha
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
+                  Semantics(
+                    identifier: 'login_senha_field',
+                    label: 'login_senha_field',
+                    textField: true,
+                    child: TextFormField(
+                      key: const Key('login_senha_field'),
+                      controller: _senhaController,
+                      obscureText: _obscureSenha,
+                      decoration: InputDecoration(
+                        labelText: 'Senha',
+                        prefixIcon: const Icon(Icons.lock_outlined),
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureSenha
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
+                          ),
+                          onPressed:
+                              () => setState(
+                                () => _obscureSenha = !_obscureSenha,
+                              ),
                         ),
-                        onPressed:
-                            () =>
-                                setState(() => _obscureSenha = !_obscureSenha),
                       ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Informe a senha';
+                        }
+                        return null;
+                      },
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Informe a senha';
-                      }
-                      return null;
-                    },
                   ),
                   const SizedBox(height: 28),
-                  FilledButton(
-                    key: const Key('login_submit_button'),
-                    onPressed: _loading ? null : _submit,
-                    child:
-                        _loading
-                            ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                            : const Text('Entrar'),
+                  Semantics(
+                    identifier: 'login_submit_button',
+                    label: 'login_submit_button',
+                    button: true,
+                    child: FilledButton(
+                      key: const Key('login_submit_button'),
+                      onPressed: _loading ? null : _submit,
+                      child:
+                          _loading
+                              ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                              : const Text('Entrar'),
+                    ),
                   ),
                 ],
               ),

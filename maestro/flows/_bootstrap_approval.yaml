@@ -1,0 +1,4 @@
+appId: com.example.myapp
+---
+- tapOn:
+    id: "simulate_approval_button"

@@ -1,0 +1,15 @@
+#!/bin/sh
+
+# Bloqueia push direto para main para forcar fluxo de homologacao -> PR -> main.
+while read local_ref local_sha remote_ref remote_sha
+do
+  case "$remote_ref" in
+    refs/heads/main)
+      echo "[pre-push] Push direto para main bloqueado."
+      echo "[pre-push] Use branch release/* ou homolog/*, valide Maestro USB e abra PR para main."
+      exit 1
+      ;;
+  esac
+done
+
+exit 0

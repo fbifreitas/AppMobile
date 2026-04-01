@@ -1,0 +1,35 @@
+appId: com.example.myapp
+tags:
+  - smoke
+  - login
+---
+- launchApp:
+    clearState: true
+
+- takeScreenshot: "00-home-inicial"
+
+- extendedWaitUntil:
+    visible: "login_email_field|E-mail|Email|Usuário"
+    timeout: 20000
+
+- tapOn:
+    id: "login_email_field"
+- inputText: "seu.usuario@teste.com"
+
+- tapOn:
+    id: "login_senha_field"
+- inputText: "123456"
+
+- hideKeyboard
+
+- scrollUntilVisible:
+    element:
+      id: "login_submit_button"
+    direction: DOWN
+
+- tapOn:
+    id: "login_submit_button"
+
+- extendedWaitUntil:
+    visible: "Menu de vistoria|Início|Home"
+    timeout: 20000

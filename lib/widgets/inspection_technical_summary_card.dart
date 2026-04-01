@@ -25,7 +25,7 @@ class InspectionTechnicalSummaryCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Resumo técnico final',
+            'RESUMO TÉCNICO FINAL',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                   fontSize: 16,

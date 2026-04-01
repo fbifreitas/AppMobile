@@ -12,7 +12,6 @@ import '../models/technical_rule_result.dart';
 import '../services/inspection_technical_summary_service.dart';
 import '../services/inspection_flow_coordinator.dart';
 import '../widgets/inspection_technical_summary_card.dart';
-import '../widgets/technical_pending_matrix_card.dart';
 import '../widgets/technical_justification_card.dart';
 import '../services/checkin_dynamic_config_service.dart';
 import '../services/inspection_export_service.dart';
@@ -64,6 +63,12 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   String? _expandedSubtype;
   bool _checkinAccordionExpanded = true;
   bool _capturedAccordionExpanded = true;
+  bool _technicalCheckinExpanded = true;
+  bool _technicalCaptureExpanded = true;
+  bool _technicalReviewExpanded = true;
+  bool _technicalFinalizationExpanded = true;
+  bool _closingNotesExpanded = true;
+  bool _closingObservationExpanded = true;
 
   static const _elementos = <String>[
     'Visão geral',
@@ -260,10 +265,9 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   @override
   Widget build(BuildContext context) {
     final summary = _buildSummary();
-    final groups = _buildGroups();
     final checkinStatuses = _buildCheckinRequirements();
     final technicalSummary = _technicalSummaryService.build(
-      tipoImovel: widget.tipoImovel,
+      tipoImovel: _resolvedTipoImovel().label,
       evidences: _buildTechnicalEvidenceInputs(),
       requirements: _buildTechnicalRequirementInputs(checkinStatuses),
     );
@@ -271,7 +275,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     return PopScope(
       canPop: true,
       child: Scaffold(
-        appBar: AppBar(title: const Text('Menu de vistoria')),
+        appBar: AppBar(title: const Text('MENU DE VISTORIA')),
         bottomNavigationBar: SafeArea(
           minimum: const EdgeInsets.fromLTRB(16, 8, 16, 14),
           child: SizedBox(
@@ -300,14 +304,14 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
           children: [
             InspectionTechnicalSummaryCard(summary: technicalSummary),
             const SizedBox(height: 8),
-            TechnicalPendingMatrixCard(
-              matrix: technicalSummary.pendingMatrix,
-              onOpenPending: _handlePendingShortcut,
+            _buildTechnicalPendingAccordionsSection(
+              context: context,
+              technicalSummary: technicalSummary,
+              checkinStatuses: checkinStatuses,
             ),
             const SizedBox(height: 8),
             _buildReviewAccordionsSection(
               context: context,
-              groups: groups,
               checkinStatuses: checkinStatuses,
             ),
             const SizedBox(height: 16),
@@ -316,6 +320,221 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildTechnicalPendingAccordionsSection({
+    required BuildContext context,
+    required InspectionTechnicalSummary technicalSummary,
+    required List<_CheckinRequirementStatus> checkinStatuses,
+  }) {
+    final matrix = technicalSummary.pendingMatrix;
+    if (!matrix.hasAny) {
+      return const SizedBox.shrink();
+    }
+
+    final checkinTotal = checkinStatuses.length;
+    final checkinDone = checkinStatuses.where((status) => status.isDone).length;
+
+    final captureTotal = checkinTotal;
+    final captureDone = checkinDone;
+
+    final reviewTotal = _items.length;
+    final reviewDone =
+        _items.where((item) => item.status == _PhotoStatus.classified).length;
+
+    final finalizationTotal = matrix.finalization.isEmpty ? 1 : matrix.finalization.length;
+    final finalizationDone = matrix.finalization.isEmpty ? 1 : 0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.22),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'PENDÊNCIAS TÉCNICAS DA VISTORIA',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Toque em "Ir para pendência" para navegar direto ao ponto de ajuste.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 10),
+          _buildTechnicalStageAccordion(
+            title: 'Check-In $checkinDone/$checkinTotal',
+            expanded: _technicalCheckinExpanded,
+            onExpansionChanged:
+                (expanded) => setState(() => _technicalCheckinExpanded = expanded),
+            items: matrix.checkin,
+          ),
+          _buildTechnicalStageAccordion(
+            title: 'Captura $captureDone/$captureTotal',
+            expanded: _technicalCaptureExpanded,
+            onExpansionChanged:
+                (expanded) => setState(() => _technicalCaptureExpanded = expanded),
+            items: matrix.capture,
+          ),
+          _buildTechnicalStageAccordion(
+            title: 'Revisão $reviewDone/$reviewTotal',
+            expanded: _technicalReviewExpanded,
+            onExpansionChanged:
+                (expanded) => setState(() => _technicalReviewExpanded = expanded),
+            items: matrix.review,
+          ),
+          _buildTechnicalStageAccordion(
+            title: 'Finalização $finalizationDone/$finalizationTotal',
+            expanded: _technicalFinalizationExpanded,
+            onExpansionChanged:
+                (expanded) =>
+                    setState(() => _technicalFinalizationExpanded = expanded),
+            items: matrix.finalization,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTechnicalStageAccordion({
+    required String title,
+    required bool expanded,
+    required ValueChanged<bool> onExpansionChanged,
+    required List<TechnicalRuleResult> items,
+  }) {
+    final hasPending = items.isNotEmpty;
+    final pendingLabel = hasPending
+        ? '${items.length} pendência(s)'
+        : 'Sem pendências nesta etapa';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: hasPending
+              ? Colors.orange.withValues(alpha: 0.35)
+              : Colors.green.withValues(alpha: 0.30),
+        ),
+      ),
+      child: ExpansionTile(
+        initiallyExpanded: expanded,
+        onExpansionChanged: onExpansionChanged,
+        tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+        title: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    pendingLabel,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: hasPending
+                          ? Colors.orange.shade800
+                          : Colors.green.shade700,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            _StatusPill(
+              status: hasPending ? _VisualStatus.pending : _VisualStatus.ok,
+              label: hasPending ? 'NOK' : 'OK',
+            ),
+          ],
+        ),
+        children: [
+          if (!hasPending)
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 6),
+                child: Text('Nenhum ajuste pendente nesta etapa.'),
+              ),
+            )
+          else
+            ...items.map(
+              (item) => Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: item.isBlocking
+                        ? Colors.orange.withValues(alpha: 0.28)
+                        : Colors.blueGrey.withValues(alpha: 0.28),
+                  ),
+                  color: item.isBlocking
+                      ? Colors.orange.withValues(alpha: 0.06)
+                      : Colors.blueGrey.withValues(alpha: 0.06),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _friendlyDescription(item),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: () => _handlePendingShortcut(item),
+                      icon: const Icon(Icons.near_me_outlined, size: 16),
+                      label: const Text('Ir para pendência'),
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 0,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  String _friendlyDescription(TechnicalRuleResult item) {
+    switch (item.stage) {
+      case TechnicalRuleStage.checkin:
+        return 'No check-in obrigatório: ${item.description}';
+      case TechnicalRuleStage.capture:
+        return 'Nas fotos capturadas: ${item.description}';
+      case TechnicalRuleStage.review:
+        return 'Na revisão das fotos: ${item.description}';
+      case TechnicalRuleStage.finalization:
+        return 'Na etapa de finalização: ${item.description}';
+    }
   }
 
   List<TechnicalEvidenceInput> _buildTechnicalEvidenceInputs() {
@@ -352,28 +571,37 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         setState(() {
           _checkinAccordionExpanded = true;
         });
-        await Future<void>.delayed(const Duration(milliseconds: 16));
+        await Future<void>.delayed(const Duration(milliseconds: 220));
         await _scrollToSection(_checkinPendingSectionKey);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pendência aberta na seção de check-in.'),
+            duration: Duration(milliseconds: 1400),
+          ),
+        );
         break;
       case TechnicalRuleStage.capture:
-        final subtipo = item.subtipo?.trim();
-        final result = await widget.flowCoordinator.openOverlayCamera(
-          context,
-          title: subtipo?.isNotEmpty == true ? subtipo! : 'Captura obrigatória',
-          tipoImovel: widget.tipoImovel,
-          subtipoImovel: widget.tipoImovel,
-          singleCaptureMode: true,
-          initialAmbiente: subtipo,
-          cameFromCheckinStep1: false,
+        setState(() {
+          _capturedAccordionExpanded = true;
+          final subtipo = item.subtipo?.trim();
+          if (subtipo != null && subtipo.isNotEmpty) {
+            _expandedSubtype = subtipo;
+          }
+        });
+        await Future<void>.delayed(const Duration(milliseconds: 220));
+        await _scrollToSection(_capturedPhotosSectionKey);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              item.subtipo?.trim().isNotEmpty == true
+                  ? 'Navegado para captura/revisão de ${item.subtipo!.trim()}.'
+                  : 'Pendência de captura aberta na revisão de fotos.',
+            ),
+            duration: const Duration(milliseconds: 1500),
+          ),
         );
-        if (result != null && mounted) {
-          _capturesCurrent.add(result);
-          setState(() {
-            _items.add(_EditableCapture.fromCapture(result));
-            _capturedAccordionExpanded = true;
-          });
-          await _persistReviewState();
-        }
         break;
       case TechnicalRuleStage.review:
         if (item.subtipo != null && item.subtipo!.trim().isNotEmpty) {
@@ -384,9 +612,23 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         }
         await Future<void>.delayed(const Duration(milliseconds: 280));
         await _scrollToSection(_capturedPhotosSectionKey);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pendência aberta na seção de revisão de fotos.'),
+            duration: Duration(milliseconds: 1400),
+          ),
+        );
         break;
       case TechnicalRuleStage.finalization:
         await _scrollToSection(_closingSectionKey);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pendência aberta na seção de encerramento.'),
+            duration: Duration(milliseconds: 1400),
+          ),
+        );
         break;
     }
   }
@@ -404,7 +646,6 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
 
   Widget _buildReviewAccordionsSection({
     required BuildContext context,
-    required List<_NodeGroup> groups,
     required List<_CheckinRequirementStatus> checkinStatuses,
   }) {
     final mandatoryCapturedItems = <_EditableCapture>[];
@@ -414,12 +655,12 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       final matched = _items.firstWhere(
         (item) {
           final sameAmbiente =
-              item.ambiente.trim().toLowerCase() ==
-              status.field.cameraAmbiente.trim().toLowerCase();
+              _normalizeComparableText(item.ambiente) ==
+              _normalizeComparableText(status.field.cameraAmbiente);
           final sameElemento =
               status.field.cameraElementoInicial == null ||
-              item.elemento?.trim().toLowerCase() ==
-                  status.field.cameraElementoInicial!.trim().toLowerCase();
+              _normalizeComparableText(item.elemento) ==
+                  _normalizeComparableText(status.field.cameraElementoInicial);
           final notUsed = !mandatoryCapturedPaths.contains(item.filePath);
           return sameAmbiente && sameElemento && notUsed;
         },
@@ -442,6 +683,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     }
 
     final mandatoryGroups = _buildGroupsForItems(mandatoryCapturedItems);
+    final groupedRequirements = _groupCheckinRequirements(checkinStatuses);
     final capturedGroups = _buildGroupsForItems(
       _items
           .where((item) => !mandatoryCapturedPaths.contains(item.filePath))
@@ -459,13 +701,18 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       0,
       (sum, group) => sum + group.pending,
     );
+    final requiredDone = checkinStatuses.where((status) => status.isDone).length;
+    final requiredTotal = checkinStatuses.length;
+    final capturedClassified =
+        _items.where((item) => item.status == _PhotoStatus.classified).length;
+    final capturedTotal = _items.length;
     final hasCapturedPending = capturedPendencias > 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Revisão de fotos',
+            'REVISÃO DE FOTOS',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w800,
             fontSize: 16,
@@ -474,12 +721,12 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         const SizedBox(height: 10),
         _buildReviewAccordion(
           key: _checkinPendingSectionKey,
-          title: 'Fotos obrigatórias do check-in',
+          title: 'Fotos Obrigatórias Do Check-In',
           isOk: !hasCheckinPending,
           subtitle:
               hasCheckinPending
-                  ? '$checkinPendencias pendência(s) para captura'
-                  : 'Todas as fotos obrigatórias foram registradas',
+                  ? '$checkinPendencias pendência(s) para captura • progresso $requiredDone/$requiredTotal'
+                  : 'Todas as fotos obrigatórias foram registradas • progresso $requiredDone/$requiredTotal',
           expanded: _checkinAccordionExpanded,
           onExpansionChanged:
               (expanded) =>
@@ -516,15 +763,16 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                     ),
                   ),
                 ),
-              ...checkinStatuses.map(
-                (status) => Padding(
+              ...groupedRequirements.map(
+                (group) => Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: _CheckinRequirementCard(
-                    status: status,
+                    status: group,
                     onCapture:
-                        status.isDone
+                        group.pendingStatus == null
                             ? null
-                            : () => _captureMissingRequirement(status),
+                            : () =>
+                                _captureMissingRequirement(group.pendingStatus!),
                   ),
                 ),
               ),
@@ -534,12 +782,12 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         const SizedBox(height: 12),
         _buildReviewAccordion(
           key: _capturedPhotosSectionKey,
-          title: 'Fotos capturadas',
+          title: 'Fotos Capturadas',
           isOk: !hasCapturedPending,
           subtitle:
               hasCapturedPending
-                  ? '$capturedPendencias pendência(s) de classificação'
-                  : 'Todas as fotos capturadas estão classificadas',
+                  ? '$capturedPendencias pendência(s) de classificação • progresso $capturedClassified/$capturedTotal'
+                  : 'Todas as fotos capturadas estão classificadas • progresso $capturedClassified/$capturedTotal',
           expanded: _capturedAccordionExpanded,
           onExpansionChanged:
               (expanded) =>
@@ -638,6 +886,11 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     _ReviewSummary summary,
     InspectionTechnicalSummary technicalSummary,
   ) {
+    final annotationRequired = technicalSummary.requiresJustification;
+    final annotationDone =
+        !annotationRequired || _technicalJustificationController.text.trim().isNotEmpty;
+    final observationDone = _observacaoController.text.trim().isNotEmpty;
+
     return Container(
       key: _closingSectionKey,
       padding: const EdgeInsets.all(16),
@@ -651,28 +904,44 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Encerramento',
+            'ENCERRAMENTO',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w800,
               fontSize: 16,
             ),
           ),
-          if (technicalSummary.requiresJustification) ...[
-            const SizedBox(height: 10),
-            TechnicalJustificationCard(
-              controller: _technicalJustificationController,
-              voiceService: _voiceService,
-              onChanged: (_) => setState(() {}),
-            ),
-          ],
           const SizedBox(height: 10),
-          VoiceTextField(
-            controller: _observacaoController,
-            labelText: 'Observação final',
-            minLines: 3,
-            maxLines: 4,
-            voiceService: _voiceService,
-            helperText: 'Toque no microfone para ditar a observação.',
+          _buildClosingAccordion(
+            title: 'Anotações Do Vistoriador ${annotationDone ? 1 : 0}/1',
+            expanded: _closingNotesExpanded,
+            isDone: annotationDone,
+            onExpansionChanged:
+                (expanded) => setState(() => _closingNotesExpanded = expanded),
+            child: annotationRequired
+                ? TechnicalJustificationCard(
+                    controller: _technicalJustificationController,
+                    voiceService: _voiceService,
+                    onChanged: (_) => setState(() {}),
+                  )
+                : const Text(
+                    'Sem justificativa técnica obrigatória para este cenário.',
+                  ),
+          ),
+          const SizedBox(height: 10),
+          _buildClosingAccordion(
+            title: 'Observação Final ${observationDone ? 1 : 0}/1',
+            expanded: _closingObservationExpanded,
+            isDone: observationDone,
+            onExpansionChanged: (expanded) =>
+                setState(() => _closingObservationExpanded = expanded),
+            child: VoiceTextField(
+              controller: _observacaoController,
+              labelText: 'Observação Final',
+              minLines: 3,
+              maxLines: 4,
+              voiceService: _voiceService,
+              helperText: 'Toque no microfone para ditar a observação.',
+            ),
           ),
           if (summary.totalPending > 0)
             Padding(
@@ -748,6 +1017,49 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     );
   }
 
+  Widget _buildClosingAccordion({
+    required String title,
+    required bool expanded,
+    required bool isDone,
+    required ValueChanged<bool> onExpansionChanged,
+    required Widget child,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDone
+              ? Colors.green.withValues(alpha: 0.28)
+              : Colors.orange.withValues(alpha: 0.30),
+        ),
+      ),
+      child: ExpansionTile(
+        initiallyExpanded: expanded,
+        onExpansionChanged: onExpansionChanged,
+        tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            _StatusPill(
+              status: isDone ? _VisualStatus.ok : _VisualStatus.pending,
+              label: isDone ? 'OK' : 'NOK',
+            ),
+          ],
+        ),
+        children: [child],
+      ),
+    );
+  }
+
   _ReviewSummary _buildSummary() {
     final photoPending =
         _items.where((item) => item.status == _PhotoStatus.pending).length;
@@ -811,10 +1123,6 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     return groups;
   }
 
-  List<_NodeGroup> _buildGroups() {
-    return _buildGroupsForItems(_items);
-  }
-
   List<_CheckinRequirementStatus> _buildCheckinRequirements() {
     final appState = Provider.of<AppState>(context, listen: false);
     final tipo = _resolvedTipoImovel();
@@ -828,13 +1136,13 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     return config.camposFotos.where((campo) => campo.obrigatorio).map((campo) {
       final hasEvidence = _items.any((item) {
         final sameAmbiente =
-            item.ambiente.trim().toLowerCase() ==
-            campo.cameraAmbiente.trim().toLowerCase();
+            _normalizeComparableText(item.ambiente) ==
+            _normalizeComparableText(campo.cameraAmbiente);
         final sameElemento =
             campo.cameraElementoInicial == null
                 ? true
-                : (item.elemento?.trim().toLowerCase() ==
-                    campo.cameraElementoInicial!.trim().toLowerCase());
+                : (_normalizeComparableText(item.elemento) ==
+                    _normalizeComparableText(campo.cameraElementoInicial));
         return sameAmbiente && sameElemento;
       });
       final isPersisted = persistedStep2Model.isPhotoCaptured(campo.id);
@@ -843,6 +1151,59 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         isDone: hasEvidence || isPersisted,
       );
     }).toList();
+  }
+
+  List<_CheckinRequirementGroupStatus> _groupCheckinRequirements(
+    List<_CheckinRequirementStatus> statuses,
+  ) {
+    final map = <String, List<_CheckinRequirementStatus>>{};
+    for (final status in statuses) {
+      final key = _normalizeComparableText(status.field.titulo);
+      map.putIfAbsent(key, () => <_CheckinRequirementStatus>[]).add(status);
+    }
+
+    final groups = map.values
+        .map((items) {
+          final doneCount = items.where((item) => item.isDone).length;
+          final firstPending = items.cast<_CheckinRequirementStatus?>().firstWhere(
+            (item) => item != null && !item.isDone,
+            orElse: () => null,
+          );
+          return _CheckinRequirementGroupStatus(
+            title: items.first.field.titulo,
+            icon: items.first.field.icon,
+            doneCount: doneCount,
+            totalCount: items.length,
+            pendingStatus: firstPending,
+          );
+        })
+        .toList();
+
+    groups.sort((a, b) {
+      if (a.isDone != b.isDone) {
+        return a.isDone ? 1 : -1;
+      }
+      return a.title.compareTo(b.title);
+    });
+    return groups;
+  }
+
+  String _normalizeComparableText(String? value) {
+    final text = (value ?? '').trim().toLowerCase();
+    if (text.isEmpty) return '';
+    return text
+        .replaceAll('á', 'a')
+        .replaceAll('à', 'a')
+        .replaceAll('â', 'a')
+        .replaceAll('ã', 'a')
+        .replaceAll('é', 'e')
+        .replaceAll('ê', 'e')
+        .replaceAll('í', 'i')
+        .replaceAll('ó', 'o')
+        .replaceAll('ô', 'o')
+        .replaceAll('õ', 'o')
+        .replaceAll('ú', 'u')
+        .replaceAll('ç', 'c');
   }
 
   Future<void> _captureMissingRequirement(
@@ -1178,7 +1539,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
 }
 
 class _CheckinRequirementCard extends StatelessWidget {
-  final _CheckinRequirementStatus status;
+  final _CheckinRequirementGroupStatus status;
   final VoidCallback? onCapture;
 
   const _CheckinRequirementCard({
@@ -1191,8 +1552,8 @@ class _CheckinRequirementCard extends StatelessWidget {
     final color = status.isDone ? Colors.green : Colors.orange;
     final subtitle =
         status.isDone
-            ? 'Obrigatório atendido'
-            : 'Obrigatório — pendente de captura';
+        ? 'Obrigatório atendido'
+        : 'Obrigatório — pendente de captura';
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -1219,7 +1580,7 @@ class _CheckinRequirementCard extends StatelessWidget {
               color: color.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(status.field.icon, color: color),
+            child: Icon(status.icon, color: color),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -1227,7 +1588,7 @@ class _CheckinRequirementCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  status.field.titulo,
+                  status.title,
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
@@ -1244,6 +1605,15 @@ class _CheckinRequirementCard extends StatelessWidget {
                             : Colors.orange.shade800,
                     fontWeight:
                         status.isDone ? FontWeight.w600 : FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Progresso ${status.doneCount}/${status.totalCount}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.blueGrey.shade700,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
@@ -1737,6 +2107,24 @@ class _CheckinRequirementStatus {
   final bool isDone;
 
   const _CheckinRequirementStatus({required this.field, required this.isDone});
+}
+
+class _CheckinRequirementGroupStatus {
+  final String title;
+  final IconData icon;
+  final int doneCount;
+  final int totalCount;
+  final _CheckinRequirementStatus? pendingStatus;
+
+  const _CheckinRequirementGroupStatus({
+    required this.title,
+    required this.icon,
+    required this.doneCount,
+    required this.totalCount,
+    required this.pendingStatus,
+  });
+
+  bool get isDone => doneCount >= totalCount;
 }
 
 class _NodeGroup {

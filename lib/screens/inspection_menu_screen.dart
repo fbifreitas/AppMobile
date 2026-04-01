@@ -30,7 +30,7 @@ class InspectionMenuScreen extends StatelessWidget {
 
         if (session == null) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Vistoria')),
+            appBar: AppBar(title: const Text('VISTORIA')),
             body: Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
@@ -41,7 +41,7 @@ class InspectionMenuScreen extends StatelessWidget {
                       subtipoImovel: 'Apartamento',
                     );
                   },
-                  child: const Text('Iniciar vistoria'),
+                  child: const Text('Iniciar Vistoria'),
                 ),
               ),
             ),
@@ -52,7 +52,7 @@ class InspectionMenuScreen extends StatelessWidget {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Vistoria'),
+            title: const Text('VISTORIA'),
             actions: [
               IconButton(
                 tooltip: 'Revisão final',
@@ -242,53 +242,58 @@ class _EnvironmentCard extends StatelessWidget {
     final theme = Theme.of(context);
     final status = _statusLabel(ambiente.status);
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
-      onTap: onOpen,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
-          color: theme.colorScheme.surface,
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 24,
-              child: Text(ambiente.ambienteNome.characters.first.toUpperCase()),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    ambiente.ambienteNome,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${ambiente.totalFotos}/${ambiente.minFotos} foto(s) mínimas • $status',
-                    style: theme.textTheme.bodySmall,
-                  ),
-                  if (ambiente.suggestedAsMissingConfig) ...[
-                    const SizedBox(height: 4),
+    return Semantics(
+      button: true,
+      label: 'Abrir ambiente ${ambiente.ambienteNome}',
+      child: InkWell(
+        key: ValueKey('inspection_environment_${ambiente.ambienteId}'),
+        borderRadius: BorderRadius.circular(18),
+        onTap: onOpen,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
+            color: theme.colorScheme.surface,
+          ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 24,
+                child: Text(ambiente.ambienteNome.characters.first.toUpperCase()),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      'Ambiente não configurado',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w600,
+                      ambiente.ambienteNome,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${ambiente.totalFotos}/${ambiente.minFotos} foto(s) mínimas • $status',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                    if (ambiente.suggestedAsMissingConfig) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Ambiente não configurado',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-            const Icon(Icons.chevron_right),
-          ],
+              const Icon(Icons.chevron_right),
+            ],
+          ),
         ),
       ),
     );

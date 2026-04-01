@@ -1,0 +1,26 @@
+appId: com.example.myapp
+---
+- tapOn:
+    id: "onboarding_nome_field"
+- eraseText
+- inputText: "Maestro Operacao"
+- tapOn:
+    id: "onboarding_cnpj_field"
+- eraseText
+- inputText: "04252011000110"
+- tapOn:
+    id: "onboarding_next_button"
+- tapOn:
+    id: "onboarding_banco_field"
+- eraseText
+- inputText: "Banco Maestro"
+- tapOn:
+    id: "onboarding_agencia_field"
+- eraseText
+- inputText: "1234"
+- tapOn:
+    id: "onboarding_conta_field"
+- eraseText
+- inputText: "1234567"
+- tapOn:
+    id: "onboarding_next_button"

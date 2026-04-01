@@ -216,9 +216,9 @@ void main() {
       ],
     );
 
-    expect(find.text('Revisão de fotos'), findsOneWidget);
-    expect(find.text('Fotos obrigatórias do check-in'), findsOneWidget);
-    expect(find.text('Fotos capturadas'), findsOneWidget);
+    expect(find.text('REVISÃO DE FOTOS'), findsOneWidget);
+    expect(find.text('Fotos Obrigatórias Do Check-In'), findsOneWidget);
+    expect(find.text('Fotos Capturadas'), findsOneWidget);
   });
 
   testWidgets('does not render optional voice commands section', (
@@ -249,7 +249,7 @@ void main() {
 
     expect(find.textContaining('Fotos obrigatórias:'), findsNothing);
     expect(find.textContaining('Fotos capturadas:'), findsNothing);
-    expect(find.textContaining('Revisão de fotos'), findsOneWidget);
+    expect(find.textContaining('REVISÃO DE FOTOS'), findsOneWidget);
   });
 
   testWidgets('renders pending shortcut action in technical matrix', (
@@ -260,7 +260,7 @@ void main() {
       captures: [_capture(filePath: '/tmp/a.jpg', ambiente: 'Cozinha')],
     );
 
-    expect(find.text('Pendências técnicas da vistoria'), findsOneWidget);
+    expect(find.text('PENDÊNCIAS TÉCNICAS DA VISTORIA'), findsOneWidget);
     expect(find.text('Ir para pendência'), findsWidgets);
   });
 
@@ -426,7 +426,7 @@ void main() {
         },
       );
 
-      expect(find.text('Fotos obrigatórias do check-in'), findsOneWidget);
+      expect(find.text('Fotos Obrigatórias Do Check-In'), findsOneWidget);
       expect(find.text('Sala principal'), findsOneWidget);
       expect(find.text('Obrigatório — pendente de captura'), findsOneWidget);
     },
@@ -468,7 +468,7 @@ void main() {
         persistedRecoveryPayload: recoveryPayload,
       );
 
-      expect(find.text('Fotos capturadas'), findsOneWidget);
+      expect(find.text('Fotos Capturadas'), findsOneWidget);
       expect(
         find.textContaining('1 pendência(s) de classificação'),
         findsOneWidget,
