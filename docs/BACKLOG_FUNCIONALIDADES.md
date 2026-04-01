@@ -302,6 +302,7 @@ Observacao 2026-03-30 (CONCLUIDO): central de mensagens implementada com contado
 Introduzir autenticação com tela de login, gerenciamento de sessão e proteção de acesso às áreas internas do app.
 
 Observacao 2026-03-30 (CONCLUIDO): fluxo de autenticacao com estado persistido, logout seguro e roteamento condicional para login/onboarding/aguardando aprovacao/home.
+Observacao 2026-03-31 (EM ANDAMENTO): reforcada a testabilidade da tela de login para automacao Maestro com identificadores semanticos estaveis em campos e botao de submit.
 
 ### BL-032
 Criar onboarding de novos usuários para perfis CLT e PJ, com coleta de dados cadastrais completos e captura de foto pelo app.
