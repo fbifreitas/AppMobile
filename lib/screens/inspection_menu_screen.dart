@@ -30,7 +30,7 @@ class InspectionMenuScreen extends StatelessWidget {
 
         if (session == null) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Vistoria')),
+            appBar: AppBar(title: const Text('VISTORIA')),
             body: Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
@@ -41,7 +41,7 @@ class InspectionMenuScreen extends StatelessWidget {
                       subtipoImovel: 'Apartamento',
                     );
                   },
-                  child: const Text('Iniciar vistoria'),
+                  child: const Text('Iniciar Vistoria'),
                 ),
               ),
             ),
@@ -52,7 +52,7 @@ class InspectionMenuScreen extends StatelessWidget {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Vistoria'),
+            title: const Text('VISTORIA'),
             actions: [
               IconButton(
                 tooltip: 'Revisão final',

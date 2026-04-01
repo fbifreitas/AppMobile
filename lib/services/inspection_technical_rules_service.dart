@@ -135,16 +135,21 @@ class InspectionTechnicalRulesService {
     switch (tipoImovel.toLowerCase()) {
       case 'rural':
         return const <String, int>{
-          'Fachada': 1,
-          'Acesso ao imóvel': 1,
-          'Entorno': 1,
+          'Acesso principal': 1,
+          'Entrada da propriedade': 1,
+          'Identificação / referência': 1,
         };
       case 'comercial':
-      case 'industrial':
         return const <String, int>{
           'Fachada': 1,
           'Logradouro': 1,
-          'Acesso ao imóvel': 1,
+          'Acesso principal': 1,
+        };
+      case 'industrial':
+        return const <String, int>{
+          'Acesso principal': 1,
+          'Fachada / portaria': 1,
+          'Número / identificação': 1,
         };
       case 'urbano':
       default:

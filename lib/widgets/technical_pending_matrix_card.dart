@@ -24,16 +24,7 @@ class TechnicalPendingMatrixCard extends StatelessWidget {
         ].where((item) => item.items.isNotEmpty).toList();
 
     if (sections.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: Theme.of(
-            context,
-          ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.22),
-        ),
-        child: const Text('Nenhuma pendência técnica identificada.'),
-      );
+      return const SizedBox.shrink();
     }
 
     return Container(

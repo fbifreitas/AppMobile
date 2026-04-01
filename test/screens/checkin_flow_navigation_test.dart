@@ -528,7 +528,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 600));
 
-      expect(find.text('Menu de vistoria'), findsOneWidget);
+      expect(find.text('MENU DE VISTORIA'), findsOneWidget);
       expect(find.byType(InspectionReviewScreen), findsOneWidget);
 
       final navigator = tester.state<NavigatorState>(

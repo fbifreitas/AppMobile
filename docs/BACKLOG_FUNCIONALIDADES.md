@@ -194,6 +194,14 @@ Reorganizar o topo da revisao de fotos com agrupadores equivalentes ao bloco de 
 
 Observacao 2026-03-30 (CONCLUIDO): topo da revisao atualizado com agrupadores de "Fotos obrigatorias" e "Fotos capturadas", com contadores de progresso por grupo. Cobertura automatizada adicionada para preservar a leitura do resumo no topo.
 
+Observacao 2026-04-01 (Em andamento): retomada de ajustes UX no Menu de Vistoria para deduplicar itens obrigatorios com mesmo titulo (ex.: Fachada), exibir progresso x/y por bloco e reforcar navegacao do atalho "Ir para pendencia" com foco direto na secao correspondente.
+
+Observacao 2026-04-01 (Em andamento): estrutura visual do Menu de Vistoria padronizada por secoes em accordion (Pendencias tecnicas por etapa, Revisao de fotos e Encerramento), mantendo compatibilidade com validacoes automatizadas existentes.
+
+Observacao 2026-04-01 (Em andamento): padrao de texto aplicado no menu e telas irmas com primeiro nivel em caixa alta e niveis internos em Title Case para leitura operacional consistente.
+
+Observacao 2026-04-01 (CONCLUIDO): pendencias tecnicas passaram a refletir contagem por obrigatoriedade (x/y), com exibicao da etapa de Finalizacao e alinhamento do fluxo Maestro ao novo titulo em caixa alta no Menu de Vistoria.
+
 Detalhamento:
 1. Separar "Fotos obrigatorias" e "Fotos capturadas" no topo da tela.
 2. Mostrar totais e progresso por agrupador para leitura rapida.

@@ -18,13 +18,13 @@ class InspectionTechnicalOverviewScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Auditoria técnica'),
+        title: const Text('AUDITORIA TÉCNICA'),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Text(
-            'Auditoria de classificação',
+            'Auditoria De Classificação',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),

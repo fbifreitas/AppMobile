@@ -6,6 +6,8 @@ tags:
 - launchApp:
     clearState: false
 
+- takeScreenshot: "00-app-aberto"
+
 # Se tela de login estiver visível, executa login
 - runFlow:
     when:
@@ -13,14 +15,56 @@ tags:
     commands:
       - tapOn: "E-mail|Email|Usuário"
       - inputText: "seu.usuario@teste.com"
+      - takeScreenshot: "01-email-preenchido"
       - tapOn: "Senha"
       - inputText: "123456"
       - hideKeyboard
-      - tapOn: "Entrar|Acessar|Continuar|Avançar"
+      - takeScreenshot: "02-senha-preenchida"
 
-# Valida destino final (já logado ou pós-login)
+# Build mais novo: tenta seletor estável por id
+- runFlow:
+    when:
+      visible: "login_submit_button"
+    commands:
+      - takeScreenshot: "03-botao-encontrado-por-id"
+      - tapOn:
+          id: "login_submit_button"
+      - takeScreenshot: "03-submit-por-id"
+
+# Build publicado: fallback por texto (regex case-insensitive)
+- runFlow:
+    when:
+      visible: "(?i)(entrar|acessar|continuar|avancar|avançar|login)"
+    commands:
+      - scrollUntilVisible:
+          element:
+            text: "(?i)(entrar|acessar|continuar|avancar|avançar|login)"
+          direction: DOWN
+      - takeScreenshot: "03-botao-encontrado-por-texto"
+      - tapOn: "(?i)(entrar|acessar|continuar|avancar|avançar|login)"
+      - takeScreenshot: "03-submit-por-texto"
+
+# Valida destino final aceitando home, onboarding ou aprovacao pendente
+- takeScreenshot: "04-aguardando-destino-final"
+
 - extendedWaitUntil:
-    visible: "Menu de vistoria|Início|Home"
+  visible: "(?i)(menu de vistoria|início|home|cadastro pj|continuar|concluir|cadastro em análise|verificar status)"
     timeout: 20000
 
-- takeScreenshot: "smoke-home"
+- runFlow:
+    when:
+      visible: "Cadastro PJ|Continuar|Concluir"
+    commands:
+      - takeScreenshot: "04-destino-onboarding"
+
+- runFlow:
+    when:
+      visible: "Cadastro em análise|Verificar status"
+    commands:
+      - takeScreenshot: "04-destino-aprovacao"
+
+- runFlow:
+    when:
+      visible: "(?i)(menu de vistoria|início|home)"
+    commands:
+      - takeScreenshot: "04-destino-home"
