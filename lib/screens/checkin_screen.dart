@@ -26,6 +26,9 @@ class CheckinScreen extends StatefulWidget {
 
 class _CheckinScreenState extends State<CheckinScreen> {
   static const String _contextLevelId = 'contexto';
+  static const String _questionClienteId = 'cliente_presente';
+  static const String _questionTipoId = 'tipo_imovel';
+  static const String _questionSubtipoId = 'subtipo_imovel';
 
   bool? clientePresente;
   String? tipoImovel;
@@ -70,6 +73,8 @@ class _CheckinScreenState extends State<CheckinScreen> {
   final VoiceInputService _voiceService = VoiceInputService();
   bool _hydrated = false;
   bool _loadingDynamicConfig = false;
+  bool _step1SectionExpanded = true;
+  String? _expandedQuestionId = _questionClienteId;
 
   @override
   void initState() {
@@ -268,22 +273,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
           children: [
-            Text(
-              job.titulo,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              job.endereco,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 12,
-              ),
-            ),
+            _buildPropertyAndClientCard(job),
             const SizedBox(height: 16),
             FutureBuilder(
               future: LocationService().getCurrentLocation(),
@@ -366,128 +356,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
               ],
             ),
             const SizedBox(height: 18),
-            _buildSectionTitle(
-              label: 'Cliente está presente?',
-              onVoiceTap: _selectClientePresenteByVoice,
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: [
-                ChoiceChip(
-                  label: const Text('Sim'),
-                  selected: clientePresente == true,
-                  onSelected: (_) async {
-                    setState(() => clientePresente = true);
-                    await _persistStep1();
-                  },
-                ),
-                ChoiceChip(
-                  label: const Text('Não'),
-                  selected: clientePresente == false,
-                  onSelected: (_) async {
-                    setState(() => clientePresente = false);
-                    await _persistStep1();
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            if (clientePresente == true) ...[
-              _buildSectionTitle(
-                label: 'Tipo de imóvel',
-                onVoiceTap: _selectTipoByVoice,
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children:
-                    _tipos.map((tipo) {
-                      return ChoiceChip(
-                        label: Text(tipo),
-                        selected: tipoImovel == tipo,
-                        onSelected: (_) async {
-                          setState(() {
-                            tipoImovel = tipo;
-                            subtipoImovel = null;
-                            _sanitizeSelectedLevels();
-                          });
-                          await _persistStep1();
-                        },
-                      );
-                    }).toList(),
-              ),
-              if (tipoImovel != null) ...[
-                const SizedBox(height: 16),
-                _buildSectionTitle(
-                  label: 'Subtipo',
-                  onVoiceTap: _selectSubtipoByVoice,
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children:
-                      subtipos.map((subtipo) {
-                        return ChoiceChip(
-                          label: Text(subtipo),
-                          selected: subtipoImovel == subtipo,
-                          onSelected: (_) async {
-                            setState(() {
-                              subtipoImovel = subtipo;
-                              _sanitizeSelectedLevels();
-                            });
-                            await _persistStep1();
-                          },
-                        );
-                      }).toList(),
-                ),
-              ],
-              ..._buildDynamicStep1Levels(),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed:
-                      tipoImovel == null
-                          ? null
-                          : () async {
-                            final appStateRead = context.read<AppState>();
-                            final flowCoordinator = widget.flowCoordinator;
-
-                            await appStateRead.setInspectionRecoveryStage(
-                              stageKey: 'checkin_step2',
-                              stageLabel: 'Check-in etapa 2',
-                              routeName: '/checkin_step2',
-                              payload: {
-                                ...appStateRead.inspectionRecoveryPayload,
-                                'step1': appStateRead.step1Payload,
-                                'step2': appStateRead.step2Payload,
-                              },
-                            );
-
-                            if (!context.mounted) return;
-
-                            flowCoordinator.openCheckinStep2(
-                              context,
-                              tipoImovel: tipoImovel!,
-                              initialData: _readInitialStep2(appStateRead),
-                              onContinue: (model) async {
-                                await context
-                                    .read<AppState>()
-                                    .persistStep2Draft(model.toMap());
-                              },
-                            );
-                          },
-                  child: const Text(
-                    'Ir para etapa 2 do check-in',
-                    style: TextStyle(fontSize: 13),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
+            _buildStep1QuestionFlow(subtipos),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -504,29 +373,480 @@ class _CheckinScreenState extends State<CheckinScreen> {
     );
   }
 
-  Widget _buildSectionTitle({
-    required String label,
-    required Future<void> Function() onVoiceTap,
-  }) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            style: const TextStyle(
+  Widget _buildPropertyAndClientCard(job) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'DADOS IMÓVEL E CLIENTE',
+            style: TextStyle(
+              fontSize: 12,
               fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
-              fontSize: 13,
+              color: AppColors.textSecondary,
             ),
           ),
-        ),
-        IconButton(
-          tooltip: 'Selecionar por voz',
-          onPressed: onVoiceTap,
-          icon: const Icon(Icons.mic_none, size: 18),
-        ),
-      ],
+          const SizedBox(height: 10),
+          Text(
+            job.titulo,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            job.endereco,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Cliente: ${job.nomeCliente.isEmpty ? 'Não informado' : job.nomeCliente}',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          Text(
+            'Contato: ${job.telefoneCliente?.isNotEmpty == true ? job.telefoneCliente : 'Não informado'}',
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
     );
+  }
+
+  Widget _buildStep1QuestionFlow(List<String> subtipos) {
+    final activeLevels =
+        clientePresente == true
+            ? _resolveActiveStep1Levels()
+            : const <ConfigLevelDefinition>[];
+    final total = _step1TotalQuestions(activeLevels);
+    final answered = _step1AnsweredQuestions(activeLevels);
+    final isDone = total > 0 && answered == total;
+    final statusColor = isDone ? AppColors.success : AppColors.warning;
+    final statusBg = isDone ? AppColors.successLight : AppColors.warningLight;
+
+    final levelIds = <String>[
+      for (final level in activeLevels) _levelQuestionId(level.id),
+    ];
+    final visibleQuestionIds = <String>[
+      _questionClienteId,
+      if (clientePresente == true) _questionTipoId,
+      if (clientePresente == true && tipoImovel != null) _questionSubtipoId,
+      ...levelIds,
+    ];
+    final resolvedExpandedId = _resolvedExpandedQuestionId(visibleQuestionIds);
+
+    final widgets = <Widget>[];
+    widgets.add(
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: statusBg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: statusColor.withValues(alpha: 0.25)),
+        ),
+        child: InkWell(
+          onTap: () {
+            setState(() => _step1SectionExpanded = !_step1SectionExpanded);
+          },
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'ETAPA 1 CHECK-IN $answered/$total ${isDone ? 'OK' : 'NOK'}',
+                  style: TextStyle(
+                    color: statusColor,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+              Icon(
+                _step1SectionExpanded ? Icons.expand_less : Icons.expand_more,
+                color: statusColor,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (_step1SectionExpanded) {
+      widgets.add(const SizedBox(height: 12));
+      widgets.add(
+        _buildQuestionAccordion(
+          id: _questionClienteId,
+          question: 'Cliente está presente?',
+          answer: clientePresente == null ? null : (clientePresente! ? 'Sim' : 'Não'),
+          expanded: resolvedExpandedId == _questionClienteId,
+          onToggle: () => _toggleQuestion(_questionClienteId),
+          onVoiceTap: _selectClientePresenteByVoice,
+          child: Wrap(
+            spacing: 8,
+            children: [
+              ChoiceChip(
+                label: const Text('Sim'),
+                selected: clientePresente == true,
+                onSelected: (_) async {
+                  setState(() {
+                    clientePresente = true;
+                    _expandedQuestionId = _questionTipoId;
+                  });
+                  await _persistStep1();
+                },
+              ),
+              ChoiceChip(
+                label: const Text('Não'),
+                selected: clientePresente == false,
+                onSelected: (_) async {
+                  setState(() {
+                    clientePresente = false;
+                    _expandedQuestionId = null;
+                  });
+                  await _persistStep1();
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+
+      if (clientePresente == true) {
+        widgets.add(const SizedBox(height: 10));
+        widgets.add(
+          _buildQuestionAccordion(
+            id: _questionTipoId,
+            question: 'Tipo de imóvel',
+            answer: tipoImovel,
+            expanded: resolvedExpandedId == _questionTipoId,
+            onToggle: () => _toggleQuestion(_questionTipoId),
+            onVoiceTap: _selectTipoByVoice,
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _tipos
+                  .map(
+                    (tipo) => ChoiceChip(
+                      label: Text(tipo),
+                      selected: tipoImovel == tipo,
+                      onSelected: (_) async {
+                        setState(() {
+                          tipoImovel = tipo;
+                          subtipoImovel = null;
+                          _sanitizeSelectedLevels();
+                          _expandedQuestionId = _questionSubtipoId;
+                        });
+                        await _persistStep1();
+                      },
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+        );
+      }
+
+      if (clientePresente == true && tipoImovel != null) {
+        widgets.add(const SizedBox(height: 10));
+        widgets.add(
+          _buildQuestionAccordion(
+            id: _questionSubtipoId,
+            question: 'Subtipo',
+            answer: subtipoImovel,
+            expanded: resolvedExpandedId == _questionSubtipoId,
+            onToggle: () => _toggleQuestion(_questionSubtipoId),
+            onVoiceTap: _selectSubtipoByVoice,
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: subtipos
+                  .map(
+                    (subtipo) => ChoiceChip(
+                      label: Text(subtipo),
+                      selected: subtipoImovel == subtipo,
+                      onSelected: (_) async {
+                        setState(() {
+                          subtipoImovel = subtipo;
+                          _sanitizeSelectedLevels();
+                          _expandedQuestionId =
+                              activeLevels.isEmpty
+                                  ? null
+                                  : _levelQuestionId(activeLevels.first.id);
+                        });
+                        await _persistStep1();
+                      },
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+        );
+      }
+
+      if (clientePresente == true && subtipoImovel != null) {
+        var hasPending = false;
+        for (final level in activeLevels) {
+          final questionId = _levelQuestionId(level.id);
+          final options = _optionsForLevel(level);
+          final selected = _niveisSelecionados[level.id];
+          final answeredLevel = selected != null && selected.trim().isNotEmpty;
+
+          if (!answeredLevel && hasPending) {
+            break;
+          }
+
+          widgets.add(const SizedBox(height: 10));
+          widgets.add(
+            _buildQuestionAccordion(
+              id: questionId,
+              question: level.label,
+              answer: selected,
+              expanded: resolvedExpandedId == questionId,
+              onToggle: () => _toggleQuestion(questionId),
+              onVoiceTap: () => _selectLevelByVoice(level, options),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: options
+                    .map(
+                      (option) => ChoiceChip(
+                        label: Text(option),
+                        selected: selected == option,
+                        onSelected: (_) async {
+                          setState(() {
+                            _niveisSelecionados[level.id] = option;
+                            if (level.id == _contextLevelId) {
+                              porOndeComecar = option;
+                            }
+                            _sanitizeSelectedLevels();
+                            _expandedQuestionId = _resolveNextPendingQuestionId();
+                          });
+                          await _persistStep1();
+                        },
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+          );
+
+          if (!answeredLevel) {
+            hasPending = true;
+          }
+        }
+      }
+
+      if (clientePresente == true) {
+        widgets.add(const SizedBox(height: 16));
+        widgets.add(
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed:
+                  tipoImovel == null
+                      ? null
+                      : () async {
+                        final appStateRead = context.read<AppState>();
+                        final flowCoordinator = widget.flowCoordinator;
+
+                        await appStateRead.setInspectionRecoveryStage(
+                          stageKey: 'checkin_step2',
+                          stageLabel: 'Check-in etapa 2',
+                          routeName: '/checkin_step2',
+                          payload: {
+                            ...appStateRead.inspectionRecoveryPayload,
+                            'step1': appStateRead.step1Payload,
+                            'step2': appStateRead.step2Payload,
+                          },
+                        );
+
+                        if (!mounted) return;
+
+                        flowCoordinator.openCheckinStep2(
+                          context,
+                          tipoImovel: tipoImovel!,
+                          initialData: _readInitialStep2(appStateRead),
+                          onContinue: (model) async {
+                            await appStateRead.persistStep2Draft(model.toMap());
+                          },
+                        );
+                      },
+              child: const Text(
+                'Ir para etapa 2 do check-in',
+                style: TextStyle(fontSize: 13),
+              ),
+            ),
+          ),
+        );
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: widgets,
+    );
+  }
+
+  Widget _buildQuestionAccordion({
+    required String id,
+    required String question,
+    required String? answer,
+    required bool expanded,
+    required VoidCallback onToggle,
+    required Future<void> Function() onVoiceTap,
+    required Widget child,
+  }) {
+    final answered = answer != null && answer.trim().isNotEmpty;
+    final borderColor = answered ? AppColors.success : AppColors.border;
+    final background = answered ? AppColors.successLight : AppColors.surface;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor),
+      ),
+      child: Column(
+        children: [
+          InkWell(
+            onTap: onToggle,
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: question,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                              fontSize: 13,
+                            ),
+                          ),
+                          if (answered)
+                            TextSpan(
+                              text: ' [$answer]',
+                              style: const TextStyle(
+                                color: AppColors.success,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Selecionar por voz',
+                    onPressed: onVoiceTap,
+                    icon: const Icon(Icons.mic_none, size: 18),
+                  ),
+                  Icon(
+                    expanded ? Icons.expand_less : Icons.expand_more,
+                    color: answered ? AppColors.success : AppColors.textSecondary,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (expanded)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: child,
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _toggleQuestion(String questionId) {
+    setState(() {
+      _expandedQuestionId = _expandedQuestionId == questionId ? null : questionId;
+    });
+  }
+
+  int _step1TotalQuestions(List<ConfigLevelDefinition> activeLevels) {
+    if (clientePresente != true) {
+      return 1;
+    }
+    return 3 + activeLevels.length;
+  }
+
+  int _step1AnsweredQuestions(List<ConfigLevelDefinition> activeLevels) {
+    var answered = clientePresente == null ? 0 : 1;
+    if (clientePresente == true && tipoImovel != null) {
+      answered += 1;
+    }
+    if (clientePresente == true && subtipoImovel != null) {
+      answered += 1;
+    }
+    if (clientePresente == true) {
+      for (final level in activeLevels) {
+        final selected = _niveisSelecionados[level.id];
+        if (selected != null && selected.trim().isNotEmpty) {
+          answered += 1;
+        }
+      }
+    }
+    return answered;
+  }
+
+  String _levelQuestionId(String levelId) => 'level_$levelId';
+
+  String? _resolvedExpandedQuestionId(List<String> visibleQuestionIds) {
+    if (_expandedQuestionId != null &&
+        visibleQuestionIds.contains(_expandedQuestionId)) {
+      return _expandedQuestionId;
+    }
+
+    final nextPending = _resolveNextPendingQuestionId();
+    if (nextPending != null && visibleQuestionIds.contains(nextPending)) {
+      return nextPending;
+    }
+    return visibleQuestionIds.isEmpty ? null : visibleQuestionIds.first;
+  }
+
+  String? _resolveNextPendingQuestionId() {
+    if (clientePresente == null) {
+      return _questionClienteId;
+    }
+    if (clientePresente != true) {
+      return null;
+    }
+    if (tipoImovel == null) {
+      return _questionTipoId;
+    }
+    if (subtipoImovel == null) {
+      return _questionSubtipoId;
+    }
+
+    final activeLevels = _resolveActiveStep1Levels();
+    for (final level in activeLevels) {
+      final selected = _niveisSelecionados[level.id];
+      if (selected == null || selected.trim().isEmpty) {
+        return _levelQuestionId(level.id);
+      }
+    }
+    return null;
   }
 
   Future<void> _selectClientePresenteByVoice() async {
@@ -607,85 +927,6 @@ class _CheckinScreenState extends State<CheckinScreen> {
       _sanitizeSelectedLevels();
     });
     await _persistStep1();
-  }
-
-  List<Widget> _buildDynamicStep1Levels() {
-    final activeLevels = _resolveActiveStep1Levels();
-    if (activeLevels.isEmpty) {
-      return const [];
-    }
-
-    final widgets = <Widget>[];
-    for (final level in activeLevels) {
-      widgets.add(const SizedBox(height: 16));
-
-      final dependency = level.dependsOn?.trim();
-      final dependencySatisfied =
-          dependency == null ||
-          dependency.isEmpty ||
-          (_niveisSelecionados[dependency]?.trim().isNotEmpty ?? false);
-      final options = _optionsForLevel(level);
-
-      widgets.add(
-        _buildSectionTitle(
-          label: level.label,
-          onVoiceTap: () => _selectLevelByVoice(level, options),
-        ),
-      );
-      widgets.add(const SizedBox(height: 8));
-
-      if (!dependencySatisfied) {
-        widgets.add(
-          Text(
-            'Selecione primeiro $dependency.',
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 12,
-            ),
-          ),
-        );
-        continue;
-      }
-
-      if (options.isEmpty) {
-        widgets.add(
-          Text(
-            'Sem opções configuradas para este nível.',
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 12,
-            ),
-          ),
-        );
-        continue;
-      }
-
-      widgets.add(
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children:
-              options.map((option) {
-                return ChoiceChip(
-                  label: Text(option),
-                  selected: _niveisSelecionados[level.id] == option,
-                  onSelected: (_) async {
-                    setState(() {
-                      _niveisSelecionados[level.id] = option;
-                      if (level.id == _contextLevelId) {
-                        porOndeComecar = option;
-                      }
-                      _sanitizeSelectedLevels();
-                    });
-                    await _persistStep1();
-                  },
-                );
-              }).toList(),
-        ),
-      );
-    }
-
-    return widgets;
   }
 
   Future<void> _handleConfirm() async {
