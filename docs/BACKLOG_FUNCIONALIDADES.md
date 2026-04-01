@@ -378,6 +378,14 @@ Observacao 2026-03-30 (CONCLUIDO): Hub Operacional recebeu ação "Resetar mock 
 ### BL-049
 Consolidar o GitHub Project como fonte principal do backlog, garantindo sincronização integral dos itens BL e status com rastreabilidade.
 
+Observacao 2026-04-01 (Em andamento): criado o resumo executivo continuo de implantacao (`docs/RESUMO_EXECUTIVO_CONTINUO.md`) com snapshot de branches, versao, gates de promocao e estado homolog -> main para reduzir perda de contexto entre sessoes e suportar decisao de merge com rastreabilidade.
+
+Observacao 2026-04-01 (Em andamento): formalizado procedimento de excecao para mantenedor unico na promocao homolog -> main (ajuste temporario de aprovacao minima da branch protegida para 0, merge da PR e restore imediato para 1), com registro obrigatorio de evidencias.
+
+Observacao 2026-04-01 (Despriorizado): configuracao de notificacao por e-mail para aprovacao de PR no celular movida para segundo plano do backlog operacional, pois o fluxo atual usa aprovacao/merge por CLI quando necessario.
+
+Observacao 2026-04-01 (Em acompanhamento): divergencia de notificacao por e-mail entre ambientes - homolog envia e-mail de distribuicao, enquanto distribuicoes originadas de `main`/producao nao confirmaram recebimento nesta sessao.
+
 ### BL-050
 Corrigir a área de ação final do onboarding para evitar que o botão "Concluir" fique encoberto pela barra de navegação do Android, garantindo conclusão do fluxo com usabilidade consistente.
 

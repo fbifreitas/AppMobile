@@ -488,8 +488,8 @@ class _CheckinScreenState extends State<CheckinScreen> {
     );
 
     if (_step1SectionExpanded) {
-      widgets.add(const SizedBox(height: 12));
-      widgets.add(
+      final step1Cards = <Widget>[];
+      step1Cards.add(
         _buildQuestionAccordion(
           id: _questionClienteId,
           question: 'Cliente está presente?',
@@ -528,8 +528,8 @@ class _CheckinScreenState extends State<CheckinScreen> {
       );
 
       if (clientePresente == true) {
-        widgets.add(const SizedBox(height: 10));
-        widgets.add(
+        step1Cards.add(const SizedBox(height: 10));
+        step1Cards.add(
           _buildQuestionAccordion(
             id: _questionTipoId,
             question: 'Tipo de imóvel',
@@ -563,8 +563,8 @@ class _CheckinScreenState extends State<CheckinScreen> {
       }
 
       if (clientePresente == true && tipoImovel != null) {
-        widgets.add(const SizedBox(height: 10));
-        widgets.add(
+        step1Cards.add(const SizedBox(height: 10));
+        step1Cards.add(
           _buildQuestionAccordion(
             id: _questionSubtipoId,
             question: 'Subtipo',
@@ -611,8 +611,8 @@ class _CheckinScreenState extends State<CheckinScreen> {
             break;
           }
 
-          widgets.add(const SizedBox(height: 10));
-          widgets.add(
+          step1Cards.add(const SizedBox(height: 10));
+          step1Cards.add(
             _buildQuestionAccordion(
               id: questionId,
               question: level.label,
@@ -653,8 +653,8 @@ class _CheckinScreenState extends State<CheckinScreen> {
       }
 
       if (clientePresente == true) {
-        widgets.add(const SizedBox(height: 16));
-        widgets.add(
+        step1Cards.add(const SizedBox(height: 16));
+        step1Cards.add(
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
@@ -695,6 +695,23 @@ class _CheckinScreenState extends State<CheckinScreen> {
           ),
         );
       }
+
+      widgets.add(const SizedBox(height: 12));
+      widgets.add(
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: step1Cards,
+          ),
+        ),
+      );
     }
 
     return Column(
@@ -818,11 +835,15 @@ class _CheckinScreenState extends State<CheckinScreen> {
       return _expandedQuestionId;
     }
 
+    if (_expandedQuestionId == null) {
+      return null;
+    }
+
     final nextPending = _resolveNextPendingQuestionId();
     if (nextPending != null && visibleQuestionIds.contains(nextPending)) {
       return nextPending;
     }
-    return visibleQuestionIds.isEmpty ? null : visibleQuestionIds.first;
+    return null;
   }
 
   String? _resolveNextPendingQuestionId() {

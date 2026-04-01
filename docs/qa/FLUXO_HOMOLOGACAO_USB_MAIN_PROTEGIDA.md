@@ -58,6 +58,20 @@ git push origin release/vX.Y.Z+N
 
 6. Apos merge em `main`, manter validacoes CI e distribuicao.
 
+## Excecao operacional (mantenedor unico)
+
+Quando nao houver segundo revisor com permissao de escrita para aprovar a PR:
+
+1. Validar checks verdes da PR (`validate-and-build-debug` e gates aplicaveis).
+2. Reduzir temporariamente a regra de aprovacao da `main` para 0 via API GitHub.
+3. Executar merge da PR para `main`.
+4. Restaurar imediatamente a regra para 1 aprovacao minima.
+5. Registrar no resumo executivo da entrega os comandos usados, o commit de merge e o status dos workflows.
+
+Diretriz:
+- Esta excecao so pode ser usada em contexto de mantenedor unico e deve ser tratada como procedimento controlado.
+- O item de notificacao por e-mail para aprovacao de PR pode permanecer em segundo plano; a prioridade operacional e garantir distribuicoes separadas por ambiente (homolog e main/producao).
+
 ## Protecao de branch no GitHub
 
 O hook local ajuda, mas a garantia para todo o time vem da regra de branch no servidor.
