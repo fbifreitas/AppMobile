@@ -5,7 +5,7 @@
 No Flutter, a versão do app é controlada em `pubspec.yaml`:
 
 ```yaml
-version: 1.2.18+35
+version: 1.2.18+36
 ```
 
 - `1.0.0` é a versão semântica.
@@ -24,7 +24,7 @@ Use mensagens claras e em português, seguindo o padrão adotado no projeto:
 
 Exemplo real:
 
-- `v1.2.18+35 - fix: corrigir pipeline da revisão e reforçar lista básica`
+- `v1.2.18+36 - fix: corrigir pipeline da revisão e reforçar lista básica`
 
 Tipos recomendados:
 
