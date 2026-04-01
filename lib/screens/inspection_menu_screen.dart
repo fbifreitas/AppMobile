@@ -30,7 +30,7 @@ class InspectionMenuScreen extends StatelessWidget {
 
         if (session == null) {
           return Scaffold(
-            appBar: AppBar(title: const Text('VISTORIA')),
+            appBar: AppBar(title: const Text('Vistoria')),
             body: Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
@@ -52,7 +52,7 @@ class InspectionMenuScreen extends StatelessWidget {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('VISTORIA'),
+            title: const Text('Vistoria'),
             actions: [
               IconButton(
                 tooltip: 'Revisão final',

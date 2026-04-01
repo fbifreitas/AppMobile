@@ -18,7 +18,7 @@ class InspectionTechnicalOverviewScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AUDITORIA TÉCNICA'),
+        title: const Text('Auditoria Técnica'),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),

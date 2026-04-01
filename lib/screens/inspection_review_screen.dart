@@ -61,14 +61,17 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   final GlobalKey _closingSectionKey = GlobalKey();
 
   String? _expandedSubtype;
-  bool _checkinAccordionExpanded = true;
-  bool _capturedAccordionExpanded = true;
-  bool _technicalCheckinExpanded = true;
-  bool _technicalCaptureExpanded = true;
-  bool _technicalReviewExpanded = true;
-  bool _technicalFinalizationExpanded = true;
-  bool _closingNotesExpanded = true;
-  bool _closingObservationExpanded = true;
+  bool _technicalPendingSectionExpanded = false;
+  bool _reviewSectionExpanded = false;
+  bool _closingSectionExpanded = false;
+  bool _checkinAccordionExpanded = false;
+  bool _capturedAccordionExpanded = false;
+  bool _technicalCheckinExpanded = false;
+  bool _technicalCaptureExpanded = false;
+  bool _technicalReviewExpanded = false;
+  bool _technicalFinalizationExpanded = false;
+  bool _closingNotesExpanded = false;
+  bool _closingObservationExpanded = false;
 
   static const _elementos = <String>[
     'Visão geral',
@@ -275,7 +278,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     return PopScope(
       canPop: true,
       child: Scaffold(
-        appBar: AppBar(title: const Text('MENU DE VISTORIA')),
+        appBar: AppBar(title: const Text('Menu de Vistoria')),
         bottomNavigationBar: SafeArea(
           minimum: const EdgeInsets.fromLTRB(16, 8, 16, 14),
           child: SizedBox(
@@ -304,20 +307,66 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
           children: [
             InspectionTechnicalSummaryCard(summary: technicalSummary),
             const SizedBox(height: 8),
-            _buildTechnicalPendingAccordionsSection(
-              context: context,
-              technicalSummary: technicalSummary,
-              checkinStatuses: checkinStatuses,
+            _buildSectionAccordion(
+              title: 'PENDÊNCIAS TÉCNICAS DA VISTORIA',
+              expanded: _technicalPendingSectionExpanded,
+              onExpansionChanged: (expanded) => setState(
+                () => _technicalPendingSectionExpanded = expanded,
+              ),
+              child: _buildTechnicalPendingAccordionsSection(
+                context: context,
+                technicalSummary: technicalSummary,
+                checkinStatuses: checkinStatuses,
+              ),
             ),
             const SizedBox(height: 8),
-            _buildReviewAccordionsSection(
-              context: context,
-              checkinStatuses: checkinStatuses,
+            _buildSectionAccordion(
+              title: 'REVISÃO DE FOTOS',
+              expanded: _reviewSectionExpanded,
+              onExpansionChanged:
+                  (expanded) => setState(() => _reviewSectionExpanded = expanded),
+              child: _buildReviewAccordionsSection(
+                context: context,
+                checkinStatuses: checkinStatuses,
+              ),
             ),
-            const SizedBox(height: 16),
-            _buildClosingCard(context, summary, technicalSummary),
+            const SizedBox(height: 8),
+            _buildSectionAccordion(
+              title: 'ENCERRAMENTO',
+              expanded: _closingSectionExpanded,
+              onExpansionChanged:
+                  (expanded) => setState(() => _closingSectionExpanded = expanded),
+              child: _buildClosingCard(context, summary, technicalSummary),
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSectionAccordion({
+    required String title,
+    required bool expanded,
+    required ValueChanged<bool> onExpansionChanged,
+    required Widget child,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.25),
+        ),
+      ),
+      child: ExpansionTile(
+        initiallyExpanded: expanded,
+        onExpansionChanged: onExpansionChanged,
+        tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        title: Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+        ),
+        children: [child],
       ),
     );
   }
@@ -345,61 +394,44 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     final finalizationTotal = matrix.finalization.isEmpty ? 1 : matrix.finalization.length;
     final finalizationDone = matrix.finalization.isEmpty ? 1 : 0;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        color: Theme.of(
-          context,
-        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.22),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'PENDÊNCIAS TÉCNICAS DA VISTORIA',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              fontSize: 16,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Toque em "Ir para pendência" para navegar direto ao ponto de ajuste.',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 10),
-          _buildTechnicalStageAccordion(
-            title: 'Check-In $checkinDone/$checkinTotal',
-            expanded: _technicalCheckinExpanded,
-            onExpansionChanged:
-                (expanded) => setState(() => _technicalCheckinExpanded = expanded),
-            items: matrix.checkin,
-          ),
-          _buildTechnicalStageAccordion(
-            title: 'Captura $captureDone/$captureTotal',
-            expanded: _technicalCaptureExpanded,
-            onExpansionChanged:
-                (expanded) => setState(() => _technicalCaptureExpanded = expanded),
-            items: matrix.capture,
-          ),
-          _buildTechnicalStageAccordion(
-            title: 'Revisão $reviewDone/$reviewTotal',
-            expanded: _technicalReviewExpanded,
-            onExpansionChanged:
-                (expanded) => setState(() => _technicalReviewExpanded = expanded),
-            items: matrix.review,
-          ),
-          _buildTechnicalStageAccordion(
-            title: 'Finalização $finalizationDone/$finalizationTotal',
-            expanded: _technicalFinalizationExpanded,
-            onExpansionChanged:
-                (expanded) =>
-                    setState(() => _technicalFinalizationExpanded = expanded),
-            items: matrix.finalization,
-          ),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Toque em "Ir para pendência" para navegar direto ao ponto de ajuste.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: 10),
+        _buildTechnicalStageAccordion(
+          title: 'Check-In $checkinDone/$checkinTotal',
+          expanded: _technicalCheckinExpanded,
+          onExpansionChanged:
+              (expanded) => setState(() => _technicalCheckinExpanded = expanded),
+          items: matrix.checkin,
+        ),
+        _buildTechnicalStageAccordion(
+          title: 'Captura $captureDone/$captureTotal',
+          expanded: _technicalCaptureExpanded,
+          onExpansionChanged:
+              (expanded) => setState(() => _technicalCaptureExpanded = expanded),
+          items: matrix.capture,
+        ),
+        _buildTechnicalStageAccordion(
+          title: 'Revisão $reviewDone/$reviewTotal',
+          expanded: _technicalReviewExpanded,
+          onExpansionChanged:
+              (expanded) => setState(() => _technicalReviewExpanded = expanded),
+          items: matrix.review,
+        ),
+        _buildTechnicalStageAccordion(
+          title: 'Finalização $finalizationDone/$finalizationTotal',
+          expanded: _technicalFinalizationExpanded,
+          onExpansionChanged:
+              (expanded) =>
+                  setState(() => _technicalFinalizationExpanded = expanded),
+          items: matrix.finalization,
+        ),
+      ],
     );
   }
 
@@ -569,6 +601,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     switch (item.stage) {
       case TechnicalRuleStage.checkin:
         setState(() {
+          _technicalPendingSectionExpanded = true;
           _checkinAccordionExpanded = true;
         });
         await Future<void>.delayed(const Duration(milliseconds: 220));
@@ -583,6 +616,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         break;
       case TechnicalRuleStage.capture:
         setState(() {
+          _technicalPendingSectionExpanded = true;
+          _reviewSectionExpanded = true;
           _capturedAccordionExpanded = true;
           final subtipo = item.subtipo?.trim();
           if (subtipo != null && subtipo.isNotEmpty) {
@@ -606,6 +641,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       case TechnicalRuleStage.review:
         if (item.subtipo != null && item.subtipo!.trim().isNotEmpty) {
           setState(() {
+            _technicalPendingSectionExpanded = true;
+            _reviewSectionExpanded = true;
             _expandedSubtype = item.subtipo!.trim();
             _capturedAccordionExpanded = true;
           });
@@ -621,6 +658,10 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         );
         break;
       case TechnicalRuleStage.finalization:
+        setState(() {
+          _technicalPendingSectionExpanded = true;
+          _closingSectionExpanded = true;
+        });
         await _scrollToSection(_closingSectionKey);
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -711,17 +752,9 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-            'REVISÃO DE FOTOS',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w800,
-            fontSize: 16,
-          ),
-        ),
-        const SizedBox(height: 10),
         _buildReviewAccordion(
           key: _checkinPendingSectionKey,
-          title: 'Fotos Obrigatórias Do Check-In',
+          title: 'Fotos Obrigatórias do Check-In',
           isOk: !hasCheckinPending,
           subtitle:
               hasCheckinPending
@@ -893,26 +926,16 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
 
     return Container(
       key: _closingSectionKey,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(4, 2, 4, 8),
       decoration: BoxDecoration(
-        color: Theme.of(
-          context,
-        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.24),
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.0),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'ENCERRAMENTO',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              fontSize: 16,
-            ),
-          ),
-          const SizedBox(height: 10),
           _buildClosingAccordion(
-            title: 'Anotações Do Vistoriador ${annotationDone ? 1 : 0}/1',
+            title: 'Anotações do Vistoriador ${annotationDone ? 1 : 0}/1',
             expanded: _closingNotesExpanded,
             isDone: annotationDone,
             onExpansionChanged:
