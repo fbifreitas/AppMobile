@@ -5,7 +5,7 @@
 No Flutter, a versão do app é controlada em `pubspec.yaml`:
 
 ```yaml
-version: 1.0.0+1
+version: 1.2.18+35
 ```
 
 - `1.0.0` é a versão semântica.
@@ -18,27 +18,35 @@ version: 1.0.0+1
 
 ## Convenção de mensagens de commit
 
-Use mensagens claras e em português, com prefixos semânticos:
+Use mensagens claras e em português, seguindo o padrão adotado no projeto:
+
+- `[versao] - [tipo alteracao]: [resumo curto em portugues]`
+
+Exemplo real:
+
+- `v1.2.18+35 - fix: corrigir pipeline da revisão e reforçar lista básica`
+
+Tipos recomendados:
 
 - `feat: ...` — nova funcionalidade
 - `fix: ...` — correção de bug
 - `chore: ...` — tarefa de manutenção ou ajustes internos
 - `refactor: ...` — refatoração de código sem mudança de comportamento
-- `release: vX.Y.Z` — commit de versão final
+- `ci: ...` — ajustes de esteira/automação
 
 ### Exemplos
 
 - `feat: adicionar recuperação de etapa de vistoria`
 - `fix: corrigir retorno para checkin_step2`
 - `chore: atualizar dependências do projeto`
-- `release: v1.0.0`
+- `v1.2.18+36 - chore: bump de versao para nova publicacao`
 
 ## Tags de release
 
 Quando estiver pronto para publicar uma versão:
 
 ```bash
-git tag -a v1.0.0 -m "Release v1.0.0"
+git tag -a v1.2.18 -m "Release v1.2.18"
 git push origin --tags
 ```
 
