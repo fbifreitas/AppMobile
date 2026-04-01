@@ -4,12 +4,15 @@ appId: com.example.myapp
     visible: "Bem-vindo ao App de Vistorias"
     timeout: 12000
 - assertVisible: "Bem-vindo ao App de Vistorias"
-- tapOn: "E-mail"
+- tapOn:
+    id: "login_email_field"
 - eraseText
 - inputText: "maestro.teste@appmobile.local"
 - hideKeyboard
-- tapOn: "Senha"
+- tapOn:
+    id: "login_senha_field"
 - eraseText
 - inputText: "123456"
 - hideKeyboard
-- tapOn: "Entrar"
+- tapOn:
+    id: "login_submit_button"

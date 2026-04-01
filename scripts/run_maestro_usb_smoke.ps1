@@ -80,12 +80,12 @@ function Start-AdbLogcatCapture {
     "& `"$AdbPath`" -s `"$TargetDeviceId`" logcat -v time"
   )
 
-  $runner = Start-Process \
-    -FilePath "powershell" \
-    -ArgumentList $runnerArgs \
-    -PassThru \
-    -NoNewWindow \
-    -RedirectStandardOutput $logcatFile \
+  $runner = Start-Process `
+    -FilePath "powershell" `
+    -ArgumentList $runnerArgs `
+    -PassThru `
+    -NoNewWindow `
+    -RedirectStandardOutput $logcatFile `
     -RedirectStandardError $stderrFile
 
   return [PSCustomObject]@{
@@ -211,12 +211,12 @@ if (-not $NoAdbMonitor) {
 
 $maestroProcess = $null
 try {
-  $maestroProcess = Start-Process \
-    -FilePath $maestroExe \
-    -ArgumentList $maestroArgs \
-    -PassThru \
-    -NoNewWindow \
-    -RedirectStandardOutput $maestroStdout \
+  $maestroProcess = Start-Process `
+    -FilePath $maestroExe `
+    -ArgumentList $maestroArgs `
+    -PassThru `
+    -NoNewWindow `
+    -RedirectStandardOutput $maestroStdout `
     -RedirectStandardError $maestroStderr
 
   $startTime = Get-Date
