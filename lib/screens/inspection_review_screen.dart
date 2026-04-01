@@ -725,6 +725,14 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
 
     final mandatoryGroups = _buildGroupsForItems(mandatoryCapturedItems);
     final groupedRequirements = _groupCheckinRequirements(checkinStatuses);
+    final visibleGroupedRequirements =
+      groupedRequirements.where((group) {
+        if (!group.isDone) return true;
+        return !group.isFullyRepresentedByMandatoryCapturedItems(
+          mandatoryCapturedItems,
+          normalizeComparableText: _normalizeComparableText,
+        );
+      }).toList();
     final capturedGroups = _buildGroupsForItems(
       _items
           .where((item) => !mandatoryCapturedPaths.contains(item.filePath))
@@ -796,7 +804,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                     ),
                   ),
                 ),
-              ...groupedRequirements.map(
+              ...visibleGroupedRequirements.map(
                 (group) => Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: _CheckinRequirementCard(
@@ -1198,6 +1206,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
             doneCount: doneCount,
             totalCount: items.length,
             pendingStatus: firstPending,
+            statuses: items,
           );
         })
         .toList();
@@ -2138,6 +2147,7 @@ class _CheckinRequirementGroupStatus {
   final int doneCount;
   final int totalCount;
   final _CheckinRequirementStatus? pendingStatus;
+  final List<_CheckinRequirementStatus> statuses;
 
   const _CheckinRequirementGroupStatus({
     required this.title,
@@ -2145,9 +2155,33 @@ class _CheckinRequirementGroupStatus {
     required this.doneCount,
     required this.totalCount,
     required this.pendingStatus,
+    required this.statuses,
   });
 
   bool get isDone => doneCount >= totalCount;
+
+  bool isFullyRepresentedByMandatoryCapturedItems(
+    List<_EditableCapture> mandatoryCapturedItems, {
+    required String Function(String?) normalizeComparableText,
+  }) {
+    final doneStatuses = statuses.where((status) => status.isDone);
+    for (final status in doneStatuses) {
+      final hasMatchingCapture = mandatoryCapturedItems.any((item) {
+        final sameAmbiente =
+            normalizeComparableText(item.ambiente) ==
+            normalizeComparableText(status.field.cameraAmbiente);
+        final sameElemento =
+            status.field.cameraElementoInicial == null ||
+            normalizeComparableText(item.elemento) ==
+                normalizeComparableText(status.field.cameraElementoInicial);
+        return sameAmbiente && sameElemento;
+      });
+      if (!hasMatchingCapture) {
+        return false;
+      }
+    }
+    return true;
+  }
 }
 
 class _NodeGroup {

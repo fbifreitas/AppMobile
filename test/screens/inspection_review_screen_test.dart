@@ -387,7 +387,7 @@ void main() {
 
       expect(flowCoordinator.overlayOpenCount, 1);
       expect(flowCoordinator.lastOverlayTitle, 'Acesso ao imóvel');
-      expect(find.text('Obrigatório atendido'), findsNWidgets(3));
+      expect(find.text('Obrigatório atendido'), findsNWidgets(2));
       expect(find.widgetWithText(FilledButton, 'Capturar'), findsOneWidget);
     },
   );
