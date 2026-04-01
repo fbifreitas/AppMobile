@@ -3,7 +3,10 @@ param(
   [string]$Flow = "maestro/flows/smoke_post_publish.yaml",
   [string]$DeviceId = "",
   [switch]$SkipBuild,
-  [switch]$SkipInstall
+  [switch]$SkipInstall,
+  [int]$MaestroTimeoutSec = 900,
+  [string]$LogDir = "maestro-debug",
+  [switch]$NoAdbMonitor
 )
 
 $ErrorActionPreference = "Stop"
@@ -51,6 +54,63 @@ function Resolve-DeviceId {
   }
 
   return $devices[0]
+}
+
+function Start-AdbLogcatCapture {
+  param(
+    [string]$AdbPath,
+    [string]$TargetDeviceId,
+    [string]$OutputDir
+  )
+
+  if (-not (Test-Path $OutputDir)) {
+    New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
+  }
+
+  $timestamp = (Get-Date).ToString("yyyyMMdd-HHmmss")
+  $logcatFile = Join-Path $OutputDir "adb-logcat-$timestamp.log"
+  $stdoutFile = Join-Path $OutputDir "adb-logcat-runner-$timestamp.out.log"
+  $stderrFile = Join-Path $OutputDir "adb-logcat-runner-$timestamp.err.log"
+
+  & $AdbPath -s $TargetDeviceId logcat -c | Out-Null
+
+  $runnerArgs = @(
+    "-NoProfile",
+    "-Command",
+    "& `"$AdbPath`" -s `"$TargetDeviceId`" logcat -v time"
+  )
+
+  $runner = Start-Process \
+    -FilePath "powershell" \
+    -ArgumentList $runnerArgs \
+    -PassThru \
+    -NoNewWindow \
+    -RedirectStandardOutput $logcatFile \
+    -RedirectStandardError $stderrFile
+
+  return [PSCustomObject]@{
+    Process = $runner
+    LogcatFile = $logcatFile
+    StdoutFile = $stdoutFile
+    StderrFile = $stderrFile
+  }
+}
+
+function Stop-ProcessSafe {
+  param([System.Diagnostics.Process]$Process)
+
+  if ($null -eq $Process) {
+    return
+  }
+
+  try {
+    if (-not $Process.HasExited) {
+      $Process.Kill()
+      $Process.WaitForExit()
+    }
+  } catch {
+    Write-Warning "Nao foi possivel encerrar processo de monitoramento: $($_.Exception.Message)"
+  }
 }
 
 function Ensure-JavaRuntime {
@@ -132,9 +192,62 @@ $maestroArgs = @(
   "APP_ID=$AppId"
 )
 
-$maestroProcess = Start-Process -FilePath $maestroExe -ArgumentList $maestroArgs -NoNewWindow -PassThru -Wait
-if ($maestroProcess.ExitCode -ne 0) {
-  throw "Maestro retornou código $($maestroProcess.ExitCode)."
+$logsRoot = Resolve-Path -Path "."
+$executionLogDir = Join-Path $logsRoot $LogDir
+if (-not (Test-Path $executionLogDir)) {
+  New-Item -ItemType Directory -Path $executionLogDir -Force | Out-Null
 }
 
+$runTimestamp = (Get-Date).ToString("yyyyMMdd-HHmmss")
+$maestroStdout = Join-Path $executionLogDir "maestro-$runTimestamp.out.log"
+$maestroStderr = Join-Path $executionLogDir "maestro-$runTimestamp.err.log"
+
+$adbMonitor = $null
+if (-not $NoAdbMonitor) {
+  Write-Host "[maestro] Iniciando monitoramento adb logcat..."
+  $adbMonitor = Start-AdbLogcatCapture -AdbPath $adbExe -TargetDeviceId $resolvedDeviceId -OutputDir $executionLogDir
+  Write-Host "[maestro] Logcat: $($adbMonitor.LogcatFile)"
+}
+
+$maestroProcess = $null
+try {
+  $maestroProcess = Start-Process \
+    -FilePath $maestroExe \
+    -ArgumentList $maestroArgs \
+    -PassThru \
+    -NoNewWindow \
+    -RedirectStandardOutput $maestroStdout \
+    -RedirectStandardError $maestroStderr
+
+  $startTime = Get-Date
+  $lastHeartbeat = $startTime
+
+  while (-not $maestroProcess.HasExited) {
+    Start-Sleep -Seconds 2
+    $maestroProcess.Refresh()
+
+    $now = Get-Date
+    $elapsed = $now - $startTime
+    if (($now - $lastHeartbeat).TotalSeconds -ge 20) {
+      Write-Host "[maestro] Em execucao ha $([int]$elapsed.TotalSeconds)s..."
+      $lastHeartbeat = $now
+    }
+
+    if ($elapsed.TotalSeconds -ge $MaestroTimeoutSec) {
+      Stop-ProcessSafe -Process $maestroProcess
+      throw "Timeout de $MaestroTimeoutSec segundos ao executar Maestro."
+    }
+  }
+
+  if ($maestroProcess.ExitCode -ne 0) {
+    throw "Maestro retornou código $($maestroProcess.ExitCode)."
+  }
+} finally {
+  if ($adbMonitor -ne $null) {
+    Stop-ProcessSafe -Process $adbMonitor.Process
+  }
+}
+
+Write-Host "[maestro] Logs stdout: $maestroStdout"
+Write-Host "[maestro] Logs stderr: $maestroStderr"
 Write-Host "[maestro] Smoke test finalizado com sucesso."
