@@ -55,6 +55,7 @@ Registrar práticas essenciais, aprendizados e padrões de operação que devem 
 - [2026-04-01] Docker Desktop com WSL2 em C: baixo: migrar `customWslDistroDir` para D: via Settings > Resources > Advanced > Disk image location. Após Apply+Restart, o ext4.vhdx é recriado no novo local. O primeiro start pode demorar 2-3min para recriar distros `docker-desktop` e `docker-desktop-data`.
 - [2026-04-01] Ponto de restauração do ambiente local documentado em `docs/web/PONTO_RESTAURACAO_AMBIENTE_LOCAL.md` — consultar sempre que retomar setup de ambiente web em nova sessão.
 - [2026-04-01] Ao transferir contexto para novo agente, usar a secao 9 (Regras de Trabalho Compartilhadas + Prompt pronto) em `docs/web/PONTO_RESTAURACAO_AMBIENTE_LOCAL.md` para preservar governanca, padrao de testes e gate de promocao para `main`.
+- [2026-04-01] Para BOW-054, publicar o Canonical Domain v1 no proprio `docs/BACKLOG_BACKOFFICE_WEB.md` (glossario, transicoes, ACL e invariantes) evita dispersao em arquivos novos e acelera onboarding de novos agentes.
 
 ---
 

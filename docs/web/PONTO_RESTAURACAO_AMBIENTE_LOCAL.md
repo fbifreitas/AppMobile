@@ -394,6 +394,16 @@ Use este checklist no inicio de qualquer nova sessao para confirmar que nada cri
   - Usar `http://localhost/health` e `http://localhost/api/actuator/health` para smoke local.
   - Opcional: se desejar acesso direto em 3000/8080, adicionar mapeamento de portas em `web` e `api`.
 
+### Checkpoint 2026-04-01 (BOW-054 v1 documental)
+- Feito:
+  - Publicada a V1 documental do Canonical Domain no backlog web (`docs/BACKLOG_BACKOFFICE_WEB.md`).
+  - Incluidos: glossario oficial, transicoes de estado, envelope minimo obrigatorio, mapeamento ACL e invariantes de dominio.
+- Estado atual:
+  - BOW-054 com status `Em andamento (v1 documental publicado)`.
+  - Dependencias de enforcement em runtime permanecem para BOW-056/BOW-058/BOW-060 e INT-025/026/027.
+- Proxima acao:
+  - Traduzir o modelo v1 para contratos OpenAPI e validacoes de runtime.
+
 ---
 
 _Documento de restauração mantido pelo agente (Copilot) como ponto de continuidade operacional._

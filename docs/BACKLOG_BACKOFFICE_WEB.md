@@ -188,7 +188,7 @@ Itens mobile que geram demanda de backend/backoffice:
 | 51 | BOW-051 | Painel de conciliação financeira x processo | BL-001, BL-009 | Pendente | Alta | Backoffice consulta/filtra divergências entre entrada externa, processo criado e status operacional |
 | 52 | BOW-052 | Callback/status de retorno para financeira | BL-001, BL-009 | Pendente | Alta | Retorno padronizado e auditável com status do processo, protocolo e timestamps de processamento |
 | 53 | BOW-053 | Orquestração web de estado de onboarding de permissões mobile | BL-056, BL-032, BL-031 | Em andamento | Crítica | Backoffice expõe/atualiza status de onboarding-permissões por usuário e força reentrada no app para tela de permissões quando cadastro é criado/ativado sem onboarding concluído |
-| 54 | BOW-054 | Canonical Domain v1 (Demand/Case/Job/Inspection/Report) | BL-001, BL-012, BL-017 | Em andamento | Crítica | Modelo canônico publicado com glossário, regras de transição e mapeamento explícito de ACL para payload externo |
+| 54 | BOW-054 | Canonical Domain v1 (Demand/Case/Job/Inspection/Report) | BL-001, BL-012, BL-017 | Em andamento (v1 documental publicado) | Crítica | Modelo canônico publicado com glossário, regras de transição e mapeamento explícito de ACL para payload externo |
 | 55 | BOW-055 | Governança de arquitetura por ADR | BL-020, BL-026 | Pendente | Alta | ADRs obrigatórios para decisões críticas (identidade, tenancy, contratos, storage, integração) com template e revisão em PR |
 | 56 | BOW-056 | OpenAPI v1 com política formal de compatibilidade | BL-017, BL-021 | Pendente | Crítica | Contratos REST v1 publicados com regra de versionamento, depreciação e bloqueio de breaking change em CI |
 | 57 | BOW-057 | Contratos de eventos v1 (fatos de negócio) | BL-017, BL-022 | Pendente | Crítica | Eventos versionados com tenant/correlationId e consumers idempotentes validados por testes de contrato |
@@ -437,3 +437,102 @@ Antes de iniciar qualquer item BOW, validar:
   - Mitigação: memória de cálculo reproduzível, trilha de auditoria e revisão/assinatura humana obrigatória.
 9. Risco: indisponibilidade de provedor de assinatura digital.
   - Mitigação: estratégia multi-provedor com fallback por tenant e fila de retentativa.
+
+---
+
+## Entrega BOW-054 (Canonical Domain v1)
+
+Status da entrega:
+1. V1 documental publicada neste backlog.
+2. Implementacao de runtime (enforcement em codigo) permanece no fluxo de BOW-056, BOW-058, BOW-060 e INT-025/INT-026/INT-027.
+
+### 1) Glossario canonico (linguagem oficial)
+1. Demand:
+  - Solicitacao de servico recebida de canal interno/externo, ainda sem execucao operacional.
+2. Case:
+  - Contexto de negocio que agrega uma ou mais demandas correlatas e seu ciclo de decisao.
+3. Job:
+  - Unidade operacional executavel atribuida para agenda/execucao em campo.
+4. Inspection:
+  - Execucao tecnica da vistoria (check-in, capturas, revisao e finalizacao).
+5. Report:
+  - Artefato tecnico resultante da inspecao, com trilha de revisao/aprovacao/assinatura.
+
+### 2) Regras de transicao de estado (v1)
+
+#### Demand
+1. `RECEIVED` -> `QUALIFIED`.
+2. `RECEIVED` -> `REJECTED`.
+3. `QUALIFIED` -> `PLANNED`.
+4. `PLANNED` -> `CANCELLED`.
+
+#### Case
+1. `OPEN` -> `IN_ANALYSIS`.
+2. `IN_ANALYSIS` -> `APPROVED`.
+3. `IN_ANALYSIS` -> `REJECTED`.
+4. `APPROVED` -> `CLOSED`.
+5. `REJECTED` -> `CLOSED`.
+
+#### Job
+1. `CREATED` -> `SCHEDULED`.
+2. `SCHEDULED` -> `IN_PROGRESS`.
+3. `IN_PROGRESS` -> `PAUSED`.
+4. `PAUSED` -> `IN_PROGRESS`.
+5. `IN_PROGRESS` -> `COMPLETED`.
+6. `SCHEDULED` -> `CANCELLED`.
+
+#### Inspection
+1. `STARTED` -> `STEP1_DONE`.
+2. `STEP1_DONE` -> `STEP2_IN_PROGRESS`.
+3. `STEP2_IN_PROGRESS` -> `REVIEW_IN_PROGRESS`.
+4. `REVIEW_IN_PROGRESS` -> `FINALIZED`.
+5. `STEP2_IN_PROGRESS` -> `PAUSED`.
+6. `PAUSED` -> `STEP2_IN_PROGRESS`.
+7. `REVIEW_IN_PROGRESS` -> `PAUSED`.
+
+#### Report
+1. `DRAFT` -> `UNDER_REVIEW`.
+2. `UNDER_REVIEW` -> `APPROVED`.
+3. `UNDER_REVIEW` -> `REJECTED`.
+4. `APPROVED` -> `SIGNED`.
+5. `SIGNED` -> `PUBLISHED`.
+6. `REJECTED` -> `DRAFT`.
+
+### 3) Context envelope minimo obrigatorio (v1)
+1. `tenantId`: identifica isolamento logico de tenant.
+2. `correlationId`: rastreio ponta a ponta de chamada/evento.
+3. `actorId`: identidade do usuario/sistema que acionou a operacao.
+4. `occurredAt`: timestamp UTC da operacao/evento.
+5. `idempotencyKey`: obrigatorio em operacoes criticas de escrita.
+
+### 4) Mapeamento ACL explicito (payload externo -> canonico)
+
+#### Ingestao financeira (upstream) para dominio interno
+1. `number` -> `demand.externalReference` -> `job.protocol`.
+2. `inspectionType` -> `demand.type` -> `job.type`.
+3. `resType` -> `case.assetType` -> `inspection.propertyType`.
+4. `inspectionDate[]` -> `job.schedule.windows[]`.
+5. `internalPropose` -> `case.partnerReference`.
+6. `client.doc` -> `case.customer.document` (mascarado por politica de visibilidade).
+7. `client.phoneNumber` -> `case.customer.phone` (mascarado por politica de visibilidade).
+
+#### Regras ACL v1
+1. Nunca propagar payload externo bruto para o mobile.
+2. Normalizar enums externos para taxonomia canonica.
+3. Rejeitar eventos/chamadas sem `tenantId` e `correlationId`.
+4. Aplicar mascaramento por perfil para campos sensiveis no retorno.
+5. Registrar tabela de equivalencia de status externo->canonico.
+
+### 5) Invariantes de dominio (v1)
+1. Nenhum `Job` sem `tenantId`, `caseId` e estado inicial `CREATED`.
+2. Nenhuma `Inspection` finalizada sem `STEP1_DONE` e `REVIEW_IN_PROGRESS` completos.
+3. Nenhum `Report` publicado sem estado previo `SIGNED`.
+4. Nenhuma operacao critica sem `idempotencyKey` valida.
+5. Nenhum evento persistido sem `correlationId`.
+
+### 6) Rastreabilidade de implementacao
+1. BOW-056: contratos OpenAPI v1 devem refletir este glossario e estados.
+2. BOW-058: enforcement de `tenantId`/`correlationId` em runtime.
+3. BOW-060: idempotencia por operacao critica conforme invariantes.
+4. INT-025: gate CI para impedir breaking change de contrato.
+5. INT-026/INT-027: envelope/contexto + padrao de idempotency-key alinhados ao canonical domain.
