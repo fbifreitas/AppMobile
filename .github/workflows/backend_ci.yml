@@ -80,7 +80,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          java -jar apps/backend/target/*.jar --spring.profiles.active=test --server.port=8080 > /tmp/current-backend.log 2>&1 &
+          java -jar apps/backend/target/*.jar --server.port=8080 --spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration > /tmp/current-backend.log 2>&1 &
           CUR_PID=$!
           for i in {1..60}; do
             if curl -sf http://localhost:8080/actuator/health >/dev/null; then
@@ -111,7 +111,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          java -jar /tmp/appmobile-main/apps/backend/target/*.jar --spring.profiles.active=test --server.port=8081 > /tmp/main-backend.log 2>&1 &
+          java -jar /tmp/appmobile-main/apps/backend/target/*.jar --server.port=8081 --spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration > /tmp/main-backend.log 2>&1 &
           MAIN_PID=$!
           for i in {1..60}; do
             if curl -sf http://localhost:8081/actuator/health >/dev/null; then
