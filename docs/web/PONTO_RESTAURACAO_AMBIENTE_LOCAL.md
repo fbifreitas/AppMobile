@@ -404,6 +404,20 @@ Use este checklist no inicio de qualquer nova sessao para confirmar que nada cri
 - Proxima acao:
   - Traduzir o modelo v1 para contratos OpenAPI e validacoes de runtime.
 
+### Checkpoint 2026-04-01 (BOW-056 fundacao + portal interno)
+- Feito:
+  - Fundacao OpenAPI v1 implementada no backend com `springdoc`.
+  - Endpoints de docs publicados: `/api/openapi/v1` e `/api/swagger`.
+  - Endpoints criticos mobile v1 adicionados: `GET /api/mobile/checkin-config` e `POST /api/mobile/inspections/finalized`.
+  - Envelope minimo (`tenantId`, `correlationId`, `actorId`) e idempotency-key aplicados nos contratos criticos.
+  - Portal interno implantado em `docs/internal-portal` com pipeline `.github/workflows/internal_docs_ci.yml`.
+- Estado atual:
+  - Backend compila com artefato gerado (`api-0.1.0.jar`).
+  - Build local do portal nao validado por ausencia de Python no host; validacao ocorrerá via CI.
+- Proxima acao:
+  - Implementar gate de compatibilidade de contrato em CI (INT-025).
+  - Publicar exemplos de contrato e catalogo canônico de erros.
+
 ---
 
 _Documento de restauração mantido pelo agente (Copilot) como ponto de continuidade operacional._

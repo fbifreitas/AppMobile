@@ -190,7 +190,7 @@ Itens mobile que geram demanda de backend/backoffice:
 | 53 | BOW-053 | Orquestração web de estado de onboarding de permissões mobile | BL-056, BL-032, BL-031 | Em andamento | Crítica | Backoffice expõe/atualiza status de onboarding-permissões por usuário e força reentrada no app para tela de permissões quando cadastro é criado/ativado sem onboarding concluído |
 | 54 | BOW-054 | Canonical Domain v1 (Demand/Case/Job/Inspection/Report) | BL-001, BL-012, BL-017 | Em andamento (v1 documental publicado) | Crítica | Modelo canônico publicado com glossário, regras de transição e mapeamento explícito de ACL para payload externo |
 | 55 | BOW-055 | Governança de arquitetura por ADR | BL-020, BL-026 | Pendente | Alta | ADRs obrigatórios para decisões críticas (identidade, tenancy, contratos, storage, integração) com template e revisão em PR |
-| 56 | BOW-056 | OpenAPI v1 com política formal de compatibilidade | BL-017, BL-021 | Pendente | Crítica | Contratos REST v1 publicados com regra de versionamento, depreciação e bloqueio de breaking change em CI |
+| 56 | BOW-056 | OpenAPI v1 com política formal de compatibilidade | BL-017, BL-021 | Em andamento (fundação v1 publicada) | Crítica | Contratos REST v1 publicados com regra de versionamento, depreciação e bloqueio de breaking change em CI |
 | 57 | BOW-057 | Contratos de eventos v1 (fatos de negócio) | BL-017, BL-022 | Pendente | Crítica | Eventos versionados com tenant/correlationId e consumers idempotentes validados por testes de contrato |
 | 58 | BOW-058 | Enforcement obrigatório de tenant + correlationId | BL-022, BL-031 | Pendente | Crítica | Toda request rejeitada sem contexto mínimo (tenantId/correlationId) e propagação ponta a ponta no backend |
 | 59 | BOW-059 | Matriz de autorização backend-first (RBAC + policies) | BL-031, BL-033, BL-034 | Pendente | Crítica | Permissões por domínio consolidadas no backend com testes de autorização e proibição de regra sensível na UI |
@@ -536,3 +536,32 @@ Status da entrega:
 3. BOW-060: idempotencia por operacao critica conforme invariantes.
 4. INT-025: gate CI para impedir breaking change de contrato.
 5. INT-026/INT-027: envelope/contexto + padrao de idempotency-key alinhados ao canonical domain.
+
+---
+
+## Entrega BOW-056 (OpenAPI v1 - fundacao)
+
+Status da entrega:
+1. Fundacao tecnica publicada no backend.
+2. Politica formal de compatibilidade registrada em contrato v1.
+3. Gate completo de breaking change em CI permanece como proxima etapa (INT-025).
+
+### 1) Fundacao implementada
+1. Dependencia `springdoc-openapi` adicionada ao backend.
+2. Endpoints de documentacao expostos:
+  - `GET /api/openapi/v1`
+  - `GET /api/swagger`
+3. Endpoints criticos mobile publicados em v1:
+  - `GET /api/mobile/checkin-config`
+  - `POST /api/mobile/inspections/finalized`
+
+### 2) Politica de compatibilidade v1 (formal)
+1. Em v1, apenas mudancas aditivas nao quebrantes sao permitidas.
+2. Remocao/renomeacao de campos, mudanca de semantica e mudanca de codigo de erro exigem nova major.
+3. Headers de contexto (`tenant`, `correlation`, `actor`) sao obrigatorios.
+4. Escritas criticas exigem `idempotency-key`.
+
+### 3) Proximos passos para concluir BOW-056
+1. Publicar exemplos canônicos por endpoint (request/response/erro).
+2. Implantar diff de contrato em CI com bloqueio de breaking changes.
+3. Definir politica de deprecacao com prazo e comunicacao por consumidor.
