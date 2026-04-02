@@ -1,9 +1,9 @@
 FROM maven:3.9-eclipse-temurin-21 AS builder
 WORKDIR /app
 COPY pom.xml .
-RUN mvn dependency:go-offline -q
+RUN mvn -B dependency:go-offline
 COPY src ./src
-RUN mvn package -DskipTests -q
+RUN mvn -B package -DskipTests
 
 FROM eclipse-temurin:21-jre-alpine AS runner
 RUN apk add --no-cache wget

@@ -1,6 +1,6 @@
 # Backlog de Desenvolvimento — Backoffice Web (Integração com App Mobile)
 
-Atualizado em: 2026-03-30
+Atualizado em: 2026-04-01
 
 ## Objetivo
 Organizar o backlog do aplicativo web de backoffice necessário para suportar o AppMobile em produção, cobrindo:
@@ -106,7 +106,7 @@ Pontos já integrados no mobile que dependem de backend/backoffice:
 ## Mapeamento com backlog mobile
 Itens mobile que geram demanda de backend/backoffice:
 - BL-001, BL-002, BL-004, BL-009, BL-012, BL-017, BL-021, BL-022, BL-023
-- BL-029, BL-030, BL-031, BL-032, BL-033, BL-034, BL-035
+- BL-029, BL-030, BL-031, BL-032, BL-033, BL-034, BL-035, BL-056
 
 ---
 
@@ -187,6 +187,18 @@ Itens mobile que geram demanda de backend/backoffice:
 | 50 | BOW-050 | Serviço de normalização de payload externo | BL-001, BL-012 | Pendente | Crítica | Normaliza `inspectionType`, `resType`, endereço, cliente e datas para modelo interno consistente |
 | 51 | BOW-051 | Painel de conciliação financeira x processo | BL-001, BL-009 | Pendente | Alta | Backoffice consulta/filtra divergências entre entrada externa, processo criado e status operacional |
 | 52 | BOW-052 | Callback/status de retorno para financeira | BL-001, BL-009 | Pendente | Alta | Retorno padronizado e auditável com status do processo, protocolo e timestamps de processamento |
+| 53 | BOW-053 | Orquestração web de estado de onboarding de permissões mobile | BL-056, BL-032, BL-031 | Em andamento | Crítica | Backoffice expõe/atualiza status de onboarding-permissões por usuário e força reentrada no app para tela de permissões quando cadastro é criado/ativado sem onboarding concluído |
+| 54 | BOW-054 | Canonical Domain v1 (Demand/Case/Job/Inspection/Report) | BL-001, BL-012, BL-017 | Em andamento | Crítica | Modelo canônico publicado com glossário, regras de transição e mapeamento explícito de ACL para payload externo |
+| 55 | BOW-055 | Governança de arquitetura por ADR | BL-020, BL-026 | Pendente | Alta | ADRs obrigatórios para decisões críticas (identidade, tenancy, contratos, storage, integração) com template e revisão em PR |
+| 56 | BOW-056 | OpenAPI v1 com política formal de compatibilidade | BL-017, BL-021 | Pendente | Crítica | Contratos REST v1 publicados com regra de versionamento, depreciação e bloqueio de breaking change em CI |
+| 57 | BOW-057 | Contratos de eventos v1 (fatos de negócio) | BL-017, BL-022 | Pendente | Crítica | Eventos versionados com tenant/correlationId e consumers idempotentes validados por testes de contrato |
+| 58 | BOW-058 | Enforcement obrigatório de tenant + correlationId | BL-022, BL-031 | Pendente | Crítica | Toda request rejeitada sem contexto mínimo (tenantId/correlationId) e propagação ponta a ponta no backend |
+| 59 | BOW-059 | Matriz de autorização backend-first (RBAC + policies) | BL-031, BL-033, BL-034 | Pendente | Crítica | Permissões por domínio consolidadas no backend com testes de autorização e proibição de regra sensível na UI |
+| 60 | BOW-060 | Padrão de idempotência por operação crítica | BL-001, BL-002, BL-021 | Pendente | Crítica | Chaves idempotentes por caso de uso (ingestão, sync final, callback) com deduplicação observável e SLA definido |
+| 61 | BOW-061 | Baseline de observabilidade e SLO técnico | BL-009, BL-022 | Pendente | Alta | Logs estruturados, traces distribuídos, métricas essenciais e alertas de SLA por contexto de negócio |
+| 62 | BOW-062 | Estratégia de migração de dados e evolução de schema | BL-013, BL-020 | Pendente | Alta | Plano versionado de migrações e rollback sem lock-in de parceiro para os estágios de evolução da plataforma |
+| 63 | BOW-063 | Hardening de build local (Docker context, cache e resiliência) | BL-023, BL-036 | Em andamento | Alta | Contextos reduzidos com `.dockerignore`, builds reproduzíveis e procedimento anti-EOF/SIGBUS documentado para ambiente limitado |
+| 64 | BOW-064 | Estratégia de segredos com cofre (dev/stage/prod) | BL-023, BL-028 | Em andamento | Crítica | Segredos fora de arquivos versionados, injeção por cofre/variável de ambiente e trilha de rotação por ambiente |
 
 ---
 

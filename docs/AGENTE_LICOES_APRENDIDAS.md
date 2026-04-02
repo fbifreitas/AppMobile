@@ -50,6 +50,11 @@ Registrar práticas essenciais, aprendizados e padrões de operação que devem 
 - [2026-04-01] Em fluxo com mantenedor unico, o merge de PR para `main` pode usar excecao temporaria de protecao (0 aprovacoes) com restauracao imediata para 1 aprovacao apos o merge.
 - [2026-04-01] Notificacao por e-mail de aprovacao de PR no celular foi movida para segundo plano no backlog operacional; prioridade mantida para envio de distribuicao por ambiente (homolog/producao).
 - [2026-04-01] Na Revisao de Fotos, deduplicacao de obrigatorios deve usar chave tecnica da configuracao dinamica (cameraAmbiente/cameraElementoInicial), e nao apenas titulo exibido, para evitar ambiguidade quando o JSON web variar labels.
+- [2026-04-01] Para stack web local, nao persistir senhas em `infra/.env`/`infra.env`; usar variaveis de ambiente de sessao, cofre (`Get-Secret`) ou prompt seguro no script de inicializacao.
+- [2026-04-01] Em hardware limitado, adicionar `.dockerignore` por app (web/backend) reduzindo contexto de build e risco de falhas `rpc EOF` durante download/extracao de camadas.
+- [2026-04-01] Docker Desktop com WSL2 em C: baixo: migrar `customWslDistroDir` para D: via Settings > Resources > Advanced > Disk image location. Após Apply+Restart, o ext4.vhdx é recriado no novo local. O primeiro start pode demorar 2-3min para recriar distros `docker-desktop` e `docker-desktop-data`.
+- [2026-04-01] Ponto de restauração do ambiente local documentado em `docs/web/PONTO_RESTAURACAO_AMBIENTE_LOCAL.md` — consultar sempre que retomar setup de ambiente web em nova sessão.
+- [2026-04-01] Ao transferir contexto para novo agente, usar a secao 9 (Regras de Trabalho Compartilhadas + Prompt pronto) em `docs/web/PONTO_RESTAURACAO_AMBIENTE_LOCAL.md` para preservar governanca, padrao de testes e gate de promocao para `main`.
 
 ---
 
