@@ -113,7 +113,7 @@ Motivo:
 | 22 | INT-022 | Normalizacao canonica de processo/job | Critica | Pendente | Payload externo convertido para modelo canonico (processo, cliente, endereco, agenda, status) sem perda de rastreabilidade |
 | 23 | INT-023 | Callback/status para origem financeira | Alta | Pendente | Resposta padronizada com `success`, `message`, `process_id`, `process_number`, estado e trilha de auditoria |
 | 24 | INT-024 | Matriz de visibilidade de dados (LGPD) | Alta | Pendente | Definicao de quais campos da origem externa sao expostos no web e no mobile, com mascaramento por perfil |
-| 25 | INT-025 | Política de versionamento de APIs e eventos | Critica | Em andamento | Regras formais de compatibilidade retroativa e depreciação com gate em CI para breaking changes |
+| 25 | INT-025 | Política de versionamento de APIs e eventos | Critica | Em andamento (gate inicial em CI) | Regras formais de compatibilidade retroativa e depreciação com gate em CI para breaking changes |
 | 26 | INT-026 | Context envelope obrigatório (tenant + correlation + actor) | Critica | Pendente | Toda chamada síncrona e evento assíncrono deve carregar contexto mínimo validado no gateway |
 | 27 | INT-027 | Padrão de idempotency-key por operação | Critica | Pendente | Chaves idempotentes normalizadas por domínio, TTL definido e reprocessamento seguro sem duplicidade |
 | 28 | INT-028 | Contrato de erro canônico entre canais | Alta | Pendente | Catálogo único de erros com códigos, severidade e orientação operacional consistente para web/mobile |

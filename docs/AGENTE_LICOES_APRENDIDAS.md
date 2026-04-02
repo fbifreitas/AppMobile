@@ -57,6 +57,7 @@ Registrar práticas essenciais, aprendizados e padrões de operação que devem 
 - [2026-04-01] Ao transferir contexto para novo agente, usar a secao 9 (Regras de Trabalho Compartilhadas + Prompt pronto) em `docs/web/PONTO_RESTAURACAO_AMBIENTE_LOCAL.md` para preservar governanca, padrao de testes e gate de promocao para `main`.
 - [2026-04-01] Para BOW-054, publicar o Canonical Domain v1 no proprio `docs/BACKLOG_BACKOFFICE_WEB.md` (glossario, transicoes, ACL e invariantes) evita dispersao em arquivos novos e acelera onboarding de novos agentes.
 - [2026-04-01] Para referencia interna entre times, manter portal em docs-as-code (`docs/internal-portal`) com workflow dedicado de build de artefato (`internal_docs_ci.yml`) reduz divergencia entre backlog e documentacao operacional.
+- [2026-04-01] Para INT-025, um gate inicial efetivo em CI pode comparar OpenAPI da PR vs `main` e bloquear remoção de operações/responses/schemas antes de evoluir para regras avançadas.
 
 ---
 

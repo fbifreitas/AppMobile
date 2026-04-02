@@ -418,6 +418,18 @@ Use este checklist no inicio de qualquer nova sessao para confirmar que nada cri
   - Implementar gate de compatibilidade de contrato em CI (INT-025).
   - Publicar exemplos de contrato e catalogo canônico de erros.
 
+### Checkpoint 2026-04-01 (INT-025 gate inicial)
+- Feito:
+  - Workflow de backend atualizado com job `openapi-compatibility-gate` para PRs.
+  - Script `openapi_breaking_check.py` adicionado em `.github/scripts`.
+  - Gate compara OpenAPI da PR com OpenAPI da branch `main` e falha se detectar remoções/quebras básicas.
+- Estado atual:
+  - Gate inicial de breaking change em CI implementado.
+  - Validação local do script Python não executada por ausência de Python no host Windows; validação ocorrerá no runner Linux do GitHub Actions.
+- Proxima acao:
+  - Expandir regra de breaking change (headers obrigatórios, enums e exemplos).
+  - Publicar catálogo canônico de erros (INT-028) e alinhamento com OpenAPI v1.
+
 ---
 
 _Documento de restauração mantido pelo agente (Copilot) como ponto de continuidade operacional._
