@@ -49,3 +49,72 @@ jobs:
           name: backoffice-api-jar
           path: apps/backend/target/*.jar
           if-no-files-found: error
+
+  openapi-compatibility-gate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: apps/backend/pom.xml
+
+      - name: Build current backend
+        run: mvn -B -DskipTests package -f apps/backend/pom.xml
+
+      - name: Run OpenAPI gate unit tests
+        run: python3 .github/scripts/test_openapi_breaking_check.py -v
+
+      - name: Generate current OpenAPI
+        shell: bash
+        run: |
+          set -euo pipefail
+          java -jar apps/backend/target/*.jar > /tmp/current-backend.log 2>&1 &
+          CUR_PID=$!
+          for i in {1..40}; do
+            if curl -sf http://localhost:8080/actuator/health >/dev/null; then
+              break
+            fi
+            sleep 2
+          done
+          curl -sf http://localhost:8080/api/openapi/v1 > /tmp/openapi-current.json
+          kill $CUR_PID || true
+
+      - name: Prepare main worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git worktree add /tmp/appmobile-main origin/main
+
+      - name: Build main backend
+        run: mvn -B -DskipTests package -f /tmp/appmobile-main/apps/backend/pom.xml
+
+      - name: Generate main OpenAPI
+        shell: bash
+        run: |
+          set -euo pipefail
+          java -jar /tmp/appmobile-main/apps/backend/target/*.jar > /tmp/main-backend.log 2>&1 &
+          MAIN_PID=$!
+          for i in {1..40}; do
+            if curl -sf http://localhost:8080/actuator/health >/dev/null; then
+              break
+            fi
+            sleep 2
+          done
+          curl -sf http://localhost:8080/api/openapi/v1 > /tmp/openapi-main.json
+          kill $MAIN_PID || true
+
+      - name: Check OpenAPI breaking changes
+        run: python3 .github/scripts/openapi_breaking_check.py /tmp/openapi-main.json /tmp/openapi-current.json
