@@ -407,6 +407,8 @@ Observacao 2026-04-01 (Despriorizado): configuracao de notificacao por e-mail pa
 
 Observacao 2026-04-01 (Em acompanhamento): divergencia de notificacao por e-mail entre ambientes - homolog envia e-mail de distribuicao, enquanto distribuicoes originadas de `main`/producao nao confirmaram recebimento nesta sessao.
 
+Observacao 2026-04-02 (CONCLUIDO): ciclo de promocao homolog -> main finalizado por PR com excecao controlada de aprovacao minima e restauracao imediata da protecao (1 aprovacao), workflows chave em verde e equalizacao de ambientes concluida com `origin/main` e `origin/homolog` em 0/0 de divergencia.
+
 ### BL-050
 Corrigir a área de ação final do onboarding para evitar que o botão "Concluir" fique encoberto pela barra de navegação do Android, garantindo conclusão do fluxo com usabilidade consistente.
 
