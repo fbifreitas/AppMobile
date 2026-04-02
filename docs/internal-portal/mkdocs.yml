@@ -1,6 +1,7 @@
 site_name: AppMobile Internal Engineering Docs
 site_description: Internal reference for web, mobile, and integration teams
 site_dir: ../../build/internal-docs-site
+docs_dir: .
 repo_name: AppMobile
 repo_url: https://github.com/fbifreitas/AppMobile
 

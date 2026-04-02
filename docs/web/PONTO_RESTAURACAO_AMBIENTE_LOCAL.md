@@ -289,6 +289,14 @@ Use este prompt no inicio de uma nova sessao/agente:
 - Validacao local do teste de gate OpenAPI executada com sucesso:
   - `python .github/scripts/test_openapi_breaking_check.py`
   - Resultado: `Ran 8 tests ... OK`.
+
+### 11.6 Ajustes de CI apos push (2026-04-02)
+- Falha no workflow `Android Homologation` por `Validate app version bump` (versao nao incrementada em `pubspec.yaml`).
+- Falha no workflow `Internal Docs CI` por `docs_dir` inexistente no `mkdocs.yml`.
+- Correcao aplicada:
+  - `pubspec.yaml` atualizado para `1.2.23+42`.
+  - `docs/internal-portal/mkdocs.yml` atualizado com `docs_dir: .`.
+- Proximo passo: reenviar commit para novo ciclo de validacao no GitHub Actions.
 - Backend e camada de integracao protegem o dominio interno por ACL/normalizacao e expõem contratos versionados para app e web.
 
 ### 10.4 Dominio canonico (linguagem comum)

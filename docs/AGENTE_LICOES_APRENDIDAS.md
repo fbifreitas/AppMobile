@@ -71,6 +71,8 @@ Registrar práticas essenciais, aprendizados e padrões de operação que devem 
 - [2026-04-02] Teste de integração do endpoint `/api/openapi/v1` é útil para capturar gaps contratuais reais que o gate semântico isolado não vê, como campos `required` ausentes e enums publicados inline em vez de `components/schemas`.
 - [2026-04-02] Se o ambiente local estiver sem `python` e sem `py` no PATH, registrar explicitamente a limitação e usar validação equivalente no CI (Linux) como continuidade para scripts de gate OpenAPI.
 - [2026-04-02] Em Windows, o PATH de usuário pode ficar malformado com caminhos concatenados por espaço; normalizar o PATH (corrigir delimitador `;`) e priorizar `...\Python312`, `...\Python312\Scripts` e `...\Python\Launcher` restaura `python` e `py` na sessao atual.
+- [2026-04-02] No workflow `Android Homologation`, o passo `Validate app version bump` bloqueia o pipeline quando `pubspec.yaml` nao incrementa; para cada push de homologacao, subir `version` no formato semver+build.
+- [2026-04-02] No workflow `Internal Docs CI`, quando o `mkdocs.yml` fica em subdiretorio sem pasta `docs/` filha, definir `docs_dir: .` evita erro de configuracao do MkDocs em `--strict`.
 
 ---
 
