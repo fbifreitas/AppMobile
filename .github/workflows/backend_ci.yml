@@ -80,15 +80,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          java -jar apps/backend/target/*.jar > /tmp/current-backend.log 2>&1 &
+          java -jar apps/backend/target/*.jar --spring.profiles.active=test --server.port=8080 > /tmp/current-backend.log 2>&1 &
           CUR_PID=$!
-          for i in {1..40}; do
+          for i in {1..60}; do
             if curl -sf http://localhost:8080/actuator/health >/dev/null; then
               break
             fi
+            if ! kill -0 "$CUR_PID" 2>/dev/null; then
+              echo "Current backend process exited unexpectedly"
+              cat /tmp/current-backend.log || true
+              exit 1
+            fi
             sleep 2
           done
-          curl -sf http://localhost:8080/api/openapi/v1 > /tmp/openapi-current.json
+          curl -sf http://localhost:8080/actuator/health >/dev/null || { cat /tmp/current-backend.log || true; exit 1; }
+          curl -sf http://localhost:8080/api/openapi/v1 > /tmp/openapi-current.json || { cat /tmp/current-backend.log || true; exit 1; }
           kill $CUR_PID || true
 
       - name: Prepare main worktree
@@ -105,15 +111,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          java -jar /tmp/appmobile-main/apps/backend/target/*.jar > /tmp/main-backend.log 2>&1 &
+          java -jar /tmp/appmobile-main/apps/backend/target/*.jar --spring.profiles.active=test --server.port=8081 > /tmp/main-backend.log 2>&1 &
           MAIN_PID=$!
-          for i in {1..40}; do
-            if curl -sf http://localhost:8080/actuator/health >/dev/null; then
+          for i in {1..60}; do
+            if curl -sf http://localhost:8081/actuator/health >/dev/null; then
               break
+            fi
+            if ! kill -0 "$MAIN_PID" 2>/dev/null; then
+              echo "Main backend process exited unexpectedly"
+              cat /tmp/main-backend.log || true
+              exit 1
             fi
             sleep 2
           done
-          curl -sf http://localhost:8080/api/openapi/v1 > /tmp/openapi-main.json
+          curl -sf http://localhost:8081/actuator/health >/dev/null || { cat /tmp/main-backend.log || true; exit 1; }
+          curl -sf http://localhost:8081/api/openapi/v1 > /tmp/openapi-main.json || { cat /tmp/main-backend.log || true; exit 1; }
           kill $MAIN_PID || true
 
       - name: Check OpenAPI breaking changes
