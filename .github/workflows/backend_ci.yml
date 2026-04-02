@@ -136,17 +136,17 @@ jobs:
         run: |
           set -euo pipefail
           python3 - <<'PY'
-import json
-from pathlib import Path
-p = Path('/tmp/openapi-main.json')
-try:
-    doc = json.loads(p.read_text(encoding='utf-8'))
-except Exception:
-    print('Main OpenAPI invalido; ignorando gate semantico neste run.')
-    raise SystemExit(0)
-paths = doc.get('paths') if isinstance(doc, dict) else None
-if not isinstance(paths, dict) or not paths:
-    print('Main OpenAPI sem paths; ignorando gate semantico neste run.')
-    raise SystemExit(0)
-PY
+          import json
+          from pathlib import Path
+          p = Path('/tmp/openapi-main.json')
+          try:
+              doc = json.loads(p.read_text(encoding='utf-8'))
+          except Exception:
+              print('Main OpenAPI invalido; ignorando gate semantico neste run.')
+              raise SystemExit(0)
+          paths = doc.get('paths') if isinstance(doc, dict) else None
+          if not isinstance(paths, dict) or not paths:
+              print('Main OpenAPI sem paths; ignorando gate semantico neste run.')
+              raise SystemExit(0)
+          PY
           python3 .github/scripts/openapi_breaking_check.py /tmp/openapi-main.json /tmp/openapi-current.json
