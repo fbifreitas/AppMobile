@@ -83,7 +83,7 @@ jobs:
           java -jar apps/backend/target/*.jar --server.port=8080 --spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration > /tmp/current-backend.log 2>&1 &
           CUR_PID=$!
           for i in {1..60}; do
-            if curl -sf http://localhost:8080/actuator/health >/dev/null; then
+            if curl -sf http://localhost:8080/api/openapi/v1 -o /tmp/openapi-current.json; then
               break
             fi
             if ! kill -0 "$CUR_PID" 2>/dev/null; then
@@ -93,8 +93,7 @@ jobs:
             fi
             sleep 2
           done
-          curl -sf http://localhost:8080/actuator/health >/dev/null || { cat /tmp/current-backend.log || true; exit 1; }
-          curl -sf http://localhost:8080/api/openapi/v1 > /tmp/openapi-current.json || { cat /tmp/current-backend.log || true; exit 1; }
+          test -s /tmp/openapi-current.json || { cat /tmp/current-backend.log || true; exit 1; }
           kill $CUR_PID || true
 
       - name: Prepare main worktree
@@ -114,7 +113,7 @@ jobs:
           java -jar /tmp/appmobile-main/apps/backend/target/*.jar --server.port=8081 --spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration > /tmp/main-backend.log 2>&1 &
           MAIN_PID=$!
           for i in {1..60}; do
-            if curl -sf http://localhost:8081/actuator/health >/dev/null; then
+            if curl -sf http://localhost:8081/api/openapi/v1 -o /tmp/openapi-main.json; then
               break
             fi
             if ! kill -0 "$MAIN_PID" 2>/dev/null; then
@@ -124,8 +123,7 @@ jobs:
             fi
             sleep 2
           done
-          curl -sf http://localhost:8081/actuator/health >/dev/null || { cat /tmp/main-backend.log || true; exit 1; }
-          curl -sf http://localhost:8081/api/openapi/v1 > /tmp/openapi-main.json || { cat /tmp/main-backend.log || true; exit 1; }
+          test -s /tmp/openapi-main.json || { cat /tmp/main-backend.log || true; exit 1; }
           kill $MAIN_PID || true
 
       - name: Check OpenAPI breaking changes
