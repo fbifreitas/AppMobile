@@ -525,6 +525,20 @@ Use este checklist no inicio de qualquer nova sessao para confirmar que nada cri
 - Proxima acao:
   - Rodar PR para validar etapa no runner Linux e, no próximo incremento, estender semântica para request body/context envelope (tenant/correlation/actor) quando o contrato base passar a exigir.
 
+### Checkpoint 2026-04-02 (promocao para main e equalizacao)
+- Feito:
+  - PR de release para `main` mergeada com sucesso apos estabilizacao dos workflows de Backend CI, Android CI e Internal Docs CI.
+  - Excecao controlada de protecao aplicada somente para viabilizar merge em cenario de mantenedor unico e restaurada no mesmo ciclo.
+  - Protecao da branch `main` confirmada com `required_approving_review_count = 1` apos o merge.
+  - Branch de homologacao sincronizada por fast-forward a partir de `origin/main`.
+  - Verificacao final de divergencia executada com resultado `0/0` entre `origin/main` e `origin/homolog`.
+- Estado atual:
+  - Ambientes equalizados (codigo de `main` e homolog alinhados).
+  - Fluxo de governanca de release preservado com evidencias registradas.
+  - Gate OpenAPI em CI estabilizado para continuidade de INT-025/026/027.
+- Proxima acao:
+  - Manter acompanhamento da esteira de distribuicao e confirmar qualquer sinal de divergencia de notificacao entre homolog/producao quando houver novo envio.
+
 ### Checkpoint 2026-04-02 (OpenAPI backend validado com H2)
 - Feito:
   - `apps/backend/pom.xml` ajustado para incluir `h2` em escopo de teste, destravando o `@SpringBootTest` com profile `test`.

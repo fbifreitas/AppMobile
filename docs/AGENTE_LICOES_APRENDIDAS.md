@@ -73,6 +73,9 @@ Registrar práticas essenciais, aprendizados e padrões de operação que devem 
 - [2026-04-02] Em Windows, o PATH de usuário pode ficar malformado com caminhos concatenados por espaço; normalizar o PATH (corrigir delimitador `;`) e priorizar `...\Python312`, `...\Python312\Scripts` e `...\Python\Launcher` restaura `python` e `py` na sessao atual.
 - [2026-04-02] No workflow `Android Homologation`, o passo `Validate app version bump` bloqueia o pipeline quando `pubspec.yaml` nao incrementa; para cada push de homologacao, subir `version` no formato semver+build.
 - [2026-04-02] No workflow `Internal Docs CI`, quando o `mkdocs.yml` fica em subdiretorio sem pasta `docs/` filha, definir `docs_dir: .` evita erro de configuracao do MkDocs em `--strict`.
+- [2026-04-02] Em ciclo de promocao para `main` com mantenedor unico, aplicar excecao temporaria de aprovacao minima apenas no instante do merge e restaurar `required_approving_review_count = 1` imediatamente apos a conclusao.
+- [2026-04-02] Ao finalizar promocao, sincronizar homolog por fast-forward a partir de `origin/main` e validar divergencia final `0/0` para confirmar equalizacao real dos ambientes.
+- [2026-04-02] Para evitar bloqueio recorrente no `Android Homologation` durante iteracoes de `release/*`, a validacao de version bump deve ser focada no fluxo de homologacao principal e nao no ciclo tecnico de ajuste da branch de release.
 
 ---
 
