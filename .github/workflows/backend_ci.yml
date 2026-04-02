@@ -83,7 +83,7 @@ jobs:
           java -jar apps/backend/target/*.jar --server.port=8080 --spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration > /tmp/current-backend.log 2>&1 &
           CUR_PID=$!
           for i in {1..60}; do
-            if curl -sf http://localhost:8080/api/openapi/v1 -o /tmp/openapi-current.json; then
+            if curl -sf http://localhost:8080/api/openapi/v1 -o /tmp/openapi-current.json || curl -sf http://localhost:8080/v3/api-docs -o /tmp/openapi-current.json; then
               break
             fi
             if ! kill -0 "$CUR_PID" 2>/dev/null; then
@@ -113,7 +113,7 @@ jobs:
           java -jar /tmp/appmobile-main/apps/backend/target/*.jar --server.port=8081 --spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration > /tmp/main-backend.log 2>&1 &
           MAIN_PID=$!
           for i in {1..60}; do
-            if curl -sf http://localhost:8081/api/openapi/v1 -o /tmp/openapi-main.json; then
+            if curl -sf http://localhost:8081/api/openapi/v1 -o /tmp/openapi-main.json || curl -sf http://localhost:8081/v3/api-docs -o /tmp/openapi-main.json; then
               break
             fi
             if ! kill -0 "$MAIN_PID" 2>/dev/null; then
