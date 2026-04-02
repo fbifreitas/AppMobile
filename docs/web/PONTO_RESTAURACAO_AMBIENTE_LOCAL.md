@@ -125,10 +125,12 @@ docker compose -f infra/docker-compose.yml ps
 ```
 
 URLs de health check:
-- Web (Next.js):   http://localhost:3000/health  
-- API (Spring):    http://localhost:8080/actuator/health  
+- Web (via proxy nginx):   http://localhost/health  
+- API (via proxy nginx):   http://localhost/api/actuator/health  
 - DB (Postgres):   porta 5432 (acesso interno)
 - Cache (Redis):   porta 6379 (acesso interno)
+
+Observacao: no compose atual, apenas o proxy expoe portas no host (80/443).
 
 ---
 
@@ -326,6 +328,71 @@ Use este checklist no inicio de qualquer nova sessao para confirmar que nada cri
 - Backlog e documentacao atualizados com o que foi executado.
 - Evidencias de teste registradas.
 - Se houve distribuicao, CI/CD monitorado ate confirmacao de entrega.
+
+---
+
+## 12. Checkpoint Operacional Continuo
+
+### Checkpoint 2026-04-01 (status de runtime Docker)
+- Feito:
+  - Commit de onboarding e continuidade criado (`666ba11`).
+  - Docker Desktop reiniciado e processos confirmados em execucao.
+  - Validacao WSL executada repetidamente.
+  - Confirmado em log do Docker o reset (`POST /app/reset`).
+  - Diagnosticado bloqueio de permissao para inicializar `LxssManager` em terminal sem elevacao.
+- Estado atual:
+  - Tela do Docker Desktop permanece em `Starting the Docker Engine...`.
+  - `wsl -l -v` lista apenas `Ubuntu` e `docker-desktop-data` (distro `docker-desktop` ausente).
+  - Engine ainda nao responde para `docker version`/`docker ps`.
+- Proxima acao:
+  - Executar em PowerShell Administrador: `wsl --shutdown`, `wsl --update`, `Start-Service LxssManager` e abrir Docker Desktop.
+  - Revalidar com `wsl -l -v`, `docker version`, `docker ps`.
+  - Com engine pronto, subir stack local via `infra/scripts/start_local_stack.ps1` e registrar novo checkpoint.
+
+### Checkpoint 2026-04-01 (recuperacao concluida)
+- Feito:
+  - Distros Docker recriadas no WSL (`docker-desktop` e `docker-desktop-data`).
+  - Validado `wsl -l -v` com as distros Docker em `Running`.
+  - Validado `docker version` com bloco `Server: Docker Desktop 4.28.0`.
+  - Validado `docker ps` respondendo normalmente.
+- Estado atual:
+  - Docker Engine operacional no host local.
+- Proxima acao:
+  - Subir stack local usando `infra/scripts/start_local_stack.ps1` com segredos via variavel de ambiente/cofre/prompt seguro.
+  - Validar `docker compose ps`, `http://localhost:3000/health` e `http://localhost:8080/actuator/health`.
+
+### Checkpoint 2026-04-01 (ajuste de robustez no script)
+- Feito:
+  - Corrigida a leitura do parametro `Detach` no `infra/scripts/start_local_stack.ps1`.
+  - O script agora aceita valores booleanos, `true/false` em texto e `1/0`.
+- Estado atual:
+  - Erro de transformacao de argumento para `Detach` mitigado.
+- Proxima acao:
+  - Reexecutar subida da stack com `-Detach 1` (ou sem `-Detach`, pois o default continua em modo destacado).
+
+### Checkpoint 2026-04-01 (validacao compose)
+- Feito:
+  - `docker compose ps` executado com retorno vazio (sem servicos em execucao).
+  - `docker compose config` validado com sucesso.
+- Estado atual:
+  - Docker Engine operacional.
+  - Stack local ainda nao iniciada.
+  - Variaveis sensiveis permanecem com placeholder e devem ser resolvidas por env/vault/prompt.
+- Proxima acao:
+  - Subir stack com `start_local_stack.ps1`.
+  - Validar `docker compose ps` e health checks web/api.
+
+### Checkpoint 2026-04-01 (stack operacional)
+- Feito:
+  - Corrigido bind do web para healthcheck (`HOSTNAME=0.0.0.0`) em `infra/docker-compose.yml`.
+  - `docker compose up -d --build` concluido com `web/api/db/cache/proxy` em status healthy/up.
+  - Validacao de endpoints no host executada.
+- Estado atual:
+  - Endpoints diretos `localhost:3000` e `localhost:8080` nao estao expostos no host no compose atual.
+  - Endpoints via proxy estao respondendo com HTTP 200.
+- Proxima acao:
+  - Usar `http://localhost/health` e `http://localhost/api/actuator/health` para smoke local.
+  - Opcional: se desejar acesso direto em 3000/8080, adicionar mapeamento de portas em `web` e `api`.
 
 ---
 

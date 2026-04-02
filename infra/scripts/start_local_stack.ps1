@@ -1,11 +1,42 @@
 param(
-    [bool]$Detach = $true,
+    [object]$Detach = $true,
     [string]$PostgresSecretName = 'AppMobile/PostgresPassword',
     [string]$RedisSecretName = 'AppMobile/RedisPassword'
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+function Convert-ToBoolean {
+    param(
+        [object]$Value,
+        [bool]$DefaultValue = $true
+    )
+
+    if ($null -eq $Value) {
+        return $DefaultValue
+    }
+
+    if ($Value -is [bool]) {
+        return [bool]$Value
+    }
+
+    if ($Value -is [int]) {
+        return ([int]$Value -ne 0)
+    }
+
+    if ($Value -is [string]) {
+        $normalized = $Value.Trim().ToLowerInvariant()
+        if ($normalized -in @('true', '1', 'yes', 'y', 'sim', 's')) {
+            return $true
+        }
+        if ($normalized -in @('false', '0', 'no', 'n', 'nao')) {
+            return $false
+        }
+    }
+
+    throw "Valor invalido para Detach: '$Value'. Use true/false, 1/0, $true/$false."
+}
 
 function Get-PlainSecretFromSecureString {
     param([Security.SecureString]$SecureValue)
@@ -94,7 +125,8 @@ if (Test-Path $dockerCliAbsolute) {
 }
 
 $composeArgs = @('compose', 'up')
-if ($Detach) {
+$detachEnabled = Convert-ToBoolean -Value $Detach -DefaultValue $true
+if ($detachEnabled) {
     $composeArgs += '-d'
 }
 
