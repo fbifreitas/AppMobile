@@ -1,11 +1,15 @@
 package com.appbackoffice.api.mobile;
 
+import com.appbackoffice.api.contract.ApiContractException;
+import com.appbackoffice.api.contract.CanonicalErrorResponse;
+import com.appbackoffice.api.contract.ErrorSeverity;
 import com.appbackoffice.api.mobile.dto.CheckinConfigResponse;
 import com.appbackoffice.api.mobile.dto.InspectionFinalizedRequest;
 import com.appbackoffice.api.mobile.dto.InspectionFinalizedResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -20,7 +24,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.List;
@@ -42,7 +45,11 @@ public class MobileApiController {
             description = "Contrato retrocompatível: em v1, apenas adições não quebrantes são permitidas.",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Configuração retornada com sucesso"),
-                    @ApiResponse(responseCode = "400", description = "Contexto inválido", content = @Content)
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Contexto inválido",
+                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = CanonicalErrorResponse.class))
+                    )
             }
     )
     public ResponseEntity<CheckinConfigResponse> getCheckinConfig(
@@ -81,8 +88,16 @@ public class MobileApiController {
             description = "Operação idempotente por X-Idempotency-Key.",
             responses = {
                     @ApiResponse(responseCode = "202", description = "Payload aceito para processamento"),
-                    @ApiResponse(responseCode = "400", description = "Requisição inválida", content = @Content),
-                    @ApiResponse(responseCode = "409", description = "Conflito de idempotência", content = @Content)
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Requisição inválida",
+                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = CanonicalErrorResponse.class))
+                    ),
+                    @ApiResponse(
+                            responseCode = "409",
+                            description = "Conflito de idempotência",
+                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = CanonicalErrorResponse.class))
+                    )
             }
     )
     public ResponseEntity<InspectionFinalizedResponse> postInspectionFinalized(
@@ -94,7 +109,14 @@ public class MobileApiController {
     ) {
         validateContextHeaders(tenantId, correlationId, actorId);
         if (!StringUtils.hasText(idempotencyKey)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "X-Idempotency-Key é obrigatório");
+                        throw new ApiContractException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "IDEMPOTENCY_KEY_REQUIRED",
+                                        "X-Idempotency-Key é obrigatório",
+                                        ErrorSeverity.ERROR,
+                                        "Informe X-Idempotency-Key para garantir processamento seguro em retries.",
+                                        "header: X-Idempotency-Key"
+                        );
         }
 
         String scopedKey = tenantId + ":" + idempotencyKey.trim();
@@ -116,13 +138,34 @@ public class MobileApiController {
 
     private static void validateContextHeaders(String tenantId, String correlationId, String actorId) {
         if (!StringUtils.hasText(tenantId)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "X-Tenant-Id é obrigatório");
+                        throw new ApiContractException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "CTX_MISSING_HEADER",
+                                        "X-Tenant-Id é obrigatório",
+                                        ErrorSeverity.ERROR,
+                                        "Informe os cabeçalhos de contexto e tente novamente.",
+                                        "header: X-Tenant-Id"
+                        );
         }
         if (!StringUtils.hasText(correlationId)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "X-Correlation-Id é obrigatório");
+                        throw new ApiContractException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "CTX_MISSING_HEADER",
+                                        "X-Correlation-Id é obrigatório",
+                                        ErrorSeverity.ERROR,
+                                        "Informe os cabeçalhos de contexto e tente novamente.",
+                                        "header: X-Correlation-Id"
+                        );
         }
         if (!StringUtils.hasText(actorId)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "X-Actor-Id é obrigatório");
+                        throw new ApiContractException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "CTX_MISSING_HEADER",
+                                        "X-Actor-Id é obrigatório",
+                                        ErrorSeverity.ERROR,
+                                        "Informe os cabeçalhos de contexto e tente novamente.",
+                                        "header: X-Actor-Id"
+                        );
         }
     }
 }

@@ -73,6 +73,9 @@ jobs:
       - name: Build current backend
         run: mvn -B -DskipTests package -f apps/backend/pom.xml
 
+      - name: Run OpenAPI gate unit tests
+        run: python3 .github/scripts/test_openapi_breaking_check.py -v
+
       - name: Generate current OpenAPI
         shell: bash
         run: |

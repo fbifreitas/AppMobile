@@ -17,7 +17,8 @@ public class OpenApiConfiguration {
                         .title("AppMobile Backoffice API")
                         .version("v1")
                         .description("OpenAPI v1 com política de compatibilidade retroativa: "
-                                + "adições não quebrantes são permitidas em v1; breaking changes exigem nova versão major.")
+                                + "adições não quebrantes são permitidas em v1; breaking changes exigem nova versão major. "
+                                + "Contrato de erro canônico com code/severity/guidance aplicado aos endpoints críticos.")
                         .license(new License().name("Proprietary")))
                 .addServersItem(new Server().url("/").description("Default server"));
     }

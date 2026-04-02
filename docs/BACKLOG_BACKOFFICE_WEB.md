@@ -542,18 +542,19 @@ Status da entrega:
 ## Entrega BOW-056 (OpenAPI v1 - fundacao)
 
 Status da entrega:
-1. Fundacao tecnica publicada no backend.
+1. Fundacao tecnica publicada e validada em teste de integração do backend.
 2. Politica formal de compatibilidade registrada em contrato v1.
 3. Gate completo de breaking change em CI permanece como proxima etapa (INT-025).
 
 ### 1) Fundacao implementada
-1. Dependencia `springdoc-openapi` adicionada ao backend.
+1. Dependencias OpenAPI ajustadas para `springdoc-openapi-starter-webmvc-api` + WebJar do Swagger UI, evitando incompatibilidade do auto-config do UI no stack atual.
 2. Endpoints de documentacao expostos:
   - `GET /api/openapi/v1`
-  - `GET /api/swagger`
+  - `GET /api/swagger` (alias com redirect para Swagger UI WebJar)
 3. Endpoints criticos mobile publicados em v1:
   - `GET /api/mobile/checkin-config`
   - `POST /api/mobile/inspections/finalized`
+4. Teste de integração (`OpenApiContractIntegrationTest`) valida publicação do schema `CanonicalErrorResponse`, enum `ErrorSeverity` e headers obrigatórios dos endpoints críticos usando profile `test` com H2.
 
 ### 2) Politica de compatibilidade v1 (formal)
 1. Em v1, apenas mudancas aditivas nao quebrantes sao permitidas.

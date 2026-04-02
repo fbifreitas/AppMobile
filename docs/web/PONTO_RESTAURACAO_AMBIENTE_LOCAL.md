@@ -258,6 +258,37 @@ Use este prompt no inicio de uma nova sessao/agente:
 ### 10.3 Modelo operacional alvo
 - Mobile executa captura guiada de vistoria, inclusive com continuidade offline.
 - Backoffice web define configuracoes dinamicas (menus, obrigatoriedades, politicas de foto), aprova cadastros e monitora operacao.
+
+---
+
+## 11. Checkpoint Operacional (2026-04-02)
+
+### 11.1 O que foi feito
+- Limpeza de artefatos locais inesperados de automacao visual em `new-workspace/.maestro`.
+- Remocao de artefato de debug local `maestro-debug/gh-run-23827161802.json`.
+- Validacao backend com suite alvo de contrato e bootstrap:
+  - `BackofficeApiApplicationTests` (pass)
+  - `OpenApiContractIntegrationTest` (pass)
+  - `MobileApiControllerContractErrorTest` (pass)
+- Validacao de empacotamento backend:
+  - `mvn -B -DskipTests package` com JAR gerado em `apps/backend/target/api-0.1.0.jar`.
+
+### 11.2 Estado atual
+- Working tree sem artefatos inesperados de screenshot/debug.
+- Alteracoes funcionais e de documentacao do ciclo INT-025/026/027 seguem presentes para continuidade.
+
+### 11.3 Limitacoes observadas
+- Ambiente local sem runtime Python disponivel por `python` e sem launcher `py` no PATH nesta sessao.
+- Teste local de `.github/scripts/test_openapi_breaking_check.py` nao executado por indisponibilidade de interpretador.
+
+### 11.4 Proximo passo recomendado
+- Garantir paridade no CI Linux (workflow backend) para confirmar o gate OpenAPI em ambiente padrao do pipeline.
+
+### 11.5 Atualizacao de ambiente (2026-04-02)
+- PATH de usuario normalizado para Python no Windows, com `python` e `py` disponiveis na sessao.
+- Validacao local do teste de gate OpenAPI executada com sucesso:
+  - `python .github/scripts/test_openapi_breaking_check.py`
+  - Resultado: `Ran 8 tests ... OK`.
 - Backend e camada de integracao protegem o dominio interno por ACL/normalizacao e expõem contratos versionados para app e web.
 
 ### 10.4 Dominio canonico (linguagem comum)
@@ -429,6 +460,76 @@ Use este checklist no inicio de qualquer nova sessao para confirmar que nada cri
 - Proxima acao:
   - Expandir regra de breaking change (headers obrigatórios, enums e exemplos).
   - Publicar catálogo canônico de erros (INT-028) e alinhamento com OpenAPI v1.
+
+### Checkpoint 2026-04-01 (INT-028 fundacao v1)
+- Feito:
+  - Contrato canônico de erro implementado no backend (`CanonicalErrorResponse`) com `code`, `severity`, `message`, `guidance`, `correlationId` e `path`.
+  - Handler global de exceções adicionado para padronizar respostas de erro (`ApiExceptionHandler`).
+  - Endpoints críticos mobile v1 atualizados para retornar códigos padronizados (`CTX_MISSING_HEADER`, `IDEMPOTENCY_KEY_REQUIRED`, `REQ_VALIDATION_FAILED`).
+  - OpenAPI v1 atualizado para referenciar explicitamente o envelope canônico de erro nos responses 4xx dos endpoints críticos.
+- Estado atual:
+  - INT-028 avançou para `Em andamento (fundação v1 aplicada nos endpoints mobile críticos)`.
+  - Catálogo canônico já ativo para os contratos v1 de `checkin-config` e `inspections/finalized`.
+- Proxima acao:
+  - Expandir o catálogo para demais endpoints do backend e publicar tabela oficial de códigos por domínio.
+  - Incluir validação semântica adicional no gate OpenAPI para checar regressão de envelope de erro.
+
+### Checkpoint 2026-04-01 (INT-028 TDD red-green)
+- Feito:
+  - Criados testes WebMvc de contrato canônico de erro para endpoints mobile críticos (`MobileApiControllerContractErrorTest`).
+  - Fase red confirmada: 2 testes falharam com HTTP 500 para ausência de headers obrigatórios.
+  - Correção aplicada no handler global para `MissingRequestHeaderException`, mapeando erros para HTTP 400 com códigos canônicos.
+  - Fase green confirmada inicialmente com 3 testes e, em seguida, cobertura ampliada para 6 testes com cenários adicionais de header em branco e contexto ausente no POST.
+- Estado atual:
+  - Cobertura TDD ampliada de contrato de erro estabelecida para `checkin-config` e `inspections/finalized`.
+- Proxima acao:
+  - Evoluir o gate OpenAPI/CI para validar também semântica do envelope canônico de erro, além de estrutura.
+
+### Checkpoint 2026-04-01 (INT-025 gate semântico de erro canônico)
+- Feito:
+  - Script `.github/scripts/openapi_breaking_check.py` evoluído para validar semântica de contrato de erro além de remoções estruturais.
+  - Nova regra no gate: se um response 4xx da base (`main`) referencia `CanonicalErrorResponse`, a PR deve manter a mesma referência no mesmo endpoint/status.
+  - Nova regra no gate: impedir remoção de campos `required` do schema `CanonicalErrorResponse` e de valores de enum em `ErrorSeverity`.
+- Estado atual:
+  - INT-025 avançou de gate estrutural para gate estrutural + semântico no domínio de erro canônico.
+- Proxima acao:
+  - Expandir semântica para validar regressão de headers/contexto obrigatórios e vínculos por domínio (INT-026/INT-027).
+
+### Checkpoint 2026-04-01 (INT-025 hardening + testes do gate)
+- Feito:
+  - Corrigido parser de operações no script `.github/scripts/openapi_breaking_check.py` para considerar apenas métodos HTTP válidos (`get/post/put/delete/patch/...`), evitando tratar chaves não-operacionais de `paths` como operações.
+  - Criada suíte de testes unitários do script em `.github/scripts/test_openapi_breaking_check.py` cobrindo: remoção de operação, manutenção de `CanonicalErrorResponse` em 4xx, remoção de required canônico, remoção de enum `ErrorSeverity` e ignorar chaves não-HTTP.
+  - Workflow `.github/workflows/backend_ci.yml` atualizado para executar a suíte do gate (`python3 .github/scripts/test_openapi_breaking_check.py -v`) antes da comparação OpenAPI.
+- Estado atual:
+  - Gate INT-025 ficou mais robusto contra falso positivo/negativo estrutural e agora tem cobertura automatizada do comportamento central.
+- Proxima acao:
+  - Executar a suíte em runner CI (ambiente com Python disponível) e incluir execução explícita desses testes no workflow para bloquear regressão do próprio script.
+
+### Checkpoint 2026-04-02 (INT-025 com ponte INT-026/027)
+- Feito:
+  - Python 3.12 instalado localmente para validação de testes do gate sem depender apenas do CI.
+  - Script `.github/scripts/openapi_breaking_check.py` evoluído para bloquear remoção de headers obrigatórios por operação com regra orientada pela base (`main`).
+  - Suíte de testes ampliada para 8 casos, incluindo regressão de header obrigatório removido e caso de header opcional removido sem bloqueio.
+  - Workflow corrigido para executar teste via arquivo direto (`python3 .github/scripts/test_openapi_breaking_check.py -v`), evitando falha de discovery por diretório não importável.
+- Estado atual:
+  - Gate semântico cobre estrutura, envelope canônico de erro e preservação de headers obrigatórios (fundação prática para INT-026/027).
+  - Execução local confirmada: 8 testes, 0 falhas.
+- Proxima acao:
+  - Rodar PR para validar etapa no runner Linux e, no próximo incremento, estender semântica para request body/context envelope (tenant/correlation/actor) quando o contrato base passar a exigir.
+
+### Checkpoint 2026-04-02 (OpenAPI backend validado com H2)
+- Feito:
+  - `apps/backend/pom.xml` ajustado para incluir `h2` em escopo de teste, destravando o `@SpringBootTest` com profile `test`.
+  - Dependência OpenAPI do backend migrada para `springdoc-openapi-starter-webmvc-api` com publicação do Swagger UI via WebJar, preservando o endpoint público `GET /api/swagger` por redirecionamento explícito.
+  - Criado `OpenApiContractIntegrationTest` para validar o endpoint `GET /api/openapi/v1` contra o contrato efetivamente publicado.
+  - `CanonicalErrorResponse` passou a expor os campos canônicos como `required` no OpenAPI e `ErrorSeverity` passou a ser publicado como schema reutilizável (`enumAsRef = true`).
+  - Suíte alvo do backend validada localmente com sucesso: `BackofficeApiApplicationTests`, `OpenApiContractIntegrationTest` e `MobileApiControllerContractErrorTest`.
+- Estado atual:
+  - O backend sobe localmente em profile `test` com H2 e o endpoint OpenAPI v1 está validado por teste de integração.
+  - `GET /api/swagger` foi mantido como alias estável, agora desacoplado do auto-config problemático do UI do `springdoc`.
+- Proxima acao:
+  - Executar `backend_ci.yml` em PR para validar o mesmo comportamento no runner Linux.
+  - Avaliar se vale adicionar teste específico para o redirect de `GET /api/swagger` além do teste do JSON OpenAPI.
 
 ---
 

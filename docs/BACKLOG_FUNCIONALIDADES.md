@@ -2,7 +2,7 @@
 > Esteira de distribuição Android ajustada para garantir que builds automáticos sejam enviados apenas ao grupo "prod-testers" no Firebase App Distribution. Builds manuais permitem seleção de grupo, com padrão "testers-internos". Mudança documentada para rastreabilidade e prevenção de erros operacionais. (Ver detalhes no plano operacional e workflows)
 # Backlog de Funcionalidades Nao Implementadas
 
-Atualizado em: 2026-03-31
+Atualizado em: 2026-04-01
 
 ## Objetivo
 Registrar funcionalidades pendentes para evolucao do AppMobile, com foco em priorizacao de produto e previsibilidade tecnica.
@@ -103,6 +103,7 @@ Step 8️⃣ (FUNCIONAL PRÓXIMO CICLO) → BL-029, BL-030, BL-031, BL-032, BL-0
 | 5️⃣2️⃣ | BL-052 | Unificar pacote de parametrização operacional do HUB para Check-in e Câmera por níveis | Em andamento | 🔴 Crítica | Mesmo documento do modo desenvolvedor deve definir menus do check-in e níveis da câmera, incluindo material e estado, sem contratos paralelos |
 | 5️⃣3️⃣ | BL-054 | UX progressiva no Check-in etapa 1 e 2 com acordeões por pergunta e resumo inline da resposta | Em andamento | 🟠 Alta | Exibir apenas a próxima pergunta pendente, colapsar respostas já preenchidas com status visual OK/NOK e manter feedback de progresso x/y durante o preenchimento |
 | 5️⃣4️⃣ | BL-055 | Revisar hierarquia visual e regras de casing por nível no Menu de Vistoria e Check-in Etapa 2 | Concluído | 🟠 Alta | Nível 1 em Title Case, nível 2 em CAIXA ALTA, nível 3 em Title Case, com acordeões iniciando recolhidos conforme regra operacional |
+| 5️⃣5️⃣ | BL-056 | Tela dedicada de onboarding de permissões Android e iOS com reentrada obrigatória para usuários sem etapa de onboarding (ex.: CLTs criados via web) | Pendente | 🔴 Crítica | Usuário concede permissões essenciais no onboarding inicial e, quando autenticado sem onboarding concluído, é redirecionado para tela de permissões antes de usar fluxos operacionais |
 
 ---
 
@@ -258,6 +259,14 @@ Observacao 2026-04-01 (Em andamento): iniciada implementacao de acordeoes por pe
 Aplicar revisão de taxonomia visual dos menus no fluxo de vistoria, corrigindo o entendimento de níveis de título e padronizando comportamento de collapse inicial por seção.
 
 Observacao 2026-04-01 (Concluído): ajuste aplicado no Menu de Vistoria (Nível 1 em Title Case; divisões da tela em CAIXA ALTA; subtítulos em Title Case) e na Etapa 2 com acordeões independentes iniciando recolhidos, mantendo compatibilidade com configuração dinâmica vinda do sistema web. Cobertura de regressão atualizada para os novos comportamentos de expansão.
+
+### BL-056
+Adicionar tela específica de onboarding para coleta/concessão de permissões obrigatórias (Android e iOS), cobrindo tanto o primeiro acesso após instalação quanto usuários que entram por login sem ter passado pelo onboarding (ex.: CLTs cadastrados via módulo web).
+
+Detalhamento:
+1. Listar permissões operacionais obrigatórias por plataforma (localização, câmera, microfone e notificações quando aplicável).
+2. Bloquear acesso ao fluxo principal até concluir a etapa de permissões mínimas obrigatórias.
+3. Implementar verificação de estado no login para redirecionar usuários sem onboarding/permissões concluídas para a nova tela.
 
 ### BL-017
 Adicionar contract tests entre mobile e backend para validar schemas e evitar quebra silenciosa de integrações críticas.
