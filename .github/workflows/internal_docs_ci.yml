@@ -1,0 +1,49 @@
+name: Internal Docs CI
+
+on:
+  push:
+    branches: ["main", "homolog/**", "release/**"]
+    paths:
+      - "docs/**"
+      - "apps/backend/**"
+      - ".github/workflows/internal_docs_ci.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "docs/**"
+      - "apps/backend/**"
+      - ".github/workflows/internal_docs_ci.yml"
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build-internal-docs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install docs dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install mkdocs mkdocs-material
+
+      - name: Build internal docs site
+        run: mkdocs build -f docs/internal-portal/mkdocs.yml --strict
+
+      - name: Upload docs artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: internal-docs-site
+          path: build/internal-docs-site
+          if-no-files-found: error

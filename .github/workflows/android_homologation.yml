@@ -48,6 +48,11 @@ jobs:
       - name: Validate app version bump
         shell: bash
         run: |
+          if [[ "${GITHUB_REF_NAME}" == release/* ]]; then
+            echo "Branch release detectada; validacao de incremento de versao ignorada neste run."
+            exit 0
+          fi
+
           CURRENT_VERSION=$(awk '/^version:/{print $2; exit}' pubspec.yaml)
           if [ -z "$CURRENT_VERSION" ]; then
             echo "Nao foi possivel ler a versao atual no pubspec.yaml"

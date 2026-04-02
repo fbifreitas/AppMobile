@@ -1,6 +1,6 @@
 # Backlog de Desenvolvimento — Backoffice Web (Integração com App Mobile)
 
-Atualizado em: 2026-03-30
+Atualizado em: 2026-04-01
 
 ## Objetivo
 Organizar o backlog do aplicativo web de backoffice necessário para suportar o AppMobile em produção, cobrindo:
@@ -106,7 +106,7 @@ Pontos já integrados no mobile que dependem de backend/backoffice:
 ## Mapeamento com backlog mobile
 Itens mobile que geram demanda de backend/backoffice:
 - BL-001, BL-002, BL-004, BL-009, BL-012, BL-017, BL-021, BL-022, BL-023
-- BL-029, BL-030, BL-031, BL-032, BL-033, BL-034, BL-035
+- BL-029, BL-030, BL-031, BL-032, BL-033, BL-034, BL-035, BL-056
 
 ---
 
@@ -187,6 +187,18 @@ Itens mobile que geram demanda de backend/backoffice:
 | 50 | BOW-050 | Serviço de normalização de payload externo | BL-001, BL-012 | Pendente | Crítica | Normaliza `inspectionType`, `resType`, endereço, cliente e datas para modelo interno consistente |
 | 51 | BOW-051 | Painel de conciliação financeira x processo | BL-001, BL-009 | Pendente | Alta | Backoffice consulta/filtra divergências entre entrada externa, processo criado e status operacional |
 | 52 | BOW-052 | Callback/status de retorno para financeira | BL-001, BL-009 | Pendente | Alta | Retorno padronizado e auditável com status do processo, protocolo e timestamps de processamento |
+| 53 | BOW-053 | Orquestração web de estado de onboarding de permissões mobile | BL-056, BL-032, BL-031 | Em andamento | Crítica | Backoffice expõe/atualiza status de onboarding-permissões por usuário e força reentrada no app para tela de permissões quando cadastro é criado/ativado sem onboarding concluído |
+| 54 | BOW-054 | Canonical Domain v1 (Demand/Case/Job/Inspection/Report) | BL-001, BL-012, BL-017 | Em andamento (v1 documental publicado) | Crítica | Modelo canônico publicado com glossário, regras de transição e mapeamento explícito de ACL para payload externo |
+| 55 | BOW-055 | Governança de arquitetura por ADR | BL-020, BL-026 | Pendente | Alta | ADRs obrigatórios para decisões críticas (identidade, tenancy, contratos, storage, integração) com template e revisão em PR |
+| 56 | BOW-056 | OpenAPI v1 com política formal de compatibilidade | BL-017, BL-021 | Em andamento (fundação v1 publicada) | Crítica | Contratos REST v1 publicados com regra de versionamento, depreciação e bloqueio de breaking change em CI |
+| 57 | BOW-057 | Contratos de eventos v1 (fatos de negócio) | BL-017, BL-022 | Pendente | Crítica | Eventos versionados com tenant/correlationId e consumers idempotentes validados por testes de contrato |
+| 58 | BOW-058 | Enforcement obrigatório de tenant + correlationId | BL-022, BL-031 | Pendente | Crítica | Toda request rejeitada sem contexto mínimo (tenantId/correlationId) e propagação ponta a ponta no backend |
+| 59 | BOW-059 | Matriz de autorização backend-first (RBAC + policies) | BL-031, BL-033, BL-034 | Pendente | Crítica | Permissões por domínio consolidadas no backend com testes de autorização e proibição de regra sensível na UI |
+| 60 | BOW-060 | Padrão de idempotência por operação crítica | BL-001, BL-002, BL-021 | Pendente | Crítica | Chaves idempotentes por caso de uso (ingestão, sync final, callback) com deduplicação observável e SLA definido |
+| 61 | BOW-061 | Baseline de observabilidade e SLO técnico | BL-009, BL-022 | Pendente | Alta | Logs estruturados, traces distribuídos, métricas essenciais e alertas de SLA por contexto de negócio |
+| 62 | BOW-062 | Estratégia de migração de dados e evolução de schema | BL-013, BL-020 | Pendente | Alta | Plano versionado de migrações e rollback sem lock-in de parceiro para os estágios de evolução da plataforma |
+| 63 | BOW-063 | Hardening de build local (Docker context, cache e resiliência) | BL-023, BL-036 | Em andamento | Alta | Contextos reduzidos com `.dockerignore`, builds reproduzíveis e procedimento anti-EOF/SIGBUS documentado para ambiente limitado |
+| 64 | BOW-064 | Estratégia de segredos com cofre (dev/stage/prod) | BL-023, BL-028 | Em andamento | Crítica | Segredos fora de arquivos versionados, injeção por cofre/variável de ambiente e trilha de rotação por ambiente |
 
 ---
 
@@ -425,3 +437,132 @@ Antes de iniciar qualquer item BOW, validar:
   - Mitigação: memória de cálculo reproduzível, trilha de auditoria e revisão/assinatura humana obrigatória.
 9. Risco: indisponibilidade de provedor de assinatura digital.
   - Mitigação: estratégia multi-provedor com fallback por tenant e fila de retentativa.
+
+---
+
+## Entrega BOW-054 (Canonical Domain v1)
+
+Status da entrega:
+1. V1 documental publicada neste backlog.
+2. Implementacao de runtime (enforcement em codigo) permanece no fluxo de BOW-056, BOW-058, BOW-060 e INT-025/INT-026/INT-027.
+
+### 1) Glossario canonico (linguagem oficial)
+1. Demand:
+  - Solicitacao de servico recebida de canal interno/externo, ainda sem execucao operacional.
+2. Case:
+  - Contexto de negocio que agrega uma ou mais demandas correlatas e seu ciclo de decisao.
+3. Job:
+  - Unidade operacional executavel atribuida para agenda/execucao em campo.
+4. Inspection:
+  - Execucao tecnica da vistoria (check-in, capturas, revisao e finalizacao).
+5. Report:
+  - Artefato tecnico resultante da inspecao, com trilha de revisao/aprovacao/assinatura.
+
+### 2) Regras de transicao de estado (v1)
+
+#### Demand
+1. `RECEIVED` -> `QUALIFIED`.
+2. `RECEIVED` -> `REJECTED`.
+3. `QUALIFIED` -> `PLANNED`.
+4. `PLANNED` -> `CANCELLED`.
+
+#### Case
+1. `OPEN` -> `IN_ANALYSIS`.
+2. `IN_ANALYSIS` -> `APPROVED`.
+3. `IN_ANALYSIS` -> `REJECTED`.
+4. `APPROVED` -> `CLOSED`.
+5. `REJECTED` -> `CLOSED`.
+
+#### Job
+1. `CREATED` -> `SCHEDULED`.
+2. `SCHEDULED` -> `IN_PROGRESS`.
+3. `IN_PROGRESS` -> `PAUSED`.
+4. `PAUSED` -> `IN_PROGRESS`.
+5. `IN_PROGRESS` -> `COMPLETED`.
+6. `SCHEDULED` -> `CANCELLED`.
+
+#### Inspection
+1. `STARTED` -> `STEP1_DONE`.
+2. `STEP1_DONE` -> `STEP2_IN_PROGRESS`.
+3. `STEP2_IN_PROGRESS` -> `REVIEW_IN_PROGRESS`.
+4. `REVIEW_IN_PROGRESS` -> `FINALIZED`.
+5. `STEP2_IN_PROGRESS` -> `PAUSED`.
+6. `PAUSED` -> `STEP2_IN_PROGRESS`.
+7. `REVIEW_IN_PROGRESS` -> `PAUSED`.
+
+#### Report
+1. `DRAFT` -> `UNDER_REVIEW`.
+2. `UNDER_REVIEW` -> `APPROVED`.
+3. `UNDER_REVIEW` -> `REJECTED`.
+4. `APPROVED` -> `SIGNED`.
+5. `SIGNED` -> `PUBLISHED`.
+6. `REJECTED` -> `DRAFT`.
+
+### 3) Context envelope minimo obrigatorio (v1)
+1. `tenantId`: identifica isolamento logico de tenant.
+2. `correlationId`: rastreio ponta a ponta de chamada/evento.
+3. `actorId`: identidade do usuario/sistema que acionou a operacao.
+4. `occurredAt`: timestamp UTC da operacao/evento.
+5. `idempotencyKey`: obrigatorio em operacoes criticas de escrita.
+
+### 4) Mapeamento ACL explicito (payload externo -> canonico)
+
+#### Ingestao financeira (upstream) para dominio interno
+1. `number` -> `demand.externalReference` -> `job.protocol`.
+2. `inspectionType` -> `demand.type` -> `job.type`.
+3. `resType` -> `case.assetType` -> `inspection.propertyType`.
+4. `inspectionDate[]` -> `job.schedule.windows[]`.
+5. `internalPropose` -> `case.partnerReference`.
+6. `client.doc` -> `case.customer.document` (mascarado por politica de visibilidade).
+7. `client.phoneNumber` -> `case.customer.phone` (mascarado por politica de visibilidade).
+
+#### Regras ACL v1
+1. Nunca propagar payload externo bruto para o mobile.
+2. Normalizar enums externos para taxonomia canonica.
+3. Rejeitar eventos/chamadas sem `tenantId` e `correlationId`.
+4. Aplicar mascaramento por perfil para campos sensiveis no retorno.
+5. Registrar tabela de equivalencia de status externo->canonico.
+
+### 5) Invariantes de dominio (v1)
+1. Nenhum `Job` sem `tenantId`, `caseId` e estado inicial `CREATED`.
+2. Nenhuma `Inspection` finalizada sem `STEP1_DONE` e `REVIEW_IN_PROGRESS` completos.
+3. Nenhum `Report` publicado sem estado previo `SIGNED`.
+4. Nenhuma operacao critica sem `idempotencyKey` valida.
+5. Nenhum evento persistido sem `correlationId`.
+
+### 6) Rastreabilidade de implementacao
+1. BOW-056: contratos OpenAPI v1 devem refletir este glossario e estados.
+2. BOW-058: enforcement de `tenantId`/`correlationId` em runtime.
+3. BOW-060: idempotencia por operacao critica conforme invariantes.
+4. INT-025: gate CI para impedir breaking change de contrato.
+5. INT-026/INT-027: envelope/contexto + padrao de idempotency-key alinhados ao canonical domain.
+
+---
+
+## Entrega BOW-056 (OpenAPI v1 - fundacao)
+
+Status da entrega:
+1. Fundacao tecnica publicada e validada em teste de integração do backend.
+2. Politica formal de compatibilidade registrada em contrato v1.
+3. Gate completo de breaking change em CI permanece como proxima etapa (INT-025).
+
+### 1) Fundacao implementada
+1. Dependencias OpenAPI ajustadas para `springdoc-openapi-starter-webmvc-api` + WebJar do Swagger UI, evitando incompatibilidade do auto-config do UI no stack atual.
+2. Endpoints de documentacao expostos:
+  - `GET /api/openapi/v1`
+  - `GET /api/swagger` (alias com redirect para Swagger UI WebJar)
+3. Endpoints criticos mobile publicados em v1:
+  - `GET /api/mobile/checkin-config`
+  - `POST /api/mobile/inspections/finalized`
+4. Teste de integração (`OpenApiContractIntegrationTest`) valida publicação do schema `CanonicalErrorResponse`, enum `ErrorSeverity` e headers obrigatórios dos endpoints críticos usando profile `test` com H2.
+
+### 2) Politica de compatibilidade v1 (formal)
+1. Em v1, apenas mudancas aditivas nao quebrantes sao permitidas.
+2. Remocao/renomeacao de campos, mudanca de semantica e mudanca de codigo de erro exigem nova major.
+3. Headers de contexto (`tenant`, `correlation`, `actor`) sao obrigatorios.
+4. Escritas criticas exigem `idempotency-key`.
+
+### 3) Proximos passos para concluir BOW-056
+1. Publicar exemplos canônicos por endpoint (request/response/erro).
+2. Implantar diff de contrato em CI com bloqueio de breaking changes.
+3. Definir politica de deprecacao com prazo e comunicacao por consumidor.

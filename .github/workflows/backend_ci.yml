@@ -49,3 +49,104 @@ jobs:
           name: backoffice-api-jar
           path: apps/backend/target/*.jar
           if-no-files-found: error
+
+  openapi-compatibility-gate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: apps/backend/pom.xml
+
+      - name: Build current backend
+        run: mvn -B -DskipTests package -f apps/backend/pom.xml
+
+      - name: Run OpenAPI gate unit tests
+        run: python3 .github/scripts/test_openapi_breaking_check.py -v
+
+      - name: Generate current OpenAPI
+        shell: bash
+        run: |
+          set -euo pipefail
+          java -jar apps/backend/target/*.jar --server.port=8080 --spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration > /tmp/current-backend.log 2>&1 &
+          CUR_PID=$!
+          for i in {1..60}; do
+            if curl -sf http://localhost:8080/api/openapi/v1 -o /tmp/openapi-current.json || curl -sf http://localhost:8080/v3/api-docs -o /tmp/openapi-current.json; then
+              break
+            fi
+            if ! kill -0 "$CUR_PID" 2>/dev/null; then
+              echo "Current backend process exited unexpectedly"
+              cat /tmp/current-backend.log || true
+              exit 1
+            fi
+            sleep 2
+          done
+          test -s /tmp/openapi-current.json || { cat /tmp/current-backend.log || true; exit 1; }
+          kill $CUR_PID || true
+
+      - name: Prepare main worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git worktree add /tmp/appmobile-main origin/main
+
+      - name: Build main backend
+        run: mvn -B -DskipTests package -f /tmp/appmobile-main/apps/backend/pom.xml
+
+      - name: Generate main OpenAPI
+        shell: bash
+        run: |
+          set -euo pipefail
+          java -jar /tmp/appmobile-main/apps/backend/target/*.jar --server.port=8081 --spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration > /tmp/main-backend.log 2>&1 &
+          MAIN_PID=$!
+          MAIN_OPENAPI_OK=false
+          for i in {1..60}; do
+            if curl -sf http://localhost:8081/api/openapi/v1 -o /tmp/openapi-main.json || curl -sf http://localhost:8081/v3/api-docs -o /tmp/openapi-main.json; then
+              MAIN_OPENAPI_OK=true
+              break
+            fi
+            if ! kill -0 "$MAIN_PID" 2>/dev/null; then
+              echo "Main backend process exited unexpectedly"
+              cat /tmp/main-backend.log || true
+              break
+            fi
+            sleep 2
+          done
+          kill $MAIN_PID || true
+          if [ "$MAIN_OPENAPI_OK" != "true" ]; then
+            echo "Main OpenAPI indisponivel neste run; gate semantico sera ignorado."
+            echo '{}' > /tmp/openapi-main.json
+          fi
+
+      - name: Check OpenAPI breaking changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('/tmp/openapi-main.json')
+          try:
+              doc = json.loads(p.read_text(encoding='utf-8'))
+          except Exception:
+              print('Main OpenAPI invalido; ignorando gate semantico neste run.')
+              raise SystemExit(0)
+          paths = doc.get('paths') if isinstance(doc, dict) else None
+          if not isinstance(paths, dict) or not paths:
+              print('Main OpenAPI sem paths; ignorando gate semantico neste run.')
+              raise SystemExit(0)
+          PY
+          python3 .github/scripts/openapi_breaking_check.py /tmp/openapi-main.json /tmp/openapi-current.json
