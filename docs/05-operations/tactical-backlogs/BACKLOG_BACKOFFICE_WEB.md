@@ -17,6 +17,20 @@ Atualizado em: 2026-04-03
 > - Decisões V2: `docs/06-analysis-design/01_DECISION_LOG_V2.md`
 > - Portfólio e roadmap corporativo: `docs/02-product/01_PORTFOLIO_VIEW.md` e `docs/02-product/02_ROADMAP_CORPORATE_AND_DOMAINS.md`
 
+## Cabecalho executavel (padrao)
+
+Usar este cabecalho nos itens priorizados:
+- Camada
+- Dominio
+- Area
+- Objetivo
+- Arquivos provaveis
+- Dependencias
+- Testes obrigatorios
+- Evidencia esperada
+- Docs que precisam ser atualizados
+- Criterio de pronto
+
 ---
 
 ## Estado atual do código (auditoria 2026-04-03)
@@ -70,6 +84,18 @@ Objetivo: plataforma encontra empresa de avaliação e vistoriador por demanda.
 #### BOW-100 — Modelo de domínio IAM: Tenant, OrganizationUnit, Membership
 **Onda:** 1 | **Prioridade:** 🔴 Crítica | **Status:** Em andamento (parcial backend entregue em 2026-04-03)  
 **Bloqueia:** BOW-101, BOW-102, BOW-103, BOW-110, BOW-120, toda integração mobile real
+
+**Bloco executavel (prioritario):**
+- Camada: platform-core
+- Dominio: cross-domain
+- Area: identity/tenant foundation
+- Objetivo: criar fundacao IAM multi-tenant com integridade referencial
+- Arquivos provaveis: `apps/backend/src/main/java/**/tenant*`, `**/membership*`, migrations
+- Dependencias: nenhuma anterior; base para BOW-101 e BOW-102
+- Testes obrigatorios: integracao de isolamento por tenant + repositorios
+- Evidencia esperada: entidades/migrations ativas e testes verdes
+- Docs a atualizar: backlog web e backlog integracao se houver contrato impactado
+- Criterio de pronto: tenant/membership com FK real e isolamento comprovado
 
 **Andamento 2026-04-03:**
 - Entregue no backend: entidades `Tenant`, `OrganizationUnit`, `Membership` + enums de status/role + repositories.
@@ -140,6 +166,18 @@ class Membership {
 #### BOW-101 — Alinhamento de User entity ao modelo canônico
 **Onda:** 1 | **Prioridade:** 🔴 Crítica | **Status:** ✅ Concluído (2026-04-03)  
 **Depende de:** BOW-100 | **Bloqueia:** BOW-102, BOW-110, BL-031
+
+**Bloco executavel (prioritario):**
+- Camada: platform-core
+- Dominio: cross-domain
+- Area: user lifecycle e authorization context
+- Objetivo: desacoplar identidade de autorizacao e garantir escopo tenant
+- Arquivos provaveis: `apps/backend/src/main/java/**/user*`, `**/membership*`, migrations
+- Dependencias: BOW-100
+- Testes obrigatorios: regressao de endpoints user + isolamento tenant
+- Evidencia esperada: leitura de role por membership e compatibilidade de contrato
+- Docs a atualizar: backlog web e decisoes operacionais quando houver mudanca de fluxo
+- Criterio de pronto: sem regressao de API e autoridade por membership estabilizada
 
 **Andamento 2026-04-03 (completo):**
 - ✅ Entregue: novo agregado `UserLifecycle` separado da entidade `User` para fluxo de onboarding/aprovação.

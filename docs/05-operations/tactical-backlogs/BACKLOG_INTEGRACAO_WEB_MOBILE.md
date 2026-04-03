@@ -14,6 +14,20 @@ Planejar e executar a camada de integracao entre backoffice web e AppMobile com:
 3. rastreabilidade ponta a ponta,
 4. capacidade de rollout/rollback de atualizacoes operacionais (ex.: menus dinamicos).
 
+## Cabecalho executavel (padrao)
+
+Usar este cabecalho nos itens priorizados:
+- Camada
+- Dominio
+- Area
+- Objetivo
+- Arquivos provaveis
+- Dependencias
+- Testes obrigatorios
+- Evidencia esperada
+- Docs que precisam ser atualizados
+- Criterio de pronto
+
 ## Stack de integracao alinhada
 1. API Gateway e servicos de integracao: Java 21 + Spring Boot 3.
 2. Mensageria de integracao: RabbitMQ (fase inicial) com trilha de evolucao para Kafka.
@@ -127,6 +141,33 @@ Motivo:
 ---
 
 ## Mapeamento com backlog de backoffice
+
+### Bloco executavel prioritario (inicio)
+
+#### INT-001
+- Camada: platform-core
+- Dominio: cross-domain
+- Area: integration gateway
+- Objetivo: gateway dedicado para canais mobile com auth/rate-limit/idempotencia
+- Arquivos provaveis: `apps/backend/**/gateway*`, filtros/interceptors, config
+- Dependencias: BOW-100, BOW-102
+- Testes obrigatorios: contrato + seguranca de contexto minimo
+- Evidencia esperada: endpoint protegido com trilha auditavel
+- Docs a atualizar: backlog integracao e backlog web impactado
+- Criterio de pronto: chamadas mobile com politicas minimas aplicadas
+
+#### INT-002
+- Camada: shared-foundation
+- Dominio: cross-domain
+- Area: contracts/versioning
+- Objetivo: contratos versionados com politica de compatibilidade
+- Arquivos provaveis: OpenAPI, validadores de contrato CI, docs de contrato
+- Dependencias: INT-001
+- Testes obrigatorios: contract tests em CI
+- Evidencia esperada: gate de quebra contratual ativo
+- Docs a atualizar: backlog integracao e docs operacionais de governanca
+- Criterio de pronto: PR bloqueada automaticamente em breaking change
+
 1. BOW-008, BOW-009 <-> INT-003, INT-004, INT-011, INT-014
 2. BOW-010, BOW-011, BOW-012 <-> INT-006, INT-007, INT-008, INT-012
 3. BOW-014, BOW-019, BOW-047 <-> INT-009, INT-010, INT-016, INT-018

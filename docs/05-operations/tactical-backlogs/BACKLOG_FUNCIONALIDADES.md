@@ -21,6 +21,20 @@ Para segurança, contratos e comunicação bidirecional entre app e backoffice, 
 ## Plano de execucao (proximos 30 dias)
 Para transformar backlog em entrega com marcos semanais, ownership e criterios de aceite, consultar `docs/05-operations/runbooks/PLANO_EXECUCAO_30_DIAS_WEB_MOBILE.md`.
 
+## Cabecalho executavel (padrao)
+
+Usar este cabecalho nos itens priorizados:
+- Camada
+- Dominio
+- Area
+- Objetivo
+- Arquivos provaveis
+- Dependencias
+- Testes obrigatorios
+- Evidencia esperada
+- Docs que precisam ser atualizados
+- Criterio de pronto
+
 ## 🎯 Roadmap de Priorização
 
 A sequência de implementação foi definida considerando:
@@ -113,6 +127,32 @@ Step 8️⃣ (BACKEND BLOQUEADO — aguarda Onda 1 BOW) → BL-031 (depende de B
 ---
 
 ## Descricoes dos Itens
+
+### Bloco executavel prioritario (inicio)
+
+#### BL-012
+- Camada: experience-layer
+- Dominio: domain-inspection
+- Area: mobile check-in
+- Objetivo: menus check-in etapa 1 e 2 dinamicos via backend
+- Arquivos provaveis: `lib/screens/*checkin*`, `lib/services/*config*`, `lib/state/*`
+- Dependencias: BOW-008, INT-003
+- Testes obrigatorios: widget tests de fluxo check-in + validacao de contrato de config
+- Evidencia esperada: telas e payload final coerentes com configuracao dinamica
+- Docs a atualizar: este backlog e backlog de integracao relacionado
+- Criterio de pronto: sem hardcoding de sessoes obrigatorias no fluxo critico
+
+#### BL-001
+- Camada: experience-layer
+- Dominio: domain-inspection
+- Area: mobile sync/integracao
+- Objetivo: envio do JSON final para API real com rastreabilidade
+- Arquivos provaveis: `lib/services/*sync*`, `lib/repositories/*`, `lib/state/*`
+- Dependencias: BOW-010, INT-006, INT-007
+- Testes obrigatorios: testes de sync com sucesso/falha/retry
+- Evidencia esperada: protocolo de retorno persistido e exibido
+- Docs a atualizar: este backlog e backlog de integracao
+- Criterio de pronto: sync real autenticado com retentativa e log de resultado
 
 ### BL-012
 Tornar os menus de checkin etapa 1 e etapa 2 dinamicos via backend, permitindo adicionar/remover sessoes e definir obrigatoriedade (NBR) sem novo deploy do app.
@@ -406,7 +446,7 @@ Observacao 2026-03-30 (CONCLUIDO): Hub Operacional recebeu ação "Resetar mock 
 ### BL-049
 Consolidar o GitHub Project como fonte principal do backlog, garantindo sincronização integral dos itens BL e status com rastreabilidade.
 
-Observacao 2026-04-01 (Em andamento): criado o resumo executivo continuo de implantacao (`docs/RESUMO_EXECUTIVO_CONTINUO.md`) com snapshot de branches, versao, gates de promocao e estado homolog -> main para reduzir perda de contexto entre sessoes e suportar decisao de merge com rastreabilidade.
+Observacao 2026-04-01 (Em andamento): criado o resumo executivo continuo de implantacao (`docs/05-operations/release-governance/RESUMO_EXECUTIVO_CONTINUO.md`) com snapshot de branches, versao, gates de promocao e estado homolog -> main para reduzir perda de contexto entre sessoes e suportar decisao de merge com rastreabilidade.
 
 Observacao 2026-04-01 (Em andamento): formalizado procedimento de excecao para mantenedor unico na promocao homolog -> main (ajuste temporario de aprovacao minima da branch protegida para 0, merge da PR e restore imediato para 1), com registro obrigatorio de evidencias.
 
