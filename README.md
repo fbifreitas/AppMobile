@@ -1,38 +1,38 @@
-# AppMobile
+# AppMobile Ecosystem Platform (V2)
 
-App Mobile para vistoria operacional com captura, revisão, voz e suporte assistivo.
+Este repositório evoluiu para uma plataforma corporativa:
 
-## Versionamento e controle de release
+- multi-domain
+- multi-tenant
+- white-label
 
-Este projeto adota o seguinte padrão de versionamento e commits:
+Domain packs atuais:
 
-- `pubspec.yaml` usa `version: x.y.z+build`
-  - `x.y.z` é a versão semântica
-  - `build` é o número de build interno do app
-- Para cada entrega formal, crie uma tag Git no formato `vX.Y.Z`
-  - `git tag -a v1.0.1 -m "Release v1.0.1"`
-  - `git push origin --tags`
-- Use commits com mensagens semânticas em português:
-  - `feat: adicionar retomada de vistoria`
-  - `fix: corrigir restauração de rota de recuperação`
-  - `chore: atualizar dependência de versão`
-  - `release: v1.0.1`
+- Inspection
+- Wellness
+- Church
 
-## Branching
+Inspection permanece estratégico, mas não define mais a semântica global da plataforma.
 
-Recomenda-se este fluxo:
+## Leitura obrigatória antes de mudanças estruturais
 
-- `main` — código integrado
-- `feature/<nome>` — desenvolvimento de nova funcionalidade
-- `release/<versao>` — preparação de release
+1. `.github/copilot-instructions.md`
+2. `GEMINI.md`
+3. `docs/00-overview/00_INDEX_GERAL.md`
+4. `docs/00-overview/03_PLANO_DE_MIGRACAO_DOCUMENTAL.md`
 
-> Se o projeto ainda não estiver em produção, você pode trabalhar direto em `main`, mas mantenha disciplina de commits e versionamento.
+## Regra arquitetural central
 
-## Validação pós-implantação
+Platform Core deve permanecer agnóstico a domínio.
+Shared Foundations devem permanecer neutras e reutilizáveis.
+Domain packs são independentes e se integram por contratos/APIs/eventos/ACL.
 
-Use o checklist em `VALIDATION.md` para validar a aplicação após cada implantação.
+## Documentação ativa
 
-## Documentos úteis
+Consulte `docs/` como fonte oficial da direção V2.
+Conteúdos anteriores foram arquivados em `docs/legacy/`.
 
-- `VERSIONING.md` — detalhes do padrão de versionamento e commits
-- `VALIDATION.md` — checklist de validação após implantação
+## Versionamento
+
+Este projeto usa `pubspec.yaml` no formato `x.y.z+build`.
+Antes de release, atualizar versão e validar esteiras conforme governança do repositório.
