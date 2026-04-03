@@ -10,6 +10,10 @@ Garantir que o backlog local (docs/05-operations/tactical-backlogs/BACKLOG_FUNCI
 
 ## Passos do Agente
 
+0. **Registro prévio obrigatório**
+   - Antes de iniciar pacote documental, operacional ou técnico relevante, registrar item rastreável no backlog tático correspondente.
+   - Se o pacote já foi executado sem registro, criar entrada retroativa com evidências (commits/PR) no mesmo ciclo.
+
 1. **Leitura do Backlog Local**
    - Fonte: docs/05-operations/tactical-backlogs/BACKLOG_FUNCIONALIDADES.md
    - IDs, status e critérios de pronto são extraídos e normalizados.

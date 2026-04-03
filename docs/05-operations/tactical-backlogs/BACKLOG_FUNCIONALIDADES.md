@@ -35,6 +35,50 @@ Usar este cabecalho nos itens priorizados:
 - Docs que precisam ser atualizados
 - Criterio de pronto
 
+## Rastreabilidade retroativa de documentacao (governanca)
+
+### DOC-001 — Migracao documental V2 (registro retroativo)
+- Camada: corporate
+- Dominio: cross-domain
+- Area: governanca documental
+- Objetivo: registrar formalmente a migracao da documentacao ativa para a direcao V2
+- Arquivos provaveis: `README.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `docs/00-overview/*`, `docs/03-architecture/*`
+- Dependencias: nenhuma
+- Testes obrigatorios: validacao de coerencia de links e ausencia de contradicao ativa
+- Evidencia esperada: commits `e5224d7`, `a2009e4`, `412dcc4`, `2ad389c`, `f9823d3`, `5d5ef8a` e PR #11
+- Docs que precisam ser atualizados: backlog tatico e backlog estrategico V2
+- Criterio de pronto: rastreabilidade registrada e vinculada aos commits/PR
+
+Status: Concluido (registro retroativo)
+
+### DOC-002 — Reclassificacao operacional ativa (registro retroativo)
+- Camada: corporate
+- Dominio: cross-domain
+- Area: taxonomia documental operacional
+- Objetivo: registrar restauracao de docs operacionais ativos em `docs/05-operations`
+- Arquivos provaveis: `docs/05-operations/*`, `README.md`, `docs/00-overview/*`, `docs/99-legacy/LEGACY_MIGRATION_MAP.md`
+- Dependencias: DOC-001
+- Testes obrigatorios: validacao de ponteiros ativos e preservacao do snapshot legado
+- Evidencia esperada: commits `1ab93d5`, `ed59f07`, `67fd452` e PR #11
+- Docs que precisam ser atualizados: backlog tatico e checklist de sincronizacao
+- Criterio de pronto: operacao ativa clara sem duplicidade ativa contraditoria
+
+Status: Concluido (registro retroativo)
+
+### DOC-003 — Consolidacao operacional do agente (registro retroativo)
+- Camada: corporate
+- Dominio: cross-domain
+- Area: autonomia operacional do agente
+- Objetivo: registrar criacao do sistema operacional do agente e padronizacao inicial dos backlogs taticos
+- Arquivos provaveis: `docs/05-operations/AGENT_OPERATING_SYSTEM.md`, `SOURCE_OF_TRUTH_MATRIX.md`, `TASK_BRIEF_TEMPLATE.md`, `DONE_CHECKLIST_BY_WORK_TYPE.md`, `WHEN_TO_STOP_AND_ASK.md`, pivots e backlogs taticos
+- Dependencias: DOC-002
+- Testes obrigatorios: validacao de ponteiros + validacao de links operacionais sem caminhos legados ativos
+- Evidencia esperada: commits `1d81a66`, `480c6a3`, `3999f8c`, `d989bf4`, `696e034`
+- Docs que precisam ser atualizados: backlog estrategico V2 e governanca backlog/board
+- Criterio de pronto: agente com trilha de leitura, fonte oficial por tema, checklist de pronto e regra de parada
+
+Status: Concluido (registro retroativo)
+
 ## 🎯 Roadmap de Priorização
 
 A sequência de implementação foi definida considerando:

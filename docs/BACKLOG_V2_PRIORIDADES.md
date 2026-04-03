@@ -39,3 +39,8 @@
 - definir visão cross-domain
 - definir métricas por tenant
 - consolidar busca, analytics e automação
+
+## Priority 6 — Documentation Governance and Agent Autonomy
+- V2-DOC-OPS-001: consolidar rastreabilidade documental da migracao V2 e da operacao ativa
+	- evidencia esperada: DOC-001, DOC-002 e DOC-003 registrados no backlog tatico operacional
+	- resultado esperado: backlog estrategico e tatico conectados sem conflito
