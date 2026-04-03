@@ -33,6 +33,9 @@ export default function HomePage() {
           <a className="ghost" href="/backoffice/users/pending">
             Aprovar usuários
           </a>
+          <a className="ghost" href="/backoffice/inspections">
+            Operar vistorias recebidas
+          </a>
         </div>
       </section>
 

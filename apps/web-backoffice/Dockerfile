@@ -3,7 +3,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
-RUN npm run build
+RUN NEXT_BUILD_STANDALONE=1 npm run build
 
 FROM node:20-alpine AS runner
 WORKDIR /app
