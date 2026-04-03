@@ -3,6 +3,7 @@ package com.appbackoffice.api.mobile;
 import com.appbackoffice.api.contract.ApiContractException;
 import com.appbackoffice.api.contract.CanonicalErrorResponse;
 import com.appbackoffice.api.contract.ErrorSeverity;
+import com.appbackoffice.api.contract.RequestContextValidator;
 import com.appbackoffice.api.mobile.dto.CheckinConfigResponse;
 import com.appbackoffice.api.mobile.dto.InspectionFinalizedRequest;
 import com.appbackoffice.api.mobile.dto.InspectionFinalizedResponse;
@@ -15,7 +16,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -59,7 +59,7 @@ public class MobileApiController {
             @RequestHeader("X-Correlation-Id") String correlationId,
             @RequestHeader("X-Actor-Id") String actorId
     ) {
-        validateContextHeaders(tenantId, correlationId, actorId);
+        RequestContextValidator.requireFullContext(tenantId, correlationId, actorId);
 
         Map<String, Object> step1 = Map.of(
                 "tipos", List.of("Urbano", "Rural", "Comercial", "Industrial"),
@@ -107,8 +107,8 @@ public class MobileApiController {
             @RequestHeader("X-Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody InspectionFinalizedRequest request
     ) {
-        validateContextHeaders(tenantId, correlationId, actorId);
-        if (!StringUtils.hasText(idempotencyKey)) {
+        RequestContextValidator.requireFullContext(tenantId, correlationId, actorId);
+        if (!org.springframework.util.StringUtils.hasText(idempotencyKey)) {
                         throw new ApiContractException(
                                         HttpStatus.BAD_REQUEST,
                                         "IDEMPOTENCY_KEY_REQUIRED",
@@ -136,36 +136,4 @@ public class MobileApiController {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(created);
     }
 
-    private static void validateContextHeaders(String tenantId, String correlationId, String actorId) {
-        if (!StringUtils.hasText(tenantId)) {
-                        throw new ApiContractException(
-                                        HttpStatus.BAD_REQUEST,
-                                        "CTX_MISSING_HEADER",
-                                        "X-Tenant-Id é obrigatório",
-                                        ErrorSeverity.ERROR,
-                                        "Informe os cabeçalhos de contexto e tente novamente.",
-                                        "header: X-Tenant-Id"
-                        );
-        }
-        if (!StringUtils.hasText(correlationId)) {
-                        throw new ApiContractException(
-                                        HttpStatus.BAD_REQUEST,
-                                        "CTX_MISSING_HEADER",
-                                        "X-Correlation-Id é obrigatório",
-                                        ErrorSeverity.ERROR,
-                                        "Informe os cabeçalhos de contexto e tente novamente.",
-                                        "header: X-Correlation-Id"
-                        );
-        }
-        if (!StringUtils.hasText(actorId)) {
-                        throw new ApiContractException(
-                                        HttpStatus.BAD_REQUEST,
-                                        "CTX_MISSING_HEADER",
-                                        "X-Actor-Id é obrigatório",
-                                        ErrorSeverity.ERROR,
-                                        "Informe os cabeçalhos de contexto e tente novamente.",
-                                        "header: X-Actor-Id"
-                        );
-        }
-    }
 }

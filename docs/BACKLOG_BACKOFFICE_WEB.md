@@ -1,568 +1,837 @@
-# Backlog de Desenvolvimento — Backoffice Web (Integração com App Mobile)
+# Backlog de Desenvolvimento — Plataforma (Backend + Web Backoffice + Integração Mobile)
 
-Atualizado em: 2026-04-02
+Atualizado em: 2026-04-03
 
-## Objetivo
-Organizar o backlog do aplicativo web de backoffice necessário para suportar o AppMobile em produção, cobrindo:
-- integrações já esperadas pelo código mobile,
-- configurações remotas necessárias para o fluxo de vistoria,
-- funcionalidades futuras já previstas no backlog mobile que exigem backend/backoffice.
-
-## Stack oficial aprovada
-
-### Plataforma principal
-1. Backend: Java 21 + Spring Boot 3.
-2. Frontend Web: TypeScript + React/Next.js.
-3. Banco relacional: PostgreSQL.
-4. Cache e sessões técnicas: Redis.
-5. Mensageria/eventos: RabbitMQ (fase inicial) com evolução para Kafka se volume exigir.
-6. API contracts: OpenAPI 3 com geração de client SDK quando aplicável.
-
-### Segurança e identidade
-1. Protocolo de identidade: OIDC/SAML.
-2. Camada IAM: Keycloak (self-managed) ou Entra ID/Auth0 por tenant conforme estratégia comercial.
-3. Federação corporativa futura: Active Directory (Azure AD/ADFS) via adapter de identidade.
-4. Autorização: RBAC + políticas contextuais de domínio (policy engine).
-
-### Observabilidade e operação
-1. Tracing/metrics: OpenTelemetry.
-2. Métricas e dashboards: Prometheus + Grafana.
-3. Logs centralizados: ELK/OpenSearch (ou stack equivalente no provedor cloud).
-4. Alertas: regras por SLO/SLA da esteira de integração e geração de laudos.
-
-### Documentos e assinatura digital
-1. Geração de documento: serviço de composição de laudo (HTML/PDF) orientado a template por tenant.
-2. Assinatura digital: integração com provedores privados e públicos via gateway de assinatura.
-3. Armazenamento de artefatos assinados: storage imutável + trilha de auditoria.
-
-### Motivos da escolha
-1. Aderência alta ao mercado enterprise e facilidade de contratação.
-2. Ecossistema robusto para segurança corporativa, AD e governança regulatória.
-3. Maturidade para arquitetura modular DDD em domínios complexos.
-4. Escalabilidade para cálculos técnicos, integrações externas e mensageria.
-5. Boa separação entre time backend corporativo e time frontend de produto.
-
-## Backlog complementar de integracao
-Para seguranca, protocolo e operacao da comunicacao bidirecional entre Web e Mobile, consultar `docs/BACKLOG_INTEGRACAO_WEB_MOBILE.md`.
-
-## Diretriz estratégica obrigatória
-O backoffice deve nascer como plataforma white label orientada a domínio (DDD), com arquitetura de identidade preparada para federação corporativa futura (Active Directory via OIDC/SAML), sem refatoração estrutural quando essa integração for habilitada.
-
-## Princípios arquiteturais (DDD + IAM + White Label)
-1. Modelar por bounded contexts:
-  - Identity and Access
-  - Tenant and Branding
-  - User Lifecycle (Onboarding, Approval, Profile)
-  - Scheduling
-  - Field Inspection Operations
-  - Messaging and Notification
-2. Evitar regras de autorização espalhadas na camada de interface; centralizar em políticas de domínio.
-3. Separar autenticação (quem é o usuário) de autorização (o que pode fazer) e de tenant context (em qual marca/empresa atua).
-4. Garantir multi-tenant lógico desde o início para suportar white label real no web e no mobile.
-5. Tratar integração com IdP externo como porta de infraestrutura (adapter), não como regra do domínio.
-
-## Modularização obrigatória para ciclo do laudo (NBR 14653)
-O sistema deve ser modular para automatizar ao máximo o trabalho técnico, mantendo assinatura e responsabilidade técnica humana.
-
-### Bounded contexts adicionais (núcleo de avaliação)
-1. Inspection Intake: recepção e validação técnica da vistoria vinda do app mobile.
-2. Valuation Data Hub: coleta, normalização e governança de dados externos.
-3. NBR 14653 Valuation Engine: execução dos métodos e cálculos técnicos.
-4. Technical Report Composer: composição automática do laudo e anexos.
-5. Technical Review and Sign-Off: revisão por engenheiro/arquiteto e assinatura digital.
-6. Process Orchestration: esteira com estados, SLA, fila e reprocessamento.
-7. Management Intelligence: painéis de operação, qualidade e produtividade.
-
-### Meta operacional
-1. Objetivo: aproximar o sistema de 100% de automação do trabalho operacional/técnico repetitivo.
-2. Guarda-corpo: assinatura final e responsabilidade técnica continuam com profissional habilitado.
-3. Estratégia: automação de coleta, pré-cálculo, consistência normativa, redação técnica e montagem documental.
-
-## Diagnóstico técnico do app mobile
-Pontos já integrados no mobile que dependem de backend/backoffice:
-- Configuração dinâmica de check-in:
-  - `APP_API_BASE_URL`
-  - `APP_API_TOKEN`
-  - `APP_CHECKIN_CONFIG_ENDPOINT` (default: `/api/mobile/checkin-config`)
-- Envio da vistoria final:
-  - `APP_API_BASE_URL`
-  - `APP_API_TOKEN`
-  - `APP_INSPECTION_SYNC_ENDPOINT` (default: `/api/mobile/inspections/finalized`)
-- Sincronização offline com fila local (retry ao reabrir Home): exige endpoint idempotente e observável.
-- Funcionalidades com placeholder no mobile e dependência direta de backoffice:
-  - Agenda (aba dedicada em evolução)
-  - Notificações/mensagens (tela placeholder)
-  - Login/autenticação
-  - Onboarding CLT/PJ + aprovação
-  - Atualização cadastral e foto de perfil
-  - Exibição de protocolo/ID externo no job
-
-## Contexto novo: integração de payload da financeira
-1. O backoffice deve receber payload de criação de processo vindo da financeira (upstream) e normalizar para o modelo canônico de jobs/processos.
-2. A resposta para a financeira deve manter contrato estável (ex.: `success`, `message`, `process_id`, `process_number`, `data`) e rastreabilidade completa.
-3. O app mobile não deve consumir o payload bruto da financeira; deve consumir somente APIs internas do backoffice já saneadas e com controle de visibilidade de campos.
-4. Campos com dados pessoais/sensiveis exigem política de mascaramento e controle de acesso por perfil/tenant.
-
-## Mapeamento com backlog mobile
-Itens mobile que geram demanda de backend/backoffice:
-- BL-001, BL-002, BL-004, BL-009, BL-012, BL-017, BL-021, BL-022, BL-023
-- BL-029, BL-030, BL-031, BL-032, BL-033, BL-034, BL-035, BL-056
+> **Fonte canônica obrigatória antes de implementar qualquer item:**
+> - Arquitetura: `docs/03-architecture/01_BLUEPRINT_ARQUITETURA.md`
+> - Modelo de domínio: `docs/03-architecture/02_MODELO_CANONICO_E_DOMINIOS.md`
+> - IAM: `docs/03-architecture/05_IDENTITY_ACCESS_E_USER_MANAGEMENT.md`
+> - ADRs: `docs/03-architecture/07_ADRS_INICIAIS.md`
+> - Regras de negócio: `docs/06-analysis-and-design/08_REGRAS_DE_NEGOCIO_CRITICAS.md`
+> - Estados críticos: `docs/06-analysis-and-design/07_MODELO_DE_ESTADOS_CRITICOS.md`
+> - Personas: `docs/02-product/01_PERSONAS_E_PAPEIS.md`
+> - Plano 90 dias: `docs/05-operations/02_PLANO_IMPLEMENTACAO_90_DIAS.md`
 
 ---
 
-## Roadmap recomendado (Web Backoffice)
+## Estado atual do código (auditoria 2026-04-03)
 
-### Fase 1 — Fundação de plataforma (crítica)
-1. BOW-001 a BOW-006
-2. BOW-029 a BOW-033
+### O que existe hoje
 
-### Fase 2 — Integrações core do mobile (crítica)
-1. BOW-007 a BOW-013
+| Módulo | Arquivos | Alinhamento com modelo canônico |
+|---|---|---|
+| `api.config` | ConfigPackage*, ConfigAudit*, ConfigPolicy*, ConfigScope* | Parcial — tenant guard implementado, mas sem Tenant entity real |
+| `api.contract` | CanonicalErrorResponse, ApiExceptionHandler, RequestContextValidator | OK — envelope canônico funcional |
+| `api.mobile` | MobileApiController, CheckinConfigResponse, InspectionFinalizedRequest | OK — contratos v1 publicados |
+| `api.user` | User, UserRole, UserSource, UserStatus, UserAuditEntry* | Incompleto — sem Tenant entity, sem Membership, sem IdentityBinding |
+| `api.openapi` | OpenApiConfiguration, OpenApiUiRedirectController | OK |
+| `api.storage` | StorageService, LocalStorageAdapter, R2StorageAdapter | OK |
+| Web: backoffice/users | list, create, import, pending, audit pages | Parcial — sem tenant context real |
+| Web: components | config_targeting_panel, operational_status_panel | OK |
 
-### Fase 3 — Operação e governança (alta)
-1. BOW-014 a BOW-019
+### Dívidas críticas a endereçar antes de evoluir
 
-### Fase 4 — Funcionalidades de ciclo seguinte (alta)
-1. BOW-020 a BOW-028
-2. BOW-034
-
-### Fase 5 — Núcleo de laudo técnico e assinatura (crítica)
-1. BOW-035 a BOW-048
-
----
-
-## Backlog priorizado (Backoffice Web)
-
-| Seq | ID | Módulo | Relaciona com BL mobile | Status | Prioridade | Critério de pronto |
-|---|---|---|---|---|---|---|
-| 1 | BOW-001 | Identidade e acesso (Auth) | BL-031 | Pendente | Crítica | Login com JWT (access + refresh), expiração, renovação, logout, revogação de sessão |
-| 2 | BOW-002 | RBAC backoffice | BL-031, BL-033 | Pendente | Crítica | Perfis mínimos: Admin, Operação, Suporte, Auditoria; controle por rota e ação |
-| 3 | BOW-003 | Gestão de usuários | BL-032, BL-033, BL-034, BL-035 | Pendente | Crítica | CRUD de usuário, status de aprovação, trilha de auditoria de alterações |
-| 4 | BOW-004 | Contrato de erros e observabilidade | BL-021, BL-022 | Pendente | Crítica | Envelope padrão de erro, correlation id por request, logs estruturados |
-| 5 | BOW-005 | Segurança e secrets | BL-023 | Pendente | Crítica | Segredos fora de código, rotação, mascaramento e checklist de segurança |
-| 6 | BOW-006 | Catálogo de integrações mobile | BL-017 | Pendente | Crítica | Catálogo versionado de contratos (OpenAPI) para endpoints mobile |
-| 7 | BOW-007 | API de jobs do vistoriador | BL-029, BL-004 | Pendente | Crítica | Endpoint paginado de jobs com protocolo externo, status e geolocalização |
-| 8 | BOW-008 | API de configuração dinâmica check-in | BL-012 | Pendente | Crítica | Endpoint `/api/mobile/checkin-config` com versionamento, filtro por tipoImovel e validação |
-| 9 | BOW-009 | Painel backoffice de sessões NBR | BL-012 | Pendente | Crítica | UI para editar sessões (obrigatório/desejável, ícone, contexto), publicar versão e rollback |
-| 10 | BOW-010 | API de recebimento da vistoria final | BL-001, BL-002 | Pendente | Crítica | Endpoint idempotente para JSON final, persistência completa, retorno de protocolo |
-| 11 | BOW-011 | Motor de idempotência e deduplicação | BL-001, BL-002 | Pendente | Crítica | Reenvios da fila offline não geram duplicidade de vistoria |
-| 12 | BOW-012 | API de status de sincronização | BL-002, BL-009 | Pendente | Alta | Consulta de status por job/protocolo para suporte e reconciliação |
-| 13 | BOW-013 | Backoffice de vistorias recebidas | BL-001, BL-003, BL-004 | Pendente | Alta | Lista, filtro e detalhe técnico da vistoria recebida com protocolo |
-| 14 | BOW-014 | Telemetria de fluxo mobile | BL-009, BL-022 | Pendente | Alta | Ingestão de eventos (início, retomada, conclusão, falha), dashboard operacional |
-| 15 | BOW-015 | Auditoria de fallback e retomada | BL-008 | Pendente | Alta | Painel para inspeção de integridade de payload e diagnóstico de retomada |
-| 16 | BOW-016 | Catálogo de mensagens operacionais | BL-030 | Pendente | Alta | Gestão de templates e mensagens vinculadas a job/proposta |
-| 17 | BOW-017 | Serviço de push notifications | BL-030 | Pendente | Alta | Registro de device token, envio push por evento, rastreio de entrega |
-| 18 | BOW-018 | Centro de mensagens (web) | BL-030 | Pendente | Alta | Conversas por job/proposta, histórico, anexos, status lida/não lida |
-| 19 | BOW-019 | Contract tests mobile-backend | BL-017 | Pendente | Alta | Pact/contract tests em CI bloqueando quebra de contrato |
-| 20 | BOW-020 | Agenda operacional (web) | BL-029 | Pendente | Alta | Calendário por vistoriador, regras de conflito, status do agendamento |
-| 21 | BOW-021 | API de agenda para mobile | BL-029 | Pendente | Alta | Endpoint de agenda mensal/semanal com paginação e timezone consistente |
-| 22 | BOW-022 | Onboarding CLT/PJ (web) | BL-032 | Pendente | Crítica | Fluxos de cadastro com validação documental, dados bancários PJ e trilha de análise |
-| 23 | BOW-023 | Aprovação de cadastro | BL-033 | Pendente | Crítica | Workflow pendente/aprovado/reprovado com motivo e data |
-| 24 | BOW-024 | API de perfil do usuário | BL-034, BL-035 | Pendente | Alta | Leitura/escrita de perfil, versionamento e validação de campos |
-| 25 | BOW-025 | Upload de foto de perfil | BL-035 | Pendente | Alta | Endpoint seguro para foto de perfil com política de conteúdo e armazenamento |
-| 26 | BOW-026 | Política de retenção de dados | BL-005, BL-016 | Pendente | Média | Regras de retenção para payloads, anexos e logs com rotinas automáticas |
-| 27 | BOW-027 | Administração de parâmetros remotos | BL-006, BL-010 | Pendente | Média | Painel para toggles/config remota com auditoria e segregação por ambiente |
-| 28 | BOW-028 | Governança de release e ambiente | BL-011, BL-023 | Pendente | Média | Separação de ambientes (dev/internal/prod), chaves e políticas por ambiente |
-| 29 | BOW-029 | Modelo multi-tenant do domínio | BL-031, BL-033 | Pendente | Crítica | Entidades Tenant, Organization, Membership e isolamento lógico por tenant aplicados em todas as operações |
-| 30 | BOW-030 | White label de marca e comportamento | BL-029, BL-030, BL-031 | Pendente | Alta | Branding por tenant (nome, logo, cores, textos, domínios, políticas) refletido em web e contratos mobile |
-| 31 | BOW-031 | Abstração de identidade (IdP agnóstico) | BL-031 | Pendente | Crítica | Login suportando provider interno e provider externo por adapter, sem acoplamento ao AD |
-| 32 | BOW-032 | Federação com Active Directory | BL-031 | Pendente | Alta | Suporte OIDC/SAML para Azure AD/ADFS com mapeamento de grupos para papéis de domínio |
-| 33 | BOW-033 | Autorização por políticas de domínio | BL-031, BL-033, BL-034 | Pendente | Crítica | RBAC + regras contextuais (tenant, unidade, papel, status) centralizadas em policy engine |
-| 34 | BOW-034 | Provisionamento e ciclo de identidade | BL-032, BL-033, BL-034 | Pendente | Alta | Provisionamento manual/automatizado (SCIM-ready), ativação, bloqueio, desligamento e trilha de auditoria |
-| 35 | BOW-035 | Pipeline de intake de vistoria | BL-001, BL-002, BL-012 | Pendente | Crítica | Payload da vistoria validado, versionado e transformado para domínio técnico sem perda de rastreabilidade |
-| 36 | BOW-036 | Modelo canônico de avaliação | BL-001, BL-017 | Pendente | Crítica | Entidades de domínio para avaliação, imóvel, amostras, premissas e resultado técnico com versionamento |
-| 37 | BOW-037 | Conectores de dados externos | BL-009, BL-022 | Pendente | Crítica | Integrações com fontes externas (mercado, geoespacial, socioeconômica e documental) com cache e auditoria |
-| 38 | BOW-038 | Qualidade e confiabilidade dos dados | BL-021, BL-022 | Pendente | Alta | Score de qualidade por fonte, tratamento de lacunas e trilha de origem por dado utilizado |
-| 39 | BOW-039 | Engine NBR 14653 (métodos) | BL-017, BL-021 | Pendente | Crítica | Implementação modular de métodos aplicáveis da NBR 14653 com premissas explícitas e logs de cálculo |
-| 40 | BOW-040 | Serviço de memória de cálculo | BL-017, BL-022 | Pendente | Crítica | Cada resultado técnico reproduzível (input, versão da regra, output) com hash e trilha auditável |
-| 41 | BOW-041 | Validação normativa automática | BL-012, BL-021 | Pendente | Alta | Checklist automático de conformidade técnica com alertas bloqueantes e não bloqueantes |
-| 42 | BOW-042 | Composer de laudo técnico | BL-003, BL-004 | Pendente | Crítica | Geração automática de laudo completo (texto, tabelas, anexos e evidências) por template de tenant |
-| 43 | BOW-043 | Workspace de revisão técnica | BL-033, BL-034 | Pendente | Alta | Engenheiro/arquiteto revisa, comenta, ajusta premissas e aprova/reprova antes da assinatura |
-| 44 | BOW-044 | Assinatura digital (provedores pagos) | BL-031, BL-033 | Pendente | Alta | Integração com provedores privados de assinatura eletrônica com trilha de evidências e carimbo temporal |
-| 45 | BOW-045 | Assinatura digital (provedores públicos) | BL-031, BL-033 | Pendente | Alta | Suporte a assinatura pública quando aplicável ao contexto jurídico e ao tenant |
-| 46 | BOW-046 | Cofre de documentos assinados | BL-023, BL-026 | Pendente | Alta | Armazenamento imutável de laudos assinados, versão, cadeia de custódia e verificação de integridade |
-| 47 | BOW-047 | Portal de gestão ponta a ponta | BL-029, BL-030, BL-033 | Pendente | Alta | Gestores acompanham throughput, SLA, qualidade técnica, pendências e gargalos por etapa |
-| 48 | BOW-048 | MLOps/RuleOps do motor técnico | BL-019, BL-024 | Pendente | Média | Governança de versões de regras/modelos com aprovação, rollback e monitoramento de deriva |
-| 49 | BOW-049 | API de ingestão da financeira (criação de processo) | BL-001, BL-004, BL-029 | Pendente | Crítica | Endpoint autenticado para receber payload externo com validação, idempotência e persistência canônica |
-| 50 | BOW-050 | Serviço de normalização de payload externo | BL-001, BL-012 | Pendente | Crítica | Normaliza `inspectionType`, `resType`, endereço, cliente e datas para modelo interno consistente |
-| 51 | BOW-051 | Painel de conciliação financeira x processo | BL-001, BL-009 | Pendente | Alta | Backoffice consulta/filtra divergências entre entrada externa, processo criado e status operacional |
-| 52 | BOW-052 | Callback/status de retorno para financeira | BL-001, BL-009 | Pendente | Alta | Retorno padronizado e auditável com status do processo, protocolo e timestamps de processamento |
-| 53 | BOW-053 | Orquestração web de estado de onboarding de permissões mobile | BL-056, BL-032, BL-031 | Em andamento | Crítica | Backoffice expõe/atualiza status de onboarding-permissões por usuário e força reentrada no app para tela de permissões quando cadastro é criado/ativado sem onboarding concluído |
-| 54 | BOW-054 | Canonical Domain v1 (Demand/Case/Job/Inspection/Report) | BL-001, BL-012, BL-017 | Em andamento (v1 documental publicado) | Crítica | Modelo canônico publicado com glossário, regras de transição e mapeamento explícito de ACL para payload externo |
-| 55 | BOW-055 | Governança de arquitetura por ADR | BL-020, BL-026 | Pendente | Alta | ADRs obrigatórios para decisões críticas (identidade, tenancy, contratos, storage, integração) com template e revisão em PR |
-| 56 | BOW-056 | OpenAPI v1 com política formal de compatibilidade | BL-017, BL-021 | Em andamento (fundacao v1 publicada + gate CI endurecido e estabilizado no ciclo de promocao para main em 2026-04-02) | Crítica | Contratos REST v1 publicados com regra de versionamento, depreciação e bloqueio de breaking change em CI |
-| 57 | BOW-057 | Contratos de eventos v1 (fatos de negócio) | BL-017, BL-022 | Pendente | Crítica | Eventos versionados com tenant/correlationId e consumers idempotentes validados por testes de contrato |
-| 58 | BOW-058 | Enforcement obrigatório de tenant + correlationId | BL-022, BL-031 | Pendente | Crítica | Toda request rejeitada sem contexto mínimo (tenantId/correlationId) e propagação ponta a ponta no backend |
-| 59 | BOW-059 | Matriz de autorização backend-first (RBAC + policies) | BL-031, BL-033, BL-034 | Pendente | Crítica | Permissões por domínio consolidadas no backend com testes de autorização e proibição de regra sensível na UI |
-| 60 | BOW-060 | Padrão de idempotência por operação crítica | BL-001, BL-002, BL-021 | Pendente | Crítica | Chaves idempotentes por caso de uso (ingestão, sync final, callback) com deduplicação observável e SLA definido |
-| 61 | BOW-061 | Baseline de observabilidade e SLO técnico | BL-009, BL-022 | Pendente | Alta | Logs estruturados, traces distribuídos, métricas essenciais e alertas de SLA por contexto de negócio |
-| 62 | BOW-062 | Estratégia de migração de dados e evolução de schema | BL-013, BL-020 | Pendente | Alta | Plano versionado de migrações e rollback sem lock-in de parceiro para os estágios de evolução da plataforma |
-| 63 | BOW-063 | Hardening de build local (Docker context, cache e resiliência) | BL-023, BL-036 | Em andamento | Alta | Contextos reduzidos com `.dockerignore`, builds reproduzíveis e procedimento anti-EOF/SIGBUS documentado para ambiente limitado |
-| 64 | BOW-064 | Estratégia de segredos com cofre (dev/stage/prod) | BL-023, BL-028 | Em andamento | Crítica | Segredos fora de arquivos versionados, injeção por cofre/variável de ambiente e trilha de rotação por ambiente |
+1. **`User` entity sem `tenantId` como coluna de isolamento real** — toda query de usuário vaza entre tenants
+2. **Ausência de `Tenant`, `OrganizationUnit`, `Membership`** — fundação do modelo IAM não existe no banco
+3. **Auth via mock no mobile** — `AuthState` em `lib/state/auth_state.dart` sem backend real
+4. **`ConfigPackage` sem vínculo com `Tenant` entity** — tenant guard por campo, não por FK
 
 ---
 
-## Matriz de APIs (contratos mínimos)
+## Ondas de implementação
 
-### APIs de identidade e tenancy (fundação)
-1. `POST /api/mobile/auth/login`
-2. `POST /api/mobile/auth/refresh`
-3. `POST /api/mobile/auth/logout`
-4. `GET /api/mobile/auth/me`
-5. `GET /api/mobile/tenants`
-6. `POST /api/mobile/auth/sso/start`
-7. `GET /api/mobile/auth/sso/callback`
+Derivadas de `docs/02-product/04_ROADMAP_EPICOS.md` e `docs/05-operations/02_PLANO_IMPLEMENTACAO_90_DIAS.md`.
 
-### APIs já esperadas pelo mobile (prioridade imediata)
-1. `GET /api/mobile/checkin-config`
-- Query: `tipoImovel` (opcional)
-- Auth: Bearer token
-- Retorno: estrutura de `step1` e `step2` com `camposFotos`/`gruposOpcoes`
+### Onda 1 — Go live controlado com empresa âncora (0–90 dias)
+Objetivo: plataforma funcionando em produção para 1 empresa de avaliação + 1 financeira.
 
-2. `POST /api/mobile/inspections/finalized`
-- Auth: Bearer token
-- Payload: `exportedAt`, `job`, `step1`, `step2`, `step2Config`, `review`
-- Requisito: idempotência por combinação de chave funcional (ex.: job + exportedAt + hash)
-- Resposta: `protocolId`, `receivedAt`, `status`
+### Onda 2 — Robustez operacional + observabilidade (90–180 dias)
+Objetivo: orchestration, notifications, E2E observability, múltiplas financeiras.
 
-### APIs de integração com origem financeira (upstream)
-1. `POST /api/integrations/financial/processes`
-- Auth: credencial de integração (service account + assinatura)
-- Payload: dados de processo (tipo de vistoria, cliente, imóvel, agenda e metadados)
-- Requisito: idempotência por chave de negócio (ex.: `number` + origem)
-- Resposta: `success`, `message`, `process_id`, `process_number`, `data`
+### Onda 3 — White label multi-tenant (180–270 dias)
+Objetivo: múltiplas empresas de avaliação operando de forma isolada.
 
-2. `GET /api/integrations/financial/processes/{processNumber}/status`
-- Auth: credencial de integração
-- Retorno: status atual, protocolo interno, timestamps e motivo em caso de falha
-
-### APIs necessárias para retirar mocks e placeholders do mobile
-1. `GET /api/mobile/jobs`
-2. `GET /api/mobile/jobs/{id}`
-3. `GET /api/mobile/agenda`
-4. `GET /api/mobile/notifications`
-5. `POST /api/mobile/notifications/device-token`
-6. `GET /api/mobile/profile`
-7. `PUT /api/mobile/profile`
-8. `POST /api/mobile/profile/photo`
-9. `POST /api/mobile/onboarding`
-10. `GET /api/mobile/onboarding/status`
-
-### APIs para ciclo técnico do laudo (web/backoffice)
-1. `POST /api/backoffice/valuations/intake`
-2. `GET /api/backoffice/valuations/{id}`
-3. `POST /api/backoffice/valuations/{id}/external-data/refresh`
-4. `POST /api/backoffice/valuations/{id}/calculate`
-5. `GET /api/backoffice/valuations/{id}/calculation-memory`
-6. `POST /api/backoffice/reports/{id}/compose`
-7. `POST /api/backoffice/reports/{id}/review/approve`
-8. `POST /api/backoffice/reports/{id}/review/reject`
-9. `POST /api/backoffice/reports/{id}/sign/private-provider`
-10. `POST /api/backoffice/reports/{id}/sign/public-provider`
-11. `GET /api/backoffice/reports/{id}/signed-artifacts`
-12. `GET /api/backoffice/management/pipeline-metrics`
+### Onda 4 — Marketplace (270–365+ dias)
+Objetivo: plataforma encontra empresa de avaliação e vistoriador por demanda.
 
 ---
 
-## Configurações obrigatórias para operação mobile
+## Onda 1 — Backlog detalhado
 
-### Variáveis de ambiente do app mobile
-1. `APP_API_BASE_URL`
-2. `APP_API_TOKEN` (enquanto não migrar para auth por usuário)
-3. `APP_CHECKIN_CONFIG_ENDPOINT`
-4. `APP_INSPECTION_SYNC_ENDPOINT`
-
-### Configurações no backoffice/web
-1. Gestão de token/chave de integração mobile
-2. Versionamento de configuração de check-in com rollback
-3. Política de idempotência para recebimento da vistoria
-4. Catálogo de códigos de erro para UX consistente no app
-5. Correlation id propagado API → logs → painel de suporte
-6. Política de retenção e mascaramento de dados sensíveis
-7. Configuração por tenant para white label (branding e políticas)
-8. Escolha do provedor de identidade por tenant (interno/externo)
-9. Mapeamento de grupos externos (AD) para papéis de domínio
-10. Catálogo de provedores de dados externos por tenant (credenciais, SLA, custo)
-11. Catálogo de provedores de assinatura digital por tenant (privado/público)
-12. Política de retenção probatória para documentos assinados e memória de cálculo
+### Grupo A: Fundação de Identidade e Tenant (pré-requisito de tudo)
 
 ---
 
-## Estratégia de implementação do ciclo NBR 14653
+#### BOW-100 — Modelo de domínio IAM: Tenant, OrganizationUnit, Membership
+**Onda:** 1 | **Prioridade:** 🔴 Crítica | **Status:** Em andamento (parcial backend entregue em 2026-04-03)  
+**Bloqueia:** BOW-101, BOW-102, BOW-103, BOW-110, BOW-120, toda integração mobile real
 
-### Etapa A — Fundamentos de domínio técnico
-1. Definir modelo canônico de avaliação e taxonomia de dados técnicos.
-2. Definir método(s) NBR 14653 alvo da primeira versão e fronteiras do motor de cálculo.
-3. Definir critérios de qualidade de dados para cálculo automático confiável.
+**Andamento 2026-04-03:**
+- Entregue no backend: entidades `Tenant`, `OrganizationUnit`, `Membership` + enums de status/role + repositories.
+- Entregue: teste de integração `IdentityTenantMembershipIntegrationTest` validando isolamento por tenant.
+- Pendente para concluir card: migrations Flyway (`V002` a `V006`) e FK real em `users`/`config_packages`.
 
-### Etapa B — Automação de dados e cálculo
-1. Implementar conectores de dados externos com fila, cache e observabilidade.
-2. Implementar engine de cálculo com memória reproduzível e versionamento de regra.
-3. Implementar validação normativa automática antes da composição do laudo.
+**Contexto:**  
+Todos os dados do sistema precisam estar isolados por tenant desde o início (ADR-002, ADR-005). Hoje o backend tem `tenantId` como campo string solto nas entidades. Isso não garante integridade referencial nem permite evoluir para white label real.
 
-### Etapa C — Produção de laudo e assinatura
-1. Implementar composer de laudo com templates white label por tenant.
-2. Implementar workspace de revisão para engenheiro/arquiteto.
-3. Implementar assinatura digital com múltiplos provedores (privados e públicos).
+**O que construir:**  
+Backend (`identity_db`) — entidades JPA com migrations Flyway:
 
-### Etapa D — Operação e governança executiva
-1. Implementar portal de gestão ponta a ponta com SLA, fila e qualidade.
-2. Implementar governança de regras/modelos (RuleOps/MLOps) com aprovação e rollback.
+```java
+// Tenant: representa a empresa cliente da plataforma (Onda 3: múltiplos tenants)
+@Entity @Table(name = "tenants")
+class Tenant {
+  UUID id;
+  String slug;          // ex: "empresa-ancora"
+  String displayName;
+  String status;        // ACTIVE, SUSPENDED, ARCHIVED
+  Instant createdAt;
+}
 
----
+// OrganizationUnit: unidade interna da empresa (regional, departamento)
+@Entity @Table(name = "organization_units")
+class OrganizationUnit {
+  UUID id;
+  UUID tenantId;        // FK → tenants.id
+  UUID parentId;        // nullable, self-referential para hierarquia
+  String name;
+  String type;          // REGIONAL, DEPARTMENT, TEAM
+}
 
-## Perfis de acesso e responsabilidades
-1. Operação de Backoffice:
-  - acompanha intake, pendências de dados, reprocessamento e publicação de documentos.
-2. Engenheiro/Arquiteto Responsável Técnico:
-  - revisa premissas, valida cálculos, aprova e assina o laudo.
-3. Gestor Operacional/Executivo:
-  - acompanha SLA, produtividade, qualidade técnica e risco operacional.
-4. Administração de Plataforma:
-  - gerencia tenants, branding, integrações externas e políticas de segurança.
+// Membership: vínculo entre User × Tenant × OrganizationUnit × Role
+@Entity @Table(name = "memberships")
+class Membership {
+  UUID id;
+  UUID userId;          // FK → users.id
+  UUID tenantId;        // FK → tenants.id
+  UUID organizationUnitId; // nullable, FK → organization_units.id
+  String role;          // PLATFORM_ADMIN, TENANT_ADMIN, COORDINATOR, OPERATOR, AUDITOR
+  String status;        // ACTIVE, SUSPENDED, REVOKED
+  Instant grantedAt;
+  Instant revokedAt;    // nullable
+}
+```
 
----
+**Migrations Flyway obrigatórias:**
+- `V002__create_tenants.sql`
+- `V003__create_organization_units.sql`
+- `V004__create_memberships.sql`
+- `V005__add_tenantid_fk_to_users.sql` (adicionar FK real na tabela `users`)
+- `V006__add_tenantid_fk_to_config_packages.sql`
 
-## Modelo de login evolutivo (sem retrabalho)
-1. Etapa atual: login interno com access token + refresh token e sessões revogáveis.
-2. Etapa de transição: introduzir camada de Identity Provider Adapter (provider interno + provider externo).
-3. Etapa corporativa: habilitar federação AD por OIDC/SAML por tenant sem alterar domínio de usuário e permissão.
-4. Etapa enterprise: provisionamento automático e governança de ciclo de vida (entrada, mudança, desligamento).
+**Regras de negócio (docs/06-analysis-and-design/08_REGRAS_DE_NEGOCIO_CRITICAS.md):**
+- Todo job deve ter contexto de tenant e organização (Regra 2)
+- Toda mudança crítica deve gerar trilha de auditoria (Regra 8)
 
----
-
-## Modelo de domínio mínimo para IAM e white label
-1. Tenant: representa a marca/cliente white label.
-2. OrganizationUnit: estrutura interna da empresa/cliente.
-3. User: identidade canônica da plataforma.
-4. IdentityBinding: vínculo entre User e provedor de identidade (interno, Azure AD, ADFS, outros).
-5. Membership: vínculo User x Tenant x OrganizationUnit.
-6. Role: papel funcional de domínio.
-7. Permission: capacidade granular.
-8. Policy: regra contextual de autorização.
-9. Session: sessão autenticada, revogável e auditável.
-
----
-
-## Dependências e ordem de execução
-1. Entregar BOW-001..BOW-006 e BOW-029..BOW-033 antes de abrir integrações críticas em produção.
-2. Entregar BOW-008, BOW-009 e BOW-010 em conjunto para evitar contrato parcial.
-3. Entregar BOW-011 junto com BOW-010 para garantir robustez da fila offline do mobile.
-4. Entregar BOW-016..BOW-018 junto com BOW-017 para concluir ciclo de mensagens com push.
-5. Entregar BOW-022..BOW-025 junto de BOW-034 para evitar onboarding sem governança de identidade.
-6. Entregar BOW-035..BOW-042 antes da esteira de assinatura digital em produção.
-7. Entregar BOW-043..BOW-046 para fechar o ciclo técnico-comprobatório do laudo.
-8. Entregar BOW-047..BOW-048 para escala e governança contínua.
-
----
-
-## Critérios de aceite transversais
-1. Todo endpoint mobile-backend deve ter contrato OpenAPI versionado e teste de contrato em CI.
-2. Toda operação crítica deve registrar correlation id e trilha de auditoria.
-3. Todo dado sensível deve ter política de retenção, criptografia em trânsito e mascaramento em log.
-4. Todo fluxo novo do backoffice deve ter feature flag por ambiente.
-5. Toda entrega de integração deve validar cenário offline/retry do app mobile.
+**Critério de pronto:**
+- Migrations aplicadas sem erro no schema `identity_db`
+- `TenantRepository` com `findBySlug`, `findById`
+- `MembershipRepository` com `findByUserIdAndTenantId`, `findByTenantId`
+- Seed de tenant âncora para testes de integração
+- Testes de integração cobrindo criação e isolamento básico
 
 ---
 
-## Plano de execução sugerido (90 dias)
+#### BOW-101 — Alinhamento de User entity ao modelo canônico
+**Onda:** 1 | **Prioridade:** 🔴 Crítica | **Status:** ✅ Concluído (2026-04-03)  
+**Depende de:** BOW-100 | **Bloqueia:** BOW-102, BOW-110, BL-031
 
-### Onda 1 (Semanas 1-3) — Base técnica e contratos
-1. BOW-001, BOW-002, BOW-004, BOW-006.
-2. Entregável: autenticação ativa, RBAC mínimo, padrão de erro, OpenAPI inicial publicada.
+**Andamento 2026-04-03 (completo):**
+- ✅ Entregue: novo agregado `UserLifecycle` separado da entidade `User` para fluxo de onboarding/aprovação.
+- ✅ Entregue: `UserService` atualizado para transicionar lifecycle em create/approve/reject sem quebrar endpoints atuais.
+- ✅ Entregue: `UserResponse` com `lifecycleStatus` para observabilidade da transição durante migração.
+- ✅ Entregue: teste de integração `UserLifecycleTransitionIntegrationTest` validando APPROVED/REJECTED no lifecycle.
+- ✅ Entregue: `UserService` com dual-write em todas as mutações (create/import/approve/reject) com mapeamento `UserRole ↔ MembershipRole`.
+- ✅ Entregue: leituras de usuário resolvendo role por `Membership` como fonte primária de autoridade.
+- ✅ Entregue: backfill automático de `Membership` para usuários legados sem vínculo (role padrão: FIELD_OPERATOR).
+- ✅ Entregue: campo `role` removido da persistência (`@Transient`); domínio de autorização delegado integralmente ao `Membership`.
+- ✅ Entregue: Flyway introduzido como fonte única de verdade do schema — V001 (schema completo), V002 (FK `users.tenant_id → tenants.id`), V003 (DROP COLUMN role).
+- ✅ Testes: 30 testes, 0 falhas, 0 erros após todas as entregas.
 
-### Onda 2 (Semanas 4-6) — Integração mobile crítica
-1. BOW-008, BOW-009, BOW-010, BOW-011.
-2. Entregável: configuração dinâmica NBR no ar e ingestão idempotente de vistoria final.
+**Contexto:**  
+`User.java` atual tem `tenantId` como `String` solto, sem FK real para `Tenant`. A entidade mistura responsabilidades de identidade (`email`, `password`) com vínculo organizacional (`role`, `status`). Segundo `docs/03-architecture/05_IDENTITY_ACCESS_E_USER_MANAGEMENT.md`: "Usuário é identidade. Acesso é contexto. Operação é elegibilidade."
 
-### Onda 3 (Semanas 7-9) — Operação assistida
-1. BOW-012, BOW-013, BOW-014, BOW-015, BOW-019.
-2. Entregável: reconciliação de sync, painel de vistorias e observabilidade com contrato validado em CI.
+**O que revisar/refatorar em `User.java`:**
+```java
+// ANTES (problema): role e status de acesso dentro da entidade de identidade
+// DEPOIS: User guarda apenas identidade; Membership guarda acesso/contexto
+@Entity @Table(name = "users")
+class User {
+  UUID id;
+  UUID tenantId;        // FK → tenants.id (adicionar via BOW-100/V005)
+  String email;
+  String externalId;    // null para provider interno, IdP sub claim para OIDC
+  String source;        // WEB_CREATED, MOBILE_ONBOARDING, AD_IMPORT
+  String identityStatus; // PENDING_VERIFICATION, ACTIVE, SUSPENDED, ARCHIVED
+  Instant createdAt;
+  Instant updatedAt;
+  // REMOVER: role (migrar para Membership)
+  // REMOVER: approvalStatus da User entity → usar UserLifecycle separado
+}
+```
 
-### Onda 4 (Semanas 10-13) — Jornada de usuário e comunicação
-1. BOW-016, BOW-017, BOW-018, BOW-020, BOW-021, BOW-022, BOW-023, BOW-024, BOW-025.
-2. Entregável: agenda, mensagens com push, onboarding/aprovação e perfil completos.
+**O que adicionar:**
+- `UserLifecycle` entity: fluxo de onboarding/aprovação separado da identidade
+- Migração dos dados existentes de `role`/`status` para `Membership`
 
----
+**Testes a manter verde:**
+- `UserManagementControllerTest` — validar que nenhum endpoint quebra
+- Novo: `UserTenantIsolationTest` — queries de usuário scopadas por tenant
 
-## Definition of Ready por item
-Antes de iniciar qualquer item BOW, validar:
-1. Contrato OpenAPI do módulo existe e foi revisado.
-2. Critérios de autenticação e autorização definidos.
-3. Estratégia de observabilidade (eventos, métricas, correlation id) definida.
-4. Casos de erro e códigos HTTP mapeados.
-5. Cenário de compatibilidade com app mobile atual documentado.
-
----
-
-## Sprint zero (próximas ações imediatas)
-1. Definir bounded contexts e contratos de integração entre domínios (DDD).
-2. Definir modelo multi-tenant com chave obrigatória de tenant em todos os agregados críticos.
-3. Definir arquitetura de Identity Provider Adapter (interno + externo).
-4. Publicar OpenAPI v1 com os dois endpoints críticos já consumidos pelo mobile:
-  - `GET /api/mobile/checkin-config`
-  - `POST /api/mobile/inspections/finalized`
-5. Definir chave de idempotência da vistoria final (`job.id + exportedAt + checksum`).
-6. Definir tabela de versionamento de configuração de check-in com rollback.
-7. Definir política de token mobile temporário (transição para login por usuário).
-8. Definir roadmap técnico de federação AD (OIDC/SAML) por tenant.
-9. Definir dashboard mínimo de suporte:
-  - fila de sync pendente,
-  - erros por endpoint,
-  - latência p95/p99,
-  - total de vistorias recebidas por dia.
-10. Definir escopo técnico da primeira entrega de laudo NBR 14653 (método, premissas e limites).
-11. Definir matriz de provedores externos de dados (prioridade, fallback e custo).
-12. Definir matriz de provedores de assinatura digital (privado/público) e estratégia de fallback.
-13. Definir política de revisão obrigatória por profissional habilitado antes da assinatura final.
-
----
-
-## Riscos principais e mitigação
-1. Risco: quebrar contrato com app em produção ao alterar payload.
-  - Mitigação: versionamento de contrato + contract test obrigatório em PR.
-2. Risco: duplicidade de vistoria por retry offline.
-  - Mitigação: idempotência por chave funcional + lock transacional.
-3. Risco: falha de push por token inválido/desatualizado.
-  - Mitigação: endpoint de refresh de token + invalidação automática por erro de provedor.
-4. Risco: atraso por dependência cruzada mobile/backoffice.
-  - Mitigação: congelar contrato por onda e liberar mudanças em feature flags.
-5. Risco: acoplamento precoce ao AD inviabilizar cenários de outros clientes white label.
-  - Mitigação: adotar provider agnóstico por adapter e federação configurável por tenant.
-6. Risco: vazamento de dados entre tenants.
-  - Mitigação: isolamento lógico obrigatório por tenant, testes automatizados de segregação e auditoria contínua.
-7. Risco: inconsistência técnica por baixa qualidade de dados externos.
-  - Mitigação: score de qualidade, imputação controlada, bloqueio automático para dados críticos ausentes.
-8. Risco: questionamento jurídico/técnico do laudo gerado automaticamente.
-  - Mitigação: memória de cálculo reproduzível, trilha de auditoria e revisão/assinatura humana obrigatória.
-9. Risco: indisponibilidade de provedor de assinatura digital.
-  - Mitigação: estratégia multi-provedor com fallback por tenant e fila de retentativa.
+**Critério de pronto:**
+- `User` sem campo `role` (migrado para `Membership`)
+- FK `tenantId → tenants.id` aplicada no banco
+- Todos os endpoints de usuário filtram por `X-Tenant-Id` via FK, não apenas por campo string
+- Testes de regressão e isolamento passando
 
 ---
 
-## Entrega BOW-054 (Canonical Domain v1)
+#### BOW-102 — Autenticação backend-first: JWT + sessão persistida
+**Onda:** 1 | **Prioridade:** 🔴 Crítica | **Status:** ✅ Concluído  
+**Depende de:** BOW-100, BOW-101 | **Bloqueia:** BL-031, BOW-103, toda API mobile autenticada
 
-Status da entrega:
-1. V1 documental publicada neste backlog.
-2. Implementacao de runtime (enforcement em codigo) permanece no fluxo de BOW-056, BOW-058, BOW-060 e INT-025/INT-026/INT-027.
+**Contexto:**  
+Hoje o app mobile usa `AuthState` mockado (`lib/state/auth_state.dart`). Qualquer uso real em campo requer autenticação real. Este item implementa o provider interno de identidade — a Etapa 1 do modelo evolutivo de login (ver `docs/BACKLOG_BACKOFFICE_WEB.md` seção "Modelo de login evolutivo").
 
-### 1) Glossario canonico (linguagem oficial)
-1. Demand:
-  - Solicitacao de servico recebida de canal interno/externo, ainda sem execucao operacional.
-2. Case:
-  - Contexto de negocio que agrega uma ou mais demandas correlatas e seu ciclo de decisao.
-3. Job:
-  - Unidade operacional executavel atribuida para agenda/execucao em campo.
-4. Inspection:
-  - Execucao tecnica da vistoria (check-in, capturas, revisao e finalizacao).
-5. Report:
-  - Artefato tecnico resultante da inspecao, com trilha de revisao/aprovacao/assinatura.
+**O que construir — Backend:**
 
-### 2) Regras de transicao de estado (v1)
+```
+POST /auth/login        → valida email+senha, emite access_token (15min) + refresh_token (7d)
+POST /auth/refresh      → troca refresh_token por novo access_token
+POST /auth/logout       → revoga refresh_token (persiste revogação em Redis)
+GET  /auth/me           → retorna User + Membership ativa + permissions do tenant context
+```
 
-#### Demand
-1. `RECEIVED` -> `QUALIFIED`.
-2. `RECEIVED` -> `REJECTED`.
-3. `QUALIFIED` -> `PLANNED`.
-4. `PLANNED` -> `CANCELLED`.
+**Modelo de token:**
+```json
+// access_token JWT payload
+{
+  "sub": "user-uuid",
+  "tid": "tenant-uuid",     // tenant context
+  "oid": "org-unit-uuid",   // org unit context (nullable)
+  "roles": ["OPERATOR"],
+  "exp": 1234567890
+}
+```
 
-#### Case
-1. `OPEN` -> `IN_ANALYSIS`.
-2. `IN_ANALYSIS` -> `APPROVED`.
-3. `IN_ANALYSIS` -> `REJECTED`.
-4. `APPROVED` -> `CLOSED`.
-5. `REJECTED` -> `CLOSED`.
+**Persistência de sessão:**
+- Tabela `sessions` (ou Redis): `id`, `userId`, `tenantId`, `refreshTokenHash`, `expiresAt`, `revokedAt`, `deviceInfo`
+- Revogação armazenada em Redis com TTL = tempo restante do token
 
-#### Job
-1. `CREATED` -> `SCHEDULED`.
-2. `SCHEDULED` -> `IN_PROGRESS`.
-3. `IN_PROGRESS` -> `PAUSED`.
-4. `PAUSED` -> `IN_PROGRESS`.
-5. `IN_PROGRESS` -> `COMPLETED`.
-6. `SCHEDULED` -> `CANCELLED`.
+**Rate limiting / lockout:**
+- Max 5 tentativas em 10min por email+IP → Redis counter com TTL
+- Após 5 falhas: `423 Locked` com `retryAfterSeconds`
+- Log de tentativa bloqueada como evento de auditoria
 
-#### Inspection
-1. `STARTED` -> `STEP1_DONE`.
-2. `STEP1_DONE` -> `STEP2_IN_PROGRESS`.
-3. `STEP2_IN_PROGRESS` -> `REVIEW_IN_PROGRESS`.
-4. `REVIEW_IN_PROGRESS` -> `FINALIZED`.
-5. `STEP2_IN_PROGRESS` -> `PAUSED`.
-6. `PAUSED` -> `STEP2_IN_PROGRESS`.
-7. `REVIEW_IN_PROGRESS` -> `PAUSED`.
+**O que construir — Mobile (`lib/state/auth_state.dart`):**
+- Substituir mock por chamadas reais ao backend
+- Persistir `access_token` + `refresh_token` em `flutter_secure_storage`
+- Interceptor HTTP que renova token automaticamente antes do call principal
 
-#### Report
-1. `DRAFT` -> `UNDER_REVIEW`.
-2. `UNDER_REVIEW` -> `APPROVED`.
-3. `UNDER_REVIEW` -> `REJECTED`.
-4. `APPROVED` -> `SIGNED`.
-5. `SIGNED` -> `PUBLISHED`.
-6. `REJECTED` -> `DRAFT`.
+**Referências:**
+- `docs/03-architecture/05_IDENTITY_ACCESS_E_USER_MANAGEMENT.md` — submódulo Identity
+- `docs/03-architecture/07_ADRS_INICIAIS.md` — ADR-005 (pronto para estágio 4 desde o início)
 
-### 3) Context envelope minimo obrigatorio (v1)
-1. `tenantId`: identifica isolamento logico de tenant.
-2. `correlationId`: rastreio ponta a ponta de chamada/evento.
-3. `actorId`: identidade do usuario/sistema que acionou a operacao.
-4. `occurredAt`: timestamp UTC da operacao/evento.
-5. `idempotencyKey`: obrigatorio em operacoes criticas de escrita.
-
-### 4) Mapeamento ACL explicito (payload externo -> canonico)
-
-#### Ingestao financeira (upstream) para dominio interno
-1. `number` -> `demand.externalReference` -> `job.protocol`.
-2. `inspectionType` -> `demand.type` -> `job.type`.
-3. `resType` -> `case.assetType` -> `inspection.propertyType`.
-4. `inspectionDate[]` -> `job.schedule.windows[]`.
-5. `internalPropose` -> `case.partnerReference`.
-6. `client.doc` -> `case.customer.document` (mascarado por politica de visibilidade).
-7. `client.phoneNumber` -> `case.customer.phone` (mascarado por politica de visibilidade).
-
-#### Regras ACL v1
-1. Nunca propagar payload externo bruto para o mobile.
-2. Normalizar enums externos para taxonomia canonica.
-3. Rejeitar eventos/chamadas sem `tenantId` e `correlationId`.
-4. Aplicar mascaramento por perfil para campos sensiveis no retorno.
-5. Registrar tabela de equivalencia de status externo->canonico.
-
-### 5) Invariantes de dominio (v1)
-1. Nenhum `Job` sem `tenantId`, `caseId` e estado inicial `CREATED`.
-2. Nenhuma `Inspection` finalizada sem `STEP1_DONE` e `REVIEW_IN_PROGRESS` completos.
-3. Nenhum `Report` publicado sem estado previo `SIGNED`.
-4. Nenhuma operacao critica sem `idempotencyKey` valida.
-5. Nenhum evento persistido sem `correlationId`.
-
-### 6) Rastreabilidade de implementacao
-1. BOW-056: contratos OpenAPI v1 devem refletir este glossario e estados.
-2. BOW-058: enforcement de `tenantId`/`correlationId` em runtime.
-3. BOW-060: idempotencia por operacao critica conforme invariantes.
-4. INT-025: gate CI para impedir breaking change de contrato.
-5. INT-026/INT-027: envelope/contexto + padrao de idempotency-key alinhados ao canonical domain.
+**Critério de pronto:**
+- Endpoints testados com `AuthIntegrationTest` (login, refresh, logout, me)
+- Lockout testado: 6ª tentativa retorna 423
+- Mobile autentica contra backend real em ambiente de dev
+- `GET /auth/me` retorna tenant context correto
 
 ---
 
-## Entrega BOW-056 (OpenAPI v1 - fundacao)
+#### BOW-103 — IdP Adapter: abstração de provedor de identidade
+**Onda:** 1 | **Prioridade:** 🔴 Crítica | **Status:** ✅ Concluído  
+**Depende de:** BOW-102 | **Bloqueia:** BOW-132 (AD/OIDC), BOW-133
 
-Status da entrega:
-1. Fundacao tecnica publicada e validada em teste de integração do backend.
-2. Politica formal de compatibilidade registrada em contrato v1.
-3. Gate completo de breaking change em CI permanece como proxima etapa (INT-025).
+**Contexto:**  
+ADR-005 exige que a arquitetura seja ready para estágio 4 desde o stágio 1. Para IAM, isso significa que o provider de identidade deve ser plugável — hoje provider interno, amanhã Keycloak/OIDC/SAML, depois AD por tenant. O código de autenticação não pode estar acoplado ao mecanismo de verificação de senha.
 
-### 1) Fundacao implementada
-1. Dependencias OpenAPI ajustadas para `springdoc-openapi-starter-webmvc-api` + WebJar do Swagger UI, evitando incompatibilidade do auto-config do UI no stack atual.
-2. Endpoints de documentacao expostos:
-  - `GET /api/openapi/v1`
-  - `GET /api/swagger` (alias com redirect para Swagger UI WebJar)
-3. Endpoints criticos mobile publicados em v1:
-  - `GET /api/mobile/checkin-config`
-  - `POST /api/mobile/inspections/finalized`
-4. Teste de integração (`OpenApiContractIntegrationTest`) valida publicação do schema `CanonicalErrorResponse`, enum `ErrorSeverity` e headers obrigatórios dos endpoints críticos usando profile `test` com H2.
+**O que construir:**
 
-### 2) Politica de compatibilidade v1 (formal)
-1. Em v1, apenas mudancas aditivas nao quebrantes sao permitidas.
-2. Remocao/renomeacao de campos, mudanca de semantica e mudanca de codigo de erro exigem nova major.
-3. Headers de contexto (`tenant`, `correlation`, `actor`) sao obrigatorios.
-4. Escritas criticas exigem `idempotency-key`.
+```java
+// Interface que isola o domínio do protocolo de autenticação
+interface IdentityProvider {
+  AuthenticationResult authenticate(AuthenticationRequest request);
+  UserIdentity resolveIdentity(String providerToken, String tenantId);
+  void revokeSession(String sessionId);
+}
 
-### 3) Proximos passos para concluir BOW-056
-1. Publicar exemplos canônicos por endpoint (request/response/erro).
-2. Implantar diff de contrato em CI com bloqueio de breaking changes.
-3. Definir politica de deprecacao com prazo e comunicacao por consumidor.
+// Implementação interna (Onda 1)
+class InternalIdentityProvider implements IdentityProvider { ... }
+
+// Futuro — registrado por tenant no TenantIdentityConfig
+// class OidcIdentityProvider implements IdentityProvider { ... }
+// class SamlIdentityProvider implements IdentityProvider { ... }
+```
+
+**Tabela `identity_bindings`:**
+```sql
+-- vínculo entre User canônico e provedor de identidade
+CREATE TABLE identity_bindings (
+  id UUID PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES users(id),
+  provider_type VARCHAR(50) NOT NULL,  -- INTERNAL, OIDC, SAML, AD
+  provider_sub  VARCHAR(255) NOT NULL, -- claim "sub" do IdP
+  tenant_id     UUID NOT NULL REFERENCES tenants(id),
+  created_at    TIMESTAMP NOT NULL,
+  UNIQUE(provider_type, provider_sub, tenant_id)
+);
+```
+
+**Critério de pronto:**
+- Interface `IdentityProvider` documentada com contrato explícito
+- `InternalIdentityProvider` implementada e testada
+- `IdentityBinding` entry criada no login com provider interno
+- Estrutura pronta para registrar segundo provider sem alterar domínio
+
+---
+
+#### BOW-104 — RBAC por escopo: platform × tenant × operacional × campo
+**Onda:** 1 | **Prioridade:** 🔴 Crítica | **Status:** ✅ Concluído (2026-04-03)  
+**Depende de:** BOW-100, BOW-102 | **Bloqueia:** qualquer endpoint sensível
+
+**Contexto:**  
+O RBAC atual é simplificado (`UserRole` enum no `User`). O modelo canônico exige escopo hierárquico: um usuário pode ser `PLATFORM_ADMIN` no contexto da plataforma e apenas `OPERATOR` em um tenant específico (via `Membership`).
+
+**Papéis por escopo (derivados de `docs/02-product/01_PERSONAS_E_PAPEIS.md`):**
+
+```
+PLATFORM scope:
+  PLATFORM_ADMIN    → gerencia tenants, parâmetros globais, integrações externas
+  PLATFORM_SUPPORT  → trata incidentes, view-only cross-tenant
+  PLATFORM_AUDITOR  → trilha completa, sem mutação
+
+TENANT scope:
+  TENANT_ADMIN      → gerencia usuários, políticas e configurações do seu tenant
+  COORDINATOR       → organiza fila de jobs e acompanha execução
+  DISPATCHER        → distribui jobs por prioridade/região
+  INTAKE_ANALYST    → valida inspeções recebidas
+  TECH_REVIEWER     → revisa e aprova avaliações
+  TECH_SIGNER       → assina laudos (profissional habilitado)
+  AUDITOR           → trilha do tenant, sem mutação
+
+FIELD scope:
+  FIELD_OPERATOR    → aceita e executa jobs via app mobile
+  REGIONAL_COORD    → acompanha rede de campo
+```
+
+**O que construir:**
+- `@RequiresTenantRole(roles = {TENANT_ADMIN, COORDINATOR})` — annotation custom
+- `TenantSecurityContext` — extrai `tid` do JWT, carrega Membership, injeta no thread local
+- Filter Spring Security que popula contexto antes de cada request
+- Testes: operação com papel errado retorna `403 Forbidden`
+
+**Critério de pronto:**
+- Annotation `@RequiresTenantRole` funcional
+- Filter injetando `TenantSecurityContext` a cada request
+- Tabela de permissões documentada (qual papel pode fazer o quê)
+- Endpoints de `config` e `user` protegidos com anotações corretas
+- `403` para chamada com papel insuficiente validado em testes
+
+---
+
+#### BOW-105 — Policy engine: autorização contextual por domínio
+**Onda:** 1 | **Prioridade:** 🔴 Crítica | **Status:** ✅ Concluído (2026-04-03)  
+**Depende de:** BOW-104
+
+**Contexto:**  
+RBAC simples não é suficiente para regras como "vistoriador só visualiza seus próprios jobs" ou "dispatcher só aloca jobs do seu tenant+região". Precisamos de políticas contextuais — extensão do RBAC com predicados de domínio.
+
+**O que construir:**
+
+```java
+interface DomainPolicy<T> {
+  boolean isAllowed(String actorId, String tenantId, String action, T resource);
+}
+
+// Exemplo
+class JobAccessPolicy implements DomainPolicy<Job> {
+  boolean isAllowed(actorId, tenantId, action, job) {
+    if (action.equals("VIEW") && role == FIELD_OPERATOR)
+      return job.assignedTo().equals(actorId);          // vistoriador vê só seus jobs
+    if (action.equals("DISPATCH") && role == DISPATCHER)
+      return job.tenantId().equals(tenantId);           // dispatcher só no seu tenant
+    // ...
+  }
+}
+```
+
+**Critério de pronto:**
+- Interface `DomainPolicy` com pelo menos `JobAccessPolicy` e `UserAccessPolicy`
+- Políticas registradas no Spring context
+- Testes cobrindo cenário positivo e negativo por papel/recurso
+
+---
+
+### Grupo B: Integração Hub e Anti-Corruption Layer
+
+---
+
+#### BOW-110 — Integration Hub: anti-corruption layer para demanda externa
+**Onda:** 1 | **Prioridade:** 🔴 Crítica | **Status:** ✅ Concluído (2026-04-03)  
+**Depende de:** BOW-100 | **Bloqueia:** BL-001 (sync real), qualquer integração com financeira
+
+**Contexto:**  
+ADR-004: integração externa via ACL (anti-corruption layer). O payload da financeira não pode chegar diretamente no domínio canônico. Precisamos de um adaptador que normalize o contrato externo para as entidades canônicas `Demand → Case → Job`.
+
+**Referência:** `docs/06-analysis-and-design/04_CONTRATOS_DE_INTEGRACAO_E_EVENTOS.md`, evento `DemandCreated`.
+
+**O que construir:**
+```
+POST /integration/demands   → recebe payload bruto da financeira, valida, normaliza, emite DemandCreated
+GET  /integration/demands/{externalId}   → status de processamento pelo ID externo
+POST /integration/webhooks/status        → recebe status updates da financeira
+```
+
+**Fluxo de normalização:**
+```
+Payload financeira
+    ↓ IntegrationHubAdapter (validação de schema)
+    ↓ DemandNormalizer (mapeamento → Demand canônica)
+    ↓ DemandRepository.save() em integration_db
+    ↓ Publica evento DemandCreated no RabbitMQ
+    ↓ Job Lifecycle consume e cria Case + Job
+```
+
+**Regra de negócio:** "Toda demanda externa deve ser normalizada para o modelo canônico" (Regra 1 — `docs/06-analysis-and-design/08_REGRAS_DE_NEGOCIO_CRITICAS.md`).
+
+**Campos obrigatórios do payload canônico:**
+```json
+{
+  "externalId": "FIN-12345",
+  "tenantId": "tenant-uuid",
+  "requestedBy": "financeira-slug",
+  "propertyAddress": { "street": "...", "city": "...", "state": "...", "zipCode": "..." },
+  "inspectionType": "RESIDENTIAL|COMMERCIAL|LAND",
+  "requestedDeadline": "2026-05-01T00:00:00Z",
+  "clientData": { "masked — somente campos necessários" }
+}
+```
+
+**Critério de pronto:**
+- `POST /integration/demands` valida schema e rejeita payload inválido com `400`
+- Demand normalizada salva em `integration_db`
+- Evento `DemandCreated` publicado no RabbitMQ (ou simulado em testes)
+- `GET /integration/demands/{externalId}` retorna status
+- Testes de contrato cobrindo payload válido, inválido e duplicado (idempotência)
+
+---
+
+#### BOW-111 — Contrato de erro canônico: expandir para todos os endpoints
+**Onda:** 1 | **Prioridade:** 🟠 Alta | **Status:** ✅ Concluído (2026-04-03)  
+**Depende de:** nada (extensão do que já existe)
+
+**Contexto:**  
+`CanonicalErrorResponse` existe e funciona nos endpoints mobile. Falta aplicar em todos os endpoints (`/auth/*`, `/users/*`, `/config/*`, `/integration/*`).
+
+**O que fazer:**
+- Mapear cada tipo de exceção de domínio para `CanonicalErrorResponse` com `code` semântico
+- Adicionar ao catálogo: `AUTH_INVALID_CREDENTIALS`, `AUTH_ACCOUNT_LOCKED`, `TENANT_NOT_FOUND`, `DEMAND_ALREADY_EXISTS`, `JOB_NOT_ASSIGNABLE`
+- Expandir `ApiExceptionHandler` para cobrir `AccessDeniedException` → `403` com código canônico
+
+**Critério de pronto:**
+- Todos os novos endpoints retornam `CanonicalErrorResponse` em cenários de erro
+- Testes de contrato para pelo menos `auth` e `integration`
+
+---
+
+### Grupo C: Job Lifecycle — Ciclo canônico de demanda até execução
+
+---
+
+#### BOW-120 — Modelo de domínio: Case e Job
+**Onda:** 1 | **Prioridade:** 🔴 Crítica | **Status:** Pendente  
+**Depende de:** BOW-100 | **Bloqueia:** BOW-121, BOW-122, BOW-123, BL-001, BL-012
+
+**Contexto:**  
+O domínio canônico define `Demand → Case → Job → Assignment → Inspection`. Hoje não existe nenhuma dessas entidades no backend. O `MobileApiController` usa DTOs sem persistência canônica. Este é o coração do sistema para Stage 1.
+
+**Estados do Job** (ref: `docs/06-analysis-and-design/07_MODELO_DE_ESTADOS_CRITICOS.md`):
+```
+Created → EligibleForDispatch → Offered → Accepted → InExecution → FieldCompleted → Submitted → Closed
+```
+
+**O que construir em `job_db`:**
+```java
+Demand   { id, externalId, tenantId, source, normalizedPayload, status, createdAt }
+Case     { id, demandId, tenantId, number, propertyAddress, inspectionType, deadline, status }
+Job      { id, caseId, tenantId, orgUnitId, title, status, assignedTo (nullable), deadlineAt, createdAt }
+Assignment { id, jobId, userId, tenantId, offeredAt, respondedAt, response (ACCEPTED|DECLINED) }
+```
+
+**APIs a publicar:**
+```
+GET  /jobs?tenantId=&status=&page=&size=    → lista paginada (web)
+GET  /jobs/{id}                              → detalhe do job
+GET  /jobs/{id}/timeline                     → histórico de estados
+POST /cases                                  → criação manual de case/job
+POST /jobs/{id}/assign                       → despacha job para vistoriador
+POST /jobs/{id}/accept                       → vistoriador aceita
+POST /jobs/{id}/cancel                       → cancelamento com motivo
+```
+
+**API mobile (substituir stub em `MobileApiController`):**
+```
+GET /api/mobile/jobs?userId=&status=        → jobs do vistoriador autenticado
+```
+
+**Regra:** "Todo job deve ter contexto de tenant e organização" (Regra 2).
+
+**Critério de pronto:**
+- Migrations criadas para `job_db` (separado de `identity_db` — ADR-002)
+- Estado machine do Job implementado com transições validadas
+- App mobile consegue listar seus jobs reais (não mock)
+- Testes de integração: criação de case→job, assign, accept, timeline
+
+---
+
+#### BOW-121 — API de configuração dinâmica check-in (NBR)
+**Onda:** 1 | **Prioridade:** 🔴 Crítica | **Status:** Pendente  
+**Depende de:** BOW-120 (tenant context), BOW-100
+
+**Contexto:**  
+O mobile já consome `GET /api/mobile/checkin-config` (ver `MobileApiController`). Hoje retorna stub. Este item conecta ao banco real com versionamento, rollback e filtro por tipo de imóvel.
+
+**O que construir:**
+```
+GET /api/mobile/checkin-config?tipoImovel=RESIDENTIAL&version=current
+```
+
+**Response canônica:**
+```json
+{
+  "version": "v3",
+  "publishedAt": "2026-04-01T10:00:00Z",
+  "sections": [
+    {
+      "key": "fachada",
+      "label": "Fachada",
+      "mandatory": true,
+      "photos": { "min": 1, "max": 5 },
+      "desiredItems": ["orientacao", "material"]
+    }
+  ]
+}
+```
+
+**Relação com `ConfigPackage`:** O `ConfigPackageEntity` existente pode suportar isso ou criar modelo específico de `CheckinConfig` — avaliar durante implementação. Preservar compatibilidade com mobile atual.
+
+**Critério de pronto:**
+- Endpoint retorna config real do banco (não stub)
+- Versionamento: mobile recebe versão e pode checar se mudou
+- Rollback: admin pode reverter para versão anterior via web
+- Mobile atualiza config apenas quando versão mudar (evitar re-download)
+
+---
+
+#### BOW-122 — API de recebimento de vistoria (idempotente)
+**Onda:** 1 | **Prioridade:** 🔴 Crítica | **Status:** Pendente  
+**Depende de:** BOW-120, BOW-100
+
+**Contexto:**  
+`POST /api/mobile/inspections/finalized` existe como stub. Precisa de persistência real, idempotência obrigatória e retorno de protocolo.
+
+**Regra:** "Todo sync mobile deve ser idempotente" (Regra 3 — `docs/06-analysis-and-design/08_REGRAS_DE_NEGOCIO_CRITICAS.md`).
+
+**Fluxo UC-07:**
+```
+Mobile → POST /api/mobile/inspections/finalized
+  → Valida X-Idempotency-Key
+  → Se já processado: retorna 200 com mesmo protocolo (não reprocessa)
+  → Se novo: persiste InspectionSubmission em field_ops_db
+  → Emite evento InspectionSubmitted
+  → Retorna { "protocol": "INS-2026-00123", "status": "RECEIVED" }
+```
+
+**Chave de idempotência:** `jobId + exportedAt + payloadChecksum` — derivada pelo mobile.
+
+**Persistência em `field_ops_db`:**
+```
+Inspection { id, jobId, tenantId, vistoriadorId, idempotencyKey, status, submittedAt, payload (jsonb) }
+```
+
+**Critério de pronto:**
+- Reenvio do mesmo payload retorna mesmo protocolo sem duplicar
+- `InspectionSubmitted` event registrado
+- Mobile recebe protocolo real e exibe ao usuário
+- Testes: envio novo, reenvio idempotente, payload inválido
+
+---
+
+#### BOW-123 — Painel web de vistorias recebidas
+**Onda:** 1 | **Prioridade:** 🟠 Alta | **Status:** Pendente  
+**Depende de:** BOW-122
+
+**O que construir (web `apps/web-backoffice`):**
+- Rota `/backoffice/inspections` — lista com filtros: status, data, tenant, vistoriador
+- Rota `/backoffice/inspections/[id]` — detalhe técnico completo com fotos e payload
+- Indicadores: total recebido hoje, pendentes de intake, erros de sync
+
+**Critério de pronto:**
+- Lista paginada funcional com dados reais
+- Detalhe mostra payload completo da vistoria
+- Filtros: status + data funcionando
+
+---
+
+### Grupo D: Field Operations — Mobile conectado ao backend real
+
+---
+
+#### BOW-130 — Configuração dinâmica de check-in conectada ao mobile
+**Onda:** 1 | **Prioridade:** 🔴 Crítica | **Status:** Pendente  
+**Depende de:** BOW-121, BL-012
+
+**Contexto:**  
+BL-012 já tem o fluxo de leitura no mobile: mock local → API → cache → fallback hardcoded. Este item conecta a API real e valida o ciclo completo end-to-end.
+
+**O que validar/implementar:**
+- Mobile recebe config real do `BOW-121`
+- Fallback mock continua funcionando em modo dev
+- Cache local atualiza apenas quando versão mudar
+- Testes Maestro cobrindo: config carregada → checkin com obrigatoriedades NBR
+
+**Critério de pronto:**
+- Ciclo completo: admin publica config no web → mobile recebe → checkin aplica regras
+- Rollback de config reflete no mobile na próxima sincronização
+
+---
+
+#### BOW-131 — Sync de vistoria conectado ao backend real
+**Onda:** 1 | **Prioridade:** 🔴 Crítica | **Status:** Pendente  
+**Depende de:** BOW-122, BL-001, BL-002
+
+**Contexto:**  
+BL-001 e BL-002 já têm fila offline e retry no mobile. Este item conecta ao `BOW-122` real e valida o ciclo completo, incluindo recebimento de protocolo.
+
+**O que validar:**
+- Fila offline drena automaticamente quando conexão volta
+- Protocolo retornado exibido na tela de conclusão
+- Retry não duplica (idempotência)
+- Evento `InspectionSubmitted` gerado corretamente
+
+---
+
+### Grupo E: Valuation Core — Ciclo técnico da vistoria até o laudo
+
+---
+
+#### BOW-140 — Modelo canônico de avaliação e intake
+**Onda:** 1 | **Prioridade:** 🔴 Crítica | **Status:** Pendente  
+**Depende de:** BOW-122
+
+**Contexto:**  
+UC-10 ("Processar valuation") define que "Valuation só processa após intake válido" (Regra 5). O intake é a porta de entrada da vistoria no ciclo técnico.
+
+**Estados do ValuationProcess** (ref: `docs/06-analysis-and-design/07_MODELO_DE_ESTADOS_CRITICOS.md`):
+```
+PendingIntake → IntakeValidated → Enriched → Processing → Completed → Approved
+```
+
+**O que construir em `valuation_db`:**
+```
+ValuationProcess { id, inspectionId, tenantId, status, method, assignedAnalystId, createdAt }
+IntakeValidation  { id, valuationProcessId, validatedBy, issues (jsonb), validatedAt, result }
+```
+
+**API:**
+```
+POST /valuation/processes                           → cria processo a partir de inspection
+GET  /valuation/processes/{id}                      → status detalhado
+POST /valuation/processes/{id}/validate-intake      → analista valida intake
+```
+
+**Critério de pronto:**
+- Processo criado automaticamente quando `InspectionSubmitted` é consumido
+- Analista consegue validar/rejeitar intake via web
+- Estado `IntakeValidated` emite evento para próxima fase
+
+---
+
+#### BOW-141 — Composer de laudo básico (estrutura mínima)
+**Onda:** 1 | **Prioridade:** 🟠 Alta | **Status:** Pendente  
+**Depende de:** BOW-140
+
+**Contexto:**  
+Estados do Report: `Draft → Generated → UnderReview → ReadyForSign → Signed → Published → Archived`.
+
+**O que construir (MVP do laudo):**
+- Template básico de laudo em HTML/JSON com campos do processo
+- `POST /reports/{valuationProcessId}/generate` — gera rascunho
+- `GET /reports/{id}` — retorna laudo atual
+- Workspace web para revisor técnico anotar e aprovar
+- "Laudo só pode ser publicado após sign-off" (Regra 6)
+
+**Critério de pronto:**
+- Rascunho gerado a partir do processo
+- Revisor técnico consegue aprovar ou devolver no web
+- Estado `ReadyForSign` atingível pelo fluxo
+
+---
+
+### Grupo F: Observabilidade e Contratos
+
+---
+
+#### BOW-150 — Correlation ID e OpenTelemetry básico
+**Onda:** 1 | **Prioridade:** 🟠 Alta | **Status:** Pendente
+
+**O que construir:**
+- Propagação de `X-Correlation-Id` de entrada até logs, eventos e respostas de erro
+- `traceId` disponível em todos os logs estruturados
+- Health checks: `GET /actuator/health` com status de DB, Redis e RabbitMQ
+- Métrica básica: contagem de requests por endpoint, latência p95
+
+**Critério de pronto:**
+- Qualquer request tem `correlationId` rastreável nos logs
+- `actuator/health` reporta status dos componentes downstream
+
+---
+
+#### BOW-151 — Contract tests mobile-backend em CI
+**Onda:** 1 | **Prioridade:** 🟠 Alta | **Status:** Pendente  
+**Depende de:** BOW-121, BOW-122, BOW-102
+
+**O que construir:**
+- Testes de contrato para `GET /api/mobile/checkin-config`
+- Testes de contrato para `POST /api/mobile/inspections/finalized`
+- Testes de contrato para `GET /auth/me`
+- Gate no CI que bloqueia PR se contrato quebrar (extensão do INT-025)
+
+---
+
+## Onda 2 — Backlog detalhado
+
+### Grupo: Workforce & Dispatch
+
+---
+
+#### BOW-200 — Workforce: modelo de vistoriador elegível
+**Onda:** 2 | **Prioridade:** 🟠 Alta | **Status:** Pendente  
+**Depende de:** BOW-100, BOW-120
+
+**Contexto:**  
+Regra 4: "Um vistoriador só pode receber job se elegível." Elegibilidade inclui: ativo, com habilitação válida, cobertura geográfica e sem conflito de agenda.
+
+**O que construir em `workforce_db`:**
+```
+WorkforceProfile  { userId, tenantId, regionCoverage (jsonb), qualifications (jsonb), status }
+WorkforceAvailability { userId, date, availableSlots, bookedSlots }
+```
+
+**API:**
+```
+GET /workforce/available?region=&date=&inspectionType=  → lista elegíveis para dispatch
+GET /workforce/{userId}/profile                          → perfil completo do vistoriador
+```
+
+---
+
+#### BOW-201 — Dispatch: oferta e aceite de job
+**Onda:** 2 | **Prioridade:** 🟠 Alta | **Status:** Pendente  
+**Depende de:** BOW-200, BOW-120
+
+**Contexto:**  
+UC-03: "Distribuir job". Dispatcher seleciona vistoriador elegível, oferta job, vistoriador aceita ou recusa via mobile.
+
+**O que construir:**
+- Lógica de dispatch: seleção por region/qualificação/disponibilidade
+- Evento `JobAssigned` → notificação push para vistoriador
+- Mobile: tela de propostas com aceite por deslize (BL-042 já tem UI mock)
+- `POST /jobs/{id}/offer` — oferta para vistoriador específico
+- Timeout de resposta: se não aceitar em X horas, re-oferta
+
+---
+
+#### BOW-202 — Notification Service: push + email básico
+**Onda:** 2 | **Prioridade:** 🟠 Alta | **Status:** Pendente
+
+**O que construir:**
+- Registro de device token FCM no backend ao autenticar
+- Envio de push: `JobOffered`, `JobDeadlineApproaching`, `InspectionFeedback`
+- Envio de email: confirmação de cadastro, aprovação, rejeição
+- Fila RabbitMQ para eventos de notificação com retry
+
+---
+
+#### BOW-203 — Process Orchestration: SLA e retries
+**Onda:** 2 | **Prioridade:** 🟠 Alta | **Status:** Pendente
+
+**O que construir:**
+- SLA tracking por job: alerta quando deadline < 24h e job ainda não iniciado
+- Retry de eventos falhos na mensageria (dead letter queue)
+- Reprocessamento manual de inspeções com erro de intake
+- Dashboard operacional de SLA no web
+
+---
+
+### Grupo: Observabilidade Ampliada
+
+---
+
+#### BOW-210 — Telemetria de fluxo mobile (BL-009)
+**Onda:** 2 | **Prioridade:** 🟠 Alta | **Status:** Pendente
+
+**O que construir:**
+- Endpoint `POST /telemetry/events` recebendo eventos operacionais do mobile
+- Eventos: `inspection_started`, `inspection_resumed`, `inspection_completed`, `sync_failed`, `sync_retried`
+- Dashboard web: taxa de sucesso de sync, retentativas, tempo médio de execução
+
+---
+
+#### BOW-211 — Onboarding CLT/PJ e aprovação de cadastro (web)
+**Onda:** 2 | **Prioridade:** 🔴 Crítica | **Status:** Pendente  
+**Depende de:** BOW-100, BOW-101, BOW-102
+
+**Contexto:**  
+BL-032 e BL-033 têm o fluxo mobile. Este item fecha o ciclo com o backoffice web gerenciando aprovação.
+
+**O que construir:**
+- `UserLifecycle` entity: `PENDING_ONBOARDING → PENDING_APPROVAL → APPROVED → REJECTED`
+- Web: fila de aprovação com documento, dados bancários PJ, validação de CNPJ
+- Notificação automática ao aprovar/rejeitar
+- Mobile: estado `aguardando aprovação` conectado ao backend real
+
+---
+
+## Onda 3 — Backlog resumido (planejamento)
+
+#### BOW-300 — Multi-tenant real: isolamento de dados por schema ou row-level security
+**Onda:** 3 | **Status:** Planejado  
+Ativar segundo tenant real na plataforma. Cada tenant com branding, usuários, configurações e dados isolados. Validar que nenhuma query retorna dados cross-tenant.
+
+#### BOW-301 — White label de marca e comportamento
+**Onda:** 3 | **Status:** Planejado  
+Branding por tenant: logo, cores, domínios, templates de laudo, textos. Web e mobile refletem marca do tenant autenticado.
+
+#### BOW-302 — Federação com Active Directory (OIDC/SAML por tenant)
+**Onda:** 3 | **Status:** Planejado  
+Depende de BOW-103. Habilitar OIDC/SAML por tenant sem refatorar domínio. Mapeamento de grupos AD para papéis canônicos.
+
+#### BOW-303 — Tenant management panel (platform admin)
+**Onda:** 3 | **Status:** Planejado  
+Interface para `PLATFORM_ADMIN` criar/configurar/suspender tenants. Branding, políticas, integrações e usuários por tenant.
+
+---
+
+## Onda 4 — Backlog resumido (visão)
+
+#### BOW-400 — Provider Network: rede de empresas de avaliação
+**Onda:** 4 | **Status:** Visão  
+Múltiplas empresas de avaliação cadastradas como providers. Plataforma distribui demanda entre elas.
+
+#### BOW-401 — Matching automatizado demanda × empresa × vistoriador
+**Onda:** 4 | **Status:** Visão  
+Algoritmo de matching por especialidade, SLA histórico, cobertura regional e disponibilidade.
+
+#### BOW-402 — Pricing & Settlement multi-partes
+**Onda:** 4 | **Status:** Visão  
+Regra 7: "Settlement só pode ser calculado após resultado final." Fee da plataforma, repasse à empresa de avaliação, repasse ao vistoriador. Liquidação multi-partes com trilha completa.
+
+#### BOW-403 — Intelligence: control tower e scoring
+**Onda:** 4 | **Status:** Visão  
+KPIs por tenant/região/vistoriador. Score de qualidade. Control tower para gestão executiva do ecossistema.
+
+---
+

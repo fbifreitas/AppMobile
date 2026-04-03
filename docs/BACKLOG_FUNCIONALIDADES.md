@@ -40,7 +40,7 @@ Step 6️⃣ (DÉBITO TÉCNICO) → BL-013 + BL-014 + BL-036
   ↓
 Step 7️⃣ (BOAS PRÁTICAS) → BL-017, BL-018, BL-019, BL-020, BL-021, BL-022, BL-023, BL-024, BL-025, BL-026, BL-027, BL-028
   ↓
-Step 8️⃣ (FUNCIONAL PRÓXIMO CICLO) → BL-029, BL-030, BL-031, BL-032, BL-033, BL-034, BL-035
+Step 8️⃣ (BACKEND BLOQUEADO — aguarda Onda 1 BOW) → BL-031 (depende de BOW-100 + BOW-101 + BOW-102), BL-032, BL-033, BL-034, BL-035, BL-029, BL-030
 ```
 
 ---
@@ -83,7 +83,7 @@ Step 8️⃣ (FUNCIONAL PRÓXIMO CICLO) → BL-029, BL-030, BL-031, BL-032, BL-0
 | ✅ | BL-028 | Definition of Done reforçada | Planejado | 🟠 Alta | Entrega só conclui com testes, observabilidade mínima, documentação e checklist QA |
 | 🗓️ | BL-029 | Agenda em calendário com jobs agendados do usuário | Concluido | 🟠 Alta | Aba Agenda exibe calendário mensal/semanal com jobs por data e navegação para detalhes |
 | 🔔 | BL-030 | Sininho de mensagens com central backend-app e push | Concluido | 🔴 Crítica | Mensagens vinculadas a job/proposta aparecem na central e geram notificação no celular mesmo com app fechado |
-| 🔐 | BL-031 | Tela de login e autenticação do App | Concluido | 🔴 Crítica | Usuário autentica com backend, sessão persistida com expiração/renovação e logout seguro |
+| 🔐 | BL-031 | Tela de login e autenticação do App | Em andamento | 🔴 Crítica | Usuário autentica com backend, sessão persistida com expiração/renovação, controle de tentativas, MFA readiness e logout seguro |
 | 🧾 | BL-032 | Onboarding de usuários CLT e PJ no app | Concluido | 🔴 Crítica | Fluxo coleta dados obrigatórios por tipo (CLT/PJ), incluindo dados pessoais e bancários para PJ |
 | ⏳ | BL-033 | Estado aguardando aprovação do cadastro (backoffice) | Concluido | 🟠 Alta | Após onboarding, usuário sem aprovação visualiza tela estática de aguardando aprovação com atualização de status |
 | ⚙️ | BL-034 | Configurações para atualização de dados cadastrais | Concluido | 🟠 Alta | Menu configurações permite editar os mesmos dados do onboarding com validação e envio ao backend |
@@ -332,8 +332,10 @@ Observacao 2026-03-30 (CONCLUIDO): central de mensagens implementada com contado
 ### BL-031
 Introduzir autenticação com tela de login, gerenciamento de sessão e proteção de acesso às áreas internas do app.
 
-Observacao 2026-03-30 (CONCLUIDO): fluxo de autenticacao com estado persistido, logout seguro e roteamento condicional para login/onboarding/aguardando aprovacao/home.
+Observacao 2026-03-30 (PARCIAL): fluxo de autenticacao com estado persistido localmente, logout seguro e roteamento condicional para login/onboarding/aguardando aprovacao/home.
 Observacao 2026-03-31 (EM ANDAMENTO): reforcada a testabilidade da tela de login para automacao Maestro com identificadores semanticos estaveis em campos e botao de submit.
+Observacao 2026-04-02 (REPLANEJADO): validado que o app ainda nao autentica contra backend real; passam a ser obrigatorios neste item o login backend-first, refresh/revogacao de sessao, trilha de auditoria de acesso, controle de tentativas/lockout e readiness para MFA/FIDO2.
+Observacao 2026-04-03 (SEQUENCIAMENTO): BL-031 depende dos cards de backend BOW-100 (Tenant+Membership), BOW-101 (User entity retrofit) e BOW-102 (JWT auth backend). Não iniciar o lado mobile enquanto o backend não tiver JWT funcional com GET /auth/me retornando tenant context correto.
 
 ### BL-032
 Criar onboarding de novos usuários para perfis CLT e PJ, com coleta de dados cadastrais completos e captura de foto pelo app.

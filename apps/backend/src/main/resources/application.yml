@@ -7,7 +7,7 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD:backoffice}
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: none
     open-in-view: false
   data:
     redis:
@@ -41,3 +41,12 @@ server:
 springdoc:
   api-docs:
     path: /api/openapi/v1
+
+auth:
+  jwt:
+    secret: ${AUTH_JWT_SECRET:dev-secret-change-me-dev-secret-change-me}
+    access-token-minutes: 15
+    refresh-token-days: 7
+  lockout:
+    max-attempts: 5
+    window-minutes: 10

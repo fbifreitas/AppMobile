@@ -372,6 +372,18 @@ Use este checklist no inicio de qualquer nova sessao para confirmar que nada cri
 
 ## 12. Checkpoint Operacional Continuo
 
+### Checkpoint 2026-04-03 (consolidacao dos pacotes BOW-104/105/110/111)
+- Feito:
+  - Consolidado pacote backend com RBAC por escopo, policy engine, Integration Hub ACL e expansao pratica do contrato de erro canonico.
+  - Consolidado pacote web-backoffice com rotas Next.js para config/users, telas operacionais e testes Node para policy/config targeting.
+  - Documentacao canonica importada e backlog operacional atualizado com status concluidos para BOW-104, BOW-105, BOW-110 e BOW-111.
+  - Versao do app incrementada para `1.2.25+44` para novo ciclo de homologacao.
+- Estado atual:
+  - Working tree pronto para consolidacao em commit unico na branch `homolog/bl-accordion-dedup-fix`.
+  - Validacoes esperadas para fechamento: backend full tests e web `lint`/`test`/`build`.
+- Proxima acao:
+  - Executar validacao final, criar commit padrao de versao, publicar na branch de homologacao e monitorar CI/CD antes de iniciar o proximo bloco de backlog.
+
 ### Checkpoint 2026-04-01 (status de runtime Docker)
 - Feito:
   - Commit de onboarding e continuidade criado (`666ba11`).
@@ -518,12 +530,227 @@ Use este checklist no inicio de qualquer nova sessao para confirmar que nada cri
   - Python 3.12 instalado localmente para validação de testes do gate sem depender apenas do CI.
   - Script `.github/scripts/openapi_breaking_check.py` evoluído para bloquear remoção de headers obrigatórios por operação com regra orientada pela base (`main`).
   - Suíte de testes ampliada para 8 casos, incluindo regressão de header obrigatório removido e caso de header opcional removido sem bloqueio.
-  - Workflow corrigido para executar teste via arquivo direto (`python3 .github/scripts/test_openapi_breaking_check.py -v`), evitando falha de discovery por diretório não importável.
+
+### Checkpoint 2026-04-02 (stack local recuperada apos falha de auth na API)
+- Feito:
+  - Diagnostico do `infra-api-1` com logs apontando `FATAL: password authentication failed for user "backoffice"`.
+  - Correcao aplicada no banco local para alinhar credencial do role `backoffice`.
+  - Recriacao controlada dos servicos `api` e `proxy` via compose para aplicar as credenciais corrigidas.
+  - Validacao final executada com sucesso:
+    - `docker compose -f infra/docker-compose.yml ps` com `api/db/cache/web` saudaveis.
+    - Health checks via proxy em `http://localhost/health` e `http://localhost/api/actuator/health` retornando HTTP 200.
 - Estado atual:
-  - Gate semântico cobre estrutura, envelope canônico de erro e preservação de headers obrigatórios (fundação prática para INT-026/027).
-  - Execução local confirmada: 8 testes, 0 falhas.
+  - Stack local operacional com `web`, `api`, `db`, `cache` e `proxy` ativos.
+  - Fluxo de desenvolvimento web/backend pronto para continuidade.
 - Proxima acao:
-  - Rodar PR para validar etapa no runner Linux e, no próximo incremento, estender semântica para request body/context envelope (tenant/correlation/actor) quando o contrato base passar a exigir.
+  - Prosseguir com implementacao da demanda no web-backoffice usando stack local valida.
+
+### Checkpoint 2026-04-02 (web-backoffice baseline visual)
+- Feito:
+  - Evolucao da base visual no `apps/web-backoffice` com ajuste de layout raiz, tipografia e pagina inicial orientada a modulos de Integracao/Operacao/Governanca.
+  - Atualizacao de estilos globais para melhorar responsividade mobile/desktop e identidade visual inicial do painel.
+  - Validacoes executadas com sucesso no modulo web:
+    - `npm run lint`
+    - `npm test`
+    - `npm run build`
+- Estado atual:
+  - Stack local operacional e front web compilando sem erros.
+  - Base pronta para avancar para implementacoes funcionais do backlog web.
+- Proxima acao:
+  - Iniciar implementacao funcional prioritaria do backoffice (contratos e modulo operacional inicial) mantendo testes e rastreabilidade.
+
+### Checkpoint 2026-04-02 (modulo funcional inicial: status operacional)
+- Feito:
+  - Implementado painel funcional de status operacional em tempo real na home do web-backoffice.
+  - Novo componente client (`app/components/operational_status_panel.tsx`) com polling dos endpoints `/health` e `/api/actuator/health`.
+  - Integracao do painel na pagina principal e estilos dedicados no `globals.css` com estados visuais (`healthy`, `degraded`, `offline`, `loading`).
+  - Ajuste de lint do hook React para remover warning de dependencia.
+  - Validacoes do modulo executadas com sucesso:
+    - `npm run lint`
+    - `npm test`
+    - `npm run build`
+- Estado atual:
+  - Web-backoffice com base visual + primeiro modulo funcional operacional concluido e validado.
+- Proxima acao:
+  - Evoluir para modulo funcional seguinte (indicadores operacionais e governanca) mantendo contrato de health e rastreabilidade de backlog.
+
+### Checkpoint 2026-04-02 (fundacao de configuracao multi-tenant com targeting)
+- Feito:
+  - Implementado modelo de targeting de configuracao no web-backoffice com escopos `global`, `tenant`, `unit`, `role`, `user` e `device`.
+  - Implementada regra de precedencia para resolucao efetiva de configuracao (mais especifico sobrescreve mais generico).
+  - Criada rota `GET /api/config/resolve` para simular resolucao por contexto (tenant/role/user/device).
+  - Integrado painel na home para preview de configuracao efetiva e trilha de pacotes aplicados.
+  - Validacoes do modulo web executadas com sucesso:
+    - `npm run lint`
+    - `npm test`
+    - `npm run build`
+- Estado atual:
+  - Foundation pronta para evoluir o modulo de atualizacao/configuracao do app com suporte a disparo individual por usuario/dispositivo.
+- Proxima acao:
+  - Persistir pacotes de configuracao no backend (db) e habilitar publicacao/rollout com auditoria por tenant e usuario alvo.
+
+### Checkpoint 2026-04-02 (publicacao e auditoria de pacotes de configuracao)
+- Feito:
+  - Implementadas rotas de API no web-backoffice para publicar/listar pacotes de configuracao e consultar auditoria:
+    - `GET/POST /api/config/packages`
+    - `GET /api/config/audit`
+  - Resolucao de configuracao (`/api/config/resolve`) conectada ao store operacional do modulo de configuracao (em memoria nesta fase).
+  - Painel de configuracao atualizado para publicar pacote por escopo (`tenant`, `role`, `user`, `device`) com regras e visualizar trilha de auditoria recente.
+  - Validacoes executadas com sucesso no modulo web:
+    - `npm run lint`
+    - `npm test`
+    - `npm run build`
+- Estado atual:
+  - Fluxo completo de simulacao + publicacao + resolucao + auditoria funcional no backoffice web, incluindo targeting individual por usuario/dispositivo.
+- Proxima acao:
+  - Migrar store em memoria para persistencia em banco e adicionar trilha de rollout/rollback por tenant e lote de usuarios.
+
+### Checkpoint 2026-04-02 (ciclo de vida de pacote com rollback)
+- Feito:
+  - Adicionada acao de rollback de pacote com trilha de auditoria (`POST /api/config/packages/rollback`).
+  - Resolucao efetiva passou a considerar somente pacotes com status `active`.
+  - Painel de configuracao atualizado para acionar rollback por pacote aplicado e refletir status visual (`active` / `rolled_back`).
+  - Validacoes executadas no modulo web com sucesso:
+    - `npm run lint`
+    - `npm test`
+    - `npm run build`
+- Estado atual:
+  - Fluxo operacional completo em memoria: publicar pacote, resolver configuracao por contexto, auditar eventos e reverter pacote.
+- Proxima acao:
+  - Persistir pacotes/auditoria no backend (db) e implementar rollout por lote (grupos de usuarios/dispositivos) com janela de ativacao.
+
+### Checkpoint 2026-04-02 (rollout por janela e lote de usuarios)
+- Feito:
+  - Modelo de configuracao evoluido com politica de rollout (`immediate`/`scheduled`) incluindo janela (`startsAt`, `endsAt`) e lote por usuarios (`batchUserIds`).
+  - Resolucao efetiva passou a aplicar pacote apenas quando status for `active` e rollout estiver ativo para o contexto do usuario.
+  - Painel de publicacao atualizado para definir ativacao imediata/agendada, janela de vigencia e lote CSV de usuarios.
+  - Exibicao de metadados de rollout no trace de pacotes aplicados.
+  - Validacoes do modulo web executadas com sucesso:
+    - `npm run lint`
+    - `npm test`
+    - `npm run build`
+- Estado atual:
+  - Fluxo operacional em memoria suporta targeting por escopo + rollout temporal + lote de usuarios + auditoria + rollback.
+- Proxima acao:
+  - Migrar store para persistencia em banco e incluir politica de aprovacao/publicacao por tenant antes de ativacao em producao.
+
+### Checkpoint 2026-04-02 (aprovacao antes de ativacao)
+- Feito:
+  - Workflow de lifecycle atualizado para publicar pacote em `pending_approval` por padrao.
+  - Nova rota de aprovacao adicionada: `POST /api/config/packages/approve`.
+  - Interface evoluida com catalogo de pacotes, acao de `Aprovar` para pendentes e `Rollback` para pacotes ativos.
+  - Resolucao efetiva continua aplicando apenas pacotes `active` (garantindo gate operacional de aprovacao).
+  - Validacoes do modulo web executadas com sucesso:
+    - `npm run lint`
+    - `npm test`
+    - `npm run build`
+- Estado atual:
+  - Fluxo em memoria agora cobre publicacao -> aprovacao -> ativacao -> rollback, com auditoria e targeting multi-escopo.
+- Proxima acao:
+  - Migrar o ciclo para persistencia no backend (db) e adicionar politica de aprovacao por perfil (RBAC/policies) por tenant.
+
+### Checkpoint 2026-04-02 (gate RBAC/policy por perfil)
+- Feito:
+  - Politica simples de RBAC adicionada ao modulo de configuracao com perfis `viewer`, `operator`, `tenant_admin` e `support`.
+  - Regras aplicadas nas rotas de configuracao:
+    - `read`: leitura de catalogo, auditoria e resolve
+    - `publish`: publicacao de pacote
+    - `approve`: aprovacao de pacote
+    - `rollback`: reversao de pacote
+  - Painel atualizado com seletor de perfil operacional para validar comportamento por papel em tempo real.
+  - Validacoes do modulo web executadas com sucesso:
+    - `npm run lint`
+    - `npm test`
+    - `npm run build`
+- Estado atual:
+  - Fluxo em memoria cobre targeting multi-escopo, rollout temporal/lote, aprovacao antes de ativacao, rollback e gate de autorizacao por perfil.
+- Proxima acao:
+  - Migrar governanca e armazenamento para o backend persistente com RBAC/policies por tenant no servidor Java/Spring.
+
+### Checkpoint 2026-04-02 (cobertura TDD das regras do modulo web)
+- Feito:
+  - Suite de testes TypeScript adicionada no `apps/web-backoffice/test` cobrindo regras centrais de `config_targeting` e `config_policy`.
+  - Cobertura adicionada para:
+    - precedencia por escopo
+    - exclusao de pacotes `pending_approval` e `rolled_back`
+    - rollout agendado fora da janela
+    - batch de usuarios
+    - permissoes RBAC por perfil
+  - Runner de testes do web estabilizado para Windows com `scripts/run-tests.mjs` + `tsx`.
+  - Validacoes executadas com sucesso:
+    - `npm test` (8 testes passando)
+    - `npm run lint`
+    - `npm run build`
+- Estado atual:
+  - Modulo web segue validado com testes de regra reais, e nao apenas smoke test.
+- Proxima acao:
+  - Manter a evolucao do modulo de configuracao com red/green nas regras centrais antes de expandir a persistencia no backend.
+
+### Checkpoint 2026-04-02 (backend persistente do ciclo de configuracao)
+- Feito:
+  - Criado modulo `com.appbackoffice.api.config` no backend Java/Spring com entidades JPA, repositories, service, policy service, DTOs e controller para o ciclo de configuracao remota.
+  - Persistido fluxo servidor para `publish -> pending_approval -> approve -> active -> rollback`, incluindo auditoria por ator e resolucao por contexto.
+  - Contrato de mutacao alinhado para retornar `201` em publicacao com `result.created` e `result.updated` em aprovacao/reversao.
+  - Serializacao do `effective` ajustada para omitir campos `null`, mantendo o contrato esperado de resolucao quando nao ha regra ativa.
+  - Teste de integracao `ConfigPackageLifecycleIntegrationTest` implementado antes dos ajustes e validado em verde apos o ciclo red/green.
+  - Validacoes executadas com sucesso no backend:
+    - `mvn -B -f apps/backend/pom.xml -Dtest=ConfigPackageLifecycleIntegrationTest -DforkCount=0 test`
+    - `mvn -B -f apps/backend/pom.xml -DforkCount=0 test`
+- Estado atual:
+  - Backend ja sustenta persistencia e governanca basica do modulo de configuracao, ainda desacoplado do consumo final do web-backoffice.
+- Proxima acao:
+  - Substituir o store em memoria do web-backoffice pelos endpoints persistentes do backend e expandir filtros/policies por tenant de forma ponta a ponta.
+
+### Checkpoint 2026-04-02 (web-backoffice integrado ao backend persistente)
+- Feito:
+  - Rotas do web-backoffice para configuracao (`/api/config/packages`, `/api/config/packages/approve`, `/api/config/packages/rollback`, `/api/config/resolve`, `/api/config/audit`) migradas do store em memoria para consumo do backend Java em `/api/backoffice/config/*`.
+  - Criado client compartilhado em `apps/web-backoffice/app/lib/config_backend_client.ts` com suporte a `BACKOFFICE_CONFIG_API_BASE_URL` (fallback local para `http://localhost/api/backoffice/config`).
+  - Contrato de resposta mantido compatível com o painel atual (incluindo `metadata` no resolve e `limit` aplicado no layer web para auditoria).
+  - Validacoes executadas com sucesso no web-backoffice:
+    - `npm --prefix apps/web-backoffice run lint`
+    - `npm --prefix apps/web-backoffice test`
+    - `npm --prefix apps/web-backoffice run build`
+- Estado atual:
+  - O painel de configuracao do web-backoffice ja opera sobre endpoints persistentes, eliminando dependencia operacional do store local em memoria.
+- Proxima acao:
+  - Endurecer politicas multi-tenant no backend (filtros por tenant/unidade/role no servidor) e ampliar testes de contrato web-backoffice -> backend.
+
+### Checkpoint 2026-04-02 (tenant guard em mutacoes de pacote)
+- Feito:
+  - Contrato de acao no backend endurecido para exigir `tenantId` em `approve` e `rollback` (`ConfigPackageActionRequest`).
+  - Service de configuracao atualizado para resolver pacote por `packageId` + validacao de ownership por tenant antes de mutar status.
+  - Teste de integracao ampliado com caso cross-tenant garantindo bloqueio de mutacao fora do tenant.
+  - Web-backoffice atualizado para propagar `tenantId` nas acoes de aprovacao/reversao.
+  - Validacoes automatizadas executadas com sucesso:
+    - `mvn -B -f apps/backend/pom.xml -Dtest=ConfigPackageLifecycleIntegrationTest -DforkCount=0 test` (3 testes, 0 falhas)
+    - `mvn -B -f apps/backend/pom.xml -DforkCount=0 test` (11 testes, 0 falhas)
+    - `npm --prefix apps/web-backoffice run lint`
+    - `npm --prefix apps/web-backoffice test`
+    - `npm --prefix apps/web-backoffice run build`
+- Estado atual:
+  - Mutacoes de ciclo de vida de pacote agora exigem contexto de tenant e impedem alteracao cross-tenant por `packageId` isolado.
+- Proxima acao:
+  - Evoluir de validacao de ownership por campo para consulta repository diretamente escopada por tenant e adicionar testes de contrato HTTP no web-backoffice para falhas 404/403 de tenant guard.
+
+### Checkpoint 2026-04-02 (hardening tenant-scoped + contratos HTTP web)
+- Feito:
+  - Backend endurecido no módulo de configuração com lookup repository escopado por tenant (`findByIdAndTenantId`) durante approve/rollback.
+  - Service de configuração ajustado para resolver pacote diretamente por `packageId + tenantId`, removendo dependência de validação tardia de ownership após carga por `id`.
+  - Suite de contratos do web-backoffice ampliada com cenários de erro para rotas de approve/rollback:
+    - `400` quando `tenantId` ausente,
+    - `403` para perfil sem permissão,
+    - `404` propagado do backend em pacote não encontrado.
+  - Validações automatizadas executadas com sucesso:
+    - `mvn -B -f apps/backend/pom.xml -Dtest=ConfigPackageLifecycleIntegrationTest -DforkCount=0 test` (3 testes, 0 falhas)
+    - `mvn -B -f apps/backend/pom.xml -DforkCount=0 test` (11 testes, 0 falhas)
+    - `npm --prefix apps/web-backoffice run lint`
+    - `npm --prefix apps/web-backoffice test` (12 testes, 0 falhas)
+    - `npm --prefix apps/web-backoffice run build`
+- Estado atual:
+  - Tenant guard de mutações sensíveis ficou mais robusto no backend e com cobertura de contrato HTTP no web para erros críticos de contexto e autorização.
+  - Base pronta para expansão do enforcement de contexto mínimo (`tenantId/correlationId`) para demais endpoints.
+- Proxima acao:
+  - Expandir BOW-058/INT-026 para validar também `correlationId` no backend e propagar o contexto de forma padronizada nas rotas críticas restantes.
 
 ### Checkpoint 2026-04-02 (promocao para main e equalizacao)
 - Feito:
@@ -538,6 +765,7 @@ Use este checklist no inicio de qualquer nova sessao para confirmar que nada cri
   - Gate OpenAPI em CI estabilizado para continuidade de INT-025/026/027.
 - Proxima acao:
   - Manter acompanhamento da esteira de distribuicao e confirmar qualquer sinal de divergencia de notificacao entre homolog/producao quando houver novo envio.
+  - Ao retomar a sessao apos desligamento da maquina, executar primeiro a subida do ambiente local (stack web/api) antes de iniciar o proximo ciclo de implementacao.
 
 ### Checkpoint 2026-04-02 (OpenAPI backend validado com H2)
 - Feito:
@@ -555,4 +783,227 @@ Use este checklist no inicio de qualquer nova sessao para confirmar que nada cri
 
 ---
 
+### Checkpoint 2026-04-03 (documentacao mestre unificada importada)
+- Feito:
+  - ZIP `DOCS_MESTRE_FINAL_UNIFICADO.zip` extraído e estrutura copiada para `docs/` do repositório.
+  - Pastas importadas: `00-overview`, `01-executive`, `02-product`, `03-architecture`, `04-engineering`, `05-operations`, `06-analysis-and-design`, `07-diagrams`.
+  - Total: 38 arquivos .md + diagramas .puml/.mmd + imagens .png.
+  - `copilot-instructions.md` atualizado com secao "Documentacao mestre" listando os 13 documentos canonicos obrigatorios de consulta.
+  - `AGENTE_LICOES_APRENDIDAS.md` atualizado com licao sobre as duas camadas de documentacao.
+- Estado atual:
+  - Projeto tem documentacao mestre completa commitavel: produto, arquitetura, IAM, dominios, ADRs, personas, PRD, roadmap, engenharia, operacao, casos de uso, regras de negocio, diagramas C4 e UML.
+  - Nenhum arquivo operacional preexistente foi removido ou sobrescrito.
+- Fontes canonicas de verdade agora ativas:
+  - Visao estrategica: `docs/01-executive/05_VISAO_ESTRATEGICA_E_ESTATIOS.md`
+  - Blueprint: `docs/03-architecture/01_BLUEPRINT_ARQUITETURA.md`
+  - Modelo canonico: `docs/03-architecture/02_MODELO_CANONICO_E_DOMINIOS.md`
+  - IAM: `docs/03-architecture/05_IDENTITY_ACCESS_E_USER_MANAGEMENT.md`
+  - ADRs: `docs/03-architecture/07_ADRS_INICIAIS.md`
+  - Personas: `docs/02-product/01_PERSONAS_E_PAPEIS.md`
+  - Regras de negocio: `docs/06-analysis-and-design/08_REGRAS_DE_NEGOCIO_CRITICAS.md`
+- Proxima acao:
+  - Fazer commit desta documentacao para garantir que CI/CD e outros agentes tenham acesso imediato.
+  - Retomar planejamento de implementacao a partir de `docs/05-operations/02_PLANO_IMPLEMENTACAO_90_DIAS.md` como guia de proximos passos.
+
 _Documento de restauração mantido pelo agente (Copilot) como ponto de continuidade operacional._
+
+### Checkpoint 2026-04-02 (BOW-003/BOW-053 - gestao de usuarios web+mobile)
+- Feito:
+  - Backend User Management expandido para cobrir cadastro por app (MOBILE_ONBOARDING), cadastro manual web (WEB_CREATED) e importacao externa (AD_IMPORT).
+  - Endpoints ativos: `GET /api/users`, `POST /api/users`, `POST /api/users/import`, `GET /api/users/pending`, `POST /api/users/{id}/approve`, `POST /api/users/{id}/reject`.
+  - Web backoffice evoluido com telas: `/backoffice/users`, `/backoffice/users/create`, `/backoffice/users/import`, mantendo `/backoffice/users/pending`.
+  - Proxies Next.js adicionados: `/api/users` e `/api/users/import`.
+- Estado atual:
+  - Backend compila com sucesso (`mvn -B -DskipTests clean compile`).
+  - Web validado com sucesso (`npm run lint`, `npm test`, `npm run build`).
+  - Execucao completa de `mvn test` no Windows segue instavel por prompt espurio de lote (`Deseja finalizar o arquivo em lotes (S/N)?`).
+- Proxima acao:
+  - Estabilizar execucao de testes backend em shell sem prompt interativo para fechar a validacao automatizada full.
+  - Evoluir trilha de auditoria de alteracoes de usuario e paginacao/filtros avancados no modulo de gestao.
+
+### Checkpoint 2026-04-02 (seguranca identidade + auditoria de usuarios)
+- Feito:
+  - Backend de usuarios passou a persistir trilha de auditoria para create/import/approve/reject em tabela dedicada (`user_audit_entries`), incluindo `tenantId`, `actorId`, `correlationId`, alvo e detalhes da acao.
+  - Endpoint `GET /api/users/audit` publicado no backend e proxy web `/api/users/audit` criado, com tela operacional em `/backoffice/users/audit`.
+  - Mutacoes sensiveis do modulo de usuarios agora exigem `X-Actor-Id` alem de `X-Tenant-Id` e `X-Correlation-Id`.
+  - Diagnostico consolidado: BL-031 nao esta pronto no sentido arquitetural; o app mobile ainda usa autenticacao local/mock em `AuthState`, sem login backend real, sem refresh/revogacao e sem controle de tentativas.
+- Estado atual:
+  - Auditoria de acoes administrativas de usuarios esta implementada e pronta para consumo/validacao.
+  - A seguranca de identidade entrou como premissa de arquitetura: autenticacao real, controle de tentativas, lockout, MFA readiness e trilha de acesso deixaram de ser backlog distante.
+  - Execucao Maven ficou estavel localmente com `-DforkCount=0`, removendo o prompt espurio de lote como bloqueio pratico nesta sessao.
+- Proxima acao:
+  - Abrir a fundacao de autenticacao backend-first (login/refresh/logout/me) com persistencia de sessao/token e rate limit de tentativas.
+  - Definir a estrategia de MFA: TOTP/passkeys para internos e federacao OIDC/SAML para clientes corporativos/AD.
+
+### Checkpoint 2026-04-02 (governanca de camadas de acesso)
+- Decisao registrada:
+  - As camadas de acesso do backoffice devem ser tratadas com segregacao forte por escopo, sem misturar privilegios:
+    1. operacao local da empresa (tenant scope),
+    2. administracao de usuarios mobile da empresa especifica (tenant admin scope),
+    3. administracao da plataforma (platform scope).
+  - A evolucao de auth/RBAC deve preservar essa hierarquia como requisito de seguranca obrigatorio.
+  - Fonte de verdade para interpretacao de niveis de acesso: modelo de dominio IAM/white label e personas de negocio (Tenant, OrganizationUnit, Membership, IdentityBinding; operacao, gestor e administracao de plataforma).
+  - Exemplos pontuais de conversa nao substituem a estrategia canônica documentada.
+- Impacto imediato no backlog:
+  - BOW-002 e BOW-033 passam a explicitar a diferenca entre administracao por empresa e administracao global da plataforma.
+- Proxima acao:
+  - Materializar essa segregacao na matriz de permissao backend-first com claims de escopo e validacoes por dominio sensivel (users, onboarding, configuracao).
+
+### Checkpoint 2026-04-03 (backlog 4 ondas gerado — guia de desenvolvimento completo)
+- O que foi feito:
+  - Lidos e consolidados todos os documentos canonicos importados na sessao anterior (docs/00-overview a docs/06-analysis-and-design).
+  - Auditados 58 arquivos Java do backend e 9 arquivos TSX do web-backoffice.
+  - Mapeadas as dividas tecnicas criticas (User sem tenantId FK, Tenant/Membership ausentes, auth mock no mobile).
+  - BACKLOG_BACKOFFICE_WEB.md reescrito com estrutura de 4 ondas e cards detalhados com contexto, contratos, criterios de pronto e referencias canonicas.
+  - BACKLOG_FUNCIONALIDADES.md atualizado com sequenciamento corrigido de BL-031 (depende de BOW-100/101/102).
+- Estado atual:
+  - Backlog principal: 24 cards detalhados na Onda 1 (BOW-100 a BOW-151), 8 cards na Onda 2, 4 planejados na Onda 3, 4 visao na Onda 4.
+  - Dependência critica identificada: BOW-100 (Tenant+Membership) bloqueia tudo. Deve ser o primeiro card implementado.
+  - Codigo existente com divida: User.java (sem FK tenantId real), ConfigPackage (sem FK tenant), MobileApiController (stubs sem persistencia).
+  - Nenhum dos 5 bounded contexts ausentes (Job Lifecycle, Field Ops, Valuation, Reporting, Settlement) tem codigo no backend.
+- Proxima acao:
+  - Iniciar BOW-100: criar Tenant + OrganizationUnit + Membership com migrations Flyway em identity_db.
+  - Seguir sequencia obrigatoria: BOW-100 → BOW-101 → BOW-102 → BOW-103 → BOW-104 → BOW-105 → BOW-110.
+  - Nao iniciar BL-031 (auth mobile) antes de BOW-102 estar funcional com GET /auth/me retornando tenant context.
+
+### Checkpoint 2026-04-03 (retomada de desenvolvimento — BOW-100 parcial implementado)
+- O que foi feito:
+  - Implementado novo modulo `identity` no backend com entidades: `Tenant`, `OrganizationUnit`, `Membership`.
+  - Implementados enums de dominio: `TenantStatus`, `OrganizationUnitType`, `MembershipRole`, `MembershipStatus`.
+  - Implementados repositories: `TenantRepository`, `OrganizationUnitRepository`, `MembershipRepository`.
+  - Implementado teste de integracao `IdentityTenantMembershipIntegrationTest` validando isolamento por tenant e consulta por `user + tenant`.
+  - Ajustado teste para evitar `LazyInitializationException` e evitar contaminacao da suite por FK residual.
+- Estado atual:
+  - Suite backend verde apos mudanca (todos os relatórios surefire com `failures=0` e `errors=0`).
+  - BOW-100 avançou para "Em andamento (parcial)" no backlog.
+  - Ainda nao ha migrations Flyway no projeto; o backend segue semversao de schema por SQL versionado.
+- Proxima acao:
+  - Concluir BOW-100 com introducao de Flyway e migrations `V002..V006`.
+  - Iniciar BOW-101 com retrofit de `User` para vinculo real com `Tenant` e remocao progressiva de papel na entidade de identidade.
+
+### Checkpoint 2026-04-03 (BOW-101 iniciado — UserLifecycle separado)
+- O que foi feito:
+  - Criada entidade `UserLifecycle` com repository dedicado para separar ciclo de aprovacao da identidade em `User`.
+  - Criado enum `UserLifecycleStatus` com estados `PENDING_APPROVAL`, `APPROVED`, `REJECTED`.
+  - `UserService` atualizado para escrever transicoes no lifecycle em create (mobile/web/import), approve e reject.
+  - `UserResponse` ampliado com `lifecycleStatus` para rastrear status do agregado novo durante migração.
+  - Criado teste `UserLifecycleTransitionIntegrationTest` validando transicao APPROVED e REJECTED no lifecycle.
+- Estado atual:
+  - Suite backend segue verde (failures/errors = 0 em todas as suites surefire).
+  - BOW-101 atualizado para "Em andamento (parcial)".
+  - Compatibilidade mantida: `User.status` e `User.role` ainda existem temporariamente para nao quebrar contratos existentes.
+- Proxima acao:
+  - Migrar responsabilidade de role para `Membership` e iniciar desuso de `User.role`.
+  - Preparar FK real de tenant em `users` com migração (junto de Flyway no fechamento de BOW-100/BOW-101).
+
+### Checkpoint 2026-04-03 (BOW-101 continuacao — dual-write de Membership)
+- O que foi feito:
+  - `UserService` atualizado para gravar `Membership` em dual-write nas trilhas de create mobile, create web, import AD, approve e reject.
+  - Introduzido mapeamento transicional `UserRole -> MembershipRole` para manter compatibilidade com contratos existentes.
+  - Ajustada criacao incremental de tenant no fluxo para suportar persistencia de membership durante a migração.
+  - Teste `UserLifecycleTransitionIntegrationTest` ampliado para validar estado de membership (`ACTIVE`/`REVOKED`) junto do lifecycle.
+  - `UserManagementLifecycleIntegrationTest` ajustado para limpeza ordenada de `memberships` antes de `users` e evitar quebra por FK em suites sequenciais.
+- Estado atual:
+  - Escrita de autorizacao em `Membership` ativa sem quebra dos endpoints existentes.
+  - `User.role` permanece temporariamente para compatibilidade de leitura e auditoria durante transição.
+- Proxima acao:
+  - Migrar leituras/autorizacao para `Membership` como fonte principal e iniciar deprecacao de leituras por `User.role`.
+  - Fechar card com migracao de FK real `users.tenant_id -> tenants.id` e limpeza dos campos legados.
+
+### Checkpoint 2026-04-03 (BOW-101 continuacao — leitura de role via Membership)
+- O que foi feito:
+  - `UserService` ajustado para resolver role efetiva por `Membership` nas consultas (`findAll`, `findByStatus`, `findPending`, `findUserById`), preservando fallback temporário para `User.role`.
+  - Fluxos de `approve`/`reject` passaram a reutilizar role efetiva resolvida para transicao de status da membership.
+  - Novo teste de integracao em `UserManagementLifecycleIntegrationTest` valida precedencia de role da membership no `GET /api/users/{id}`.
+- Estado atual:
+  - Leitura de papel ja segue fonte `Membership` na camada de servico sem quebra do contrato de resposta atual (`role` continua no DTO).
+  - Estrategia de transicao mantida: fallback legado ativo enquanto `User.role` nao e removido.
+- Proxima acao:
+  - Remover fallback para `User.role` apos fechamento de migracao de dados legados.
+  - Concluir BOW-101 com migracao de FK real `users.tenant_id -> tenants.id`.
+
+### Checkpoint 2026-04-03 (BOW-101 continuacao — backfill automatico de membership legado)
+- O que foi feito:
+  - `UserService` passou a criar `Membership` automaticamente para usuarios legados sem vinculo quando consultados.
+  - Regra de backfill aplica role/status derivando de `User.role` e `User.status` apenas no momento da migracao incremental.
+  - Novo teste `shouldBackfillMembershipForLegacyUserWithoutMembership` adicionado em `UserManagementLifecycleIntegrationTest` validando criacao de membership e role retornada no endpoint.
+- Estado: Supersedido pelo checkpoint abaixo (BOW-101 concluido).
+
+### Checkpoint 2026-04-03 (BOW-101 CONCLUIDO — Flyway + FK + User.role @Transient)
+- O que foi feito:
+  - Flyway introduzido: `flyway-core` adicionado ao pom.xml; Spring Boot autoconfigura migrações de `db/migration`.
+  - V001: schema inicial completo (8 tabelas, sem FK em users.tenant_id).
+  - V002: FK real `users.tenant_id → tenants.id` via ALTER TABLE.
+  - V003: DROP COLUMN role da tabela users (campo migrado para memberships).
+  - `User.role` alterado de `@Column @Enumerated` para `@Transient` — persiste só em memória para projeção de role efetiva.
+  - `backfillLegacyMembership`: com role=null (transient), usa FIELD_OPERATOR como padrão (via toMembershipRole(null)).
+  - `UserService.createFromWeb` audit: usa req.role() string diretamente (não mais saved.getRole()).
+  - `application.yml` (prod): ddl-auto=none (Flyway gerencia schema).
+  - `application-test.yml`: H2 com MODE=PostgreSQL, ddl-auto=none, Flyway ativo.
+  - Todos os testes que criavam User diretamente via new User() atualizados para ter o tenant pré-existente (@BeforeEach).
+  - Testes de backfill atualizados: role legado default = FIELD_OPERATOR (não AUDITOR), status = SUSPENDED.
+- Estado atual:
+  - BOW-101 concluído. User.role removida da persistência. FK users.tenant_id aplicada.
+  - Suite: 30 testes, 0 falhas, 0 erros.
+- Proxima acao:
+  - Iniciar BOW-102 (JWT auth backend).
+
+---
+
+### Checkpoint 2026-04-03 (BOW-102 + BOW-103 CONCLUIDOS — Auth module + IdP Adapter)
+- O que foi feito:
+  - **V004** (Flyway): tabelas `user_credentials` (FK → users, tenants) e `sessions` (FK → users, tenants) criadas.
+  - **V005** (Flyway): tabela `identity_bindings` (FK → users, tenants; UNIQUE por provider_type+provider_sub+tenant) criada.
+  - **Módulo auth** criado em `apps/backend/src/main/java/com/appbackoffice/api/auth/` (27 arquivos):
+    - Entidades: `UserCredentialEntity`, `SessionEntity`, `IdentityBindingEntity`, `IdentityProviderType`
+    - Repositórios JPA: `UserCredentialRepository`, `SessionRepository`, `IdentityBindingRepository`
+    - Providers (BOW-103): interface `IdentityProvider` + `InternalIdentityProvider` + `AuthenticationRequest` + `AuthenticatedIdentity`
+    - Serviços: `AuthService`, `JwtTokenService`, `JwtPrincipal`, `LoginAttemptStore`, `LoginAttemptStatus`, `TokenRevocationStore`, `RedisResilientLoginAttemptStore`, `RedisResilientTokenRevocationStore`, `PermissionCatalog`
+    - Controller + DTOs para `/api/auth/login`, `/api/auth/refresh`, `/api/auth/logout`, `/api/auth/me`
+  - **jjwt 0.12.6** adicionado ao pom.xml para geração/validação de JWT.
+  - **spring-security-crypto** adicionado para BCrypt.
+  - **Redis stores resilientes**: fallback gracioso quando Redis indisponível (caches locais).
+  - **AuthIntegrationTest**: 4 testes (login, refresh, logout, me, lockout) — todos passando.
+  - **Correção FK cleanup**: 3 testes antigos (`IdentityTenantMembershipIntegrationTest`, `UserLifecycleTransitionIntegrationTest`, `UserManagementLifecycleIntegrationTest`) atualizados para limpar `sessions → identityBindings → userCredentials` antes de deletar `users`.
+- Estado atual:
+  - BOW-102 e BOW-103 concluídos.
+  - Suite completa: 10 classes, 34 testes, 0 falhas, 0 erros.
+  - Migrations Flyway: V001–V005 ativas.
+- Proxima acao:
+  - Iniciar BOW-104 (RBAC por escopo: platform × tenant × operacional × campo).
+
+---
+
+### Checkpoint 2026-04-03 (BOW-104 + BOW-105 + BOW-110 + BOW-111 CONCLUIDOS — Seguranca RBAC + Policy + Integration Hub)
+- O que foi feito:
+  - **BOW-104 (RBAC por escopo)**:
+    - Criada annotation `@RequiresTenantRole`.
+    - Criado `TenantSecurityContext` + `TenantSecurityContextHolder` (thread local).
+    - Criado `TenantSecurityContextFilter` para extrair `tid/roles` do JWT e validar membership ativa.
+    - Criado `TenantRoleAuthorizationInterceptor` + `SecurityWebMvcConfig`.
+    - Endpoints protegidos com anotacoes em `UserManagementController` e `ConfigPackageController`.
+    - Teste de contrato adicionado: `ConfigPackageAuthorizationContractTest` (403 com papel insuficiente).
+  - **BOW-105 (Policy engine)**:
+    - Criada interface `DomainPolicy<T>`.
+    - Criadas policies `JobAccessPolicy` e `UserAccessPolicy` para autorizacao contextual por acao/recurso.
+  - **BOW-110 (Integration Hub / ACL)**:
+    - **V006** (Flyway) adicionada: tabela `integration_demands` com FK para `tenants` e UNIQUE em `external_id`.
+    - Criados `IntegrationDemandEntity`, `IntegrationDemandRepository`, DTOs de demanda e `IntegrationDemandService`.
+    - Criado `IntegrationDemandController` com endpoints:
+      - `POST /api/integration/demands` (normalizacao + idempotencia por `externalId`)
+      - `GET /api/integration/demands/{externalId}?tenantId=`
+    - Publicacao de evento simulada via `LogIntegrationEventPublisher` (`DemandCreated`).
+    - Testes de integracao adicionados: `IntegrationDemandIntegrationTest` (valido, invalido, duplicado).
+  - **BOW-111 (erro canônico expandido)**:
+    - Novos cenarios de autorizacao (`AUTH_FORBIDDEN`, `TENANT_CONTEXT_MISMATCH`) entregues no envelope `CanonicalErrorResponse` via `ApiContractException`.
+    - Cobertura de contrato para 403 canônico validada.
+  - Ajustes de estabilidade dos testes:
+    - Ordem de cleanup em `IntegrationDemandIntegrationTest` atualizada para deletar dependentes antes de `tenants`.
+    - `ConfigPackageLifecycleIntegrationTest` ajustado para incluir `X-Actor-Role` nas mutacoes protegidas.
+- Estado atual:
+  - BOW-104, BOW-105, BOW-110 e BOW-111 concluídos.
+  - Backend: `mvn -B -f apps/backend/pom.xml -DforkCount=0 test` verde.
+  - Suite completa backend: **38 testes, 0 falhas, 0 erros**.
+  - Migrations Flyway ativas: V001–V006.
+- Proxima acao:
+  - Iniciar BOW-120 (modelo canônico de domínio: Case/Job/Assignment).
