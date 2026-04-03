@@ -441,8 +441,20 @@ Payload financeira
 ---
 
 #### BOW-120 — Modelo de domínio: Case e Job
-**Onda:** 1 | **Prioridade:** 🔴 Crítica | **Status:** Pendente  
+**Onda:** 1 | **Prioridade:** 🔴 Crítica | **Status:** Em andamento (backend integrado ao Integration Hub em 2026-04-03)  
 **Depende de:** BOW-100 | **Bloqueia:** BOW-121, BOW-122, BOW-123, BL-001, BL-012
+
+**Andamento 2026-04-03:**
+- ✅ Entregue: migration `V007__job_domain.sql` com tabelas `demands`, `inspection_cases`, `jobs`, `assignments` e `job_timeline_entries`.
+- ✅ Entregue: migration `V008__integration_demands_case_job_refs.sql` adicionando `case_id` e `job_id` em `integration_demands`.
+- ✅ Entregue: migration `V009__inspection_submissions.sql` com persistência idempotente de submissões mobile vinculadas ao `Job`.
+- ✅ Entregue: entidades JPA, repositories, `JobStateMachine`, `CaseService` e `JobService` com transições `ELIGIBLE_FOR_DISPATCH → OFFERED → ACCEPTED` e cancelamento para `CLOSED`.
+- ✅ Entregue: APIs `POST /cases`, `GET /jobs`, `GET /jobs/{id}`, `GET /jobs/{id}/timeline`, `POST /jobs/{id}/assign`, `POST /jobs/{id}/accept`, `POST /jobs/{id}/cancel`.
+- ✅ Entregue: Integration Hub agora cria `Case` e `Job` automaticamente ao receber `POST /api/integration/demands`, retornando `caseId` e `jobId` na resposta.
+- ✅ Entregue: endpoint mobile `GET /api/mobile/jobs` retornando jobs reais por `X-Actor-Id` com isolamento por `tenantId`.
+- ✅ Entregue: `POST /api/mobile/inspections/finalized` saiu do stub em memória e passou a persistir submissões idempotentes, gerar `protocolId` real e avançar o `Job` até `SUBMITTED`.
+- ✅ Testes: `CaseJobDomainIntegrationTest` com 9 cenários verdes, `IntegrationDemandIntegrationTest` com 3 cenários verdes, `InspectionSubmissionIntegrationTest` com 2 cenários verdes e regressão contratual do `MobileApiController` preservada com 6 testes verdes.
+- ⏳ Pendente para concluir o card: expor transições intermediárias de execução no contrato web/mobile, vincular `Inspection` como agregado explícito do domínio e fechar o painel web operacional sobre os novos dados reais.
 
 **Contexto:**  
 O domínio canônico define `Demand → Case → Job → Assignment → Inspection`. Hoje não existe nenhuma dessas entidades no backend. O `MobileApiController` usa DTOs sem persistência canônica. Este é o coração do sistema para Stage 1.
@@ -487,8 +499,15 @@ GET /api/mobile/jobs?userId=&status=        → jobs do vistoriador autenticado
 ---
 
 #### BOW-121 — API de configuração dinâmica check-in (NBR)
-**Onda:** 1 | **Prioridade:** 🔴 Crítica | **Status:** Pendente  
+**Onda:** 1 | **Prioridade:** 🔴 Crítica | **Status:** Em andamento (integração real v1 entregue em 2026-04-03)  
 **Depende de:** BOW-120 (tenant context), BOW-100
+
+**Andamento 2026-04-03:**
+- ✅ Entregue: `GET /api/mobile/checkin-config` deixou o stub fixo e passou a resolver configuração efetiva real a partir de `ConfigPackage` ativo por tenant/usuário.
+- ✅ Entregue: versionamento v1 por hash temporal (`cfg-<epoch>`) derivado do pacote ativo mais recente, preservando fallback `v1-default` quando não há pacote ativo.
+- ✅ Entregue: adaptação retrocompatível do contrato atual com `photoPolicy`, `featureFlags` e `presentation` derivados das regras efetivas de `ConfigPackage`.
+- ✅ Testes: `MobileCheckinConfigIntegrationTest` com 2 cenários verdes cobrindo pacote ativo e fallback sem pacote.
+- ⏳ Pendente para concluir o card: modelar `sections` canônicas NBR (fachada, ambiente, elemento, desiredItems) no banco e publicar contrato alinhado ao blueprint, sem depender só de `ConfigRulesDto`.
 
 **Contexto:**  
 O mobile já consome `GET /api/mobile/checkin-config` (ver `MobileApiController`). Hoje retorna stub. Este item conecta ao banco real com versionamento, rollback e filtro por tipo de imóvel.
@@ -526,7 +545,7 @@ GET /api/mobile/checkin-config?tipoImovel=RESIDENTIAL&version=current
 ---
 
 #### BOW-122 — API de recebimento de vistoria (idempotente)
-**Onda:** 1 | **Prioridade:** 🔴 Crítica | **Status:** Pendente  
+**Onda:** 1 | **Prioridade:** 🔴 Crítica | **Status:** Em andamento (persistência idempotente entregue em 2026-04-03)  
 **Depende de:** BOW-120, BOW-100
 
 **Contexto:**  

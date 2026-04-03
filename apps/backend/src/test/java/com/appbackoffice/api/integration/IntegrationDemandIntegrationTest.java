@@ -3,6 +3,10 @@ package com.appbackoffice.api.integration;
 import com.appbackoffice.api.auth.repository.IdentityBindingRepository;
 import com.appbackoffice.api.auth.repository.SessionRepository;
 import com.appbackoffice.api.auth.repository.UserCredentialRepository;
+import com.appbackoffice.api.job.repository.AssignmentRepository;
+import com.appbackoffice.api.job.repository.CaseRepository;
+import com.appbackoffice.api.job.repository.JobRepository;
+import com.appbackoffice.api.job.repository.JobTimelineRepository;
 import com.appbackoffice.api.integration.repository.IntegrationDemandRepository;
 import com.appbackoffice.api.identity.repository.MembershipRepository;
 import com.appbackoffice.api.identity.entity.Tenant;
@@ -41,6 +45,18 @@ class IntegrationDemandIntegrationTest {
     private IntegrationDemandRepository integrationDemandRepository;
 
         @Autowired
+        private JobTimelineRepository jobTimelineRepository;
+
+        @Autowired
+        private AssignmentRepository assignmentRepository;
+
+        @Autowired
+        private JobRepository jobRepository;
+
+        @Autowired
+        private CaseRepository caseRepository;
+
+        @Autowired
         private SessionRepository sessionRepository;
 
         @Autowired
@@ -60,7 +76,11 @@ class IntegrationDemandIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        integrationDemandRepository.deleteAll();
+                integrationDemandRepository.deleteAll();
+                jobTimelineRepository.deleteAll();
+                assignmentRepository.deleteAll();
+                jobRepository.deleteAll();
+                caseRepository.deleteAll();
                 sessionRepository.deleteAll();
                 identityBindingRepository.deleteAll();
                 userCredentialRepository.deleteAll();
@@ -101,7 +121,9 @@ class IntegrationDemandIntegrationTest {
         assertThat(createResult.getResponse().getStatus()).isEqualTo(201);
         JsonNode createBody = objectMapper.readTree(createResult.getResponse().getContentAsString());
         assertThat(createBody.get("externalId").asText()).isEqualTo("FIN-12345");
-        assertThat(createBody.get("status").asText()).isEqualTo("RECEIVED");
+        assertThat(createBody.get("status").asText()).isEqualTo("CASE_CREATED");
+        assertThat(createBody.get("caseId").asLong()).isPositive();
+        assertThat(createBody.get("jobId").asLong()).isPositive();
         assertThat(createBody.get("created").asBoolean()).isTrue();
 
         var getResult = mockMvc.perform(get("/api/integration/demands/FIN-12345")
@@ -113,6 +135,8 @@ class IntegrationDemandIntegrationTest {
         assertThat(getResult.getResponse().getStatus()).isEqualTo(200);
         JsonNode getBody = objectMapper.readTree(getResult.getResponse().getContentAsString());
         assertThat(getBody.get("externalId").asText()).isEqualTo("FIN-12345");
+        assertThat(getBody.get("caseId").asLong()).isEqualTo(createBody.get("caseId").asLong());
+        assertThat(getBody.get("jobId").asLong()).isEqualTo(createBody.get("jobId").asLong());
     }
 
     @Test
@@ -150,8 +174,11 @@ class IntegrationDemandIntegrationTest {
         assertThat(first.getResponse().getStatus()).isEqualTo(201);
         assertThat(second.getResponse().getStatus()).isEqualTo(200);
 
+        JsonNode firstBody = objectMapper.readTree(first.getResponse().getContentAsString());
         JsonNode secondBody = objectMapper.readTree(second.getResponse().getContentAsString());
         assertThat(secondBody.get("created").asBoolean()).isFalse();
+        assertThat(secondBody.get("caseId").asLong()).isEqualTo(firstBody.get("caseId").asLong());
+        assertThat(secondBody.get("jobId").asLong()).isEqualTo(firstBody.get("jobId").asLong());
     }
 
     @Test

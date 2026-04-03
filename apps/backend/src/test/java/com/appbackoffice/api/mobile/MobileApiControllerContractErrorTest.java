@@ -1,8 +1,12 @@
 package com.appbackoffice.api.mobile;
 
+import com.appbackoffice.api.job.service.JobService;
+import com.appbackoffice.api.mobile.service.InspectionSubmissionService;
+import com.appbackoffice.api.mobile.service.MobileCheckinConfigService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -17,6 +21,15 @@ class MobileApiControllerContractErrorTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockBean
+    private JobService jobService;
+
+        @MockBean
+        private InspectionSubmissionService inspectionSubmissionService;
+
+        @MockBean
+        private MobileCheckinConfigService mobileCheckinConfigService;
 
     @Test
     void getCheckinConfig_withoutTenantHeader_returnsCanonicalContextError() throws Exception {

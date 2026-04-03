@@ -120,6 +120,21 @@ public class ConfigPackageService {
     ) {
         configPolicyService.assertAllowed(actorRole, ConfigAction.READ);
 
+        return resolveInternal(tenantId, unitId, roleId, userId, deviceId);
+        }
+
+        @Transactional(readOnly = true)
+        public ConfigResolveResponse resolveForMobile(String tenantId, String userId, String deviceId) {
+        return resolveInternal(tenantId, null, null, userId, deviceId);
+        }
+
+        private ConfigResolveResponse resolveInternal(
+            String tenantId,
+            String unitId,
+            String roleId,
+            String userId,
+            String deviceId
+        ) {
         List<ConfigPackageEntity> all = configPackageRepository.findByTenantIdOrderByUpdatedAtAsc(tenantId);
         List<ConfigPackageEntity> applied = all.stream()
                 .filter(entry -> entry.getStatus() == ConfigPackageStatus.ACTIVE)

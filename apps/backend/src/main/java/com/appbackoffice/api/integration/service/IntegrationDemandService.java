@@ -5,8 +5,12 @@ import com.appbackoffice.api.contract.ErrorSeverity;
 import com.appbackoffice.api.integration.dto.DemandCreateRequest;
 import com.appbackoffice.api.integration.dto.DemandResponse;
 import com.appbackoffice.api.integration.entity.IntegrationDemandEntity;
+import com.appbackoffice.api.job.dto.CreateCaseRequest;
+import com.appbackoffice.api.job.dto.CreateCaseResponse;
+import com.appbackoffice.api.job.service.CaseService;
 import com.appbackoffice.api.integration.repository.IntegrationDemandRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -21,19 +25,22 @@ public class IntegrationDemandService {
     private final IntegrationDemandRepository integrationDemandRepository;
     private final IntegrationEventPublisher integrationEventPublisher;
     private final ObjectMapper objectMapper;
+    private final CaseService caseService;
 
     public IntegrationDemandService(IntegrationDemandRepository integrationDemandRepository,
                                     IntegrationEventPublisher integrationEventPublisher,
-                                    ObjectMapper objectMapper) {
+                                    ObjectMapper objectMapper,
+                                    CaseService caseService) {
         this.integrationDemandRepository = integrationDemandRepository;
         this.integrationEventPublisher = integrationEventPublisher;
         this.objectMapper = objectMapper;
+        this.caseService = caseService;
     }
 
     @Transactional
     public DemandResponse createOrGet(DemandCreateRequest request) {
         return integrationDemandRepository.findByExternalId(request.externalId())
-                .map(existing -> toResponse(existing, false))
+                .map(existing -> toResponse(ensureCaseAndJobLinked(existing), false))
                 .orElseGet(() -> createNew(request));
     }
 
@@ -49,7 +56,7 @@ public class IntegrationDemandService {
                         "externalId=" + externalId + ", tenantId=" + tenantId
                 ));
 
-        return toResponse(demand, false);
+                return toResponse(demand, false);
     }
 
     private DemandResponse createNew(DemandCreateRequest request) {
@@ -65,8 +72,87 @@ public class IntegrationDemandService {
         entity.setStatus("RECEIVED");
 
         IntegrationDemandEntity saved = integrationDemandRepository.save(entity);
+        CreateCaseResponse caseResponse = caseService.createCase(
+                request.tenantId(),
+                request.requestedBy(),
+                toCreateCaseRequest(request)
+        );
+        saved.setCaseId(caseResponse.caseId());
+        saved.setJobId(caseResponse.jobId());
+        saved.setStatus("CASE_CREATED");
+        saved = integrationDemandRepository.save(saved);
         integrationEventPublisher.publishDemandCreated(saved);
         return toResponse(saved, true);
+    }
+
+    @Transactional
+    protected IntegrationDemandEntity ensureCaseAndJobLinked(IntegrationDemandEntity entity) {
+        if (entity.getCaseId() != null && entity.getJobId() != null) {
+            return entity;
+        }
+
+        CreateCaseResponse caseResponse = caseService.createCase(
+                entity.getTenantId(),
+                entity.getRequestedBy(),
+                toCreateCaseRequest(entity)
+        );
+        entity.setCaseId(caseResponse.caseId());
+        entity.setJobId(caseResponse.jobId());
+        entity.setStatus("CASE_CREATED");
+        return integrationDemandRepository.save(entity);
+    }
+
+    private CreateCaseRequest toCreateCaseRequest(DemandCreateRequest request) {
+        return new CreateCaseRequest(
+                buildCaseNumber(request.externalId()),
+                formatAddress(request.propertyAddress().street(), request.propertyAddress().city(), request.propertyAddress().state(), request.propertyAddress().zipCode()),
+                request.inspectionType(),
+                request.requestedDeadline(),
+                buildJobTitle(request.externalId(), request.inspectionType())
+        );
+    }
+
+    private CreateCaseRequest toCreateCaseRequest(IntegrationDemandEntity entity) {
+        JsonNode addressNode = readJson(entity.getPropertyAddressJson());
+        return new CreateCaseRequest(
+                buildCaseNumber(entity.getExternalId()),
+                formatAddress(
+                        addressNode.path("street").asText(""),
+                        addressNode.path("city").asText(""),
+                        addressNode.path("state").asText(""),
+                        addressNode.path("zipCode").asText("")
+                ),
+                entity.getInspectionType(),
+                entity.getRequestedDeadline(),
+                buildJobTitle(entity.getExternalId(), entity.getInspectionType())
+        );
+    }
+
+    private JsonNode readJson(String value) {
+        try {
+            return objectMapper.readTree(value);
+        } catch (JsonProcessingException e) {
+            throw new ApiContractException(
+                    HttpStatus.BAD_REQUEST,
+                    "DEMAND_ADDRESS_PARSE_FAILED",
+                    "Falha ao interpretar endereco da demanda",
+                    ErrorSeverity.ERROR,
+                    "Revise o endereco normalizado da demanda e tente novamente.",
+                    e.getMessage()
+            );
+        }
+    }
+
+    private String buildCaseNumber(String externalId) {
+        return "CASE-" + externalId.trim().replaceAll("[^A-Za-z0-9-]", "-");
+    }
+
+    private String buildJobTitle(String externalId, String inspectionType) {
+        return "Vistoria " + inspectionType + " - " + externalId;
+    }
+
+    private String formatAddress(String street, String city, String state, String zipCode) {
+        return String.join(", ", street, city, state, zipCode);
     }
 
     private String buildNormalizedPayload(DemandCreateRequest request) {
@@ -102,6 +188,8 @@ public class IntegrationDemandService {
                 entity.getExternalId(),
                 entity.getTenantId(),
                 entity.getStatus(),
+                entity.getCaseId(),
+                entity.getJobId(),
                 created,
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()

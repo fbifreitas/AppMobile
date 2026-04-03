@@ -7,6 +7,8 @@ public record DemandResponse(
         String externalId,
         String tenantId,
         String status,
+        Long caseId,
+        Long jobId,
         boolean created,
         Instant createdAt,
         Instant updatedAt

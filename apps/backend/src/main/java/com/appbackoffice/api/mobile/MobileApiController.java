@@ -4,9 +4,13 @@ import com.appbackoffice.api.contract.ApiContractException;
 import com.appbackoffice.api.contract.CanonicalErrorResponse;
 import com.appbackoffice.api.contract.ErrorSeverity;
 import com.appbackoffice.api.contract.RequestContextValidator;
+import com.appbackoffice.api.job.dto.JobSummaryResponse;
+import com.appbackoffice.api.job.service.JobService;
 import com.appbackoffice.api.mobile.dto.CheckinConfigResponse;
 import com.appbackoffice.api.mobile.dto.InspectionFinalizedRequest;
 import com.appbackoffice.api.mobile.dto.InspectionFinalizedResponse;
+import com.appbackoffice.api.mobile.service.InspectionSubmissionService;
+import com.appbackoffice.api.mobile.service.MobileCheckinConfigService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -25,11 +29,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.Instant;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
 @Validated
@@ -37,7 +37,17 @@ import java.util.concurrent.ConcurrentHashMap;
 @Tag(name = "Mobile v1", description = "Contratos críticos do AppMobile (v1)")
 public class MobileApiController {
 
-    private final Map<String, InspectionFinalizedResponse> idempotencyStore = new ConcurrentHashMap<>();
+    private final JobService jobService;
+        private final InspectionSubmissionService inspectionSubmissionService;
+        private final MobileCheckinConfigService mobileCheckinConfigService;
+
+        public MobileApiController(JobService jobService,
+                                                           InspectionSubmissionService inspectionSubmissionService,
+                                                           MobileCheckinConfigService mobileCheckinConfigService) {
+        this.jobService = jobService;
+                this.inspectionSubmissionService = inspectionSubmissionService;
+                this.mobileCheckinConfigService = mobileCheckinConfigService;
+    }
 
     @GetMapping("/checkin-config")
     @Operation(
@@ -60,26 +70,7 @@ public class MobileApiController {
             @RequestHeader("X-Actor-Id") String actorId
     ) {
         RequestContextValidator.requireFullContext(tenantId, correlationId, actorId);
-
-        Map<String, Object> step1 = Map.of(
-                "tipos", List.of("Urbano", "Rural", "Comercial", "Industrial"),
-                "subtiposPorTipo", Map.of("Urbano", List.of("Apartamento", "Casa", "Sobrado", "Terreno"))
-        );
-        Map<String, Object> step2 = Map.of(
-                "camposFotos", List.of("fachada", "logradouro"),
-                "gruposOpcoes", List.of("infraestrutura_servicos")
-        );
-
-        CheckinConfigResponse response = new CheckinConfigResponse(
-                "v1",
-                step1,
-                step2,
-                List.of(
-                        "Compatibilidade v1: campos existentes não serão removidos/renomeados sem nova major.",
-                        "Tenant e correlationId são obrigatórios para rastreabilidade ponta a ponta."
-                )
-        );
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(mobileCheckinConfigService.resolve(tenantId, actorId, tipoImovel));
     }
 
     @PostMapping("/inspections/finalized")
@@ -119,21 +110,55 @@ public class MobileApiController {
                         );
         }
 
-        String scopedKey = tenantId + ":" + idempotencyKey.trim();
-        InspectionFinalizedResponse existing = idempotencyStore.get(scopedKey);
-        if (existing != null) {
-            return ResponseEntity.status(HttpStatus.ACCEPTED)
-                    .body(new InspectionFinalizedResponse(existing.protocolId(), existing.receivedAt(), existing.status(), true));
-        }
-
-        InspectionFinalizedResponse created = new InspectionFinalizedResponse(
-                "proto-" + UUID.randomUUID(),
-                Instant.now(),
-                "accepted",
-                false
+        Long userId = parseUserId(actorId);
+        InspectionFinalizedResponse created = inspectionSubmissionService.receive(
+                tenantId,
+                userId,
+                actorId,
+                idempotencyKey,
+                request
         );
-        idempotencyStore.put(scopedKey, created);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(created);
+    }
+
+    @GetMapping("/jobs")
+    @Operation(
+            summary = "Lista jobs do vistoriador autenticado (v1)",
+            description = "Retorna jobs atribuídos ao userId informado. Usa X-Actor-Id como identificador do vistoriador.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Lista de jobs retornada"),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Contexto inválido",
+                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = CanonicalErrorResponse.class))
+                    )
+            }
+    )
+    public ResponseEntity<List<JobSummaryResponse>> getMobileJobs(
+            @RequestHeader("X-Tenant-Id") String tenantId,
+            @RequestHeader("X-Correlation-Id") String correlationId,
+            @RequestHeader("X-Actor-Id") String actorId,
+            @Parameter(description = "Filtro por status (ex: ACCEPTED, IN_EXECUTION). Padrão: ACCEPTED")
+            @RequestParam(required = false) String status
+    ) {
+        RequestContextValidator.requireFullContext(tenantId, correlationId, actorId);
+        Long userId = parseUserId(actorId);
+                return ResponseEntity.ok(jobService.getMobileJobsForUser(tenantId, userId, status));
+    }
+
+    private Long parseUserId(String actorId) {
+        try {
+            return Long.parseLong(actorId);
+        } catch (NumberFormatException e) {
+            throw new ApiContractException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_ACTOR_ID",
+                    "X-Actor-Id deve ser um ID numérico de usuário",
+                    ErrorSeverity.ERROR,
+                    "Informe o ID interno do usuário no cabeçalho X-Actor-Id.",
+                    "header: X-Actor-Id"
+            );
+        }
     }
 
 }
