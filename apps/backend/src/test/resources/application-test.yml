@@ -1,12 +1,12 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:testdb
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false
     driver-class-name: org.h2.Driver
     username: sa
     password:
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: none
     database-platform: org.hibernate.dialect.H2Dialect
   data:
     redis:
@@ -17,3 +17,12 @@ storage:
   adapter: local
   local:
     path: ./target/test-uploads
+
+auth:
+  jwt:
+    secret: test-secret-test-secret-test-secret-test
+    access-token-minutes: 15
+    refresh-token-days: 7
+  lockout:
+    max-attempts: 5
+    window-minutes: 10

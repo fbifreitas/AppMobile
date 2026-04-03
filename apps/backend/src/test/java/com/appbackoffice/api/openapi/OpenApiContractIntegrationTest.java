@@ -70,6 +70,13 @@ class OpenApiContractIntegrationTest {
                 .isEqualTo("#/components/schemas/CanonicalErrorResponse");
         assertThat(requiredHeaderNames(document, "/api/mobile/inspections/finalized", "post"))
                 .containsExactlyInAnyOrder("X-Tenant-Id", "X-Correlation-Id", "X-Actor-Id", "X-Idempotency-Key");
+
+        assertThat(requiredHeaderNames(document, "/api/backoffice/config/packages", "get"))
+            .containsExactlyInAnyOrder("X-Correlation-Id");
+        assertThat(requiredHeaderNames(document, "/api/backoffice/config/packages", "post"))
+            .containsExactlyInAnyOrder("X-Correlation-Id");
+        assertThat(requiredHeaderNames(document, "/api/backoffice/config/packages/approve", "post"))
+            .containsExactlyInAnyOrder("X-Correlation-Id");
     }
 
     private String openApiFailureMessage(MvcResult result) {
