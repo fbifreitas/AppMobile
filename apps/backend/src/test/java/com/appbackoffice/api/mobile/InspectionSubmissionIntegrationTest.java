@@ -13,6 +13,7 @@ import com.appbackoffice.api.job.repository.JobRepository;
 import com.appbackoffice.api.job.repository.JobTimelineRepository;
 import com.appbackoffice.api.job.service.CaseService;
 import com.appbackoffice.api.job.service.JobService;
+import com.appbackoffice.api.mobile.repository.InspectionRepository;
 import com.appbackoffice.api.mobile.repository.InspectionSubmissionRepository;
 import com.appbackoffice.api.user.entity.User;
 import com.appbackoffice.api.user.repository.UserRepository;
@@ -40,6 +41,7 @@ class InspectionSubmissionIntegrationTest {
 
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
+    @Autowired private InspectionRepository inspectionRepository;
     @Autowired private InspectionSubmissionRepository inspectionSubmissionRepository;
     @Autowired private JobTimelineRepository jobTimelineRepository;
     @Autowired private AssignmentRepository assignmentRepository;
@@ -55,6 +57,7 @@ class InspectionSubmissionIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        inspectionRepository.deleteAll();
         inspectionSubmissionRepository.deleteAll();
         jobTimelineRepository.deleteAll();
         assignmentRepository.deleteAll();
@@ -77,6 +80,7 @@ class InspectionSubmissionIntegrationTest {
 
     @AfterEach
     void tearDown() {
+        inspectionRepository.deleteAll();
         inspectionSubmissionRepository.deleteAll();
         jobTimelineRepository.deleteAll();
         assignmentRepository.deleteAll();
@@ -102,9 +106,10 @@ class InspectionSubmissionIntegrationTest {
         assertThat(result.getResponse().getStatus()).isEqualTo(202);
         JsonNode body = objectMapper.readTree(result.getResponse().getContentAsString());
         assertThat(body.get("protocolId").asText()).startsWith("INS-");
-        assertThat(body.get("status").asText()).isEqualTo("RECEIVED");
+        assertThat(body.get("status").asText()).isEqualTo("SUBMITTED");
         assertThat(body.get("duplicate").asBoolean()).isFalse();
 
+        assertThat(inspectionRepository.count()).isEqualTo(1);
         assertThat(inspectionSubmissionRepository.count()).isEqualTo(1);
         assertThat(jobRepository.findById(jobId)).isPresent();
         assertThat(jobRepository.findById(jobId).orElseThrow().getStatus()).isEqualTo(JobStatus.SUBMITTED);
@@ -140,6 +145,8 @@ class InspectionSubmissionIntegrationTest {
         assertThat(second.getResponse().getStatus()).isEqualTo(202);
         assertThat(secondBody.get("duplicate").asBoolean()).isTrue();
         assertThat(secondBody.get("protocolId").asText()).isEqualTo(firstBody.get("protocolId").asText());
+        assertThat(secondBody.get("status").asText()).isEqualTo("SUBMITTED");
+        assertThat(inspectionRepository.count()).isEqualTo(1);
         assertThat(inspectionSubmissionRepository.count()).isEqualTo(1);
     }
 

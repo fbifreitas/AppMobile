@@ -5,6 +5,10 @@ import com.appbackoffice.api.config.dto.ConfigPackageResponse;
 import com.appbackoffice.api.config.dto.ConfigResolveResponse;
 import com.appbackoffice.api.config.dto.ConfigRulesDto;
 import com.appbackoffice.api.mobile.dto.CheckinConfigResponse;
+import com.appbackoffice.api.mobile.entity.CheckinSectionEntity;
+import com.appbackoffice.api.mobile.repository.CheckinSectionRepository;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -16,9 +20,15 @@ import java.util.Map;
 public class MobileCheckinConfigService {
 
     private final ConfigPackageService configPackageService;
+    private final CheckinSectionRepository checkinSectionRepository;
+    private final ObjectMapper objectMapper;
 
-    public MobileCheckinConfigService(ConfigPackageService configPackageService) {
+    public MobileCheckinConfigService(ConfigPackageService configPackageService,
+                                      CheckinSectionRepository checkinSectionRepository,
+                                      ObjectMapper objectMapper) {
         this.configPackageService = configPackageService;
+        this.checkinSectionRepository = checkinSectionRepository;
+        this.objectMapper = objectMapper;
     }
 
     public CheckinConfigResponse resolve(String tenantId, String actorId, String tipoImovel) {
@@ -50,26 +60,25 @@ public class MobileCheckinConfigService {
             step2.put("presentation", presentation);
         }
 
+        List<CheckinConfigResponse.CheckinSectionDto> sections = resolveSections(tenantId, tipoImovel);
+        Instant publishedAt = resolvePublishedAt(resolveResponse.result().appliedPackages(), tenantId, sections.isEmpty());
+        Instant publishedAtForResponse = publishedAt.equals(Instant.EPOCH) ? Instant.now() : publishedAt;
+
         return new CheckinConfigResponse(
-                buildVersion(resolveResponse.result().appliedPackages()),
+                buildVersion(resolveResponse.result().appliedPackages(), publishedAt),
+            publishedAtForResponse.toString(),
                 step1,
                 step2,
+                sections,
                 buildNotes(resolveResponse.result().appliedPackages())
         );
     }
 
-    private String buildVersion(List<ConfigPackageResponse> appliedPackages) {
-        if (appliedPackages.isEmpty()) {
+    private String buildVersion(List<ConfigPackageResponse> appliedPackages, Instant publishedAt) {
+        if (appliedPackages.isEmpty() && publishedAt.equals(Instant.EPOCH)) {
             return "v1-default";
         }
-
-        Instant latest = appliedPackages.stream()
-                .map(ConfigPackageResponse::updatedAt)
-                .map(Instant::parse)
-                .max(Instant::compareTo)
-                .orElse(Instant.EPOCH);
-
-        return "cfg-" + latest.toEpochMilli();
+        return "cfg-" + publishedAt.toEpochMilli();
     }
 
     private List<String> buildNotes(List<ConfigPackageResponse> appliedPackages) {
@@ -92,4 +101,94 @@ public class MobileCheckinConfigService {
                 "Tenant e correlationId são obrigatórios para rastreabilidade ponta a ponta."
         );
     }
+
+        private List<CheckinConfigResponse.CheckinSectionDto> resolveSections(String tenantId, String tipoImovel) {
+        List<CheckinSectionEntity> all = checkinSectionRepository
+            .findByTenantIdAndActiveTrueOrderBySortOrderAscUpdatedAtAsc(tenantId);
+
+        List<CheckinSectionEntity> matched = all.stream()
+            .filter(section -> sectionMatchesTipoImovel(section, tipoImovel))
+            .toList();
+
+        if (matched.isEmpty()) {
+            return defaultSections();
+        }
+
+        return matched.stream()
+            .map(section -> new CheckinConfigResponse.CheckinSectionDto(
+                section.getSectionKey(),
+                section.getSectionLabel(),
+                section.isMandatory(),
+                new CheckinConfigResponse.PhotoPolicyDto(
+                    section.getPhotoMin() != null ? section.getPhotoMin() : 1,
+                    section.getPhotoMax() != null ? section.getPhotoMax() : 5
+                ),
+                parseDesiredItems(section.getDesiredItemsJson())
+            ))
+            .toList();
+        }
+
+        private Instant resolvePublishedAt(List<ConfigPackageResponse> appliedPackages,
+                           String tenantId,
+                           boolean sectionsFallbackUsed) {
+        Instant fromPackages = appliedPackages.stream()
+            .map(ConfigPackageResponse::updatedAt)
+            .map(Instant::parse)
+            .max(Instant::compareTo)
+            .orElse(Instant.EPOCH);
+
+        Instant fromSections = sectionsFallbackUsed
+            ? Instant.EPOCH
+            : checkinSectionRepository.findByTenantIdAndActiveTrueOrderBySortOrderAscUpdatedAtAsc(tenantId)
+            .stream()
+            .map(CheckinSectionEntity::getUpdatedAt)
+            .max(Instant::compareTo)
+            .orElse(Instant.EPOCH);
+
+        return fromPackages.isAfter(fromSections) ? fromPackages : fromSections;
+        }
+
+        private boolean sectionMatchesTipoImovel(CheckinSectionEntity section, String tipoImovel) {
+        if (section.getTipoImovel() == null || section.getTipoImovel().isBlank()) {
+            return true;
+        }
+        if (tipoImovel == null || tipoImovel.isBlank()) {
+            return false;
+        }
+        return section.getTipoImovel().equalsIgnoreCase(tipoImovel);
+        }
+
+        private List<String> parseDesiredItems(String desiredItemsJson) {
+        try {
+            return objectMapper.readValue(desiredItemsJson, new TypeReference<>() {});
+        } catch (Exception exception) {
+            return List.of();
+        }
+        }
+
+        private List<CheckinConfigResponse.CheckinSectionDto> defaultSections() {
+        return List.of(
+            new CheckinConfigResponse.CheckinSectionDto(
+                "fachada",
+                "Fachada",
+                true,
+                new CheckinConfigResponse.PhotoPolicyDto(1, 5),
+                List.of("orientacao", "material")
+            ),
+            new CheckinConfigResponse.CheckinSectionDto(
+                "ambiente",
+                "Ambiente",
+                true,
+                new CheckinConfigResponse.PhotoPolicyDto(1, 8),
+                List.of("estado", "iluminacao")
+            ),
+            new CheckinConfigResponse.CheckinSectionDto(
+                "elemento",
+                "Elemento",
+                false,
+                new CheckinConfigResponse.PhotoPolicyDto(0, 5),
+                List.of("detalhe", "patologia")
+            )
+        );
+        }
 }

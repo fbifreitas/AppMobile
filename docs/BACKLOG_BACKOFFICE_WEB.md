@@ -506,8 +506,10 @@ GET /api/mobile/jobs?userId=&status=        → jobs do vistoriador autenticado
 - ✅ Entregue: `GET /api/mobile/checkin-config` deixou o stub fixo e passou a resolver configuração efetiva real a partir de `ConfigPackage` ativo por tenant/usuário.
 - ✅ Entregue: versionamento v1 por hash temporal (`cfg-<epoch>`) derivado do pacote ativo mais recente, preservando fallback `v1-default` quando não há pacote ativo.
 - ✅ Entregue: adaptação retrocompatível do contrato atual com `photoPolicy`, `featureFlags` e `presentation` derivados das regras efetivas de `ConfigPackage`.
+- ✅ Entregue: modelagem canônica NBR persistida no banco com migration `V010__checkin_sections.sql` e tabela `checkin_sections` (key, label, mandatory, photos min/max, desiredItems).
+- ✅ Entregue: contrato mobile expandido com `publishedAt` e `sections[]` canônicas, mantendo retrocompatibilidade de `step1/step2`.
 - ✅ Testes: `MobileCheckinConfigIntegrationTest` com 2 cenários verdes cobrindo pacote ativo e fallback sem pacote.
-- ⏳ Pendente para concluir o card: modelar `sections` canônicas NBR (fachada, ambiente, elemento, desiredItems) no banco e publicar contrato alinhado ao blueprint, sem depender só de `ConfigRulesDto`.
+- ⏳ Pendente para concluir o card: expor gestão web operacional das `sections` (publicação/edição/rollback por tenant) e conectar consumo mobile fim-a-fim sem dependência de fallback default.
 
 **Contexto:**  
 O mobile já consome `GET /api/mobile/checkin-config` (ver `MobileApiController`). Hoje retorna stub. Este item conecta ao banco real com versionamento, rollback e filtro por tipo de imóvel.
@@ -548,6 +550,12 @@ GET /api/mobile/checkin-config?tipoImovel=RESIDENTIAL&version=current
 **Onda:** 1 | **Prioridade:** 🔴 Crítica | **Status:** Em andamento (persistência idempotente entregue em 2026-04-03)  
 **Depende de:** BOW-120, BOW-100
 
+**Andamento 2026-04-03 (incremento adicional):**
+- ✅ Entregue: migration `V011__inspections.sql` com agregado explícito `inspections` vinculado à submissão mobile e ao `job`.
+- ✅ Entregue: `InspectionSubmissionService` passou a persistir `Inspection` explícita no recebimento e a responder status operacional `SUBMITTED`.
+- ✅ Entregue: idempotência preservada em `inspection_submissions` e `inspections` por `(tenant_id, idempotency_key)`.
+- ✅ Testes: `InspectionSubmissionIntegrationTest` atualizado e verde cobrindo persistência do agregado + reenvio idempotente.
+
 **Contexto:**  
 `POST /api/mobile/inspections/finalized` existe como stub. Precisa de persistência real, idempotência obrigatória e retorno de protocolo.
 
@@ -558,9 +566,9 @@ GET /api/mobile/checkin-config?tipoImovel=RESIDENTIAL&version=current
 Mobile → POST /api/mobile/inspections/finalized
   → Valida X-Idempotency-Key
   → Se já processado: retorna 200 com mesmo protocolo (não reprocessa)
-  → Se novo: persiste InspectionSubmission em field_ops_db
+  → Se novo: persiste InspectionSubmission + Inspection em field_ops_db
   → Emite evento InspectionSubmitted
-  → Retorna { "protocol": "INS-2026-00123", "status": "RECEIVED" }
+  → Retorna { "protocol": "INS-2026-00123", "status": "SUBMITTED" }
 ```
 
 **Chave de idempotência:** `jobId + exportedAt + payloadChecksum` — derivada pelo mobile.
@@ -579,13 +587,25 @@ Inspection { id, jobId, tenantId, vistoriadorId, idempotencyKey, status, submitt
 ---
 
 #### BOW-123 — Painel web de vistorias recebidas
-**Onda:** 1 | **Prioridade:** 🟠 Alta | **Status:** Pendente  
+**Onda:** 1 | **Prioridade:** 🟠 Alta | **Status:** ✅ Concluído (2026-04-03)  
 **Depende de:** BOW-122
 
 **O que construir (web `apps/web-backoffice`):**
 - Rota `/backoffice/inspections` — lista com filtros: status, data, tenant, vistoriador
 - Rota `/backoffice/inspections/[id]` — detalhe técnico completo com fotos e payload
 - Indicadores: total recebido hoje, pendentes de intake, erros de sync
+
+**Andamento 2026-04-03:**
+- ✅ Entregue: backend `GET /api/backoffice/inspections` com filtros por `status`, janela (`from`/`to`) e `vistoriadorId`.
+- ✅ Entregue: backend `GET /api/backoffice/inspections/{id}` com detalhe técnico do payload persistido.
+- ✅ Entregue: rotas Next.js `/api/inspections` e `/api/inspections/[inspectionId]` como bridge para o backend.
+- ✅ Entregue: página `apps/web-backoffice/app/backoffice/inspections/page.tsx` com indicadores, filtros, paginação inicial, listagem e painel de detalhe técnico do payload.
+- ✅ Entregue: indicadores do painel conectados a métricas de backend (`receivedToday`, `pendingIntake`, `syncErrors`, `submitted`) na resposta de listagem.
+- ✅ Entregue: entrada de navegação no dashboard inicial do backoffice.
+- ✅ Testes backend focados: `InspectionBackofficeIntegrationTest`, `InspectionSubmissionIntegrationTest` e `MobileCheckinConfigIntegrationTest` verdes (6 testes).
+- ✅ Validações web executadas: `npm --prefix apps/web-backoffice run lint` limpo; `npm --prefix apps/web-backoffice test` verde (16 testes).
+- ⚠️ Observação operacional: após reinstalação limpa de dependências, foi necessário adicionar `get-tsconfig` como `devDependency` direta para estabilizar o runner `tsx` no Windows.
+- ⏳ Pendente para concluir o card: confirmar deterministicamente o `next build` neste ambiente local (travando sem saída após o banner do Next.js).
 
 **Critério de pronto:**
 - Lista paginada funcional com dados reais

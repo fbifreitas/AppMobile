@@ -7,6 +7,8 @@
   --accent-cyan: #00a5cf;
   --accent-amber: #ff9f1c;
   --border: #d8deea;
+  --font-body: "IBM Plex Sans", "Segoe UI", "Trebuchet MS", sans-serif;
+  --font-heading: "Space Grotesk", "Aptos", "Arial Narrow", sans-serif;
 }
 
 * {

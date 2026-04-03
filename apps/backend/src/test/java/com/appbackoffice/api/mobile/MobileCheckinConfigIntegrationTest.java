@@ -2,6 +2,8 @@ package com.appbackoffice.api.mobile;
 
 import com.appbackoffice.api.config.ConfigAuditEntryRepository;
 import com.appbackoffice.api.config.ConfigPackageRepository;
+import com.appbackoffice.api.mobile.entity.CheckinSectionEntity;
+import com.appbackoffice.api.mobile.repository.CheckinSectionRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +15,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -37,10 +41,14 @@ class MobileCheckinConfigIntegrationTest {
     @Autowired
     private ConfigPackageRepository configPackageRepository;
 
+    @Autowired
+    private CheckinSectionRepository checkinSectionRepository;
+
     @BeforeEach
     void setUp() {
         configAuditEntryRepository.deleteAll();
         configPackageRepository.deleteAll();
+      checkinSectionRepository.deleteAll();
     }
 
     @Test
@@ -90,6 +98,18 @@ class MobileCheckinConfigIntegrationTest {
                                 """.formatted(packageId)))
                 .andReturn();
 
+              checkinSectionRepository.save(createSection(
+                "tenant-mobile-config",
+                "RESIDENTIAL",
+                "fachada",
+                "Fachada",
+                true,
+                2,
+                7,
+                List.of("orientacao", "material"),
+                1
+              ));
+
         MvcResult result = mockMvc.perform(get("/api/mobile/checkin-config")
                         .header("X-Tenant-Id", "tenant-mobile-config")
                         .header("X-Correlation-Id", CORRELATION_ID)
@@ -101,12 +121,16 @@ class MobileCheckinConfigIntegrationTest {
         JsonNode body = objectMapper.readTree(result.getResponse().getContentAsString());
 
         assertThat(body.get("version").asText()).startsWith("cfg-");
+        assertThat(body.get("publishedAt").asText()).isNotBlank();
         assertThat(body.at("/step1/requestedTipoImovel").asText()).isEqualTo("RESIDENTIAL");
         assertThat(body.at("/step2/photoPolicy/min").asInt()).isEqualTo(2);
         assertThat(body.at("/step2/photoPolicy/max").asInt()).isEqualTo(7);
         assertThat(body.at("/step2/featureFlags/enableVoiceCommands").asBoolean()).isFalse();
         assertThat(body.at("/step2/featureFlags/requireBiometric").asBoolean()).isTrue();
         assertThat(body.at("/step2/presentation/theme").asText()).isEqualTo("operational");
+        assertThat(body.at("/sections/0/key").asText()).isEqualTo("fachada");
+        assertThat(body.at("/sections/0/photos/min").asInt()).isEqualTo(2);
+        assertThat(body.at("/sections/0/desiredItems/0").asText()).isEqualTo("orientacao");
         assertThat(body.get("compatibilityNotes").toString()).contains(packageId);
     }
 
@@ -121,8 +145,34 @@ class MobileCheckinConfigIntegrationTest {
         assertThat(result.getResponse().getStatus()).isEqualTo(200);
         JsonNode body = objectMapper.readTree(result.getResponse().getContentAsString());
         assertThat(body.get("version").asText()).isEqualTo("v1-default");
+        assertThat(body.get("publishedAt").asText()).isNotBlank();
         assertThat(body.at("/step2/photoPolicy/min").asInt()).isEqualTo(1);
         assertThat(body.at("/step2/photoPolicy/max").asInt()).isEqualTo(5);
+        assertThat(body.at("/sections/0/key").asText()).isEqualTo("fachada");
+        assertThat(body.at("/sections/1/key").asText()).isEqualTo("ambiente");
         assertThat(body.get("compatibilityNotes").toString()).contains("nenhum pacote ativo encontrado");
     }
+
+      private CheckinSectionEntity createSection(String tenantId,
+                             String tipoImovel,
+                             String key,
+                             String label,
+                             boolean mandatory,
+                             int photoMin,
+                             int photoMax,
+                             List<String> desiredItems,
+                             int sortOrder) throws Exception {
+        CheckinSectionEntity entity = new CheckinSectionEntity();
+        entity.setTenantId(tenantId);
+        entity.setTipoImovel(tipoImovel);
+        entity.setSectionKey(key);
+        entity.setSectionLabel(label);
+        entity.setMandatory(mandatory);
+        entity.setPhotoMin(photoMin);
+        entity.setPhotoMax(photoMax);
+        entity.setDesiredItemsJson(objectMapper.writeValueAsString(desiredItems));
+        entity.setSortOrder(sortOrder);
+        entity.setActive(true);
+        return entity;
+      }
 }

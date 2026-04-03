@@ -5,7 +5,9 @@ import com.appbackoffice.api.contract.ErrorSeverity;
 import com.appbackoffice.api.job.service.JobService;
 import com.appbackoffice.api.mobile.dto.InspectionFinalizedRequest;
 import com.appbackoffice.api.mobile.dto.InspectionFinalizedResponse;
+import com.appbackoffice.api.mobile.entity.InspectionEntity;
 import com.appbackoffice.api.mobile.entity.InspectionSubmissionEntity;
+import com.appbackoffice.api.mobile.repository.InspectionRepository;
 import com.appbackoffice.api.mobile.repository.InspectionSubmissionRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,13 +26,16 @@ public class InspectionSubmissionService {
     private static final Logger LOGGER = LoggerFactory.getLogger(InspectionSubmissionService.class);
 
     private final InspectionSubmissionRepository inspectionSubmissionRepository;
+    private final InspectionRepository inspectionRepository;
     private final JobService jobService;
     private final ObjectMapper objectMapper;
 
     public InspectionSubmissionService(InspectionSubmissionRepository inspectionSubmissionRepository,
+                                       InspectionRepository inspectionRepository,
                                        JobService jobService,
                                        ObjectMapper objectMapper) {
         this.inspectionSubmissionRepository = inspectionSubmissionRepository;
+        this.inspectionRepository = inspectionRepository;
         this.jobService = jobService;
         this.objectMapper = objectMapper;
     }
@@ -46,10 +51,24 @@ public class InspectionSubmissionService {
                 .orElse(null);
 
         if (existing != null) {
+            InspectionEntity existingInspection = inspectionRepository
+                    .findByTenantIdAndIdempotencyKey(tenantId, idempotencyKey)
+                    .orElse(null);
+
+            if (existingInspection != null) {
+                return new InspectionFinalizedResponse(
+                        existingInspection.getProtocolId(),
+                        existingInspection.getSubmittedAt(),
+                        existingInspection.getStatus(),
+                        true
+                );
+            }
+
             return new InspectionFinalizedResponse(existing.getProtocolId(), existing.getSubmittedAt(), existing.getStatus(), true);
         }
 
         Long jobId = parseJobId(request.job().id());
+        String payloadJson = toJson(request);
 
         InspectionSubmissionEntity entity = new InspectionSubmissionEntity();
         entity.setJobId(jobId);
@@ -58,14 +77,26 @@ public class InspectionSubmissionService {
         entity.setIdempotencyKey(idempotencyKey.trim());
         entity.setProtocolId(buildProtocolId());
         entity.setStatus("RECEIVED");
-        entity.setPayloadJson(toJson(request));
+        entity.setPayloadJson(payloadJson);
         entity = inspectionSubmissionRepository.save(entity);
+
+        InspectionEntity inspection = new InspectionEntity();
+        inspection.setSubmissionId(entity.getId());
+        inspection.setJobId(jobId);
+        inspection.setTenantId(tenantId);
+        inspection.setVistoriadorId(actorUserId);
+        inspection.setIdempotencyKey(idempotencyKey.trim());
+        inspection.setProtocolId(entity.getProtocolId());
+        inspection.setStatus("SUBMITTED");
+        inspection.setPayloadJson(payloadJson);
+        inspection.setSubmittedAt(entity.getSubmittedAt());
+        inspectionRepository.save(inspection);
 
         jobService.submitInspectionFromMobile(tenantId, jobId, actorId);
 
         LOGGER.info("InspectionSubmitted event simulated: jobId={}, tenantId={}, protocolId={}", jobId, tenantId, entity.getProtocolId());
 
-        return new InspectionFinalizedResponse(entity.getProtocolId(), entity.getSubmittedAt(), entity.getStatus(), false);
+        return new InspectionFinalizedResponse(entity.getProtocolId(), entity.getSubmittedAt(), inspection.getStatus(), false);
     }
 
     private Long parseJobId(String rawJobId) {

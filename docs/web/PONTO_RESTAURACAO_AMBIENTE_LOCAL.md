@@ -1031,3 +1031,97 @@ _Documento de restauração mantido pelo agente (Copilot) como ponto de continui
   - Migrations Flyway ativas: V001–V006.
 - Proxima acao:
   - Iniciar BOW-120 (modelo canônico de domínio: Case/Job/Assignment).
+
+### Checkpoint 2026-04-03 (promocao homolog -> main — PR #9)
+- O que foi feito:
+  - PR `#9` criado de `homolog/bl-accordion-dedup-fix` para `main` com pacote BOW-120/BOW-121/BOW-122.
+  - Merge para `main` concluido no mesmo ciclo, com esteiras principais monitoradas ate conclusao.
+  - Workflows confirmados: `Backend CI` (success), `Backend Deploy` (success), `Internal Docs CI` (success), `Android CI` (success).
+  - Workflow `Android Distribution` no push de `main` ficou `skipped` (sem falha de pipeline).
+- Estado atual:
+  - `main` atualizado com as entregas BOW-120/BOW-121/BOW-122.
+  - Promocao concluida e pipelines criticas verdes.
+- Regra operacional reforcada para proxima promocao (mantenedor unico):
+  - Aplicar o procedimento oficial de excecao: reduzir temporariamente `required_approving_review_count` para `0`, realizar merge da PR e restaurar imediatamente para `1`.
+  - Evitar uso de merge administrativo direto como caminho padrao quando o procedimento de excecao controlada estiver disponivel.
+- Proxima acao:
+  - Na proxima promocao para `main`, executar obrigatoriamente o procedimento de excecao controlada com evidencia de ajuste e restore da protecao no mesmo checkpoint.
+
+### Checkpoint 2026-04-03 (pacote grande — Fase A incrementos 1 e 2)
+- O que foi feito:
+  - Criada migration `V010__checkin_sections.sql` com modelo canônico NBR de seções de check-in (`checkin_sections`).
+  - Criadas `CheckinSectionEntity` e `CheckinSectionRepository` no backend.
+  - `GET /api/mobile/checkin-config` evoluído para retornar `publishedAt` e `sections[]` canônicas (com fallback default), mantendo `step1/step2` por retrocompatibilidade.
+  - Criada migration `V011__inspections.sql` com agregado explícito `inspections` ligado a submissão e job.
+  - Criadas `InspectionEntity` e `InspectionRepository`.
+  - `InspectionSubmissionService` atualizado para persistir `Inspection` explícita e responder status `SUBMITTED` no retorno mobile.
+  - Testes ajustados:
+    - `MobileCheckinConfigIntegrationTest` cobrindo `publishedAt` + `sections[]`.
+    - `InspectionSubmissionIntegrationTest` cobrindo persistência do agregado `Inspection` + idempotência.
+- Estado atual:
+  - Flyway backend em `V011`.
+  - Incrementos da Fase A validados com sucesso em teste focado backend (`4 testes, 0 falhas`).
+  - BOW-121 e BOW-122 avançaram com persistência/modelo explícito; BOW-123 ainda pendente.
+- Próxima ação:
+  - Iniciar BOW-123 no `apps/web-backoffice`: rota `/backoffice/inspections` com lista, filtros e indicadores operacionais em cima de dados reais de `inspections`.
+
+### Checkpoint 2026-04-03 (pacote grande — BOW-123 incremento inicial web)
+- O que foi feito:
+  - Criado backend `InspectionBackofficeController` com endpoints `GET /api/backoffice/inspections` e `GET /api/backoffice/inspections/{id}`.
+  - Criado `InspectionBackofficeService` com filtros por status, janela temporal e vistoriador, além de detalhe técnico do payload persistido.
+  - Criadas rotas Next.js `/api/inspections` e `/api/inspections/[inspectionId]` para bridge com o backend.
+  - Criada página `apps/web-backoffice/app/backoffice/inspections/page.tsx` com cards-resumo, filtros, tabela e painel de detalhe técnico.
+  - Dashboard inicial atualizado com atalho para o novo painel de vistorias recebidas.
+  - Warning de `useEffect` corrigido; `npm --prefix apps/web-backoffice run lint` voltou limpo.
+  - `npm --prefix apps/web-backoffice test` executado com sucesso: 14 testes, 0 falhas.
+- Estado atual:
+  - BOW-123 saiu de pendente para incremento funcional inicial entregue.
+  - Backend focado segue verde (`MobileCheckinConfigIntegrationTest` + `InspectionSubmissionIntegrationTest` = 4 testes, 0 falhas).
+  - `next build` do web-backoffice ficou pendurado neste ambiente local sem erro explícito; requer nova checagem isolada antes do pacote de homologação.
+- Próxima ação:
+  - Fechar BOW-123 com paginação navegável/indicadores operacionais mais ricos e revalidar `npm --prefix apps/web-backoffice run build` de forma determinística antes da publicação em homolog.
+
+### Checkpoint 2026-04-03 (pacote grande — BOW-123 paginação + testes)
+- O que foi feito:
+  - `InspectionBackofficeService` ajustado para paginação ordenada por `submittedAt desc, id desc`.
+  - Painel web de inspections atualizado com paginação navegável (`page/size`) e cards-resumo mais próximos do critério operacional.
+  - Novo teste backend `InspectionBackofficeIntegrationTest` cobrindo listagem paginada e detalhe técnico.
+  - Novo teste web `inspections_api_routes.test.ts` cobrindo propagação de query params e detalhe via rotas Next.js.
+  - Suíte backend focada validada: 6 testes, 0 falhas (`InspectionBackofficeIntegrationTest`, `InspectionSubmissionIntegrationTest`, `MobileCheckinConfigIntegrationTest`).
+  - Suíte web validada: `npm --prefix apps/web-backoffice test` com 16 testes verdes e `npm --prefix apps/web-backoffice run lint` limpo.
+- Estado atual:
+  - BOW-123 avançou para um painel funcional com paginação inicial e cobertura automatizada básica.
+  - Build de produção do web-backoffice segue em verificação isolada com log (`apps/web-backoffice/.next-build.log`) para confirmar se o travamento anterior era apenas ausência de output no terminal.
+- Próxima ação:
+  - Ler o resultado do build em background, eliminar a pendência operacional do `next build` e então decidir se seguimos para fechamento de métricas/intake ou já preparamos rodada de homologação do pacote.
+
+### Checkpoint 2026-04-03 (pacote grande — bloqueio operacional do next build)
+- O que foi feito:
+  - Removida dependência de fonte remota em `apps/web-backoffice/app/layout.tsx` (remoção de `next/font/google`) e substituída por pilhas locais em `apps/web-backoffice/app/globals.css`.
+  - Build do Next testado em múltiplos modos (`next build`, `next build --debug`, `next build --no-lint`) com limpeza de cache `.next` e tempo de observação estendido (15 minutos).
+  - Reinstalação limpa de dependências web executada para descartar corrupção local de `node_modules`.
+  - Pós-reinstalação, testes quebraram por `ERR_MODULE_NOT_FOUND: get-tsconfig` no loader do `tsx`; ajuste aplicado adicionando `get-tsconfig` como `devDependency` direta em `apps/web-backoffice/package.json`.
+  - Validação funcional restaurada: `npm --prefix apps/web-backoffice test` (16 verdes) e `npm --prefix apps/web-backoffice run lint` (sem erros).
+- Estado atual:
+  - O travamento do `npm --prefix apps/web-backoffice run build` persiste no ambiente Windows local, sem saída adicional após o banner `▲ Next.js 14.2.33`.
+  - Não há erro de código reportado por lint/test nas alterações do pacote BOW-121/BOW-122/BOW-123.
+  - O pacote está funcional para backend/web em testes e lint, com pendência específica no build de produção do Next neste ambiente.
+- Próxima ação:
+  - Abrir trilha de diagnóstico de ambiente para o build do Next (comparar execução em shell limpo e/ou runner Linux CI) e decidir, com base no resultado, se o gate de homologação do pacote será bloqueado por build local ou delegado para validação no CI web.
+
+  ### Checkpoint 2026-04-03 (pacote grande — validação completa do pacote)
+  - O que foi feito:
+    - Diagnosticado e resolvido o travamento do `npm run build` do web-backoffice: causa raiz era `output: "standalone"` no `next.config.mjs` que bloqueia o file-tracing no Windows.
+    - `next.config.mjs` ajustado para ativar `output: "standalone"` apenas quando `CI=1` ou `NEXT_BUILD_STANDALONE=1`, preservando modo standalone para Docker/CI e desbloqueando builds locais.
+    - `npm --prefix apps/web-backoffice run build` concluiu com sucesso: 21 rotas compiladas, 0 erros, 0 warnings.
+    - Suíte backend completa revalidada: 53 testes, 0 falhas, 0 erros (todas as 17 classes).
+    - Suíte web revalidada: 16 testes, 0 falhas; lint limpo; build verde.
+    - Dockerfile/CI devem passar `NEXT_BUILD_STANDALONE=1` para ativar modo standalone no pipeline.
+  - Estado atual:
+    - Pacote BOW-121/BOW-122/BOW-123 — todas as validações passando.
+    - Backend: Flyway V001→V011, 17 classes de teste, 53 testes verdes.
+    - Web: 16 testes, lint e build de produção verdes.
+    - Mudanças uncommitted prontas para homologação.
+  - Próxima ação:
+    - Incrementar versão em `pubspec.yaml` (se aplicável ao Flutter), verificar `pubspec.yaml` do app mobile.
+    - Criar branch `homolog/bow-121-122-123` e fazer commit+push para acionar pipeline de homologação.
