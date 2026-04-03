@@ -15,6 +15,11 @@ Devem ser mantidos quando:
 - explicam decisões de negócio passadas
 - ainda ajudam no domínio inspection
 
+### Legacy taxonomy
+- `docs/99-legacy/` = mapa ativo de classificação do legado
+- `docs/legacy/legacy-import/` = snapshots históricos preservados
+- coexistem por função, sem duplicidade de direção ativa
+
 ## Recommended handling
 
 - adicionar banner `LEGACY` nos documentos antigos mantidos
