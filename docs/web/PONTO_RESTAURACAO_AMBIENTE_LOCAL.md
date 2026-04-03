@@ -384,6 +384,7 @@ Use este checklist no inicio de qualquer nova sessao para confirmar que nada cri
   - `MobileApiController` passou a expor `GET /api/mobile/jobs` com leitura real de jobs por usuário atribuído, com filtro obrigatório por tenant.
   - `POST /api/mobile/inspections/finalized` passou a persistir submissões reais e mover o `Job` para `SUBMITTED` via transições internas `ACCEPTED → IN_EXECUTION → FIELD_COMPLETED → SUBMITTED`.
   - Versão incrementada para `1.2.26+45` e pacote publicado em homolog no commit `f22d1bd` da branch `homolog/bl-accordion-dedup-fix`.
+  - Ajuste operacional de CI aplicado em seguida: versão avançada para `1.2.26+46` para atender o gate de homologação após commit documental (`1978a85`).
   - Validação executada com `mvn -B -DforkCount=0 "-Dtest=com.appbackoffice.api.job.CaseJobDomainIntegrationTest" test`, `mvn -B -DforkCount=0 "-Dtest=com.appbackoffice.api.integration.IntegrationDemandIntegrationTest" test`, `mvn -B -DforkCount=0 "-Dtest=com.appbackoffice.api.mobile.InspectionSubmissionIntegrationTest" test`, `mvn -B -DforkCount=0 "-Dtest=com.appbackoffice.api.mobile.MobileCheckinConfigIntegrationTest" test` e `mvn -B -DforkCount=0 "-Dtest=com.appbackoffice.api.mobile.MobileApiControllerContractErrorTest" test`.
 - Estado atual:
   - BOW-120/BOW-121/BOW-122 estão parcialmente entregues no backend; base persistente, ligação `Demand → Case → Job`, config mobile real e submissão mobile real estão prontos.
