@@ -35,6 +35,14 @@ Os documentos ativos estão organizados em duas classes complementares:
 - direção estratégica/corporativa V2 (overview, architecture, engineering, backlog V2)
 - operação corrente ativa (runbooks, setup, onboarding, backlog tático) em `docs/05-operations/`
 
+System docs do agente (operação autônoma):
+
+- `docs/05-operations/AGENT_OPERATING_SYSTEM.md`
+- `docs/05-operations/SOURCE_OF_TRUTH_MATRIX.md`
+- `docs/05-operations/TASK_BRIEF_TEMPLATE.md`
+- `docs/05-operations/DONE_CHECKLIST_BY_WORK_TYPE.md`
+- `docs/05-operations/WHEN_TO_STOP_AND_ASK.md`
+
 O histórico preservado continua em `docs/legacy/`, com mapa ativo em `docs/99-legacy/LEGACY_MIGRATION_MAP.md`.
 
 ## Versionamento

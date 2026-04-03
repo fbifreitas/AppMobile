@@ -17,7 +17,12 @@ Esta documentação descreve a V2 do repositório, agora orientado a uma platafo
 9. `03-architecture/07_CORPORATE_CANONICAL_MODEL.md`
 10. `04-engineering/03_SHORT_PATH_TRANSITION_PLAN.md`
 11. `05-operations/01_OPERATING_MODEL.md`
-12. `99-legacy/LEGACY_MIGRATION_MAP.md`
+12. `05-operations/AGENT_OPERATING_SYSTEM.md`
+13. `05-operations/SOURCE_OF_TRUTH_MATRIX.md`
+14. `05-operations/TASK_BRIEF_TEMPLATE.md`
+15. `05-operations/DONE_CHECKLIST_BY_WORK_TYPE.md`
+16. `05-operations/WHEN_TO_STOP_AND_ASK.md`
+17. `99-legacy/LEGACY_MIGRATION_MAP.md`
 
 ## Core ideas
 
@@ -36,6 +41,7 @@ Esta documentação descreve a V2 do repositório, agora orientado a uma platafo
 - `03-architecture`: blueprint corporativo e domínios
 - `04-engineering`: guardrails, estrutura-alvo e plano curto de transição
 - `05-operations`: operação corrente ativa (runbooks, setup, onboarding, governança de backlog e backlogs táticos)
+- `05-operations`: operação corrente ativa + sistema operacional do agente
 - `06-analysis-design`: decisões arquiteturais V2
 - `07-diagrams`: índice de diagramas e imagens
 - `99-legacy`: mapa de documentos legados

@@ -38,3 +38,20 @@ Se houver conflito entre documentos antigos e a V2, a V2 é a direção ativa.
 3. Legado histórico:
 	- docs/legacy/
 	- classificação e mapa em docs/99-legacy/LEGACY_MIGRATION_MAP.md
+
+## Trilhas por objetivo
+
+1. Trilha estratégica/corporativa:
+	- docs/03-architecture/*
+	- docs/04-engineering/*
+	- docs/BACKLOG_V2_PRIORIDADES.md
+2. Trilha operacional:
+	- docs/05-operations/01_OPERATING_MODEL.md
+	- docs/05-operations/AGENT_OPERATING_SYSTEM.md
+	- docs/05-operations/SOURCE_OF_TRUTH_MATRIX.md
+	- docs/05-operations/TASK_BRIEF_TEMPLATE.md
+	- docs/05-operations/DONE_CHECKLIST_BY_WORK_TYPE.md
+	- docs/05-operations/WHEN_TO_STOP_AND_ASK.md
+3. Trilha histórica:
+	- docs/99-legacy/LEGACY_MIGRATION_MAP.md
+	- docs/legacy/legacy-import/
