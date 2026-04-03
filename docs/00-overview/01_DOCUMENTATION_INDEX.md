@@ -45,3 +45,9 @@ Esta documentação descreve a V2 do repositório, agora orientado a uma platafo
 - `06-analysis-design`: decisões arquiteturais V2
 - `07-diagrams`: índice de diagramas e imagens
 - `99-legacy`: mapa de documentos legados
+
+## Daily usage shortcut
+
+- Comecar por `05-operations/AGENT_OPERATING_SYSTEM.md` para decidir fluxo de execucao.
+- Usar `05-operations/SOURCE_OF_TRUTH_MATRIX.md` para resolver fonte oficial por tema.
+- Fechar tarefa com `05-operations/DONE_CHECKLIST_BY_WORK_TYPE.md`.
