@@ -143,3 +143,15 @@ Antes de abrir PR, validar:
 - [ ] não existem dois documentos ativos com diretrizes conflitantes
 - [ ] backlog V2 foi atualizado
 - [ ] diagramas V2 foram adicionados
+
+---
+
+## Complemento corretivo pós-migração V2
+
+Após a migração para V2, manter também este checklist de correção taxonômica:
+
+- [ ] docs estratégicos/corporativos continuam ativos sem regressão de nomenclatura
+- [ ] docs operacionais correntes estão ativos em `docs/05-operations/`
+- [ ] snapshot histórico foi preservado em `docs/legacy/legacy-import/`
+- [ ] `docs/99-legacy/LEGACY_MIGRATION_MAP.md` descreve a taxonomia de legado sem conflito
+- [ ] não existem dois documentos ativos com mensagens contraditórias

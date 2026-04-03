@@ -18,8 +18,23 @@
 14. docs/04-engineering/02_REPO_TARGET_STRUCTURE.md
 15. docs/04-engineering/03_SHORT_PATH_TRANSITION_PLAN.md
 16. docs/BACKLOG_V2_PRIORIDADES.md
+17. docs/05-operations/01_OPERATING_MODEL.md
 
 ## Regra geral
 
 Se houver conflito entre documentos antigos e a V2, a V2 é a direção ativa.
-Conteúdos anteriores devem ser tratados como legado até serem arquivados ou reclassificados.
+
+## Classificação ativa de documentação
+
+1. Estratégico/corporativo ativo:
+	- docs/00-overview/
+	- docs/01-executive/
+	- docs/02-product/
+	- docs/03-architecture/
+	- docs/04-engineering/
+	- docs/BACKLOG_V2_PRIORIDADES.md
+2. Operacional corrente ativo:
+	- docs/05-operations/
+3. Legado histórico:
+	- docs/legacy/
+	- classificação e mapa em docs/99-legacy/LEGACY_MIGRATION_MAP.md

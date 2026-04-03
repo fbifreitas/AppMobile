@@ -30,7 +30,12 @@ Domain packs são independentes e se integram por contratos/APIs/eventos/ACL.
 ## Documentação ativa
 
 Consulte `docs/` como fonte oficial da direção V2.
-Conteúdos anteriores foram arquivados em `docs/legacy/`.
+Os documentos ativos estão organizados em duas classes complementares:
+
+- direção estratégica/corporativa V2 (overview, architecture, engineering, backlog V2)
+- operação corrente ativa (runbooks, setup, onboarding, backlog tático) em `docs/05-operations/`
+
+O histórico preservado continua em `docs/legacy/`, com mapa ativo em `docs/99-legacy/LEGACY_MIGRATION_MAP.md`.
 
 ## Versionamento
 
