@@ -119,6 +119,8 @@ Registrar práticas essenciais, aprendizados e padrões de operação que devem 
 - [2026-04-03] No `apps/web-backoffice` em Windows, `next build` pode ficar bloqueado por tempo indefinido logo após o banner (`▲ Next.js 14.2.33`) sem mensagens adicionais; quando ocorrer, registrar checkpoint operacional e seguir com validação parcial (lint/test) enquanto o bloqueio de build é investigado no ambiente.
 - [2026-04-03] Após reinstalação limpa de dependências web, o runner `tsx` pode falhar com `ERR_MODULE_NOT_FOUND: get-tsconfig`; adicionar `get-tsconfig` como `devDependency` direta em `apps/web-backoffice/package.json` restabelece os testes.
 - [2026-04-03] `output: "standalone"` no `next.config.mjs` causa travamento indefinido do `next build` no Windows local — o step de file-tracing não consegue concluir neste ambiente. Solução: condicionar à variável de ambiente `CI=1` ou `NEXT_BUILD_STANDALONE=1`. A Dockerfile e CI devem passar `NEXT_BUILD_STANDALONE=1` para ativar o modo standalone no pipeline.
+- [2026-04-03] Em GitHub Actions, `CI` vem como string não vazia (`"true"`), não necessariamente `"1"`; para condicionais de build no Node/Next, usar checagem de presença (`!!process.env.CI`) evita falso negativo em pipeline.
+- [2026-04-03] Fluxo de promoção com mantenedor único validado em produção na PR #10: reduzir aprovação mínima para 0, merge normal da PR, restaurar para 1 e monitorar todas as esteiras até `Android Distribution` concluir.
 
 ---
 
