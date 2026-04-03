@@ -7,6 +7,37 @@
 
 Atualizado em: 2026-03-29
 
+## Escopo rapido
+
+- Documento operacional ativo de setup web/backoffice.
+- Nao substitui arquitetura V2.
+- Para troubleshooting de retomada, ler: `docs/05-operations/runbooks/PONTO_RESTAURACAO_AMBIENTE_LOCAL.md`.
+
+## Comandos oficiais
+
+```powershell
+cd apps/web-backoffice
+npm install
+npm run dev
+```
+
+## Verificacao de sucesso
+
+1. App acessivel em `http://localhost:3000`.
+2. Lint, teste e build executam sem erro:
+
+```powershell
+npm run lint
+npm run test
+npm run build
+```
+
+## Troubleshooting curto
+
+1. Porta ocupada: `npm run dev -- -p 3001`
+2. Dependencias quebradas: remover `node_modules`, remover `package-lock.json`, executar `npm install`
+3. Build sem memoria: `setx NODE_OPTIONS "--max-old-space-size=2048"`
+
 ## Requisitos minimos recomendados
 Para sua maquina (i5-3230M, 8 GB RAM, SSD 240 GB), o projeto roda bem para desenvolvimento inicial com:
 1. Windows 10/11 64 bits.

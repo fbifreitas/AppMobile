@@ -5,6 +5,17 @@
 
 # Ponto de Restauração — Setup Ambiente Local Web
 
+## Uso rapido deste runbook
+
+- Quando usar: retomada de ambiente local web, troubleshooting de bootstrap, continuidade entre sessoes.
+- Quando nao usar: decisoes de arquitetura V2, modelagem de dominio e naming global.
+- Ler em seguida: `docs/05-operations/AGENT_OPERATING_SYSTEM.md`.
+- Verificacoes obrigatorias apos restaurar:
+  1. `docker version`
+  2. `npm --prefix apps/web-backoffice run lint`
+  3. `npm --prefix apps/web-backoffice test`
+  4. `npm --prefix apps/web-backoffice run build`
+
 **Criado em:** 2026-04-01  
 **Sessão de referência:** Setup completo de ambiente de desenvolvimento local (Node 20, Java 21, Maven, Docker Desktop)  
 **Status atual:** Docker engine em processo de start com dados migrados para D:

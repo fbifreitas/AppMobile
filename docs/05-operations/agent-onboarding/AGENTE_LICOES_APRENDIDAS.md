@@ -10,6 +10,24 @@ Registrar práticas essenciais, aprendizados e padrões de operação que devem 
 
 ---
 
+## Parte A - Regras permanentes
+
+### 1. Regras permanentes de execucao
+- Sempre ler o projeto e a documentacao de referencia antes de alterar.
+- Usar `docs/05-operations/tactical-backlogs/BACKLOG_FUNCIONALIDADES.md` como backlog tatico principal mobile/operacao.
+- Atualizar backlog e rastreabilidade na mesma entrega.
+- Executar testes possiveis apos mudancas; quando nao for possivel, justificar explicitamente.
+- Nao remover codigo/arquivo fora do escopo.
+
+### 2. Regras permanentes de governanca
+- Em fluxo de mantenedor unico, excecao de PR deve ser temporaria e restaurada.
+- Nao promover homologacao para main sem de acordo explicito do usuario.
+- Monitorar CI/CD e confirmar distribuicao antes de fechar ciclo.
+
+---
+
+## Parte B - Licoes datadas e historico operacional
+
 ## 1. Princípios Gerais
 - Sempre ler o projeto inteiro antes de qualquer mudança.
 - Usar docs/05-operations/tactical-backlogs/BACKLOG_FUNCIONALIDADES.md como fonte oficial de backlog.
@@ -51,7 +69,7 @@ Registrar práticas essenciais, aprendizados e padrões de operação que devem 
 - [2026-03-31] Se o terminal travar ou não houver acesso ao GitHub Projects, validar token, tentar comandos alternativos e registrar workaround.
 - [2026-03-31] Sempre checar se o secret PROJECT_AUTOMATION_TOKEN está configurado antes de rodar workflows de board.
 - [2026-03-31] Se o board não sincronizar, executar scripts manuais e atualizar checklist de sincronização.
-- [2026-04-01] Manter `docs/RESUMO_EXECUTIVO_CONTINUO.md` atualizado a cada ciclo de homologacao para consolidar snapshot de branch/versao/gates e reduzir perda de contexto na promocao para `main`.
+- [2026-04-01] Manter `docs/05-operations/release-governance/RESUMO_EXECUTIVO_CONTINUO.md` atualizado a cada ciclo de homologacao para consolidar snapshot de branch/versao/gates e reduzir perda de contexto na promocao para `main`.
 - [2026-04-01] Em fluxo com mantenedor unico, o merge de PR para `main` pode usar excecao temporaria de protecao (0 aprovacoes) com restauracao imediata para 1 aprovacao apos o merge.
 - [2026-04-01] Notificacao por e-mail de aprovacao de PR no celular foi movida para segundo plano no backlog operacional; prioridade mantida para envio de distribuicao por ambiente (homolog/producao).
 - [2026-04-01] Na Revisao de Fotos, deduplicacao de obrigatorios deve usar chave tecnica da configuracao dinamica (cameraAmbiente/cameraElementoInicial), e nao apenas titulo exibido, para evitar ambiguidade quando o JSON web variar labels.

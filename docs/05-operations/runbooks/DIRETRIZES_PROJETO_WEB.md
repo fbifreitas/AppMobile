@@ -7,6 +7,12 @@
 
 Atualizado em: 2026-04-01
 
+## Escopo deste documento
+
+- Documento operacional/tatico da frente web/backoffice.
+- Nao substitui o blueprint corporativo V2.
+- Deve ser usado junto de `docs/03-architecture/01_CORPORATE_BLUEPRINT.md`.
+
 ## 1) Objetivo macro
 Construir o backoffice web integrado ao AppMobile com foco em:
 1. Integracao bidirecional segura (Web <-> Mobile).
