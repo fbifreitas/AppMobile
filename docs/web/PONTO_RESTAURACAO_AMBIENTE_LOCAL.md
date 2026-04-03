@@ -383,12 +383,13 @@ Use este checklist no inicio de qualquer nova sessao para confirmar que nada cri
   - `GET /api/mobile/checkin-config` passou a resolver configuração real via `ConfigPackageService.resolveForMobile`, com versão efetiva e fallback padrão quando não há pacote ativo.
   - `MobileApiController` passou a expor `GET /api/mobile/jobs` com leitura real de jobs por usuário atribuído, com filtro obrigatório por tenant.
   - `POST /api/mobile/inspections/finalized` passou a persistir submissões reais e mover o `Job` para `SUBMITTED` via transições internas `ACCEPTED → IN_EXECUTION → FIELD_COMPLETED → SUBMITTED`.
+  - Versão incrementada para `1.2.26+45` e pacote publicado em homolog no commit `f22d1bd` da branch `homolog/bl-accordion-dedup-fix`.
   - Validação executada com `mvn -B -DforkCount=0 "-Dtest=com.appbackoffice.api.job.CaseJobDomainIntegrationTest" test`, `mvn -B -DforkCount=0 "-Dtest=com.appbackoffice.api.integration.IntegrationDemandIntegrationTest" test`, `mvn -B -DforkCount=0 "-Dtest=com.appbackoffice.api.mobile.InspectionSubmissionIntegrationTest" test`, `mvn -B -DforkCount=0 "-Dtest=com.appbackoffice.api.mobile.MobileCheckinConfigIntegrationTest" test` e `mvn -B -DforkCount=0 "-Dtest=com.appbackoffice.api.mobile.MobileApiControllerContractErrorTest" test`.
 - Estado atual:
   - BOW-120/BOW-121/BOW-122 estão parcialmente entregues no backend; base persistente, ligação `Demand → Case → Job`, config mobile real e submissão mobile real estão prontos.
   - Ainda faltam modelar `Inspection` explicitamente no domínio, publicar `sections` NBR completas e conectar web/mobile completo aos novos dados reais.
 - Próxima ação:
-  - Evoluir BOW-121 para `sections` NBR canônicas e abrir BOW-123 sobre os novos dados persistidos de jobs/inspeções.
+  - Monitorar workflow CI/CD da homologação até confirmação de distribuição; após isso, evoluir BOW-121 para `sections` NBR canônicas e abrir BOW-123 sobre os novos dados persistidos de jobs/inspeções.
 
 ### Checkpoint 2026-04-03 (merge para main — BOW-104/105/110/111 entregues)
 - Feito:
