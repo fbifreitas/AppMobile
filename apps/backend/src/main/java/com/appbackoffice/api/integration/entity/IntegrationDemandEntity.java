@@ -45,6 +45,12 @@ public class IntegrationDemandEntity {
     @Column(nullable = false, length = 40)
     private String status;
 
+    @Column(name = "case_id")
+    private Long caseId;
+
+    @Column(name = "job_id")
+    private Long jobId;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -148,6 +154,22 @@ public class IntegrationDemandEntity {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public Long getCaseId() {
+        return caseId;
+    }
+
+    public void setCaseId(Long caseId) {
+        this.caseId = caseId;
+    }
+
+    public Long getJobId() {
+        return jobId;
+    }
+
+    public void setJobId(Long jobId) {
+        this.jobId = jobId;
     }
 
     public Instant getCreatedAt() {

@@ -372,17 +372,39 @@ Use este checklist no inicio de qualquer nova sessao para confirmar que nada cri
 
 ## 12. Checkpoint Operacional Continuo
 
-### Checkpoint 2026-04-03 (consolidacao dos pacotes BOW-104/105/110/111)
+### Checkpoint 2026-04-03 (BOW-120 backend base)
+- Feito:
+  - Criada migration `V007__job_domain.sql` com fundação persistente do domínio `Demand → Case → Job → Assignment → Timeline`.
+  - Criada migration `V008__integration_demands_case_job_refs.sql` para persistir vínculo entre Integration Hub e agregado `Case/Job`.
+  - Criada migration `V009__inspection_submissions.sql` para persistir submissões mobile com idempotência e `protocolId` real.
+  - Implementadas entidades/repositories do módulo `job`, state machine do Job e serviços de criação, despacho, aceite, cancelamento e timeline.
+  - Publicadas APIs backend `POST /cases`, `GET /jobs`, `GET /jobs/{id}`, `GET /jobs/{id}/timeline`, `POST /jobs/{id}/assign`, `POST /jobs/{id}/accept`, `POST /jobs/{id}/cancel`.
+  - `IntegrationDemandService` passou a criar `Case` e `Job` automaticamente para novas demands e retornar `caseId/jobId` no contrato da integração.
+  - `GET /api/mobile/checkin-config` passou a resolver configuração real via `ConfigPackageService.resolveForMobile`, com versão efetiva e fallback padrão quando não há pacote ativo.
+  - `MobileApiController` passou a expor `GET /api/mobile/jobs` com leitura real de jobs por usuário atribuído, com filtro obrigatório por tenant.
+  - `POST /api/mobile/inspections/finalized` passou a persistir submissões reais e mover o `Job` para `SUBMITTED` via transições internas `ACCEPTED → IN_EXECUTION → FIELD_COMPLETED → SUBMITTED`.
+  - Validação executada com `mvn -B -DforkCount=0 "-Dtest=com.appbackoffice.api.job.CaseJobDomainIntegrationTest" test`, `mvn -B -DforkCount=0 "-Dtest=com.appbackoffice.api.integration.IntegrationDemandIntegrationTest" test`, `mvn -B -DforkCount=0 "-Dtest=com.appbackoffice.api.mobile.InspectionSubmissionIntegrationTest" test`, `mvn -B -DforkCount=0 "-Dtest=com.appbackoffice.api.mobile.MobileCheckinConfigIntegrationTest" test` e `mvn -B -DforkCount=0 "-Dtest=com.appbackoffice.api.mobile.MobileApiControllerContractErrorTest" test`.
+- Estado atual:
+  - BOW-120/BOW-121/BOW-122 estão parcialmente entregues no backend; base persistente, ligação `Demand → Case → Job`, config mobile real e submissão mobile real estão prontos.
+  - Ainda faltam modelar `Inspection` explicitamente no domínio, publicar `sections` NBR completas e conectar web/mobile completo aos novos dados reais.
+- Próxima ação:
+  - Evoluir BOW-121 para `sections` NBR canônicas e abrir BOW-123 sobre os novos dados persistidos de jobs/inspeções.
+
+### Checkpoint 2026-04-03 (merge para main — BOW-104/105/110/111 entregues)
 - Feito:
   - Consolidado pacote backend com RBAC por escopo, policy engine, Integration Hub ACL e expansao pratica do contrato de erro canonico.
   - Consolidado pacote web-backoffice com rotas Next.js para config/users, telas operacionais e testes Node para policy/config targeting.
   - Documentacao canonica importada e backlog operacional atualizado com status concluidos para BOW-104, BOW-105, BOW-110 e BOW-111.
-  - Versao do app incrementada para `1.2.25+44` para novo ciclo de homologacao.
+  - Versao do app incrementada para `1.2.25+44`.
+  - Commit `cd609ec` publicado em `homolog/bl-accordion-dedup-fix`.
+  - PR #8 criado e merged em `main` (commit de merge: `8f47753`).
+  - Protecao de branch restaurada para `required_approving_review_count=1`.
+  - Branches `main` e `homolog/bl-accordion-dedup-fix` equalizadas (ambas em `8f47753`).
 - Estado atual:
-  - Working tree pronto para consolidacao em commit unico na branch `homolog/bl-accordion-dedup-fix`.
-  - Validacoes esperadas para fechamento: backend full tests e web `lint`/`test`/`build`.
+  - `origin/main` em `8f47753` — todos os pacotes BOW-104/105/110/111 entregues e publicados.
+  - Ambiente limpo, sem pendencias de git.
 - Proxima acao:
-  - Executar validacao final, criar commit padrao de versao, publicar na branch de homologacao e monitorar CI/CD antes de iniciar o proximo bloco de backlog.
+  - Iniciar BOW-120: entidades canonicas de Case/Job, migracao Flyway, maquina de estado e APIs base.
 
 ### Checkpoint 2026-04-01 (status de runtime Docker)
 - Feito:
