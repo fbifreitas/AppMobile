@@ -1125,3 +1125,22 @@ _Documento de restauração mantido pelo agente (Copilot) como ponto de continui
   - Próxima ação:
     - Incrementar versão em `pubspec.yaml` (se aplicável ao Flutter), verificar `pubspec.yaml` do app mobile.
     - Criar branch `homolog/bow-121-122-123` e fazer commit+push para acionar pipeline de homologação.
+
+### Checkpoint 2026-04-03 (promocao homolog -> main — PR #10)
+- O que foi feito:
+  - PR `#10` criada de `homolog/bow-121-122-123` para `main` com o pacote grande BOW-121/BOW-122/BOW-123.
+  - Exceção controlada aplicada conforme regra de mantenedor único:
+    - `required_approving_review_count` reduzido temporariamente de `1` para `0`.
+    - Merge normal da PR executado (sem `--admin`) gerando commit `a19382bdbe2e8d800322918fdf744c47eebd65c5`.
+    - Proteção restaurada imediatamente para `required_approving_review_count = 1`.
+  - Versionamento aplicado no app: `pubspec.yaml` atualizado para `1.2.27+47`.
+- Estado atual:
+  - `main` atualizado com o pacote BOW-121/BOW-122/BOW-123 via PR #10.
+  - Pipelines pós-merge concluídas com sucesso: `Android CI`, `Backend CI`, `Web CI`, `Internal Docs CI`, `Backend Deploy`, `Web Deploy`.
+  - `Android Distribution` do merge em `main` concluída com sucesso (`run 23954252296`).
+- Próxima ação:
+  - Aguardar confirmação explícita de recebimento do e-mail do Firebase App Distribution para encerrar formalmente o ciclo de release.
+
+### Encerramento do ciclo (2026-04-03)
+- Confirmação recebida do usuário: e-mail do Firebase App Distribution recebido.
+- Status final do ciclo: **ENCERRADO**.

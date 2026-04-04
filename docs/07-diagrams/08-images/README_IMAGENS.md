@@ -1,13 +1,15 @@
-# Galeria de Imagens
+# README_IMAGENS — V2
 
-## architecture
-Imagens de arquitetura, C4, deployment, estágios, domínio, integração e fluxos.
+Esta galeria segue a mesma organização estrutural do repositório atual:
 
-## business
-Materiais visuais executivos, pitch, one-pager, plano de negócios e peças de apoio.
+- architecture
+- business
+- uml
 
-## uml
-Imagens geradas dos principais diagramas UML.
+As imagens V2 foram regeneradas no mesmo espírito visual da base atual:
+fundo cinza claro, títulos azul-escuro, caixas arredondadas e cabeçalhos coloridos.
 
-## animated
-Animações do fluxo de negócio ponta a ponta.
+Objetivo:
+- permitir a substituição gradual das imagens antigas
+- preservar coerência visual durante a migração documental
+- separar claramente visão corporativa e visões por domínio
