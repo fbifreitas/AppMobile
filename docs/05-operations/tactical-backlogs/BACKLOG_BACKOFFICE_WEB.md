@@ -917,3 +917,12 @@ KPIs por tenant/região/vistoriador. Score de qualidade. Control tower para gest
 
 ---
 
+
+## ADENDO 2026-04-04 - Reconciliacao por Evidencia de Codigo
+
+- Este backlog foi reconciliado com evidencias reais em `apps/backend` e `apps/web-backoffice`.
+- Onda 2 possui avancos parciais tecnicos (dispatch e onboarding/aprovacao web) e deve ser tratada como trilha em andamento parcial.
+- Onda 3 possui fundacao parcial (tenant/membership e targeting/rollout por tenant), ainda sem fechamento de isolamento forte e tenant management completo.
+- Onda 4 permanece como visao estrategica sem implementacao estrutural fechada no codigo ativo.
+
+

@@ -191,3 +191,11 @@ Motivo:
 3. Nenhuma mudanca de contrato sem teste automatizado de compatibilidade.
 4. Nenhum tenant compartilha chave, segredos ou trilha de eventos com outro.
 5. Todo incidente de integracao deve ser diagnosticavel por painel e logs.
+
+## ADENDO 2026-04-04 - Reconciliacao de Integracao
+
+- INT-025 continua concluido como base de governanca de versao.
+- INT-026 e INT-028 continuam em andamento.
+- Existe avanco tecnico parcial de integracao no codigo ativo (context envelope, rotas web-backoffice para config/inspections e trilha de publish/approve/rollback), devendo ser usado para priorizar fechamento de INT-001, INT-002, INT-003, INT-004 e INT-006.
+
+

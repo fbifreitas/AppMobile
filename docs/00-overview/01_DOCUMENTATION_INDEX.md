@@ -8,21 +8,22 @@ Esta documentação descreve a V2 do repositório, agora orientado a uma platafo
 
 1. `00-overview/02_DIRECTION_CHANGE_NOTICE.md`
 2. `01-executive/01_CORPORATE_POSITIONING.md`
-3. `03-architecture/01_CORPORATE_BLUEPRINT.md`
-4. `03-architecture/02_PLATFORM_CORE_AND_SHARED_FOUNDATIONS.md`
-5. `03-architecture/03_DOMAIN_PACK_INSPECTION.md`
-6. `03-architecture/04_DOMAIN_PACK_WELLNESS.md`
-7. `03-architecture/05_DOMAIN_PACK_CHURCH.md`
-8. `03-architecture/06_TENANT_AND_WHITE_LABEL_MODEL.md`
-9. `03-architecture/07_CORPORATE_CANONICAL_MODEL.md`
-10. `04-engineering/03_SHORT_PATH_TRANSITION_PLAN.md`
-11. `05-operations/01_OPERATING_MODEL.md`
-12. `05-operations/AGENT_OPERATING_SYSTEM.md`
-13. `05-operations/SOURCE_OF_TRUTH_MATRIX.md`
-14. `05-operations/TASK_BRIEF_TEMPLATE.md`
-15. `05-operations/DONE_CHECKLIST_BY_WORK_TYPE.md`
-16. `05-operations/WHEN_TO_STOP_AND_ASK.md`
-17. `99-legacy/LEGACY_MIGRATION_MAP.md`
+3. `01-executive/03_EXEC_SUMMARY_WAVES_MVP.md`
+4. `03-architecture/01_CORPORATE_BLUEPRINT.md`
+5. `03-architecture/02_PLATFORM_CORE_AND_SHARED_FOUNDATIONS.md`
+6. `03-architecture/03_DOMAIN_PACK_INSPECTION.md`
+7. `03-architecture/04_DOMAIN_PACK_WELLNESS.md`
+8. `03-architecture/05_DOMAIN_PACK_CHURCH.md`
+9. `03-architecture/06_TENANT_AND_WHITE_LABEL_MODEL.md`
+10. `03-architecture/07_CORPORATE_CANONICAL_MODEL.md`
+11. `04-engineering/03_SHORT_PATH_TRANSITION_PLAN.md`
+12. `05-operations/01_OPERATING_MODEL.md`
+13. `05-operations/AGENT_OPERATING_SYSTEM.md`
+14. `05-operations/SOURCE_OF_TRUTH_MATRIX.md`
+15. `05-operations/TASK_BRIEF_TEMPLATE.md`
+16. `05-operations/DONE_CHECKLIST_BY_WORK_TYPE.md`
+17. `05-operations/WHEN_TO_STOP_AND_ASK.md`
+18. `99-legacy/LEGACY_MIGRATION_MAP.md`
 
 ## Core ideas
 

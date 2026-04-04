@@ -653,3 +653,12 @@ Ao pegar um item para implementar:
 4. ✅ Commit com prefixo: `feat/BL-XXX: descrição`
 5. ✅ Aplicar TDD no ciclo: escrever/ajustar teste, implementar, validar `flutter analyze` e `flutter test`
 6. ✅ Atualize este arquivo ao terminar (marque como `Concluído`)
+
+## ADENDO 2026-04-04 - Priorizacao Mobile
+
+- Trilhas criticas mantidas: BL-012, BL-001, BL-051, BL-052 e BL-054.
+- BL-031 segue em andamento com dependencia de consolidacao backend-first.
+- BL-056 permanece proxima critica apos estabilizacao do nucleo de integracao.
+- Backlog complementar front/web: `docs/05-operations/tactical-backlogs/BACKLOG_FRONT_WEB.md`.
+
+

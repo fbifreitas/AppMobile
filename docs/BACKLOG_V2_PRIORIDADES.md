@@ -44,3 +44,11 @@
 - V2-DOC-OPS-001: consolidar rastreabilidade documental da migracao V2 e da operacao ativa
 	- evidencia esperada: DOC-001, DOC-002 e DOC-003 registrados no backlog tatico operacional
 	- resultado esperado: backlog estrategico e tatico conectados sem conflito
+
+## ADENDO 2026-04-04 - Consolidacao de Backlogs
+
+- Este backlog estrategico passa a considerar explicitamente a sincronizacao com os backlogs taticos: backoffice/web, front/web, mobile e integracao.
+- Backlog front/web ativo: `docs/05-operations/tactical-backlogs/BACKLOG_FRONT_WEB.md`.
+- Indicador macro de ondas (estimativa tecnica atual): O1 ~56%, O2 ~18%, O3 ~21%, O4 ~0-2%.
+
+

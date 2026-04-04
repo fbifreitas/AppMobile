@@ -26,3 +26,6 @@ Definir tema -> documento oficial para reduzir ambiguidade de execucao.
 - Onboarding do agente: docs/05-operations/agent-onboarding/AGENTE_LICOES_APRENDIDAS.md
 - Mapa de legado: docs/99-legacy/LEGACY_MIGRATION_MAP.md
 - Snapshot historico: docs/legacy/legacy-import/
+
+## ADENDO 2026-04-04
+- Backlog tatico front/web: docs/05-operations/tactical-backlogs/BACKLOG_FRONT_WEB.md
