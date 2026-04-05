@@ -105,3 +105,16 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
   - `mvn -q -Dtest=MobileCheckinConfigIntegrationTest,OpenApiContractIntegrationTest test` com sucesso.
 - Pendencia conhecida:
   - validacao automatica do web-backoffice nao executada nesta maquina porque `npm` nao esta disponivel no PATH da sessao.
+
+## Checkpoint 2026-04-05 - MVP Final Program (Checkpoint B)
+- Branch tecnica: codex/mvp-final-program-20260405
+- Objetivo: consolidar INT-003 (canal assinado) sem quebrar contrato v1 mobile.
+- Escopo implementado:
+  - backend: novo `ConfigPayloadSignatureService` para assinatura HMAC SHA-256 de payload de configuracao;
+  - backend: endpoint `GET /api/mobile/checkin-config` passa a responder com headers `X-Config-Signature` e `X-Config-Signature-Alg` quando chave estiver configurada;
+  - testes: `MobileCheckinConfigIntegrationTest` reforcado para validar presenca e algoritmo de assinatura;
+  - teste profile: chave de assinatura adicionada em `application-test.yml` para validacao automatizada.
+- Validacao executada:
+  - `mvn -q -Dtest=MobileCheckinConfigIntegrationTest,OpenApiContractIntegrationTest test` com sucesso.
+- Observacao:
+  - assinatura e opcional por configuracao; se a chave nao estiver definida, o endpoint permanece compativel sem header.

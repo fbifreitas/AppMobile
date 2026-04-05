@@ -221,6 +221,8 @@ class MobileCheckinConfigIntegrationTest {
                 .andReturn();
 
         assertThat(result.getResponse().getStatus()).isEqualTo(200);
+        assertThat(result.getResponse().getHeader("X-Config-Signature")).isNotBlank();
+        assertThat(result.getResponse().getHeader("X-Config-Signature-Alg")).isEqualTo("hmac-sha256");
         JsonNode body = objectMapper.readTree(result.getResponse().getContentAsString());
 
         assertThat(body.at("/sections/0/key").asText()).isEqualTo("cobertura");

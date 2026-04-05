@@ -26,3 +26,7 @@ auth:
   lockout:
     max-attempts: 5
     window-minutes: 10
+
+integration:
+  config-signing:
+    hmac-key: test-config-signing-key
