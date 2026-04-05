@@ -79,5 +79,6 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
 ## Checkpoint 2026-04-05 - PACK-1 (MVP em 2 pacotes)
 - Branch tecnica: codex/mvp-pack-1-20260405
 - Objetivo: consolidar BL-056 em fluxo hibrido e manter base de BL-001/BL-012/INT-006/BOW-130 para fechamento do pacote funcional.
-- Validacoes executadas no mobile: flutter analyze (sem issues) e flutter test (113 testes verdes).
+- Validacoes executadas no mobile: flutter analyze (sem issues) e flutter test (115 testes verdes).
 - Resultado parcial: regra de gate de permissoes movida para AuthState (requiresPermissionsOnboarding) e aplicada no app entrypoint.
+- Incremento tecnico do pacote: servicos mobile de checkin-config e sync cobertos com testes de headers obrigatorios (tenant/correlation/actor/api-version) e idempotency-key no uplink final.

@@ -39,10 +39,20 @@ class CheckinStep1DynamicConfig {
 }
 
 class CheckinDynamicConfigService {
-  CheckinDynamicConfigService._();
+  CheckinDynamicConfigService({
+    String? baseUrl,
+    String? authToken,
+    String? checkinConfigEndpoint,
+    HttpClient Function()? httpClientFactory,
+    IntegrationContextService? integrationContextService,
+  }) : _baseUrlOverride = baseUrl,
+       _authTokenOverride = authToken,
+       _checkinConfigEndpointOverride = checkinConfigEndpoint,
+       _httpClientFactory = httpClientFactory,
+       _integrationContextService =
+           integrationContextService ?? const IntegrationContextService();
 
-  static final CheckinDynamicConfigService instance =
-      CheckinDynamicConfigService._();
+  static final CheckinDynamicConfigService instance = CheckinDynamicConfigService();
 
   static const String _baseUrl = String.fromEnvironment('APP_API_BASE_URL');
   static const String _authToken = String.fromEnvironment('APP_API_TOKEN');
@@ -57,6 +67,17 @@ class CheckinDynamicConfigService {
   static const String _devMockDocumentKey =
       'dev_mock_checkin_config_document_v1';
   static const String _versionFallback = 'v1-default';
+
+  final String? _baseUrlOverride;
+  final String? _authTokenOverride;
+  final String? _checkinConfigEndpointOverride;
+  final HttpClient Function()? _httpClientFactory;
+  final IntegrationContextService _integrationContextService;
+
+  String get _resolvedBaseUrl => (_baseUrlOverride ?? _baseUrl).trim();
+  String get _resolvedAuthToken => (_authTokenOverride ?? _authToken).trim();
+  String get _resolvedCheckinConfigEndpoint =>
+      (_checkinConfigEndpointOverride ?? _checkinConfigEndpoint).trim();
 
   Future<void> configureDeveloperMock({
     required bool enabled,
@@ -126,7 +147,7 @@ class CheckinDynamicConfigService {
 
     Map<String, dynamic>? document = await _readDeveloperMockDocument();
     if (document == null) {
-      if (_baseUrl.trim().isNotEmpty) {
+      if (_resolvedBaseUrl.isNotEmpty) {
         final fetched = await _fetchDocument();
         if (fetched != null) {
           final fetchedVersion = _resolveDocumentVersion(fetched);
@@ -185,7 +206,7 @@ class CheckinDynamicConfigService {
     Map<String, dynamic>? document = await _readDeveloperMockDocument();
 
     if (document == null) {
-      if (_baseUrl.trim().isNotEmpty) {
+      if (_resolvedBaseUrl.isNotEmpty) {
         document = await _fetchDocument(tipo: tipo.name);
         if (document != null) {
           await _writeCache(cacheKey, document);
@@ -395,22 +416,22 @@ class CheckinDynamicConfigService {
 
   Future<Map<String, dynamic>?> _fetchDocument({String? tipo}) async {
     try {
-      final context = await const IntegrationContextService().buildContext();
+      final context = await _integrationContextService.buildContext();
       final normalizedBase =
-          _baseUrl.endsWith('/')
-              ? _baseUrl.substring(0, _baseUrl.length - 1)
-              : _baseUrl;
+          _resolvedBaseUrl.endsWith('/')
+              ? _resolvedBaseUrl.substring(0, _resolvedBaseUrl.length - 1)
+              : _resolvedBaseUrl;
       final normalizedPath =
-          _checkinConfigEndpoint.startsWith('/')
-              ? _checkinConfigEndpoint
-              : '/$_checkinConfigEndpoint';
+          _resolvedCheckinConfigEndpoint.startsWith('/')
+              ? _resolvedCheckinConfigEndpoint
+              : '/$_resolvedCheckinConfigEndpoint';
       final uri = Uri.parse('$normalizedBase$normalizedPath').replace(
         queryParameters: {
           if (tipo != null && tipo.trim().isNotEmpty) 'tipoImovel': tipo,
         },
       );
 
-      final client = HttpClient();
+      final client = (_httpClientFactory ?? HttpClient.new)();
       try {
         final request = await client.getUrl(uri);
         request.headers.set(HttpHeaders.acceptHeader, 'application/json');
@@ -418,10 +439,11 @@ class CheckinDynamicConfigService {
         request.headers.set('X-Correlation-Id', context.correlationId);
         request.headers.set('X-Actor-Id', context.actorId);
         request.headers.set('X-Api-Version', context.apiVersion);
-        if (_authToken.trim().isNotEmpty) {
+        final authToken = _resolvedAuthToken;
+        if (authToken.isNotEmpty) {
           request.headers.set(
             HttpHeaders.authorizationHeader,
-            'Bearer $_authToken',
+            'Bearer $authToken',
           );
         }
 
