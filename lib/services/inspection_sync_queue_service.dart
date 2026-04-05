@@ -9,12 +9,32 @@ class InspectionSyncQueueFlushResult {
   final int sentCount;
   final int failedCount;
   final int remainingCount;
+  final List<InspectionSyncedReference> syncedReferences;
 
   const InspectionSyncQueueFlushResult({
     required this.attemptedCount,
     required this.sentCount,
     required this.failedCount,
     required this.remainingCount,
+    this.syncedReferences = const <InspectionSyncedReference>[],
+  });
+}
+
+class InspectionSyncedReference {
+  final String jobId;
+  final String? externalId;
+  final String? protocolId;
+  final String? processNumber;
+  final String? backendStatus;
+  final String? receivedAtIso;
+
+  const InspectionSyncedReference({
+    required this.jobId,
+    this.externalId,
+    this.protocolId,
+    this.processNumber,
+    this.backendStatus,
+    this.receivedAtIso,
   });
 }
 
@@ -92,6 +112,7 @@ class InspectionSyncQueueService {
     var attempted = 0;
     var sent = 0;
     var failed = 0;
+    final syncedReferences = <InspectionSyncedReference>[];
 
     final nextEntries = List<_QueueEntry>.from(entries);
     final batch = entries.take(maxItemsPerRun).toList();
@@ -104,6 +125,16 @@ class InspectionSyncQueueService {
 
       if (result.success) {
         sent += 1;
+        syncedReferences.add(
+          InspectionSyncedReference(
+            jobId: '${entry.payload['job']?['id'] ?? ''}'.trim(),
+            externalId: result.processId,
+            protocolId: result.protocolId,
+            processNumber: result.processNumber,
+            backendStatus: result.backendStatus,
+            receivedAtIso: result.receivedAtIso,
+          ),
+        );
         nextEntries.removeAt(index);
       } else {
         failed += 1;
@@ -122,6 +153,7 @@ class InspectionSyncQueueService {
       sentCount: sent,
       failedCount: failed,
       remainingCount: nextEntries.length,
+      syncedReferences: syncedReferences,
     );
   }
 

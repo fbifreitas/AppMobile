@@ -1,5 +1,6 @@
 package com.appbackoffice.api.mobile;
 
+import com.appbackoffice.api.config.ConfigPayloadSignatureService;
 import com.appbackoffice.api.contract.ApiContractException;
 import com.appbackoffice.api.contract.CanonicalErrorResponse;
 import com.appbackoffice.api.contract.ErrorSeverity;
@@ -11,6 +12,7 @@ import com.appbackoffice.api.mobile.dto.InspectionFinalizedRequest;
 import com.appbackoffice.api.mobile.dto.InspectionFinalizedResponse;
 import com.appbackoffice.api.mobile.service.InspectionSubmissionService;
 import com.appbackoffice.api.mobile.service.MobileCheckinConfigService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -40,13 +42,19 @@ public class MobileApiController {
     private final JobService jobService;
     private final InspectionSubmissionService inspectionSubmissionService;
     private final MobileCheckinConfigService mobileCheckinConfigService;
+    private final ConfigPayloadSignatureService configPayloadSignatureService;
+    private final ObjectMapper objectMapper;
 
     public MobileApiController(JobService jobService,
                                InspectionSubmissionService inspectionSubmissionService,
-                               MobileCheckinConfigService mobileCheckinConfigService) {
+                               MobileCheckinConfigService mobileCheckinConfigService,
+                               ConfigPayloadSignatureService configPayloadSignatureService,
+                               ObjectMapper objectMapper) {
         this.jobService = jobService;
         this.inspectionSubmissionService = inspectionSubmissionService;
         this.mobileCheckinConfigService = mobileCheckinConfigService;
+        this.configPayloadSignatureService = configPayloadSignatureService;
+        this.objectMapper = objectMapper;
     }
 
     @GetMapping("/checkin-config")
@@ -72,7 +80,18 @@ public class MobileApiController {
     ) {
         RequestContextValidator.requireApiVersion(apiVersion);
         RequestContextValidator.requireFullContext(tenantId, correlationId, actorId);
-        return ResponseEntity.ok(mobileCheckinConfigService.resolve(tenantId, actorId, tipoImovel));
+
+        CheckinConfigResponse response = mobileCheckinConfigService.resolve(tenantId, actorId, tipoImovel);
+        ResponseEntity.BodyBuilder builder = ResponseEntity.ok();
+
+        configPayloadSignatureService
+                .sign(serializeConfigPayload(response))
+                .ifPresent(signature -> {
+                    builder.header("X-Config-Signature", signature);
+                    builder.header("X-Config-Signature-Alg", configPayloadSignatureService.algorithmName());
+                });
+
+        return builder.body(response);
     }
 
     @PostMapping("/inspections/finalized")
@@ -164,6 +183,14 @@ public class MobileApiController {
                     "Informe o ID interno do usuario no cabecalho X-Actor-Id.",
                     "header: X-Actor-Id"
             );
+        }
+    }
+
+    private String serializeConfigPayload(CheckinConfigResponse response) {
+        try {
+            return objectMapper.writeValueAsString(response);
+        } catch (Exception exception) {
+            return "";
         }
     }
 }

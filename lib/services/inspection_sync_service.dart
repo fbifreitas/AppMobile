@@ -197,14 +197,25 @@ class InspectionSyncService {
     final isSuccess = statusCode >= 200 && statusCode < 300;
 
     final protocolId = _pickFirstText(
+      decoded?['protocol'],
       decoded?['protocolId'],
       decoded?['process_id'],
+      data?['protocol'],
+      data?['protocolId'],
       data?['id'],
     );
-    final processId = _pickFirstText(decoded?['process_id'], data?['id']);
+    final processId = _pickFirstText(
+      decoded?['process_id'],
+      decoded?['processId'],
+      data?['process_id'],
+      data?['processId'],
+      data?['id'],
+    );
     final processNumber = _pickFirstText(
       decoded?['process_number'],
+      decoded?['processNumber'],
       data?['process_number'],
+      data?['processNumber'],
     );
     final backendStatus = _pickFirstText(decoded?['status'], data?['status']);
     final receivedAtIso = _pickFirstText(
@@ -251,8 +262,15 @@ class InspectionSyncService {
     return null;
   }
 
-  String? _pickFirstText(Object? a, [Object? b, Object? c]) {
-    for (final value in <Object?>[a, b, c]) {
+  String? _pickFirstText([
+    Object? a,
+    Object? b,
+    Object? c,
+    Object? d,
+    Object? e,
+    Object? f,
+  ]) {
+    for (final value in <Object?>[a, b, c, d, e, f]) {
       if (value == null) continue;
       final text = '$value'.trim();
       if (text.isNotEmpty) return text;

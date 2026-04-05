@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -43,11 +44,13 @@ class CheckinDynamicConfigService {
     String? baseUrl,
     String? authToken,
     String? checkinConfigEndpoint,
+    String? configSigningHmacKey,
     HttpClient Function()? httpClientFactory,
     IntegrationContextService? integrationContextService,
   }) : _baseUrlOverride = baseUrl,
        _authTokenOverride = authToken,
        _checkinConfigEndpointOverride = checkinConfigEndpoint,
+       _configSigningHmacKeyOverride = configSigningHmacKey,
        _httpClientFactory = httpClientFactory,
        _integrationContextService =
            integrationContextService ?? const IntegrationContextService();
@@ -60,6 +63,10 @@ class CheckinDynamicConfigService {
     'APP_CHECKIN_CONFIG_ENDPOINT',
     defaultValue: '/api/mobile/checkin-config',
   );
+  static const String _configSigningHmacKey = String.fromEnvironment(
+    'APP_CHECKIN_CONFIG_SIGNING_HMAC_KEY',
+    defaultValue: '',
+  );
 
   static const String _step1CacheKey = 'checkin_dynamic_step1_config_v1';
   static const String _step1VersionKey = 'checkin_dynamic_step1_version_v1';
@@ -71,6 +78,7 @@ class CheckinDynamicConfigService {
   final String? _baseUrlOverride;
   final String? _authTokenOverride;
   final String? _checkinConfigEndpointOverride;
+  final String? _configSigningHmacKeyOverride;
   final HttpClient Function()? _httpClientFactory;
   final IntegrationContextService _integrationContextService;
 
@@ -78,6 +86,8 @@ class CheckinDynamicConfigService {
   String get _resolvedAuthToken => (_authTokenOverride ?? _authToken).trim();
   String get _resolvedCheckinConfigEndpoint =>
       (_checkinConfigEndpointOverride ?? _checkinConfigEndpoint).trim();
+  String get _resolvedConfigSigningHmacKey =>
+      (_configSigningHmacKeyOverride ?? _configSigningHmacKey).trim();
 
   Future<void> configureDeveloperMock({
     required bool enabled,
@@ -365,6 +375,16 @@ class CheckinDynamicConfigService {
           _optionalString(raw['subtituloTela']) ?? fallback.subtituloTela,
       minFotos: minFotos,
       maxFotos: normalizedMaxFotos,
+      visivelNoFluxo:
+          _parseBoolean(
+            raw['visivel'] ?? raw['visible'] ?? raw['exibir'] ?? raw['enabled'],
+          ) ??
+          fallback.visivelNoFluxo,
+      obrigatoriaNoFluxo:
+          _parseBoolean(
+            raw['obrigatoria'] ?? raw['obrigatorio'] ?? raw['required'],
+          ) ??
+          fallback.obrigatoriaNoFluxo,
       camposFotos: campos,
       gruposOpcoes: grupos.isNotEmpty ? grupos : fallback.gruposOpcoes,
     );
@@ -377,6 +397,8 @@ class CheckinDynamicConfigService {
       'subtituloTela': config.subtituloTela,
       'minFotos': config.minFotos,
       'maxFotos': config.maxFotos,
+      'visivel': config.visivelNoFluxo,
+      'obrigatoria': config.obrigatoriaNoFluxo,
       'camposFotos':
           config.camposFotos
               .map(
@@ -453,6 +475,9 @@ class CheckinDynamicConfigService {
         }
 
         final body = await response.transform(utf8.decoder).join();
+        if (!_isRemoteSignatureValid(response: response, payload: body)) {
+          return null;
+        }
         final decoded = jsonDecode(body);
         return _extractMap(decoded);
       } finally {
@@ -555,6 +580,61 @@ class CheckinDynamicConfigService {
       return parsed < 0 ? 0 : parsed;
     }
     return null;
+  }
+
+  bool? _parseBoolean(Object? value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized == 'true' || normalized == '1' || normalized == 'yes') {
+        return true;
+      }
+      if (normalized == 'false' || normalized == '0' || normalized == 'no') {
+        return false;
+      }
+    }
+    return null;
+  }
+
+  bool _isRemoteSignatureValid({
+    required HttpClientResponse response,
+    required String payload,
+  }) {
+    final signingKey = _resolvedConfigSigningHmacKey;
+    if (signingKey.isEmpty) {
+      return true;
+    }
+
+    final signatureHeader =
+        response.headers.value('X-Config-Signature')?.trim() ?? '';
+    final algorithmHeader =
+        response.headers.value('X-Config-Signature-Alg')?.trim().toLowerCase() ??
+        '';
+
+    if (signatureHeader.isEmpty || algorithmHeader != 'hmac-sha256') {
+      return false;
+    }
+
+    final expectedSignature = base64Encode(
+      Hmac(sha256, utf8.encode(signingKey)).convert(utf8.encode(payload)).bytes,
+    );
+
+    return _constantTimeEquals(signatureHeader, expectedSignature);
+  }
+
+  bool _constantTimeEquals(String left, String right) {
+    final leftBytes = utf8.encode(left);
+    final rightBytes = utf8.encode(right);
+    if (leftBytes.length != rightBytes.length) {
+      return false;
+    }
+
+    var diff = 0;
+    for (var i = 0; i < leftBytes.length; i++) {
+      diff |= leftBytes[i] ^ rightBytes[i];
+    }
+    return diff == 0;
   }
 
   IconData _iconFromName(String rawIcon) {

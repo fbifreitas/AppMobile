@@ -21,6 +21,16 @@ export type ConfigRules = {
   enableVoiceCommands?: boolean;
   theme?: "tenant-default" | "light" | "dark";
   appUpdateChannel?: "stable" | "pilot" | "hotfix";
+  checkinSections?: Array<{
+    sectionKey: string;
+    sectionLabel: string;
+    mandatory: boolean;
+    photoMin: number;
+    photoMax: number;
+    desiredItems?: string[];
+    tipoImovel?: string;
+    sortOrder?: number;
+  }>;
 };
 
 export type RolloutPolicy = {

@@ -91,6 +91,55 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
 - Escopo: consolidacao PACK-1 (BL-056 + hardening de integracao BL-001/BL-012/INT-006) e correcao do Internal Docs CI.
 - Gate de versao: pubspec.yaml incrementado para 1.2.29+49.
 
+## Checkpoint 2026-04-05 - MVP Final Program (Checkpoint A)
+- Branch tecnica: codex/mvp-final-program-20260405
+- Objetivo: fechar lacuna do BOW-130 para permitir que secoes de check-in do mobile sejam publicadas via pacote de configuracao web e resolvidas pela API mobile.
+- Escopo implementado:
+  - backend: novo DTO `ConfigCheckinSectionRuleDto` e extensao de `ConfigRulesDto` com `checkinSections`;
+  - backend: persistencia em `config_packages.checkin_sections_json` com migracao `V012__config_package_checkin_sections.sql`;
+  - backend: `ConfigPackageService` atualizado para serializar/desserializar `checkinSections` e incluir no resolve efetivo;
+  - mobile-api: `MobileCheckinConfigService` atualizado para priorizar secoes vindas de rules publicadas antes do fallback em repositorio local;
+  - testes: novo caso de integracao `shouldResolveSectionsFromPublishedRulesBeforeRepositoryFallback`;
+  - web-backoffice: painel de targeting com campo JSON para publicar `rules.checkinSections`.
+- Validacao executada:
+  - `mvn -q -Dtest=MobileCheckinConfigIntegrationTest,OpenApiContractIntegrationTest test` com sucesso.
+- Pendencia conhecida:
+  - validacao automatica do web-backoffice nao executada nesta maquina porque `npm` nao esta disponivel no PATH da sessao.
+
+## Checkpoint 2026-04-05 - MVP Final Program (Checkpoint B)
+- Branch tecnica: codex/mvp-final-program-20260405
+- Objetivo: consolidar INT-003 (canal assinado) sem quebrar contrato v1 mobile.
+- Escopo implementado:
+  - backend: novo `ConfigPayloadSignatureService` para assinatura HMAC SHA-256 de payload de configuracao;
+  - backend: endpoint `GET /api/mobile/checkin-config` passa a responder com headers `X-Config-Signature` e `X-Config-Signature-Alg` quando chave estiver configurada;
+  - testes: `MobileCheckinConfigIntegrationTest` reforcado para validar presenca e algoritmo de assinatura;
+  - teste profile: chave de assinatura adicionada em `application-test.yml` para validacao automatizada.
+- Validacao executada:
+  - `mvn -q -Dtest=MobileCheckinConfigIntegrationTest,OpenApiContractIntegrationTest test` com sucesso.
+- Observacao:
+  - assinatura e opcional por configuracao; se a chave nao estiver definida, o endpoint permanece compativel sem header.
+
+## Checkpoint 2026-04-05 - MVP Final Program (Checkpoint C)
+- Branch tecnica: codex/mvp-final-program-20260405
+- Objetivo: consolidar comportamento de INT-004/BOW-131 no ciclo mobile de configuracao com rollback efetivo.
+- Escopo implementado:
+  - testes de integracao: novo caso `shouldReflectRollbackOnNextMobileConfigResolve` em `MobileCheckinConfigIntegrationTest`;
+  - evidencia validada: pacote aprovado afeta `GET /api/mobile/checkin-config` e, apos rollback, o mobile recebe fallback default na proxima leitura.
+- Validacao executada:
+  - `mvn -q -Dtest=MobileCheckinConfigIntegrationTest test` com sucesso.
+- Resultado operacional:
+  - rollback de pacote ja propagado no backend para leitura mobile subsequente, sem necessidade de deploy adicional.
+
+## Checkpoint 2026-04-05 - MVP Final Program (Pacote complementar de subida)
+- Branch tecnica: codex/mvp-final-program-20260405
+- Objetivo: preparar subida do pacote com pendencias operacionais mapeadas para homolog/producao.
+- Escopo implementado:
+  - backend: parametro de ambiente adicionado em `application.yml` para chave de assinatura (`INTEGRATION_CONFIG_SIGNING_HMAC_KEY`);
+  - backlog integracao: `INT-003` atualizado para status parcial (assinatura no backend entregue, validacao no mobile pendente);
+  - backlog integracao: novo card `INT-030` criado para configuracao de segredo de assinatura por ambiente (homolog/producao) com criterio de pronto explicito.
+- Critico para release:
+  - nao promover para producao sem `INT-030` executado e evidenciado no checklist de release.
+
 ## Checkpoint 2026-04-05 - PACK-2 (fix de permissao e UX Android)
 - Branch tecnica: codex/mvp-pack-2-20260405
 - Escopo: correcao da tela de permissoes com CTA visivel no Android (SafeArea no bottomNavigationBar) e reforco de concessao real de permissao de camera no onboarding.
@@ -101,3 +150,54 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
 - Origem: codex/mvp-pack-2-20260405
 - Escopo: promocao do PACK-2 com fix de CTA da tela de permissoes no Android e alinhamento de grant real de camera no onboarding.
 - Gate de versao: pubspec.yaml incrementado para 1.2.30+50.
+
+## Checkpoint 2026-04-05 - Release v1.2.32+52 (Checkpoint A mobile)
+- Branch de release: release/v1.2.32+52
+- Escopo: continuidade do pacote unico MVP-GoLive-Core no mobile para fechar INT-003 e BL-057 sem regressao do fluxo atual.
+- Escopo implementado:
+  - mobile: validacao local de assinatura HMAC SHA-256 do payload de `/api/mobile/checkin-config`, com fallback seguro quando a assinatura estiver ausente/invalida sob chave configurada;
+  - mobile: parse e persistencia da politica dinamica da Etapa 2 (`visivel`/`obrigatoria`) no runtime e no recovery payload;
+  - mobile: `CheckinScreen` passa a ocultar a CTA da Etapa 2 quando a secao vier desabilitada pelo backend e bloquear a abertura da camera quando a etapa estiver marcada como obrigatoria e pendente;
+  - testes: reforco da suite em `test/services/checkin_dynamic_config_service_test.dart` e `test/screens/checkin_flow_navigation_test.dart` para assinatura valida/invalida, parse da politica e regressao de comportamento do fluxo.
+- Validacoes executadas em PowerShell externo:
+  - `flutter analyze --no-pub` sem issues;
+  - `flutter test --no-pub test/services/checkin_dynamic_config_service_test.dart test/screens/checkin_flow_navigation_test.dart` verde (22 testes).
+- Estado operacional:
+  - checkpoint local concluido e documentado;
+  - sem commit/push/promocao para `main` nesta etapa; aguardando aprovacao do checkpoint.
+
+## Checkpoint 2026-04-05 - Release v1.2.32+52 (Checkpoint B mobile)
+- Branch de release: release/v1.2.32+52
+- Escopo: avancar INT-004/INT-006/INT-007 no mobile para rollback efetivo de config e sync real com protocolo e reconciliacao, mantendo a trilha do pacote unico MVP-GoLive-Core.
+- Escopo implementado:
+  - mobile: chave de idempotencia endurecida para derivacao canonica por `jobId + exportedAt + payloadChecksum`, reduzindo risco de divergencia por ordenacao do payload;
+  - mobile: parser de `InspectionSyncService` alinhado ao contrato real de backend com suporte explicito a `protocol`, `status`, `processId/processNumber`;
+  - mobile: `CheckinDynamicConfigService` coberto para refletir rollback remoto na proxima leitura sem reter config stale em cache local;
+  - mobile: `InspectionSyncQueueService.flush` passou a devolver referencias reconciliaveis por `jobId`;
+  - mobile: `HomeScreen` passou a aplicar reconciliacao de `idExterno/protocoloExterno` apos dreno automatico/manual da fila local;
+  - testes: cobertura adicionada para chave idempotente canonica, contrato canonico de sync real e reconciliacao de referencias por fila/estado.
+- Validacoes executadas em PowerShell externo:
+  - `flutter analyze --no-pub` sem issues;
+  - `flutter test --no-pub test/services/integration_context_service_test.dart test/services/inspection_sync_service_test.dart test/services/inspection_sync_queue_service_test.dart test/state/app_state_inspection_recovery_test.dart` verde (21 testes).
+- Validacoes executadas no backend:
+  - `mvn -q "-Dmaven.repo.local=D:/DevCaches/maven-repository-codex" "-Dtest=MobileApiControllerContractErrorTest,InspectionSubmissionIntegrationTest,InspectionBackofficeIntegrationTest,MobileCheckinConfigIntegrationTest,OpenApiContractIntegrationTest" test` verde.
+- Estado operacional:
+  - checkpoint B mobile + backend focado validados localmente;
+  - pendente consolidacao web do mesmo checkpoint e fechamento operacional do pacote.
+
+## Checkpoint 2026-04-05 - Release v1.2.32+52 (Checkpoint C web)
+- Branch de release: release/v1.2.32+52
+- Escopo: fechar FW-001/FW-002/FW-003 com backoffice minimo operacional para jobs/cases dentro do pacote MVP-GoLive-Core.
+- Escopo implementado:
+  - web: nova camada `operations_backend_client` para proxiar `jobs` e `cases` com `X-Tenant-Id`, `X-Actor-Id` e `X-Correlation-Id`;
+  - web: nova tela `/backoffice/jobs` com lista filtravel/paginada, detalhe do job, timeline e acoes de `assign/cancel` sem chamada manual de API;
+  - web: nova tela `/backoffice/cases` com criacao minima do case + job inicial e painel de rastreabilidade imediata na sessao;
+  - web: dashboard inicial atualizado com navegacao explicita para jobs e cases;
+  - testes: nova suite `apps/web-backoffice/test/jobs_api_routes.test.ts` cobrindo proxies de lista/detalhe/timeline/assign/cancel/cases.
+- Validacao executada:
+  - `npm test` verde via PowerShell + Docker Desktop (`node:20-alpine`);
+  - `npm run lint` verde via PowerShell + Docker Desktop (`node:20-alpine`);
+  - `npm run build` verde via PowerShell + Docker Desktop (`node:20-alpine`).
+- Estado operacional:
+  - implementacao web do checkpoint C concluida e validada;
+  - pacote unico MVP-GoLive-Core com checkpoints A/B/C fechados localmente, pendente apenas do fluxo final de release que voce decidir.

@@ -31,6 +31,7 @@ class _FakeInspectionFlowCoordinator extends InspectionFlowCoordinator {
   bool didOpenCheckin = false;
   bool didRestoreReviewRecoveryFlow = false;
   bool didRestoreCheckinStep2RecoveryFlow = false;
+  int overlayOpenCount = 0;
   String? restoredTipoImovel;
   CheckinStep2Model? restoredInitialData;
   List<OverlayCameraCaptureResult> restoredCaptures =
@@ -69,6 +70,7 @@ class _FakeInspectionFlowCoordinator extends InspectionFlowCoordinator {
     String? initialEstado,
     required bool cameFromCheckinStep1,
   }) async {
+    overlayOpenCount += 1;
     lastPreselectedMacroLocal = preselectedMacroLocal;
     lastInitialAmbiente = initialAmbiente;
     lastInitialElemento = initialElemento;
@@ -409,6 +411,177 @@ void main() {
     expect(flowCoordinator.lastInitialElemento, 'Portão');
     expect(flowCoordinator.lastInitialMaterial, 'Metal');
     expect(flowCoordinator.lastInitialEstado, 'Bom');
+  });
+
+  testWidgets('check-in etapa 1 hides step2 action when backend marks it invisible', (
+    tester,
+  ) async {
+    final appState = AppState(_ImmediateJobRepository());
+    appState.selecionarJob(
+      Job(
+        id: 'job-1',
+        titulo: 'Vistoria A',
+        endereco: 'Rua A, 1',
+        nomeCliente: 'Cliente A',
+      ),
+    );
+
+    await CheckinDynamicConfigService.instance.configureDeveloperMock(
+      enabled: true,
+      documentJson: jsonEncode({
+        'step2': {
+          'byTipo': {
+            'urbano': {
+              'visivel': false,
+              'obrigatoria': false,
+              'camposFotos': [
+                {
+                  'id': 'fachada',
+                  'titulo': 'Fachada',
+                  'icon': 'home_work_outlined',
+                  'obrigatorio': true,
+                  'cameraMacroLocal': 'Rua',
+                  'cameraAmbiente': 'Fachada',
+                },
+              ],
+            },
+          },
+        },
+      }),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ChangeNotifierProvider<AppState>.value(
+          value: appState,
+          child: const CheckinScreen(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Sim'));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView), const Offset(0, -200));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Urbano'));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView), const Offset(0, -200));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Apartamento'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ir para etapa 2 do check-in'), findsNothing);
+  });
+
+  testWidgets('check-in etapa 1 blocks camera when backend marks step2 as required', (
+    tester,
+  ) async {
+    final appState = AppState(_ImmediateJobRepository());
+    final flowCoordinator = _FakeInspectionFlowCoordinator();
+    appState.selecionarJob(
+      Job(
+        id: 'job-1',
+        titulo: 'Vistoria A',
+        endereco: 'Rua A, 1',
+        nomeCliente: 'Cliente A',
+      ),
+    );
+
+    await CheckinDynamicConfigService.instance.configureDeveloperMock(
+      enabled: true,
+      documentJson: jsonEncode({
+        'step1': {
+          'tipos': ['Urbano'],
+          'contextos': ['Rua'],
+          'subtiposPorTipo': {
+            'Urbano': ['Apartamento'],
+          },
+          'levels': [
+            {
+              'id': 'contexto',
+              'label': 'Por onde deseja comecar?',
+              'required': true,
+              'options': ['Rua'],
+            },
+          ],
+        },
+        'step2': {
+          'byTipo': {
+            'urbano': {
+              'visivel': true,
+              'obrigatoria': true,
+              'camposFotos': [
+                {
+                  'id': 'fachada',
+                  'titulo': 'Fachada',
+                  'icon': 'home_work_outlined',
+                  'obrigatorio': true,
+                  'cameraMacroLocal': 'Rua',
+                  'cameraAmbiente': 'Fachada',
+                },
+              ],
+            },
+          },
+        },
+      }),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ChangeNotifierProvider<AppState>.value(
+          value: appState,
+          child: CheckinScreen(flowCoordinator: flowCoordinator),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Sim'));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView), const Offset(0, -200));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Urbano'));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView), const Offset(0, -200));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Apartamento'));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView), const Offset(0, -300));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Rua'));
+    await tester.pumpAndSettle();
+    /*
+
+    await tester.scrollUntilVisible(
+      find.widgetWithText(ElevatedButton, 'Confirmar e abrir a câmera'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.widgetWithText(ElevatedButton, 'Confirmar e abrir a câmera'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Atenção'), findsOneWidget);
+    */
+
+    final confirmButton = find.byType(ElevatedButton);
+    await tester.scrollUntilVisible(
+      confirmButton,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(confirmButton);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.textContaining('Etapa 2 do check-in esta obrigatoria'), findsOneWidget);
+    expect(flowCoordinator.overlayOpenCount, 0);
   });
 
   testWidgets(

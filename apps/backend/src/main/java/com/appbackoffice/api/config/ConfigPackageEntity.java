@@ -53,6 +53,10 @@ public class ConfigPackageEntity {
     private String theme;
     private String appUpdateChannel;
 
+    @Lob
+    @Column(columnDefinition = "CLOB")
+    private String checkinSectionsJson;
+
     public String getId() {
         return id;
     }
@@ -203,5 +207,13 @@ public class ConfigPackageEntity {
 
     public void setAppUpdateChannel(String appUpdateChannel) {
         this.appUpdateChannel = appUpdateChannel;
+    }
+
+    public String getCheckinSectionsJson() {
+        return checkinSectionsJson;
+    }
+
+    public void setCheckinSectionsJson(String checkinSectionsJson) {
+        this.checkinSectionsJson = checkinSectionsJson;
     }
 }

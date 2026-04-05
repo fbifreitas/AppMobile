@@ -3,6 +3,8 @@ package com.appbackoffice.api.config;
 import com.appbackoffice.api.config.dto.*;
 import com.appbackoffice.api.contract.ApiContractException;
 import com.appbackoffice.api.contract.ErrorSeverity;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,15 +22,18 @@ public class ConfigPackageService {
     private final ConfigPackageRepository configPackageRepository;
     private final ConfigAuditEntryRepository configAuditEntryRepository;
     private final ConfigPolicyService configPolicyService;
+    private final ObjectMapper objectMapper;
 
     public ConfigPackageService(
             ConfigPackageRepository configPackageRepository,
             ConfigAuditEntryRepository configAuditEntryRepository,
-            ConfigPolicyService configPolicyService
+            ConfigPolicyService configPolicyService,
+            ObjectMapper objectMapper
     ) {
         this.configPackageRepository = configPackageRepository;
         this.configAuditEntryRepository = configAuditEntryRepository;
         this.configPolicyService = configPolicyService;
+        this.objectMapper = objectMapper;
     }
 
     @Transactional(readOnly = true)
@@ -147,11 +152,11 @@ public class ConfigPackageService {
                 .filter(entry -> applied.stream().noneMatch(appliedEntry -> appliedEntry.getId().equals(entry.getId())))
                 .toList();
 
-        ConfigRulesDto effective = applied.stream().reduce(
-                new ConfigRulesAccumulator(),
-                ConfigRulesAccumulator::apply,
-                ConfigRulesAccumulator::merge
-        ).toDto();
+        ConfigRulesAccumulator accumulator = new ConfigRulesAccumulator();
+        for (ConfigPackageEntity entry : applied) {
+            accumulator.apply(entry, parseCheckinSections(entry.getCheckinSectionsJson()));
+        }
+        ConfigRulesDto effective = accumulator.toDto();
 
         return new ConfigResolveResponse(
                 new ConfigResolveInputResponse(tenantId, unitId, roleId, userId, deviceId),
@@ -230,7 +235,8 @@ public class ConfigPackageService {
                         entity.getCameraMaxPhotos(),
                         entity.getEnableVoiceCommands(),
                         entity.getTheme(),
-                        entity.getAppUpdateChannel()
+                        entity.getAppUpdateChannel(),
+                        parseCheckinSections(entity.getCheckinSectionsJson())
                 )
         );
     }
@@ -242,6 +248,7 @@ public class ConfigPackageService {
         entity.setEnableVoiceCommands(rules.enableVoiceCommands());
         entity.setTheme(rules.theme());
         entity.setAppUpdateChannel(rules.appUpdateChannel());
+        entity.setCheckinSectionsJson(serializeCheckinSections(rules.checkinSections()));
     }
 
     private ActorRole parseActorRole(String raw) {
@@ -322,6 +329,35 @@ public class ConfigPackageService {
                 .toList();
     }
 
+    private List<ConfigCheckinSectionRuleDto> parseCheckinSections(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return List.of();
+        }
+        try {
+            return objectMapper.readValue(raw, new TypeReference<>() {});
+        } catch (Exception exception) {
+            return List.of();
+        }
+    }
+
+    private String serializeCheckinSections(List<ConfigCheckinSectionRuleDto> sections) {
+        if (sections == null || sections.isEmpty()) {
+            return null;
+        }
+        try {
+            return objectMapper.writeValueAsString(sections);
+        } catch (Exception exception) {
+            throw new ApiContractException(
+                    HttpStatus.BAD_REQUEST,
+                    "CONFIG_RULES_INVALID",
+                    "checkinSections invalido para serializacao",
+                    ErrorSeverity.ERROR,
+                    "Revise a estrutura de rules.checkinSections antes de publicar.",
+                    null
+            );
+        }
+    }
+
     private static final class ConfigRulesAccumulator {
         private Boolean requireBiometric;
         private Integer cameraMinPhotos;
@@ -329,8 +365,12 @@ public class ConfigPackageService {
         private Boolean enableVoiceCommands;
         private String theme;
         private String appUpdateChannel;
+        private List<ConfigCheckinSectionRuleDto> checkinSections;
 
-        private ConfigRulesAccumulator apply(ConfigPackageEntity entity) {
+        private ConfigRulesAccumulator apply(
+                ConfigPackageEntity entity,
+                List<ConfigCheckinSectionRuleDto> parsedCheckinSections
+        ) {
             if (entity.getRequireBiometric() != null) {
                 requireBiometric = entity.getRequireBiometric();
             }
@@ -349,11 +389,10 @@ public class ConfigPackageService {
             if (entity.getAppUpdateChannel() != null) {
                 appUpdateChannel = entity.getAppUpdateChannel();
             }
+            if (parsedCheckinSections != null && !parsedCheckinSections.isEmpty()) {
+                checkinSections = parsedCheckinSections;
+            }
             return this;
-        }
-
-        private ConfigRulesAccumulator merge(ConfigRulesAccumulator other) {
-            return other;
         }
 
         private ConfigRulesDto toDto() {
@@ -363,7 +402,8 @@ public class ConfigPackageService {
                     cameraMaxPhotos,
                     enableVoiceCommands,
                     theme,
-                    appUpdateChannel
+                    appUpdateChannel,
+                    checkinSections
             );
         }
     }
