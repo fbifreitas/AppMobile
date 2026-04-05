@@ -48,3 +48,45 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
 - mudanca de versao em `pubspec.yaml`,
 - aprovacao/reprovacao de smoke Maestro,
 - merge aprovado em `main`.
+
+## Checkpoint 2026-04-05 - Pacote release v1.2.28+48
+- Branch de release: `release/v1.2.28+48`
+- Branch tecnica de origem: `codex/cicd-esteira-alinhamento-20260405`
+- Commit do pacote: `d96c6d2`
+- Objetivo do pacote: alinhar esteira automatica CI/CD e restaurar portal interno ativo fora de `legacy`.
+
+### Escopo implementado
+- CI backend:
+  - ajuste no `openapi-compatibility-gate` para nao falhar hard quando o OpenAPI current estiver indisponivel no run;
+  - manutencao do gate semantico com fallback seguro.
+- CI docs:
+  - restauracao de `docs/internal-portal/*` na area ativa;
+  - workflow `internal_docs_ci.yml` apontando novamente para `docs/internal-portal/mkdocs.yml`.
+- Backend test:
+  - alinhamento de asserts do `ConfigPackageControllerContractErrorTest` para mensagem canonica atual (`e obrigatorio`).
+- Operacao:
+  - procedimento anti-travamento adicionado em `AGENT_OPERATING_SYSTEM.md` (execucao serial, timeout explicito, preferencia por `--no-pub` e fallback para terminal nativo).
+- Versionamento:
+  - `pubspec.yaml` atualizado para `1.2.28+48`.
+
+### Checkpoints operacionais
+1. Codigo e docs atualizados no pacote.
+2. Branch de release publicada para disparar `Android Homologation`.
+3. Gate de homologacao aguardando conclusao para seguir com validacao de QA/smoke.
+4. Promocao para `main` somente apos esteira verde e validacao de processo.
+
+
+## Checkpoint 2026-04-05 - PACK-1 (MVP em 2 pacotes)
+- Branch tecnica: codex/mvp-pack-1-20260405
+- Objetivo: consolidar BL-056 em fluxo hibrido e manter base de BL-001/BL-012/INT-006/BOW-130 para fechamento do pacote funcional.
+- Validacoes executadas no mobile: flutter analyze (sem issues) e flutter test (115 testes verdes).
+- Resultado parcial: regra de gate de permissoes movida para AuthState (requiresPermissionsOnboarding) e aplicada no app entrypoint.
+- Incremento tecnico do pacote: servicos mobile de checkin-config e sync cobertos com testes de headers obrigatorios (tenant/correlation/actor/api-version) e idempotency-key no uplink final.
+- Correcao de esteira: workflow `internal_docs_ci.yml` ajustado para gerar `site_dir` fora de `docs_dir` (`../../build/internal-docs-site`), eliminando erro de build recursivo no MkDocs.
+
+
+## Checkpoint 2026-04-05 - Release v1.2.29+49
+- Branch de release: release/v1.2.29+49
+- Origem: codex/mvp-pack-1-20260405
+- Escopo: consolidacao PACK-1 (BL-056 + hardening de integracao BL-001/BL-012/INT-006) e correcao do Internal Docs CI.
+- Gate de versao: pubspec.yaml incrementado para 1.2.29+49.

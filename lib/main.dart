@@ -115,9 +115,7 @@ class _AppEntryPoint extends StatelessWidget {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    if (auth.isAuthenticated &&
-        auth.status == AppAuthStatus.active &&
-        !auth.permissionsOnboardingCompleted) {
+    if (auth.requiresPermissionsOnboarding) {
       return const PermissionsOnboardingScreen();
     }
 

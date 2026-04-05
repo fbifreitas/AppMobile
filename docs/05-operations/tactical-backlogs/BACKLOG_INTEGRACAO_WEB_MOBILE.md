@@ -205,3 +205,8 @@ Motivo:
 - INT-001: filtro MobileGatewayPolicyFilter adicionado no backend para rotas /api/mobile/* com validação de versão e rate-limit base por tenant/actor.
 - INT-002: contratos mobile passaram a exigir X-Api-Version (1) em endpoint e validação de contexto.
 - INT-016: testes de contrato/integração mobile atualizados para novo header obrigatório e política de versão.
+
+## Adendo 2026-04-05 (governanca da esteira automatica)
+- INT-025: pacote `v1.2.28+48` incluiu ajuste de resiliencia no `openapi-compatibility-gate` da `backend_ci.yml`, evitando quebra hard quando o OpenAPI current nao sobe no run de PR.
+- INT-016: estabilizacao do backend CI com alinhamento de asserts canonicos em `ConfigPackageControllerContractErrorTest` para mensagem de contrato vigente.
+- Checkpoint de processo: pacote promovido para branch `release/v1.2.28+48` (sem PR direto para `main`), respeitando fluxo de homologacao documentado.

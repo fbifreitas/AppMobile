@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:appmobile/config/checkin_step2_config.dart';
 import 'package:appmobile/services/checkin_dynamic_config_service.dart';
@@ -308,4 +309,70 @@ void main() {
       expect(document['camera'], isA<Map<String, dynamic>>());
     },
   );
+
+  test('loadStep2Config calls backend with required integration headers', () async {
+    SharedPreferences.setMockInitialValues({
+      'integration_tenant_id_v1': 'tenant-ops',
+      'integration_actor_id_v1': 'actor-ops',
+      'integration_api_version_v1': 'v1',
+    });
+
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    addTearDown(() async => server.close(force: true));
+
+    server.listen((request) async {
+      expect(request.method, 'GET');
+      expect(request.uri.path, '/api/mobile/checkin-config');
+      expect(request.uri.queryParameters['tipoImovel'], 'urbano');
+      expect(request.headers.value('X-Tenant-Id'), 'tenant-ops');
+      expect(request.headers.value('X-Actor-Id'), 'actor-ops');
+      expect(request.headers.value('X-Api-Version'), 'v1');
+      expect(
+        request.headers.value(HttpHeaders.authorizationHeader),
+        'Bearer token-checkin',
+      );
+      final correlationId = request.headers.value('X-Correlation-Id') ?? '';
+      expect(correlationId, startsWith('mob-'));
+
+      request.response.statusCode = 200;
+      request.response.headers.contentType = ContentType.json;
+      request.response.write(
+        jsonEncode({
+          'step2': {
+            'byTipo': {
+              'urbano': {
+                'tituloTela': 'Config remota real',
+                'camposFotos': [
+                  {
+                    'id': 'fachada_remota',
+                    'titulo': 'Fachada remota',
+                    'icon': 'home_work_outlined',
+                    'obrigatorio': true,
+                    'cameraMacroLocal': 'Rua',
+                    'cameraAmbiente': 'Fachada',
+                  },
+                ],
+              },
+            },
+          },
+        }),
+      );
+      await request.response.close();
+    });
+
+    final service = CheckinDynamicConfigService(
+      baseUrl: 'http://${server.address.host}:${server.port}',
+      authToken: 'token-checkin',
+      checkinConfigEndpoint: '/api/mobile/checkin-config',
+    );
+    final fallback = CheckinStep2Configs.byTipo(TipoImovel.urbano);
+
+    final result = await service.loadStep2Config(
+      tipo: TipoImovel.urbano,
+      fallback: fallback,
+    );
+
+    expect(result.tituloTela, 'Config remota real');
+    expect(result.camposFotos.first.id, 'fachada_remota');
+  });
 }

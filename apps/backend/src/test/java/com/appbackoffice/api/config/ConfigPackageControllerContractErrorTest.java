@@ -30,7 +30,7 @@ class ConfigPackageControllerContractErrorTest {
                         .queryParam("actorRole", "tenant_admin"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("CTX_MISSING_HEADER"))
-                .andExpect(jsonPath("$.message").value("X-Correlation-Id é obrigatório"))
+                .andExpect(jsonPath("$.message").value("X-Correlation-Id e obrigatorio"))
                 .andExpect(jsonPath("$.details").value("header: X-Correlation-Id"));
     }
 
@@ -49,7 +49,7 @@ class ConfigPackageControllerContractErrorTest {
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("CTX_MISSING_HEADER"))
-                .andExpect(jsonPath("$.message").value("X-Correlation-Id é obrigatório"))
+                .andExpect(jsonPath("$.message").value("X-Correlation-Id e obrigatorio"))
                 .andExpect(jsonPath("$.details").value("header: X-Correlation-Id"));
     }
 }
