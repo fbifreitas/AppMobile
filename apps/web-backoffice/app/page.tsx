@@ -36,6 +36,12 @@ export default function HomePage() {
           <a className="ghost" href="/backoffice/inspections">
             Operar vistorias recebidas
           </a>
+          <a className="ghost" href="/backoffice/jobs">
+            Operar jobs
+          </a>
+          <a className="ghost" href="/backoffice/cases">
+            Criar cases
+          </a>
         </div>
       </section>
 
