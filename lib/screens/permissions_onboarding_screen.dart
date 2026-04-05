@@ -6,7 +6,12 @@ import '../state/auth_state.dart';
 import '../theme/app_colors.dart';
 
 class PermissionsOnboardingScreen extends StatefulWidget {
-  const PermissionsOnboardingScreen({super.key});
+  const PermissionsOnboardingScreen({
+    super.key,
+    this.permissionsService = const PermissionsOnboardingService(),
+  });
+
+  final PermissionsOnboardingService permissionsService;
 
   @override
   State<PermissionsOnboardingScreen> createState() =>
@@ -15,15 +20,12 @@ class PermissionsOnboardingScreen extends StatefulWidget {
 
 class _PermissionsOnboardingScreenState
     extends State<PermissionsOnboardingScreen> {
-  final PermissionsOnboardingService _permissionsService =
-      const PermissionsOnboardingService();
-
   bool _loading = false;
   PermissionsOnboardingStatus? _status;
 
   Future<void> _requestPermissions() async {
     setState(() => _loading = true);
-    final status = await _permissionsService.requestAll();
+    final status = await widget.permissionsService.requestAll();
     if (!mounted) return;
     setState(() {
       _loading = false;
@@ -96,24 +98,27 @@ class _PermissionsOnboardingScreenState
               description: 'Necessario para recursos de voz operacionais.',
               granted: current?.microphoneGranted ?? false,
             ),
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: _loading ? null : _requestPermissions,
-                child: _loading
-                    ? const SizedBox(
-                        height: 18,
-                        width: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text('Conceder permissoes e continuar'),
-              ),
-            ),
           ],
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        child: SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            onPressed: _loading ? null : _requestPermissions,
+            child: _loading
+                ? const SizedBox(
+                    height: 18,
+                    width: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text('Conceder permissoes e continuar'),
+          ),
         ),
       ),
     );

@@ -139,3 +139,8 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
   - backlog integracao: novo card `INT-030` criado para configuracao de segredo de assinatura por ambiente (homolog/producao) com criterio de pronto explicito.
 - Critico para release:
   - nao promover para producao sem `INT-030` executado e evidenciado no checklist de release.
+
+## Checkpoint 2026-04-05 - PACK-2 (fix de permissao e UX Android)
+- Branch tecnica: codex/mvp-pack-2-20260405
+- Escopo: correcao da tela de permissoes com CTA visivel no Android (SafeArea no bottomNavigationBar) e reforco de concessao real de permissao de camera no onboarding.
+- Validacao: teste de widget dedicado `test/screens/permissions_onboarding_screen_test.dart` validado em PowerShell nativo.
