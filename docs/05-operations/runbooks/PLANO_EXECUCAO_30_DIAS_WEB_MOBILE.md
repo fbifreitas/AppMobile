@@ -13,6 +13,11 @@ Sair de backlog para execucao com entregas verificaveis em 30 dias, priorizando:
 2. Integracao bidirecional confiavel entre Web e Mobile.
 3. Primeira trilha operacional para check-in dinamico e sync de vistoria.
 
+## Regra de Ouro de Execucao
+1. Toda entrega deve seguir TDD sempre que viavel.
+2. Nenhum pacote sobe sem testes relevantes executados e verdes.
+3. Se testes nao puderem ser executados por bloqueio de ambiente, o bloqueio deve ser resolvido antes de promocao ou registrado formalmente como risco de release.
+
 ## Escopo da janela de 30 dias
 1. BOW: 001, 004, 006, 008, 010, 011.
 2. INT: 001, 002, 003, 004, 006, 007, 011, 012, 016.

@@ -926,3 +926,4 @@ KPIs por tenant/região/vistoriador. Score de qualidade. Control tower para gest
 - Onda 4 permanece como visao estrategica sem implementacao estrutural fechada no codigo ativo.
 
 
+

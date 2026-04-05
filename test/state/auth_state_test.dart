@@ -41,10 +41,11 @@ void main() {
 
     await authState.login('qa@empresa.com');
     await authState.completeOnboarding(
-      nome: 'Usuário QA',
+      nome: 'Usuario QA',
       tipo: 'PJ',
       cnpj: '11222333000181',
     );
+    await authState.completePermissionsOnboarding();
 
     await authState.logout();
 
@@ -54,6 +55,7 @@ void main() {
     expect(authState.userTipo, isNull);
     expect(authState.userCpf, isNull);
     expect(authState.userCnpj, isNull);
+    expect(authState.permissionsOnboardingCompleted, isFalse);
   });
 
   test('reset onboarding keeps login and returns flow to onboarding', () async {
@@ -63,10 +65,11 @@ void main() {
 
     await authState.login('qa@empresa.com');
     await authState.completeOnboarding(
-      nome: 'Usuário QA',
+      nome: 'Usuario QA',
       tipo: 'PJ',
       cnpj: '11222333000181',
     );
+    await authState.completePermissionsOnboarding();
 
     await authState.resetOnboardingForMock();
 
@@ -75,5 +78,26 @@ void main() {
     expect(authState.userNome, isNull);
     expect(authState.userTipo, isNull);
     expect(authState.userCnpj, isNull);
+    expect(authState.permissionsOnboardingCompleted, isFalse);
+  });
+
+  test('permissions onboarding can be completed and persisted', () async {
+    final repo = _MemoryPreferencesRepository();
+    final authState = AuthState(repo);
+    await waitAuthReady(authState);
+
+    await authState.login('qa@empresa.com');
+    await authState.completeOnboarding(
+      nome: 'Usuario QA',
+      tipo: 'PJ',
+      cnpj: '11222333000181',
+    );
+    await authState.activateAccount();
+
+    expect(authState.permissionsOnboardingCompleted, isFalse);
+
+    await authState.completePermissionsOnboarding();
+
+    expect(authState.permissionsOnboardingCompleted, isTrue);
   });
 }

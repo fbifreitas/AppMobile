@@ -48,7 +48,7 @@ class MobileCheckinConfigIntegrationTest {
     void setUp() {
         configAuditEntryRepository.deleteAll();
         configPackageRepository.deleteAll();
-      checkinSectionRepository.deleteAll();
+        checkinSectionRepository.deleteAll();
     }
 
     @Test
@@ -98,7 +98,7 @@ class MobileCheckinConfigIntegrationTest {
                                 """.formatted(packageId)))
                 .andReturn();
 
-              checkinSectionRepository.save(createSection(
+        checkinSectionRepository.save(createSection(
                 "tenant-mobile-config",
                 "RESIDENTIAL",
                 "fachada",
@@ -108,12 +108,13 @@ class MobileCheckinConfigIntegrationTest {
                 7,
                 List.of("orientacao", "material"),
                 1
-              ));
+        ));
 
         MvcResult result = mockMvc.perform(get("/api/mobile/checkin-config")
                         .header("X-Tenant-Id", "tenant-mobile-config")
                         .header("X-Correlation-Id", CORRELATION_ID)
                         .header("X-Actor-Id", "42")
+                        .header("X-Api-Version", "v1")
                         .queryParam("tipoImovel", "RESIDENTIAL"))
                 .andReturn();
 
@@ -139,7 +140,8 @@ class MobileCheckinConfigIntegrationTest {
         MvcResult result = mockMvc.perform(get("/api/mobile/checkin-config")
                         .header("X-Tenant-Id", "tenant-without-config")
                         .header("X-Correlation-Id", CORRELATION_ID)
-                        .header("X-Actor-Id", "999"))
+                        .header("X-Actor-Id", "999")
+                        .header("X-Api-Version", "v1"))
                 .andReturn();
 
         assertThat(result.getResponse().getStatus()).isEqualTo(200);
@@ -153,15 +155,15 @@ class MobileCheckinConfigIntegrationTest {
         assertThat(body.get("compatibilityNotes").toString()).contains("nenhum pacote ativo encontrado");
     }
 
-      private CheckinSectionEntity createSection(String tenantId,
-                             String tipoImovel,
-                             String key,
-                             String label,
-                             boolean mandatory,
-                             int photoMin,
-                             int photoMax,
-                             List<String> desiredItems,
-                             int sortOrder) throws Exception {
+    private CheckinSectionEntity createSection(String tenantId,
+                                               String tipoImovel,
+                                               String key,
+                                               String label,
+                                               boolean mandatory,
+                                               int photoMin,
+                                               int photoMax,
+                                               List<String> desiredItems,
+                                               int sortOrder) throws Exception {
         CheckinSectionEntity entity = new CheckinSectionEntity();
         entity.setTenantId(tenantId);
         entity.setTipoImovel(tipoImovel);
@@ -174,5 +176,5 @@ class MobileCheckinConfigIntegrationTest {
         entity.setSortOrder(sortOrder);
         entity.setActive(true);
         return entity;
-      }
+    }
 }

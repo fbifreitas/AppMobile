@@ -143,6 +143,7 @@ class InspectionBackofficeIntegrationTest {
                         .header("X-Correlation-Id", CORRELATION_ID)
                         .header("X-Actor-Id", String.valueOf(operatorUserId))
                         .header("X-Idempotency-Key", idempotencyKey)
+                        .header("X-Api-Version", "v1")
                         .contentType("application/json")
                         .content("""
                                 {
