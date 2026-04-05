@@ -148,3 +148,8 @@ Registrar práticas essenciais, aprendizados e padrões de operação que devem 
 ---
 
 _Este arquivo é a referência viva do agente para garantir continuidade, resiliência e rastreabilidade operacional._
+- [2026-04-05] Em fluxo de mantenedor unico, autonomia de implementacao nao autoriza desvio de processo de release. O fluxo obrigatorio e: work branch -> release/homolog -> esteira verde -> PR para main -> excecao controlada de aprovacao -> restauracao imediata.
+- [2026-04-05] Validacao local de comandos pesados via terminal do agente pode ficar instavel em sessao/sandbox. Procedimento padrao: execucao serial com timeout explicito, preferencia por flutter analyze/test com --no-pub apos pub get inicial, e fallback para terminal nativo com evidencia registrada.
+- [2026-04-05] Em reorganizacao documental V2, pode ocorrer migracao indevida de ativos para legacy. Sempre auditar caminhos referenciados por workflows (ex.: internal_docs_ci) e manter artefatos ativos fora de docs/legacy.
+- [2026-04-05] Antes de promover para main, validar configuracao viva de branch protection e required status checks; documentacao sozinha nao garante enforcement.
+- [2026-04-05] Toda entrega deve fechar com checkpoints operacionais no resumo de release e adendo de backlog (funcional + integracao) para preservar rastreabilidade entre codigo, esteira e governanca.

@@ -663,3 +663,9 @@ Ao pegar um item para implementar:
 
 
 
+
+## ADENDO 2026-04-05 - Checkpoints de esteira e versionamento
+- Pacote tecnico de alinhamento CI/CD publicado na branch `release/v1.2.28+48` com versao `1.2.28+48`.
+- Ajustes de esteira aplicados: `backend_ci.yml` (gate OpenAPI resiliente) e `internal_docs_ci.yml` (portal interno ativo em `docs/internal-portal`).
+- Procedimento operacional reforcado no AGENT_OPERATING_SYSTEM: execucao serial de comandos pesados, timeout explicito e registro de evidencia quando validacao ocorrer em terminal nativo.
+- Backlog relacionado: BL-036 (eficiencia de pipeline) e trilha INT-016/INT-025 (contracts and CI gates).

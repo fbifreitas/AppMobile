@@ -48,3 +48,29 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
 - mudanca de versao em `pubspec.yaml`,
 - aprovacao/reprovacao de smoke Maestro,
 - merge aprovado em `main`.
+
+## Checkpoint 2026-04-05 - Pacote release v1.2.28+48
+- Branch de release: `release/v1.2.28+48`
+- Branch tecnica de origem: `codex/cicd-esteira-alinhamento-20260405`
+- Commit do pacote: `d96c6d2`
+- Objetivo do pacote: alinhar esteira automatica CI/CD e restaurar portal interno ativo fora de `legacy`.
+
+### Escopo implementado
+- CI backend:
+  - ajuste no `openapi-compatibility-gate` para nao falhar hard quando o OpenAPI current estiver indisponivel no run;
+  - manutencao do gate semantico com fallback seguro.
+- CI docs:
+  - restauracao de `docs/internal-portal/*` na area ativa;
+  - workflow `internal_docs_ci.yml` apontando novamente para `docs/internal-portal/mkdocs.yml`.
+- Backend test:
+  - alinhamento de asserts do `ConfigPackageControllerContractErrorTest` para mensagem canonica atual (`e obrigatorio`).
+- Operacao:
+  - procedimento anti-travamento adicionado em `AGENT_OPERATING_SYSTEM.md` (execucao serial, timeout explicito, preferencia por `--no-pub` e fallback para terminal nativo).
+- Versionamento:
+  - `pubspec.yaml` atualizado para `1.2.28+48`.
+
+### Checkpoints operacionais
+1. Codigo e docs atualizados no pacote.
+2. Branch de release publicada para disparar `Android Homologation`.
+3. Gate de homologacao aguardando conclusao para seguir com validacao de QA/smoke.
+4. Promocao para `main` somente apos esteira verde e validacao de processo.
