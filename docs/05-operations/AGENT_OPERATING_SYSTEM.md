@@ -48,6 +48,16 @@ Ser o sistema operacional de execucao do agente para tarefas deste repositorio, 
 - Codigo: testes/lint/build conforme frente.
 - Backlog: status e rastreabilidade atualizados quando aplicavel.
 
+## Procedimento de execucao (anti-travamento)
+- Para comandos pesados (`flutter analyze`, `flutter test`, `mvn test`, build web), executar de forma serial (nunca em paralelo).
+- Usar timeout explicito por comando e registrar comando/resultado ao final.
+- Em Flutter, preferir sequencia:
+  - `flutter pub get` (uma vez no inicio da sessao)
+  - `flutter analyze --no-pub`
+  - `flutter test --no-pub`
+- Se houver interrupcao/timeout recorrente no terminal do agente, executar no terminal nativo (VS Code/PowerShell externo) e registrar evidencia no resumo da entrega.
+- Se processo ficar preso, encerrar `flutter`/`dart` pendentes antes de nova tentativa.
+
 ## Regra de Ouro (TDD)
 - Todo pacote de desenvolvimento deve ser orientado a testes (TDD sempre que viavel).
 - Nao subir pacote sem executar os testes relevantes da mudanca.

@@ -1,0 +1,22 @@
+site_name: AppMobile Internal Engineering Docs
+site_description: Internal reference for web, mobile, and integration teams
+site_dir: ../../build/internal-docs-site
+docs_dir: .
+repo_name: AppMobile
+repo_url: https://github.com/fbifreitas/AppMobile
+
+theme:
+  name: material
+  language: en
+
+nav:
+  - Home: index.md
+  - Canonical Domain v1: canonical-domain-v1.md
+  - OpenAPI v1: openapi-v1.md
+  - Delivery Runbook: runbook.md
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
