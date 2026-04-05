@@ -6,6 +6,9 @@ class ConfigLevelDefinition {
   final bool required;
   final String? dependsOn;
   final List<String> options;
+  final String? semanticKey;
+  final List<String> aliases;
+  final Map<String, String> labelsBySurface;
 
   const ConfigLevelDefinition({
     required this.id,
@@ -13,6 +16,9 @@ class ConfigLevelDefinition {
     required this.required,
     required this.dependsOn,
     required this.options,
+    this.semanticKey,
+    this.aliases = const <String>[],
+    this.labelsBySurface = const <String, String>{},
   });
 
   factory ConfigLevelDefinition.fromJson(Map<String, dynamic> json) {
@@ -24,6 +30,11 @@ class ConfigLevelDefinition {
       required: json['required'] as bool? ?? true,
       dependsOn: _optionalText(json['dependsOn']),
       options: List<String>.from(json['options'] as List<dynamic>? ?? const []),
+      semanticKey: _optionalText(
+        json['semanticKey'] ?? json['semantic'] ?? json['fieldKey'],
+      ),
+      aliases: List<String>.from(json['aliases'] as List<dynamic>? ?? const []),
+      labelsBySurface: _parseLabelsBySurface(json['labelsBySurface']),
     );
   }
 
@@ -553,4 +564,22 @@ String? _optionalText(Object? value) {
   }
   final text = '$value'.trim();
   return text.isEmpty ? null : text;
+}
+
+Map<String, String> _parseLabelsBySurface(Object? value) {
+  if (value is! Map) {
+    return const <String, String>{};
+  }
+
+  final result = <String, String>{};
+  final source = Map<String, dynamic>.from(value);
+  source.forEach((key, rawValue) {
+    final normalizedKey = key.trim();
+    final normalizedValue = _optionalText(rawValue);
+    if (normalizedKey.isEmpty || normalizedValue == null) {
+      return;
+    }
+    result[normalizedKey] = normalizedValue;
+  });
+  return result;
 }

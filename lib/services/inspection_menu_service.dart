@@ -583,6 +583,21 @@ class InspectionMenuService {
         ];
   }
 
+  Future<List<ConfigLevelDefinition>> getCameraLevels({
+    required String propertyType,
+    String? subtipo,
+  }) async {
+    await ensureLoaded();
+    final levels = _package?.cameraLevelsFor(
+      propertyType: propertyType,
+      subtipo: subtipo,
+    );
+    if (levels == null || levels.isEmpty) {
+      return const <ConfigLevelDefinition>[];
+    }
+    return levels;
+  }
+
   Future<List<String>> getAmbientes({
     required String propertyType,
     required String macroLocal,

@@ -4,10 +4,14 @@ import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 
 import '../config/checkin_step2_config.dart';
+import '../config/inspection_menu_package.dart';
 import '../models/checkin_step2_model.dart';
-import '../models/inspection_session_model.dart';
+import '../models/overlay_camera_capture_result.dart';
 import '../services/checkin_dynamic_config_service.dart';
+import '../services/inspection_environment_instance_service.dart';
 import '../services/inspection_menu_service.dart';
+import '../services/inspection_requirement_policy_service.dart';
+import '../services/inspection_semantic_field_service.dart';
 import '../services/voice_command_catalog_service.dart';
 import '../services/voice_command_parser_service.dart';
 import '../services/voice_input_service.dart';
@@ -15,141 +19,6 @@ import '../state/app_state.dart';
 import '../widgets/voice_action_bar.dart';
 import '../widgets/voice_selector_sheet.dart';
 import 'inspection_review_screen.dart';
-
-class OverlayCameraCaptureResult {
-  final String filePath;
-  final String? macroLocal;
-  final String ambiente;
-  final String? elemento;
-  final String? material;
-  final String? estado;
-  final DateTime capturedAt;
-  final double latitude;
-  final double longitude;
-  final double accuracy;
-  final bool classificationConfirmed;
-  final bool learningPersisted;
-  final bool usedSuggestion;
-  final String? suggestionSummary;
-
-  const OverlayCameraCaptureResult({
-    required this.filePath,
-    required this.ambiente,
-    required this.capturedAt,
-    required this.latitude,
-    required this.longitude,
-    required this.accuracy,
-    this.macroLocal,
-    this.elemento,
-    this.material,
-    this.estado,
-    this.classificationConfirmed = false,
-    this.learningPersisted = false,
-    this.usedSuggestion = false,
-    this.suggestionSummary,
-  });
-
-  OverlayCameraCaptureResult copyWith({
-    String? filePath,
-    String? macroLocal,
-    String? ambiente,
-    String? elemento,
-    String? material,
-    String? estado,
-    DateTime? capturedAt,
-    double? latitude,
-    double? longitude,
-    double? accuracy,
-    bool? classificationConfirmed,
-    bool? learningPersisted,
-    bool? usedSuggestion,
-    String? suggestionSummary,
-  }) {
-    return OverlayCameraCaptureResult(
-      filePath: filePath ?? this.filePath,
-      macroLocal: macroLocal ?? this.macroLocal,
-      ambiente: ambiente ?? this.ambiente,
-      elemento: elemento ?? this.elemento,
-      material: material ?? this.material,
-      estado: estado ?? this.estado,
-      capturedAt: capturedAt ?? this.capturedAt,
-      latitude: latitude ?? this.latitude,
-      longitude: longitude ?? this.longitude,
-      accuracy: accuracy ?? this.accuracy,
-      classificationConfirmed:
-          classificationConfirmed ?? this.classificationConfirmed,
-      learningPersisted: learningPersisted ?? this.learningPersisted,
-      usedSuggestion: usedSuggestion ?? this.usedSuggestion,
-      suggestionSummary: suggestionSummary ?? this.suggestionSummary,
-    );
-  }
-
-  bool get hasAnyClassification =>
-      (elemento != null && elemento!.trim().isNotEmpty) ||
-      (material != null && material!.trim().isNotEmpty) ||
-      (estado != null && estado!.trim().isNotEmpty);
-
-  GeoPointData toGeoPointData() => GeoPointData(
-    latitude: latitude,
-    longitude: longitude,
-    accuracy: accuracy,
-    capturedAt: capturedAt,
-  );
-
-  Map<String, dynamic> toMap() {
-    return {
-      'filePath': filePath,
-      'macroLocal': macroLocal,
-      'ambiente': ambiente,
-      'elemento': elemento,
-      'material': material,
-      'estado': estado,
-      'capturedAt': capturedAt.toIso8601String(),
-      'latitude': latitude,
-      'longitude': longitude,
-      'accuracy': accuracy,
-      'classificationConfirmed': classificationConfirmed,
-      'learningPersisted': learningPersisted,
-      'usedSuggestion': usedSuggestion,
-      'suggestionSummary': suggestionSummary,
-    };
-  }
-
-  factory OverlayCameraCaptureResult.fromMap(Map<String, dynamic> map) {
-    final capturedAtString = map['capturedAt']?.toString();
-    final capturedAt =
-        DateTime.tryParse(capturedAtString ?? '') ?? DateTime.now();
-
-    double parseDouble(dynamic value) {
-      if (value is num) return value.toDouble();
-      if (value is String) return double.tryParse(value) ?? 0.0;
-      return 0.0;
-    }
-
-    bool parseBool(dynamic value) {
-      if (value is bool) return value;
-      if (value is String) return value.toLowerCase() == 'true';
-      return false;
-    }
-
-    return OverlayCameraCaptureResult(
-      filePath: map['filePath']?.toString() ?? '',
-      ambiente: map['ambiente']?.toString() ?? '',
-      macroLocal: map['macroLocal']?.toString(),
-      elemento: map['elemento']?.toString(),
-      material: map['material']?.toString(),
-      estado: map['estado']?.toString(),
-      capturedAt: capturedAt,
-      latitude: parseDouble(map['latitude']),
-      longitude: parseDouble(map['longitude']),
-      accuracy: parseDouble(map['accuracy']),
-      classificationConfirmed: parseBool(map['classificationConfirmed']),
-      learningPersisted: parseBool(map['learningPersisted']),
-      usedSuggestion: parseBool(map['usedSuggestion']),
-      suggestionSummary: map['suggestionSummary']?.toString(),
-    );
-  }
-}
 
 class OverlayCameraScreen extends StatefulWidget {
   final String title;
@@ -209,6 +78,12 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   ];
 
   final InspectionMenuService _menuService = InspectionMenuService.instance;
+  final InspectionEnvironmentInstanceService _environmentInstanceService =
+      InspectionEnvironmentInstanceService.instance;
+  final InspectionRequirementPolicyService _requirementPolicy =
+      InspectionRequirementPolicyService.instance;
+  final InspectionSemanticFieldService _semanticFieldService =
+      InspectionSemanticFieldService.instance;
   final VoiceInputService _voiceService = VoiceInputService();
   final VoiceCommandParserService _voiceCommandParser =
       VoiceCommandParserService();
@@ -235,6 +110,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   List<String> _recentAmbientes = const [];
   List<String> _recentElementos = const [];
   List<String> _cameraLevelOrder = List<String>.from(_defaultCameraLevels);
+  Map<String, String> _cameraLevelLabels = const <String, String>{};
 
   PredictedSelection? _predictedSelection;
   String? _contextSuggestionSummary;
@@ -298,7 +174,12 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
         propertyType: widget.tipoImovel,
         subtipo: widget.subtipoImovel,
       );
+      final configuredLevelDefinitions = await _menuService.getCameraLevels(
+        propertyType: widget.tipoImovel,
+        subtipo: widget.subtipoImovel,
+      );
       _cameraLevelOrder = _normalizeCameraLevels(configuredLevels);
+      _cameraLevelLabels = _resolveCameraLevelLabels(configuredLevelDefinitions);
       await _reloadMenus(initialLoad: true);
 
       if (widget.skipDeviceInitialization) {
@@ -581,6 +462,44 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     await _reloadMenus();
   }
 
+  Future<void> _duplicateCurrentAmbiente() async {
+    final selectedAmbiente = _ambiente;
+    if (selectedAmbiente == null || selectedAmbiente.trim().isEmpty) {
+      return;
+    }
+
+    final nextLabel = _environmentInstanceService.nextDisplayLabel(
+      selectedLabel: selectedAmbiente,
+      existingLabels: _ambientesAtuais,
+    );
+    if (nextLabel.trim().isEmpty) {
+      return;
+    }
+
+    setState(() {
+      final nextAmbientes = List<String>.from(_ambientesAtuais);
+      if (!nextAmbientes.contains(nextLabel)) {
+        nextAmbientes.add(nextLabel);
+      }
+      _ambientesAtuais = nextAmbientes;
+      _ambiente = nextLabel;
+      _elemento = null;
+      _material = null;
+      _estado = null;
+    });
+
+    if (widget.useTestMenuData) {
+      return;
+    }
+
+    await _menuService.registerUsage(
+      scope: 'camera.${widget.tipoImovel.toLowerCase()}.$_macroLocal.ambiente',
+      value: nextLabel,
+    );
+
+    await _reloadMenus();
+  }
+
   Future<void> _selectElemento(String value) async {
     await _menuService.registerUsage(
       scope:
@@ -628,6 +547,9 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
         filePath: file.path,
         macroLocal: _macroLocal,
         ambiente: _ambiente!,
+        ambienteBase: _environmentInstanceService.baseLabelOf(_ambiente),
+        ambienteInstanceIndex:
+            _environmentInstanceService.parse(_ambiente).instanceIndex,
         elemento: _elemento,
         material: _material,
         estado: _estado,
@@ -785,22 +707,10 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
         );
 
     for (final campo in config.camposFotos) {
-      OverlayCameraCaptureResult? matchedCapture;
-
-      for (final capture in captures.reversed) {
-        final sameAmbiente =
-            capture.ambiente.trim().toLowerCase() ==
-            campo.cameraAmbiente.trim().toLowerCase();
-        final sameElemento =
-            campo.cameraElementoInicial == null ||
-            capture.elemento?.trim().toLowerCase() ==
-                campo.cameraElementoInicial!.trim().toLowerCase();
-
-        if (sameAmbiente && sameElemento) {
-          matchedCapture = capture;
-          break;
-        }
-      }
+      final matchedCapture = _requirementPolicy.findMatchingCapture(
+        captures: captures,
+        field: campo,
+      );
 
       if (matchedCapture != null) {
         model = model.setPhoto(
@@ -852,7 +762,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       case 'abrir_area':
         if (_showMacroLocalSelector && _isCameraLevelEnabled('macroLocal')) {
           await _selectFromVoiceSheet(
-            title: 'Área da foto',
+            title: _labelForCameraLevel('macroLocal'),
             values: _macroLocais,
             selected: _macroLocal,
             onSelect: _selectMacroLocal,
@@ -864,7 +774,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
             _macroLocal != null &&
             _ambientesAtuais.isNotEmpty) {
           await _selectFromVoiceSheet(
-            title: 'Local da foto',
+            title: _labelForCameraLevel('ambiente'),
             values: _ambientesAtuais,
             selected: _ambiente,
             onSelect: _selectAmbiente,
@@ -876,7 +786,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
             _ambiente != null &&
             _elementosAtuais.isNotEmpty) {
           await _selectFromVoiceSheet(
-            title: 'Elemento fotografado',
+            title: _labelForCameraLevel('elemento'),
             values: _elementosAtuais,
             selected: _elemento,
             onSelect: _selectElemento,
@@ -888,7 +798,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
             _elemento != null &&
             _materiaisAtuais.isNotEmpty) {
           await _selectFromVoiceSheet(
-            title: 'Material',
+            title: _labelForCameraLevel('material'),
             values: _materiaisAtuais,
             selected: _material,
             onSelect: (value) {
@@ -905,7 +815,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
             _elemento != null &&
             (_materiaisAtuais.isEmpty || _material != null)) {
           await _selectFromVoiceSheet(
-            title: 'Estado',
+            title: _labelForCameraLevel('estado'),
             values: _estadosAtuais,
             selected: _estado,
             onSelect: (value) {
@@ -936,38 +846,69 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   }
 
   String? _mapCameraLevelId(String raw) {
-    final id = raw.trim().toLowerCase();
-    if (id.isEmpty) {
-      return null;
-    }
-
-    if (id == 'macrolocal' ||
-        id == 'macro_local' ||
-        id == 'contexto' ||
-        id == 'area_foto' ||
-        id == 'areafoto') {
-      return 'macroLocal';
-    }
-    if (id == 'ambiente' ||
-        id == 'local_foto' ||
-        id == 'localfoto' ||
-        id == 'local') {
-      return 'ambiente';
-    }
-    if (id == 'elemento' || id == 'item' || id == 'cameraelementoinicial') {
-      return 'elemento';
-    }
-    if (id == 'material' || id == 'materiais') {
-      return 'material';
-    }
-    if (id == 'estado' || id == 'condicao') {
-      return 'estado';
-    }
-
-    return null;
+    return _semanticFieldService.mapCameraLevelId(raw);
   }
 
   bool _isCameraLevelEnabled(String id) => _cameraLevelOrder.contains(id);
+
+  String? get _newAmbienteActionLabel {
+    final selectedAmbiente = _ambiente;
+    if (selectedAmbiente == null || selectedAmbiente.trim().isEmpty) {
+      return null;
+    }
+
+    final parsed = _environmentInstanceService.parse(selectedAmbiente);
+    if (parsed.baseLabel.trim().isEmpty) {
+      return null;
+    }
+    return 'Novo ${parsed.baseLabel}';
+  }
+
+  String _labelForCameraLevel(String levelId) {
+    final configured = _cameraLevelLabels[levelId]?.trim();
+    if (configured != null && configured.isNotEmpty) {
+      return configured;
+    }
+
+    switch (levelId) {
+      case 'macroLocal':
+        return 'Área da foto';
+      case 'ambiente':
+        return 'Local da foto';
+      case 'elemento':
+        return 'Elemento fotografado';
+      case 'material':
+        return 'Material';
+      case 'estado':
+        return 'Estado';
+    }
+    return levelId;
+  }
+
+  Map<String, String> _resolveCameraLevelLabels(
+    List<ConfigLevelDefinition> levels,
+  ) {
+    if (levels.isEmpty) {
+      return const <String, String>{};
+    }
+
+    final labels = <String, String>{};
+    for (final level in levels) {
+      final cameraLevelId =
+          _semanticFieldService.mapCameraLevelId(level.id) ??
+          _semanticFieldService.cameraLevelIdForSemantic(
+            level.semanticKey ?? '',
+          );
+      if (cameraLevelId == null || cameraLevelId.trim().isEmpty) {
+        continue;
+      }
+      labels[cameraLevelId] = _semanticFieldService.labelForLevel(
+        level: level,
+        surface: InspectionSurfaceKeys.camera,
+      );
+    }
+    return labels;
+  }
 
   List<Widget> _buildCameraSelectors() {
     final widgets = <Widget>[];
@@ -979,7 +920,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
             widgets.add(const SizedBox(height: 8));
             widgets.add(
               _carouselCard(
-                title: 'Área da foto',
+                title: _labelForCameraLevel('macroLocal'),
                 values: _macroLocais,
                 selected: _macroLocal,
                 onSelect: _selectMacroLocal,
@@ -992,12 +933,28 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
             widgets.add(const SizedBox(height: 8));
             widgets.add(
               _carouselCard(
-                title: 'Local da foto',
+                title: _labelForCameraLevel('ambiente'),
                 values: _ambientesAtuais,
                 selected: _ambiente,
                 onSelect: _selectAmbiente,
               ),
             );
+            if (_ambiente != null && _ambiente!.trim().isNotEmpty) {
+              widgets.add(const SizedBox(height: 6));
+              widgets.add(
+                _contextActionRow(
+                  currentLabel: _ambiente!,
+                  onChange: () => _selectFromVoiceSheet(
+                    title: _labelForCameraLevel('ambiente'),
+                    values: _ambientesAtuais,
+                    selected: _ambiente,
+                    onSelect: _selectAmbiente,
+                  ),
+                  onDuplicate: _duplicateCurrentAmbiente,
+                  duplicateLabel: _newAmbienteActionLabel ?? 'Novo ambiente',
+                ),
+              );
+            }
           }
           break;
         case 'elemento':
@@ -1005,7 +962,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
             widgets.add(const SizedBox(height: 8));
             widgets.add(
               _carouselCard(
-                title: 'Elemento fotografado',
+                title: _labelForCameraLevel('elemento'),
                 values: _elementosAtuais,
                 selected: _elemento,
                 onSelect: _selectElemento,
@@ -1018,7 +975,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
             widgets.add(const SizedBox(height: 8));
             widgets.add(
               _carouselCard(
-                title: 'Material',
+                title: _labelForCameraLevel('material'),
                 values: _materiaisAtuais,
                 selected: _material,
                 onSelect: (value) async {
@@ -1037,7 +994,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
             widgets.add(const SizedBox(height: 8));
             widgets.add(
               _carouselCard(
-                title: 'Estado',
+                title: _labelForCameraLevel('estado'),
                 values: _estadosAtuais,
                 selected: _estado,
                 onSelect: (value) async {
@@ -1606,6 +1563,56 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                   );
                 },
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _contextActionRow({
+    required String currentLabel,
+    required Future<void> Function() onChange,
+    required Future<void> Function() onDuplicate,
+    required String duplicateLabel,
+  }) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.45),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text(
+              currentLabel,
+              key: const ValueKey('camera_current_ambiente_label'),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
+            ),
+            OutlinedButton(
+              onPressed: onChange,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: const BorderSide(color: Colors.white70),
+              ),
+              child: const Text('Trocar'),
+            ),
+            FilledButton(
+              onPressed: onDuplicate,
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black87,
+              ),
+              child: Text(duplicateLabel),
             ),
           ],
         ),

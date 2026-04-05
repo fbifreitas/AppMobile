@@ -95,4 +95,39 @@ void main() {
       expect(find.text('Estado'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'OverlayCameraScreen creates a new ambiente instance through contextual action',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: OverlayCameraScreen(
+            title: 'Câmera',
+            tipoImovel: 'Urbano',
+            subtipoImovel: 'Casa',
+            preselectedMacroLocal: 'Área interna',
+            initialAmbiente: 'Quarto',
+            useTestMenuData: true,
+            testCameraLevelOrder: <String>['ambiente'],
+            testMacroLocais: <String>['Área interna'],
+            testAmbientes: <String>['Quarto', 'Sala'],
+            skipDeviceInitialization: true,
+            showVoiceActions: false,
+          ),
+        ),
+      );
+
+      await _pumpUntilFound(tester, find.text('Trocar'));
+      expect(find.text('Novo Quarto'), findsOneWidget);
+
+      await tester.tap(find.text('Novo Quarto'));
+      await tester.pumpAndSettle();
+
+      final currentAmbienteText = tester.widget<Text>(
+        find.byKey(const ValueKey('camera_current_ambiente_label')),
+      );
+      expect(currentAmbienteText.data, 'Quarto 2');
+      expect(find.text('Novo Quarto'), findsOneWidget);
+    },
+  );
 }
