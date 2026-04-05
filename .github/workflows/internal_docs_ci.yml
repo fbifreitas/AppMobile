@@ -39,7 +39,7 @@ jobs:
           pip install mkdocs mkdocs-material
 
       - name: Build internal docs site
-        run: mkdocs build -f docs/internal-portal/mkdocs.yml --strict --site-dir build/internal-docs-site
+        run: mkdocs build -f docs/internal-portal/mkdocs.yml --strict --site-dir ../../build/internal-docs-site
 
       - name: Upload docs artifact
         uses: actions/upload-artifact@v6

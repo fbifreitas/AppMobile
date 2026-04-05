@@ -82,3 +82,4 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
 - Validacoes executadas no mobile: flutter analyze (sem issues) e flutter test (115 testes verdes).
 - Resultado parcial: regra de gate de permissoes movida para AuthState (requiresPermissionsOnboarding) e aplicada no app entrypoint.
 - Incremento tecnico do pacote: servicos mobile de checkin-config e sync cobertos com testes de headers obrigatorios (tenant/correlation/actor/api-version) e idempotency-key no uplink final.
+- Correcao de esteira: workflow `internal_docs_ci.yml` ajustado para gerar `site_dir` fora de `docs_dir` (`../../build/internal-docs-site`), eliminando erro de build recursivo no MkDocs.
