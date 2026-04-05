@@ -34,59 +34,61 @@ import java.util.List;
 @RestController
 @Validated
 @RequestMapping("/api/mobile")
-@Tag(name = "Mobile v1", description = "Contratos críticos do AppMobile (v1)")
+@Tag(name = "Mobile v1", description = "Contratos criticos do AppMobile (v1)")
 public class MobileApiController {
 
     private final JobService jobService;
-        private final InspectionSubmissionService inspectionSubmissionService;
-        private final MobileCheckinConfigService mobileCheckinConfigService;
+    private final InspectionSubmissionService inspectionSubmissionService;
+    private final MobileCheckinConfigService mobileCheckinConfigService;
 
-        public MobileApiController(JobService jobService,
-                                                           InspectionSubmissionService inspectionSubmissionService,
-                                                           MobileCheckinConfigService mobileCheckinConfigService) {
+    public MobileApiController(JobService jobService,
+                               InspectionSubmissionService inspectionSubmissionService,
+                               MobileCheckinConfigService mobileCheckinConfigService) {
         this.jobService = jobService;
-                this.inspectionSubmissionService = inspectionSubmissionService;
-                this.mobileCheckinConfigService = mobileCheckinConfigService;
+        this.inspectionSubmissionService = inspectionSubmissionService;
+        this.mobileCheckinConfigService = mobileCheckinConfigService;
     }
 
     @GetMapping("/checkin-config")
     @Operation(
-            summary = "Retorna configuração dinâmica de check-in (v1)",
-            description = "Contrato retrocompatível: em v1, apenas adições não quebrantes são permitidas.",
+            summary = "Retorna configuracao dinamica de check-in (v1)",
+            description = "Contrato retrocompativel: em v1, apenas adicoes nao quebrantes sao permitidas.",
             responses = {
-                    @ApiResponse(responseCode = "200", description = "Configuração retornada com sucesso"),
+                    @ApiResponse(responseCode = "200", description = "Configuracao retornada com sucesso"),
                     @ApiResponse(
                             responseCode = "400",
-                            description = "Contexto inválido",
+                            description = "Contexto invalido",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = CanonicalErrorResponse.class))
                     )
             }
     )
     public ResponseEntity<CheckinConfigResponse> getCheckinConfig(
-            @Parameter(description = "Tipo do imóvel")
+            @Parameter(description = "Tipo do imovel")
             @RequestParam(required = false) String tipoImovel,
             @RequestHeader("X-Tenant-Id") String tenantId,
             @RequestHeader("X-Correlation-Id") String correlationId,
-            @RequestHeader("X-Actor-Id") String actorId
+            @RequestHeader("X-Actor-Id") String actorId,
+            @RequestHeader("X-Api-Version") String apiVersion
     ) {
+        RequestContextValidator.requireApiVersion(apiVersion);
         RequestContextValidator.requireFullContext(tenantId, correlationId, actorId);
         return ResponseEntity.ok(mobileCheckinConfigService.resolve(tenantId, actorId, tipoImovel));
     }
 
     @PostMapping("/inspections/finalized")
     @Operation(
-            summary = "Recebe payload finalizado de inspeção (v1)",
-            description = "Operação idempotente por X-Idempotency-Key.",
+            summary = "Recebe payload finalizado de inspecao (v1)",
+            description = "Operacao idempotente por X-Idempotency-Key.",
             responses = {
                     @ApiResponse(responseCode = "202", description = "Payload aceito para processamento"),
                     @ApiResponse(
                             responseCode = "400",
-                            description = "Requisição inválida",
+                            description = "Requisicao invalida",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = CanonicalErrorResponse.class))
                     ),
                     @ApiResponse(
                             responseCode = "409",
-                            description = "Conflito de idempotência",
+                            description = "Conflito de idempotencia",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = CanonicalErrorResponse.class))
                     )
             }
@@ -96,18 +98,20 @@ public class MobileApiController {
             @RequestHeader("X-Correlation-Id") String correlationId,
             @RequestHeader("X-Actor-Id") String actorId,
             @RequestHeader("X-Idempotency-Key") String idempotencyKey,
+            @RequestHeader("X-Api-Version") String apiVersion,
             @Valid @RequestBody InspectionFinalizedRequest request
     ) {
+        RequestContextValidator.requireApiVersion(apiVersion);
         RequestContextValidator.requireFullContext(tenantId, correlationId, actorId);
         if (!org.springframework.util.StringUtils.hasText(idempotencyKey)) {
-                        throw new ApiContractException(
-                                        HttpStatus.BAD_REQUEST,
-                                        "IDEMPOTENCY_KEY_REQUIRED",
-                                        "X-Idempotency-Key é obrigatório",
-                                        ErrorSeverity.ERROR,
-                                        "Informe X-Idempotency-Key para garantir processamento seguro em retries.",
-                                        "header: X-Idempotency-Key"
-                        );
+            throw new ApiContractException(
+                    HttpStatus.BAD_REQUEST,
+                    "IDEMPOTENCY_KEY_REQUIRED",
+                    "X-Idempotency-Key e obrigatorio",
+                    ErrorSeverity.ERROR,
+                    "Informe X-Idempotency-Key para garantir processamento seguro em retries.",
+                    "header: X-Idempotency-Key"
+            );
         }
 
         Long userId = parseUserId(actorId);
@@ -124,12 +128,12 @@ public class MobileApiController {
     @GetMapping("/jobs")
     @Operation(
             summary = "Lista jobs do vistoriador autenticado (v1)",
-            description = "Retorna jobs atribuídos ao userId informado. Usa X-Actor-Id como identificador do vistoriador.",
+            description = "Retorna jobs atribuidos ao userId informado. Usa X-Actor-Id como identificador do vistoriador.",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Lista de jobs retornada"),
                     @ApiResponse(
                             responseCode = "400",
-                            description = "Contexto inválido",
+                            description = "Contexto invalido",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = CanonicalErrorResponse.class))
                     )
             }
@@ -138,12 +142,14 @@ public class MobileApiController {
             @RequestHeader("X-Tenant-Id") String tenantId,
             @RequestHeader("X-Correlation-Id") String correlationId,
             @RequestHeader("X-Actor-Id") String actorId,
-            @Parameter(description = "Filtro por status (ex: ACCEPTED, IN_EXECUTION). Padrão: ACCEPTED")
+            @RequestHeader("X-Api-Version") String apiVersion,
+            @Parameter(description = "Filtro por status (ex: ACCEPTED, IN_EXECUTION). Padrao: ACCEPTED")
             @RequestParam(required = false) String status
     ) {
+        RequestContextValidator.requireApiVersion(apiVersion);
         RequestContextValidator.requireFullContext(tenantId, correlationId, actorId);
         Long userId = parseUserId(actorId);
-                return ResponseEntity.ok(jobService.getMobileJobsForUser(tenantId, userId, status));
+        return ResponseEntity.ok(jobService.getMobileJobsForUser(tenantId, userId, status));
     }
 
     private Long parseUserId(String actorId) {
@@ -153,12 +159,11 @@ public class MobileApiController {
             throw new ApiContractException(
                     HttpStatus.BAD_REQUEST,
                     "INVALID_ACTOR_ID",
-                    "X-Actor-Id deve ser um ID numérico de usuário",
+                    "X-Actor-Id deve ser um ID numerico de usuario",
                     ErrorSeverity.ERROR,
-                    "Informe o ID interno do usuário no cabeçalho X-Actor-Id.",
+                    "Informe o ID interno do usuario no cabecalho X-Actor-Id.",
                     "header: X-Actor-Id"
             );
         }
     }
-
 }

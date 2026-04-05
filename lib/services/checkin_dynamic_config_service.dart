@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/checkin_step2_model.dart';
 import '../config/checkin_step2_config.dart';
 import '../config/inspection_menu_package.dart';
+import 'integration_context_service.dart';
 
 class CheckinStep1DynamicConfig {
   final List<String> tipos;
@@ -51,9 +52,11 @@ class CheckinDynamicConfigService {
   );
 
   static const String _step1CacheKey = 'checkin_dynamic_step1_config_v1';
+  static const String _step1VersionKey = 'checkin_dynamic_step1_version_v1';
   static const String _devMockEnabledKey = 'dev_mock_checkin_config_enabled_v1';
   static const String _devMockDocumentKey =
       'dev_mock_checkin_config_document_v1';
+  static const String _versionFallback = 'v1-default';
 
   Future<void> configureDeveloperMock({
     required bool enabled,
@@ -124,9 +127,19 @@ class CheckinDynamicConfigService {
     Map<String, dynamic>? document = await _readDeveloperMockDocument();
     if (document == null) {
       if (_baseUrl.trim().isNotEmpty) {
-        document = await _fetchDocument();
-        if (document != null) {
+        final fetched = await _fetchDocument();
+        if (fetched != null) {
+          final fetchedVersion = _resolveDocumentVersion(fetched);
+          final currentVersion = await _readCachedVersion(_step1VersionKey);
+          if (fetchedVersion != null &&
+              currentVersion != null &&
+              fetchedVersion == currentVersion) {
+            document = await _readCache(_step1CacheKey) ?? fetched;
+          } else {
+            document = fetched;
+          }
           await _writeCache(_step1CacheKey, document);
+          await _writeCachedVersion(_step1VersionKey, fetchedVersion);
         }
       }
 
@@ -382,6 +395,7 @@ class CheckinDynamicConfigService {
 
   Future<Map<String, dynamic>?> _fetchDocument({String? tipo}) async {
     try {
+      final context = await const IntegrationContextService().buildContext();
       final normalizedBase =
           _baseUrl.endsWith('/')
               ? _baseUrl.substring(0, _baseUrl.length - 1)
@@ -400,6 +414,10 @@ class CheckinDynamicConfigService {
       try {
         final request = await client.getUrl(uri);
         request.headers.set(HttpHeaders.acceptHeader, 'application/json');
+        request.headers.set('X-Tenant-Id', context.tenantId);
+        request.headers.set('X-Correlation-Id', context.correlationId);
+        request.headers.set('X-Actor-Id', context.actorId);
+        request.headers.set('X-Api-Version', context.apiVersion);
         if (_authToken.trim().isNotEmpty) {
           request.headers.set(
             HttpHeaders.authorizationHeader,
@@ -442,6 +460,33 @@ class CheckinDynamicConfigService {
     } catch (_) {
       return null;
     }
+  }
+
+  Future<void> _writeCachedVersion(String key, String? version) async {
+    try {
+      if (version == null || version.trim().isEmpty) return;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(key, version.trim());
+    } catch (_) {
+      // Keep flow resilient when cache write fails.
+    }
+  }
+
+  Future<String?> _readCachedVersion(String key) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(key);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String? _resolveDocumentVersion(Map<String, dynamic> document) {
+    final fromVersion = _optionalString(document['version']);
+    if (fromVersion != null) return fromVersion;
+    final packageVersion = document['packageVersion'];
+    if (packageVersion is int) return 'pkg-$packageVersion';
+    return _versionFallback;
   }
 
   Future<Map<String, dynamic>?> _readDeveloperMockDocument() async {

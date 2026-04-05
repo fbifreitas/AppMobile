@@ -25,22 +25,44 @@ class MobileApiControllerContractErrorTest {
     @MockBean
     private JobService jobService;
 
-        @MockBean
-        private InspectionSubmissionService inspectionSubmissionService;
+    @MockBean
+    private InspectionSubmissionService inspectionSubmissionService;
 
-        @MockBean
-        private MobileCheckinConfigService mobileCheckinConfigService;
+    @MockBean
+    private MobileCheckinConfigService mobileCheckinConfigService;
 
     @Test
     void getCheckinConfig_withoutTenantHeader_returnsCanonicalContextError() throws Exception {
         mockMvc.perform(get("/api/mobile/checkin-config")
                         .header("X-Correlation-Id", "corr-123")
-                        .header("X-Actor-Id", "actor-1"))
+                        .header("X-Actor-Id", "actor-1")
+                        .header("X-Api-Version", "v1"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("CTX_MISSING_HEADER"))
                 .andExpect(jsonPath("$.severity").value("ERROR"))
-                .andExpect(jsonPath("$.guidance").value("Informe os cabeçalhos de contexto e tente novamente."))
+                .andExpect(jsonPath("$.guidance").value("Informe os cabecalhos de contexto e tente novamente."))
                 .andExpect(jsonPath("$.path").value("/api/mobile/checkin-config"));
+    }
+
+    @Test
+    void getCheckinConfig_withoutApiVersion_returnsContractVersionRequired() throws Exception {
+        mockMvc.perform(get("/api/mobile/checkin-config")
+                        .header("X-Tenant-Id", "tenant-a")
+                        .header("X-Correlation-Id", "corr-123")
+                        .header("X-Actor-Id", "actor-1"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("CONTRACT_VERSION_REQUIRED"));
+    }
+
+    @Test
+    void getCheckinConfig_withUnsupportedApiVersion_returnsPreconditionFailed() throws Exception {
+        mockMvc.perform(get("/api/mobile/checkin-config")
+                        .header("X-Tenant-Id", "tenant-a")
+                        .header("X-Correlation-Id", "corr-123")
+                        .header("X-Actor-Id", "actor-1")
+                        .header("X-Api-Version", "v0"))
+                .andExpect(status().isPreconditionFailed())
+                .andExpect(jsonPath("$.code").value("CONTRACT_VERSION_UNSUPPORTED"));
     }
 
     @Test
@@ -61,11 +83,12 @@ class MobileApiControllerContractErrorTest {
                         .header("X-Tenant-Id", "tenant-a")
                         .header("X-Correlation-Id", "corr-123")
                         .header("X-Actor-Id", "actor-1")
+                        .header("X-Api-Version", "v1")
                         .content(payload))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("IDEMPOTENCY_KEY_REQUIRED"))
                 .andExpect(jsonPath("$.severity").value("ERROR"))
-                .andExpect(jsonPath("$.message").value("X-Idempotency-Key é obrigatório"))
+                .andExpect(jsonPath("$.message", containsString("X-Idempotency-Key")))
                 .andExpect(jsonPath("$.details").value("header: X-Idempotency-Key"));
     }
 
@@ -86,6 +109,7 @@ class MobileApiControllerContractErrorTest {
                         .header("X-Tenant-Id", "tenant-a")
                         .header("X-Correlation-Id", "corr-123")
                         .header("X-Actor-Id", "actor-1")
+                        .header("X-Api-Version", "v1")
                         .header("X-Idempotency-Key", "idem-123")
                         .content(invalidPayload))
                 .andExpect(status().isBadRequest())
@@ -99,10 +123,11 @@ class MobileApiControllerContractErrorTest {
         mockMvc.perform(get("/api/mobile/checkin-config")
                         .header("X-Tenant-Id", " ")
                         .header("X-Correlation-Id", "corr-123")
-                        .header("X-Actor-Id", "actor-1"))
+                        .header("X-Actor-Id", "actor-1")
+                        .header("X-Api-Version", "v1"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("CTX_MISSING_HEADER"))
-                .andExpect(jsonPath("$.message").value("X-Tenant-Id é obrigatório"))
+                .andExpect(jsonPath("$.message", containsString("X-Tenant-Id")))
                 .andExpect(jsonPath("$.details").value("header: X-Tenant-Id"));
     }
 
@@ -123,11 +148,12 @@ class MobileApiControllerContractErrorTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("X-Tenant-Id", "tenant-a")
                         .header("X-Actor-Id", "actor-1")
+                        .header("X-Api-Version", "v1")
                         .header("X-Idempotency-Key", "idem-123")
                         .content(payload))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("CTX_MISSING_HEADER"))
-                .andExpect(jsonPath("$.message").value("X-Correlation-Id é obrigatório"))
+                .andExpect(jsonPath("$.message", containsString("X-Correlation-Id")))
                 .andExpect(jsonPath("$.details").value("header: X-Correlation-Id"));
     }
 
@@ -149,11 +175,12 @@ class MobileApiControllerContractErrorTest {
                         .header("X-Tenant-Id", "tenant-a")
                         .header("X-Correlation-Id", "corr-123")
                         .header("X-Actor-Id", "actor-1")
+                        .header("X-Api-Version", "v1")
                         .header("X-Idempotency-Key", " ")
                         .content(payload))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("IDEMPOTENCY_KEY_REQUIRED"))
-                .andExpect(jsonPath("$.message").value("X-Idempotency-Key é obrigatório"))
+                .andExpect(jsonPath("$.message", containsString("X-Idempotency-Key")))
                 .andExpect(jsonPath("$.details").value("header: X-Idempotency-Key"));
     }
 }

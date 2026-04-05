@@ -99,6 +99,7 @@ class InspectionSubmissionIntegrationTest {
                         .header("X-Correlation-Id", CORRELATION_ID)
                         .header("X-Actor-Id", String.valueOf(operatorUserId))
                         .header("X-Idempotency-Key", "idem-001")
+                        .header("X-Api-Version", "v1")
                         .contentType("application/json")
                         .content(payload))
                 .andReturn();
@@ -125,6 +126,7 @@ class InspectionSubmissionIntegrationTest {
                         .header("X-Correlation-Id", CORRELATION_ID)
                         .header("X-Actor-Id", String.valueOf(operatorUserId))
                         .header("X-Idempotency-Key", "idem-002")
+                        .header("X-Api-Version", "v1")
                         .contentType("application/json")
                         .content(payload))
                 .andReturn();
@@ -134,6 +136,7 @@ class InspectionSubmissionIntegrationTest {
                         .header("X-Correlation-Id", CORRELATION_ID)
                         .header("X-Actor-Id", String.valueOf(operatorUserId))
                         .header("X-Idempotency-Key", "idem-002")
+                        .header("X-Api-Version", "v1")
                         .contentType("application/json")
                         .content(payload))
                 .andReturn();

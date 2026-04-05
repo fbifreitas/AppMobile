@@ -108,8 +108,8 @@ Motivo:
 
 | Seq | ID | Modulo | Prioridade | Status | Criterio de pronto |
 |---|---|---|---|---|---|
-| 1 | INT-001 | API Gateway de Integracao | Critica | Pendente | Gateway dedicado para canais mobile com politicas de auth, rate limit, idempotencia e auditoria |
-| 2 | INT-002 | Contratos versionados Web-Mobile | Critica | Pendente | OpenAPI versionada + politica de compatibilidade retroativa + deprecation policy |
+| 1 | INT-001 | API Gateway de Integracao | Critica | Em andamento (filtro de gateway mobile com validação de versão e rate-limit base em 2026-04-04) | Gateway dedicado para canais mobile com politicas de auth, rate limit, idempotencia e auditoria |
+| 2 | INT-002 | Contratos versionados Web-Mobile | Critica | Em andamento (header obrigatório X-Api-Version v1 aplicado em 2026-04-04) | OpenAPI versionada + politica de compatibilidade retroativa + deprecation policy |
 | 3 | INT-003 | Canal seguro de configuracao remota | Critica | Pendente | Pacotes assinados, versionados e auditaveis para menus dinamicos/config operacional |
 | 4 | INT-004 | Rollout e rollback de pacotes | Critica | Pendente | Publicacao por tenant, por grupo de apps e rollback em 1 clique com trilha |
 | 5 | INT-005 | ACK/NACK de pacote no mobile | Alta | Pendente | Backoffice enxerga status de aplicacao por dispositivo/app version |
@@ -123,7 +123,7 @@ Motivo:
 | 13 | INT-013 | Gestao de credenciais por tenant | Critica | Pendente | Segredos/chaves segregados por tenant e ambiente com rotacao assistida |
 | 14 | INT-014 | Matriz de compatibilidade app x pacote | Alta | Pendente | Pacote define versao minima/maxima de app suportada |
 | 15 | INT-015 | Feature flags de integracao | Media | Pendente | Habilitacao gradual de canais e recursos por tenant/ambiente |
-| 16 | INT-016 | Testes de contrato automatizados | Critica | Pendente | CI bloqueia merge em caso de quebra de contrato mobile-web |
+| 16 | INT-016 | Testes de contrato automatizados | Critica | Em andamento (suite de contrato mobile ajustada para v1 e headers obrigatórios em 2026-04-04) | CI bloqueia merge em caso de quebra de contrato mobile-web |
 | 17 | INT-017 | Testes E2E de resiliencia | Alta | Pendente | Cenarios de offline, retry, timeout, rollback e recuperacao automatizada |
 | 18 | INT-018 | Painel de operacao de integracao | Alta | Pendente | Backoffice visualiza saude bidirecional em tempo real |
 | 19 | INT-019 | Politica de retention de eventos | Media | Pendente | Eventos de integracao com retention, mascaramento e trilha probatoria |
@@ -199,3 +199,9 @@ Motivo:
 - Existe avanco tecnico parcial de integracao no codigo ativo (context envelope, rotas web-backoffice para config/inspections e trilha de publish/approve/rollback), devendo ser usado para priorizar fechamento de INT-001, INT-002, INT-003, INT-004 e INT-006.
 
 
+
+
+## Adendo 2026-04-04 (execucao pacote)
+- INT-001: filtro MobileGatewayPolicyFilter adicionado no backend para rotas /api/mobile/* com validação de versão e rate-limit base por tenant/actor.
+- INT-002: contratos mobile passaram a exigir X-Api-Version (1) em endpoint e validação de contexto.
+- INT-016: testes de contrato/integração mobile atualizados para novo header obrigatório e política de versão.

@@ -1,5 +1,10 @@
 # DONE CHECKLIST BY WORK TYPE
 
+## Regra de Ouro (obrigatoria)
+- Sem testes executados e verdes, nao sobe pacote.
+- Teste e gate de qualidade sao bloqueadores de commit/push/merge.
+- Em caso de impedimento tecnico para executar testes, registrar bloqueio e risco residual antes de qualquer promocao.
+
 ## Mobile
 - Testes de fluxo alterado executados.
 - Validacao de navegacao/estado concluida.

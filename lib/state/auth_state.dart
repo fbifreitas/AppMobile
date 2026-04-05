@@ -18,6 +18,8 @@ class AuthState extends ChangeNotifier {
   static const _userTipoKey = 'auth_user_tipo';
   static const _userCpfKey = 'auth_user_cpf';
   static const _userCnpjKey = 'auth_user_cnpj';
+  static const _permissionsOnboardingCompletedKey =
+      'auth_permissions_onboarding_completed';
 
   AppAuthStatus _status = AppAuthStatus.unauthenticated;
   String? _userEmail;
@@ -26,6 +28,7 @@ class AuthState extends ChangeNotifier {
   String? _userCpf;
   String? _userCnpj;
   bool _loading = true;
+  bool _permissionsOnboardingCompleted = false;
 
   AppAuthStatus get status => _status;
   String? get userEmail => _userEmail;
@@ -35,6 +38,7 @@ class AuthState extends ChangeNotifier {
   String? get userCnpj => _userCnpj;
   bool get loading => _loading;
   bool get isAuthenticated => _status != AppAuthStatus.unauthenticated;
+  bool get permissionsOnboardingCompleted => _permissionsOnboardingCompleted;
 
   Future<void> _load() async {
     final statusStr = await _preferencesRepository.getString(_statusKey);
@@ -49,6 +53,9 @@ class AuthState extends ChangeNotifier {
     _userTipo = await _preferencesRepository.getString(_userTipoKey);
     _userCpf = await _preferencesRepository.getString(_userCpfKey);
     _userCnpj = await _preferencesRepository.getString(_userCnpjKey);
+    _permissionsOnboardingCompleted =
+        await _preferencesRepository.getBool(_permissionsOnboardingCompletedKey) ??
+        false;
     _loading = false;
     notifyListeners();
   }
@@ -106,6 +113,16 @@ class AuthState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> completePermissionsOnboarding() async {
+    await _ensureLoaded();
+    _permissionsOnboardingCompleted = true;
+    await _preferencesRepository.setBool(
+      _permissionsOnboardingCompletedKey,
+      true,
+    );
+    notifyListeners();
+  }
+
   Future<void> updateProfile({
     required String nome,
     String? cpf,
@@ -136,12 +153,14 @@ class AuthState extends ChangeNotifier {
     _userTipo = null;
     _userCpf = null;
     _userCnpj = null;
+    _permissionsOnboardingCompleted = false;
     await _preferencesRepository.setString(_statusKey, _status.name);
     await _preferencesRepository.remove(_userEmailKey);
     await _preferencesRepository.remove(_userNomeKey);
     await _preferencesRepository.remove(_userTipoKey);
     await _preferencesRepository.remove(_userCpfKey);
     await _preferencesRepository.remove(_userCnpjKey);
+    await _preferencesRepository.remove(_permissionsOnboardingCompletedKey);
     notifyListeners();
   }
 
@@ -151,6 +170,7 @@ class AuthState extends ChangeNotifier {
     _userTipo = null;
     _userCpf = null;
     _userCnpj = null;
+    _permissionsOnboardingCompleted = false;
 
     _status =
         (_userEmail?.trim().isNotEmpty ?? false)
@@ -162,6 +182,7 @@ class AuthState extends ChangeNotifier {
     await _preferencesRepository.remove(_userTipoKey);
     await _preferencesRepository.remove(_userCpfKey);
     await _preferencesRepository.remove(_userCnpjKey);
+    await _preferencesRepository.remove(_permissionsOnboardingCompletedKey);
 
     notifyListeners();
   }

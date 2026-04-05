@@ -662,3 +662,4 @@ Ao pegar um item para implementar:
 - Backlog complementar front/web: `docs/05-operations/tactical-backlogs/BACKLOG_FRONT_WEB.md`.
 
 
+

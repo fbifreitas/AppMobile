@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'integration_context_service.dart';
 
 class InspectionSyncResult {
   final bool success;
@@ -121,9 +122,17 @@ class InspectionSyncService {
 
       final client = (_httpClientFactory ?? HttpClient.new)();
       try {
+        final context = await const IntegrationContextService().buildContext();
+        final idempotencyKey =
+            const IntegrationContextService().buildIdempotencyKey(payload);
         final request = await client.postUrl(uri);
         request.headers.set(HttpHeaders.contentTypeHeader, 'application/json');
         request.headers.set(HttpHeaders.acceptHeader, 'application/json');
+        request.headers.set('X-Tenant-Id', context.tenantId);
+        request.headers.set('X-Correlation-Id', context.correlationId);
+        request.headers.set('X-Actor-Id', context.actorId);
+        request.headers.set('X-Api-Version', context.apiVersion);
+        request.headers.set('X-Idempotency-Key', idempotencyKey);
         final authToken = _resolvedAuthToken;
         if (authToken.isNotEmpty) {
           request.headers.set(

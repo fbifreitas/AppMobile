@@ -48,8 +48,8 @@ public class ApiExceptionHandler {
                 HttpStatus.BAD_REQUEST,
                 "REQ_VALIDATION_FAILED",
                 ErrorSeverity.ERROR,
-                "Payload inválido",
-                "Revise os campos obrigatórios e os formatos do payload.",
+                "Payload invalido",
+                "Revise os campos obrigatorios e os formatos do payload.",
                 request,
                 details
         );
@@ -62,25 +62,28 @@ public class ApiExceptionHandler {
     ) {
         String headerName = exception.getHeaderName();
         String code = "REQ_MISSING_HEADER";
-        String guidance = "Informe o cabeçalho obrigatório e tente novamente.";
+        String guidance = "Informe o cabecalho obrigatorio e tente novamente.";
 
         if ("X-Idempotency-Key".equalsIgnoreCase(headerName)) {
             code = "IDEMPOTENCY_KEY_REQUIRED";
             guidance = "Informe X-Idempotency-Key para garantir processamento seguro em retries.";
+        } else if ("X-Api-Version".equalsIgnoreCase(headerName)) {
+            code = "CONTRACT_VERSION_REQUIRED";
+            guidance = "Informe X-Api-Version com o contrato suportado pelo backend.";
         } else if (
                 "X-Tenant-Id".equalsIgnoreCase(headerName)
                         || "X-Correlation-Id".equalsIgnoreCase(headerName)
                         || "X-Actor-Id".equalsIgnoreCase(headerName)
         ) {
             code = "CTX_MISSING_HEADER";
-            guidance = "Informe os cabeçalhos de contexto e tente novamente.";
+            guidance = "Informe os cabecalhos de contexto e tente novamente.";
         }
 
         return build(
                 HttpStatus.BAD_REQUEST,
                 code,
                 ErrorSeverity.ERROR,
-                headerName + " é obrigatório",
+                headerName + " e obrigatorio",
                 guidance,
                 request,
                 "header: " + headerName
@@ -94,7 +97,7 @@ public class ApiExceptionHandler {
     ) {
         HttpStatusCode statusCode = exception.getStatusCode();
         HttpStatus status = statusCode instanceof HttpStatus httpStatus ? httpStatus : HttpStatus.BAD_REQUEST;
-        String message = StringUtils.hasText(exception.getReason()) ? exception.getReason() : "Erro na requisição";
+        String message = StringUtils.hasText(exception.getReason()) ? exception.getReason() : "Erro na requisicao";
         return build(
                 status,
                 "REQ_ERROR",
@@ -147,7 +150,7 @@ public class ApiExceptionHandler {
     private String formatFieldError(FieldError fieldError) {
         String message = fieldError.getDefaultMessage();
         if (!StringUtils.hasText(message)) {
-            message = "valor inválido";
+            message = "valor invalido";
         }
         return fieldError.getField() + ": " + message;
     }

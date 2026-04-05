@@ -7,6 +7,7 @@ import 'screens/awaiting_approval_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/onboarding_screen.dart';
+import 'screens/permissions_onboarding_screen.dart';
 import 'state/app_state.dart';
 import 'state/auth_state.dart';
 import 'state/inspection_state.dart';
@@ -112,6 +113,12 @@ class _AppEntryPoint extends StatelessWidget {
     final auth = context.watch<AuthState>();
     if (auth.loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (auth.isAuthenticated &&
+        auth.status == AppAuthStatus.active &&
+        !auth.permissionsOnboardingCompleted) {
+      return const PermissionsOnboardingScreen();
     }
 
     switch (auth.status) {

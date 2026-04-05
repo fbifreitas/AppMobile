@@ -48,6 +48,12 @@ Ser o sistema operacional de execucao do agente para tarefas deste repositorio, 
 - Codigo: testes/lint/build conforme frente.
 - Backlog: status e rastreabilidade atualizados quando aplicavel.
 
+## Regra de Ouro (TDD)
+- Todo pacote de desenvolvimento deve ser orientado a testes (TDD sempre que viavel).
+- Nao subir pacote sem executar os testes relevantes da mudanca.
+- Nao considerar entrega pronta com testes falhando ou nao executados.
+- Se ambiente/ferramenta impedir execucao de testes, registrar bloqueio explicitamente e tratar como risco de release.
+
 ## Evidencia de conclusao
 - Arquivos alterados
 - Validacoes executadas
