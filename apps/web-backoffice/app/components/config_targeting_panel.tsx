@@ -347,7 +347,7 @@ export default function ConfigTargetingPanel() {
     <section className="targeting-panel" aria-live="polite">
       <div className="targeting-header">
         <h2>Resolucao de configuracao multi-escopo</h2>
-        <p>Simulacao de precedencia: global -> tenant -> role -> user -> device.</p>
+        <p>Simulacao de precedencia: global -&gt; tenant -&gt; role -&gt; user -&gt; device.</p>
       </div>
 
       <div className="targeting-filters">

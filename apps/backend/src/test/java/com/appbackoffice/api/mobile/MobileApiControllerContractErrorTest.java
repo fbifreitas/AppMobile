@@ -1,5 +1,6 @@
 package com.appbackoffice.api.mobile;
 
+import com.appbackoffice.api.config.ConfigPayloadSignatureService;
 import com.appbackoffice.api.job.service.JobService;
 import com.appbackoffice.api.mobile.service.InspectionSubmissionService;
 import com.appbackoffice.api.mobile.service.MobileCheckinConfigService;
@@ -30,6 +31,9 @@ class MobileApiControllerContractErrorTest {
 
     @MockBean
     private MobileCheckinConfigService mobileCheckinConfigService;
+
+    @MockBean
+    private ConfigPayloadSignatureService configPayloadSignatureService;
 
     @Test
     void getCheckinConfig_withoutTenantHeader_returnsCanonicalContextError() throws Exception {
