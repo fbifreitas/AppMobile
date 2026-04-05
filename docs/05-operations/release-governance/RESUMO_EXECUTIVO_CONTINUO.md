@@ -129,3 +129,13 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
   - `mvn -q -Dtest=MobileCheckinConfigIntegrationTest test` com sucesso.
 - Resultado operacional:
   - rollback de pacote ja propagado no backend para leitura mobile subsequente, sem necessidade de deploy adicional.
+
+## Checkpoint 2026-04-05 - MVP Final Program (Pacote complementar de subida)
+- Branch tecnica: codex/mvp-final-program-20260405
+- Objetivo: preparar subida do pacote com pendencias operacionais mapeadas para homolog/producao.
+- Escopo implementado:
+  - backend: parametro de ambiente adicionado em `application.yml` para chave de assinatura (`INTEGRATION_CONFIG_SIGNING_HMAC_KEY`);
+  - backlog integracao: `INT-003` atualizado para status parcial (assinatura no backend entregue, validacao no mobile pendente);
+  - backlog integracao: novo card `INT-030` criado para configuracao de segredo de assinatura por ambiente (homolog/producao) com criterio de pronto explicito.
+- Critico para release:
+  - nao promover para producao sem `INT-030` executado e evidenciado no checklist de release.

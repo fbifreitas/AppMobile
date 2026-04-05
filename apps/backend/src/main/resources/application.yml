@@ -50,3 +50,7 @@ auth:
   lockout:
     max-attempts: 5
     window-minutes: 10
+
+integration:
+  config-signing:
+    hmac-key: ${INTEGRATION_CONFIG_SIGNING_HMAC_KEY:}

@@ -5,7 +5,7 @@
 
 # Backlog de Integracao Web-Mobile (Seguranca e Comunicacao Bidirecional)
 
-Atualizado em: 2026-04-02
+Atualizado em: 2026-04-05
 
 ## Objetivo
 Planejar e executar a camada de integracao entre backoffice web e AppMobile com:
@@ -110,7 +110,7 @@ Motivo:
 |---|---|---|---|---|---|
 | 1 | INT-001 | API Gateway de Integracao | Critica | Em andamento (filtro de gateway mobile com valida��o de vers�o e rate-limit base em 2026-04-04) | Gateway dedicado para canais mobile com politicas de auth, rate limit, idempotencia e auditoria |
 | 2 | INT-002 | Contratos versionados Web-Mobile | Critica | Em andamento (header obrigat�rio X-Api-Version v1 aplicado em 2026-04-04) | OpenAPI versionada + politica de compatibilidade retroativa + deprecation policy |
-| 3 | INT-003 | Canal seguro de configuracao remota | Critica | Pendente | Pacotes assinados, versionados e auditaveis para menus dinamicos/config operacional |
+| 3 | INT-003 | Canal seguro de configuracao remota | Critica | Em andamento (parcial em 2026-04-05: assinatura HMAC no response de /api/mobile/checkin-config, pendente validacao da assinatura no mobile) | Pacotes assinados, versionados e auditaveis para menus dinamicos/config operacional |
 | 4 | INT-004 | Rollout e rollback de pacotes | Critica | Pendente | Publicacao por tenant, por grupo de apps e rollback em 1 clique com trilha |
 | 5 | INT-005 | ACK/NACK de pacote no mobile | Alta | Pendente | Backoffice enxerga status de aplicacao por dispositivo/app version |
 | 6 | INT-006 | Uplink de vistoria com idempotencia | Critica | Pendente | Recebimento resiliente de vistoria final sem duplicidade por retry offline |
@@ -136,7 +136,8 @@ Motivo:
 | 26 | INT-026 | Context envelope obrigatório (tenant + correlation + actor) | Critica | Em andamento (config module enforcement + web client auto-propagation complete; RequestContextValidator utility reusable; pendente: expansion to INT-026 integration routers para inbound calls from external apis following same pattern) | Toda chamada síncrona e evento assíncrono deve carregar contexto mínimo validado no gateway |
 | 27 | INT-027 | Padrão de idempotency-key por operação | Critica | Pendente | Chaves idempotentes normalizadas por domínio, TTL definido e reprocessamento seguro sem duplicidade |
 | 28 | INT-028 | Contrato de erro canônico entre canais | Alta | Em andamento (fundação v1 + cobertura TDD ampliada nos endpoints mobile críticos) | Catálogo único de erros com códigos, severidade e orientação operacional consistente para web/mobile |
-| 29 | INT-029 | Isolamento criptográfico por tenant/parceiro | Alta | Pendente | Credenciais e segredos segregados por tenant/parceiro com rotação auditável e política de menor privilégio |
+
+| 30 | INT-030 | Configuracao de segredo de assinatura por ambiente (homolog/producao) | Critica | Pendente | integration.config-signing.hmac-key provisionado por ambiente via secret manager/Actions secrets, com checklist de release e evidencias de validacao |
 
 ---
 
