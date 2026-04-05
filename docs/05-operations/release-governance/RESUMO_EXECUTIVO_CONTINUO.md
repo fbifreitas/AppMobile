@@ -83,3 +83,10 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
 - Resultado parcial: regra de gate de permissoes movida para AuthState (requiresPermissionsOnboarding) e aplicada no app entrypoint.
 - Incremento tecnico do pacote: servicos mobile de checkin-config e sync cobertos com testes de headers obrigatorios (tenant/correlation/actor/api-version) e idempotency-key no uplink final.
 - Correcao de esteira: workflow `internal_docs_ci.yml` ajustado para gerar `site_dir` fora de `docs_dir` (`../../build/internal-docs-site`), eliminando erro de build recursivo no MkDocs.
+
+
+## Checkpoint 2026-04-05 - Release v1.2.29+49
+- Branch de release: release/v1.2.29+49
+- Origem: codex/mvp-pack-1-20260405
+- Escopo: consolidacao PACK-1 (BL-056 + hardening de integracao BL-001/BL-012/INT-006) e correcao do Internal Docs CI.
+- Gate de versao: pubspec.yaml incrementado para 1.2.29+49.
