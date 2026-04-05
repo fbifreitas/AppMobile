@@ -90,3 +90,18 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
 - Origem: codex/mvp-pack-1-20260405
 - Escopo: consolidacao PACK-1 (BL-056 + hardening de integracao BL-001/BL-012/INT-006) e correcao do Internal Docs CI.
 - Gate de versao: pubspec.yaml incrementado para 1.2.29+49.
+
+## Checkpoint 2026-04-05 - MVP Final Program (Checkpoint A)
+- Branch tecnica: codex/mvp-final-program-20260405
+- Objetivo: fechar lacuna do BOW-130 para permitir que secoes de check-in do mobile sejam publicadas via pacote de configuracao web e resolvidas pela API mobile.
+- Escopo implementado:
+  - backend: novo DTO `ConfigCheckinSectionRuleDto` e extensao de `ConfigRulesDto` com `checkinSections`;
+  - backend: persistencia em `config_packages.checkin_sections_json` com migracao `V012__config_package_checkin_sections.sql`;
+  - backend: `ConfigPackageService` atualizado para serializar/desserializar `checkinSections` e incluir no resolve efetivo;
+  - mobile-api: `MobileCheckinConfigService` atualizado para priorizar secoes vindas de rules publicadas antes do fallback em repositorio local;
+  - testes: novo caso de integracao `shouldResolveSectionsFromPublishedRulesBeforeRepositoryFallback`;
+  - web-backoffice: painel de targeting com campo JSON para publicar `rules.checkinSections`.
+- Validacao executada:
+  - `mvn -q -Dtest=MobileCheckinConfigIntegrationTest,OpenApiContractIntegrationTest test` com sucesso.
+- Pendencia conhecida:
+  - validacao automatica do web-backoffice nao executada nesta maquina porque `npm` nao esta disponivel no PATH da sessao.

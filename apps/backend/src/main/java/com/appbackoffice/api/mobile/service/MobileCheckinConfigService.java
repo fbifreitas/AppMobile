@@ -1,6 +1,7 @@
 package com.appbackoffice.api.mobile.service;
 
 import com.appbackoffice.api.config.ConfigPackageService;
+import com.appbackoffice.api.config.dto.ConfigCheckinSectionRuleDto;
 import com.appbackoffice.api.config.dto.ConfigPackageResponse;
 import com.appbackoffice.api.config.dto.ConfigResolveResponse;
 import com.appbackoffice.api.config.dto.ConfigRulesDto;
@@ -60,7 +61,7 @@ public class MobileCheckinConfigService {
             step2.put("presentation", presentation);
         }
 
-        List<CheckinConfigResponse.CheckinSectionDto> sections = resolveSections(tenantId, tipoImovel);
+        List<CheckinConfigResponse.CheckinSectionDto> sections = resolveSections(tenantId, tipoImovel, effective);
         Instant publishedAt = resolvePublishedAt(resolveResponse.result().appliedPackages(), tenantId, sections.isEmpty());
         Instant publishedAtForResponse = publishedAt.equals(Instant.EPOCH) ? Instant.now() : publishedAt;
 
@@ -102,7 +103,27 @@ public class MobileCheckinConfigService {
         );
     }
 
-        private List<CheckinConfigResponse.CheckinSectionDto> resolveSections(String tenantId, String tipoImovel) {
+        private List<CheckinConfigResponse.CheckinSectionDto> resolveSections(
+                String tenantId,
+                String tipoImovel,
+                ConfigRulesDto effective
+        ) {
+        List<ConfigCheckinSectionRuleDto> packageSections = resolveSectionsFromRules(effective, tipoImovel);
+        if (!packageSections.isEmpty()) {
+            return packageSections.stream()
+                    .map(section -> new CheckinConfigResponse.CheckinSectionDto(
+                            section.sectionKey(),
+                            section.sectionLabel(),
+                            section.mandatory() != null && section.mandatory(),
+                            new CheckinConfigResponse.PhotoPolicyDto(
+                                    section.photoMin() != null ? section.photoMin() : 1,
+                                    section.photoMax() != null ? section.photoMax() : 5
+                            ),
+                            section.desiredItems() != null ? section.desiredItems() : List.of()
+                    ))
+                    .toList();
+        }
+
         List<CheckinSectionEntity> all = checkinSectionRepository
             .findByTenantIdAndActiveTrueOrderBySortOrderAscUpdatedAtAsc(tenantId);
 
@@ -128,6 +149,24 @@ public class MobileCheckinConfigService {
             .toList();
         }
 
+        private List<ConfigCheckinSectionRuleDto> resolveSectionsFromRules(
+                ConfigRulesDto effective,
+                String tipoImovel
+        ) {
+        if (effective == null || effective.checkinSections() == null || effective.checkinSections().isEmpty()) {
+            return List.of();
+        }
+
+        return effective.checkinSections()
+                .stream()
+                .filter(section -> sectionMatchesTipoImovel(section.tipoImovel(), tipoImovel))
+                .sorted((a, b) -> Integer.compare(
+                        a.sortOrder() != null ? a.sortOrder() : Integer.MAX_VALUE,
+                        b.sortOrder() != null ? b.sortOrder() : Integer.MAX_VALUE
+                ))
+                .toList();
+        }
+
         private Instant resolvePublishedAt(List<ConfigPackageResponse> appliedPackages,
                            String tenantId,
                            boolean sectionsFallbackUsed) {
@@ -149,13 +188,17 @@ public class MobileCheckinConfigService {
         }
 
         private boolean sectionMatchesTipoImovel(CheckinSectionEntity section, String tipoImovel) {
-        if (section.getTipoImovel() == null || section.getTipoImovel().isBlank()) {
+        return sectionMatchesTipoImovel(section.getTipoImovel(), tipoImovel);
+        }
+
+        private boolean sectionMatchesTipoImovel(String sectionTipoImovel, String tipoImovel) {
+        if (sectionTipoImovel == null || sectionTipoImovel.isBlank()) {
             return true;
         }
         if (tipoImovel == null || tipoImovel.isBlank()) {
             return false;
         }
-        return section.getTipoImovel().equalsIgnoreCase(tipoImovel);
+        return sectionTipoImovel.equalsIgnoreCase(tipoImovel);
         }
 
         private List<String> parseDesiredItems(String desiredItemsJson) {

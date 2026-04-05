@@ -155,6 +155,80 @@ class MobileCheckinConfigIntegrationTest {
         assertThat(body.get("compatibilityNotes").toString()).contains("nenhum pacote ativo encontrado");
     }
 
+
+    @Test
+    void shouldResolveSectionsFromPublishedRulesBeforeRepositoryFallback() throws Exception {
+        MvcResult publishResult = mockMvc.perform(post("/api/backoffice/config/packages")
+                        .header("X-Correlation-Id", CORRELATION_ID)
+                        .header("X-Actor-Role", "COORDINATOR")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "actorId": "operator-web",
+                                  "actorRole": "operator",
+                                  "scope": "user",
+                                  "tenantId": "tenant-sections-rules",
+                                  "selector": {
+                                    "userId": "84"
+                                  },
+                                  "rollout": {
+                                    "activation": "immediate"
+                                  },
+                                  "rules": {
+                                    "cameraMinPhotos": 1,
+                                    "cameraMaxPhotos": 9,
+                                    "checkinSections": [
+                                      {
+                                        "sectionKey": "cobertura",
+                                        "sectionLabel": "Cobertura",
+                                        "mandatory": true,
+                                        "photoMin": 2,
+                                        "photoMax": 6,
+                                        "desiredItems": ["telhado", "calha"],
+                                        "tipoImovel": "RURAL",
+                                        "sortOrder": 1
+                                      }
+                                    ]
+                                  }
+                                }
+                                """))
+                .andReturn();
+
+        String packageId = objectMapper.readTree(publishResult.getResponse().getContentAsString())
+                .at("/result/created/id")
+                .asText();
+
+        mockMvc.perform(post("/api/backoffice/config/packages/approve")
+                        .header("X-Correlation-Id", CORRELATION_ID)
+                        .header("X-Actor-Role", "TENANT_ADMIN")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "packageId": "%s",
+                                  "tenantId": "tenant-sections-rules",
+                                  "actorId": "approver-web",
+                                  "actorRole": "tenant_admin"
+                                }
+                                """.formatted(packageId)))
+                .andReturn();
+
+        MvcResult result = mockMvc.perform(get("/api/mobile/checkin-config")
+                        .header("X-Tenant-Id", "tenant-sections-rules")
+                        .header("X-Correlation-Id", CORRELATION_ID)
+                        .header("X-Actor-Id", "84")
+                        .header("X-Api-Version", "v1")
+                        .queryParam("tipoImovel", "RURAL"))
+                .andReturn();
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(200);
+        JsonNode body = objectMapper.readTree(result.getResponse().getContentAsString());
+
+        assertThat(body.at("/sections/0/key").asText()).isEqualTo("cobertura");
+        assertThat(body.at("/sections/0/label").asText()).isEqualTo("Cobertura");
+        assertThat(body.at("/sections/0/photos/min").asInt()).isEqualTo(2);
+        assertThat(body.at("/sections/0/photos/max").asInt()).isEqualTo(6);
+        assertThat(body.at("/sections/0/desiredItems/0").asText()).isEqualTo("telhado");
+    }
     private CheckinSectionEntity createSection(String tenantId,
                                                String tipoImovel,
                                                String key,

@@ -133,6 +133,9 @@ export default function ConfigTargetingPanel() {
   const [publishStartsAt, setPublishStartsAt] = useState("");
   const [publishEndsAt, setPublishEndsAt] = useState("");
   const [publishBatchUsers, setPublishBatchUsers] = useState("");
+  const [publishSectionsJson, setPublishSectionsJson] = useState(
+    '[\n  {\n    "sectionKey": "fachada",\n    "sectionLabel": "Fachada",\n    "mandatory": true,\n    "photoMin": 1,\n    "photoMax": 5,\n    "desiredItems": ["orientacao", "material"],\n    "tipoImovel": "Urbano",\n    "sortOrder": 1\n  }\n]'
+  );
 
   const query = useMemo(() => {
     const params = new URLSearchParams();
@@ -211,6 +214,22 @@ export default function ConfigTargetingPanel() {
       selector.deviceId = deviceId.trim();
     }
 
+    let parsedSections: unknown;
+    try {
+      parsedSections = JSON.parse(publishSectionsJson);
+      if (!Array.isArray(parsedSections)) {
+        throw new Error("JSON de secoes deve ser um array.");
+      }
+    } catch (parseError) {
+      setPublishing(false);
+      setError(
+        parseError instanceof Error
+          ? `JSON de secoes invalido: ${parseError.message}`
+          : "JSON de secoes invalido."
+      );
+      return;
+    }
+
     const response = await fetch("/api/config/packages", {
       method: "POST",
       headers: {
@@ -233,7 +252,8 @@ export default function ConfigTargetingPanel() {
         },
         rules: {
           appUpdateChannel: publishChannel,
-          enableVoiceCommands: publishVoice
+          enableVoiceCommands: publishVoice,
+          checkinSections: parsedSections
         }
       })
     });
@@ -327,9 +347,7 @@ export default function ConfigTargetingPanel() {
     <section className="targeting-panel" aria-live="polite">
       <div className="targeting-header">
         <h2>Resolucao de configuracao multi-escopo</h2>
-        <p>
-          Simulacao de precedencia: global → tenant → role → user → device.
-        </p>
+        <p>Simulacao de precedencia: global -> tenant -> role -> user -> device.</p>
       </div>
 
       <div className="targeting-filters">
@@ -430,6 +448,14 @@ export default function ConfigTargetingPanel() {
             Habilitar comandos de voz
           </label>
         </div>
+        <label>
+          JSON de secoes check-in (BOW-130)
+          <textarea
+            value={publishSectionsJson}
+            onChange={(event) => setPublishSectionsJson(event.target.value)}
+            rows={10}
+          />
+        </label>
         <button type="button" onClick={publishPackage} disabled={publishing}>
           {publishing ? "Publicando..." : "Publicar para aprovacao"}
         </button>
@@ -507,7 +533,7 @@ export default function ConfigTargetingPanel() {
             <ul>
               {audit.map((entry) => (
                 <li key={entry.id}>
-                  <strong>{entry.packageId}</strong> • {entry.scope} • {entry.actorId}
+                  <strong>{entry.packageId}</strong> | {entry.scope} | {entry.actorId}
                 </li>
               ))}
             </ul>
