@@ -144,3 +144,9 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
 - Branch tecnica: codex/mvp-pack-2-20260405
 - Escopo: correcao da tela de permissoes com CTA visivel no Android (SafeArea no bottomNavigationBar) e reforco de concessao real de permissao de camera no onboarding.
 - Validacao: teste de widget dedicado `test/screens/permissions_onboarding_screen_test.dart` validado em PowerShell nativo.
+
+## Checkpoint 2026-04-05 - Release v1.2.30+50
+- Branch de release: release/v1.2.30+50
+- Origem: codex/mvp-pack-2-20260405
+- Escopo: promocao do PACK-2 com fix de CTA da tela de permissoes no Android e alinhamento de grant real de camera no onboarding.
+- Gate de versao: pubspec.yaml incrementado para 1.2.30+50.
