@@ -238,6 +238,33 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void atualizarReferenciasExternasJob({
+    required String jobId,
+    String? idExterno,
+    String? protocoloExterno,
+  }) {
+    final normalizedJobId = jobId.trim();
+    if (normalizedJobId.isEmpty) return;
+
+    final targetJob = jobs.cast<Job?>().firstWhere(
+      (job) => job?.id == normalizedJobId,
+      orElse: () => null,
+    );
+    if (targetJob == null) return;
+
+    final normalizedExternalId = idExterno?.trim();
+    final normalizedProtocol = protocoloExterno?.trim();
+
+    if (normalizedExternalId != null && normalizedExternalId.isNotEmpty) {
+      targetJob.idExterno = normalizedExternalId;
+    }
+    if (normalizedProtocol != null && normalizedProtocol.isNotEmpty) {
+      targetJob.protocoloExterno = normalizedProtocol;
+    }
+
+    notifyListeners();
+  }
+
   void adicionarJob(Job job) {
     jobs = List.of(jobs)..add(job);
     notifyListeners();

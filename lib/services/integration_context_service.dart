@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -73,9 +74,54 @@ class IntegrationContextService {
   }
 
   String buildIdempotencyKey(Map<String, dynamic> payload) {
-    final raw = payload.toString();
+    final jobId = _extractNestedText(payload, const ['job', 'id'], fallback: 'sem-job');
+    final exportedAt = _extractText(payload['exportedAt'], fallback: 'sem-exported-at');
+    final payloadChecksum = _fnv1a64(_canonicalizeForHash(payload));
+    final raw = '$jobId|$exportedAt|$payloadChecksum';
     final hash = _fnv1a64(raw);
     return 'idem-$hash';
+  }
+
+  String _canonicalizeForHash(Object? value) {
+    final normalized = _normalizeForHash(value);
+    return jsonEncode(normalized);
+  }
+
+  Object? _normalizeForHash(Object? value) {
+    if (value is Map) {
+      final entries =
+          value.entries
+              .map((entry) => MapEntry('${entry.key}', _normalizeForHash(entry.value)))
+              .toList()
+            ..sort((left, right) => left.key.compareTo(right.key));
+      return <String, Object?>{
+        for (final entry in entries) entry.key: entry.value,
+      };
+    }
+    if (value is List) {
+      return value.map(_normalizeForHash).toList(growable: false);
+    }
+    return value;
+  }
+
+  String _extractNestedText(
+    Map<String, dynamic> payload,
+    List<String> path, {
+    required String fallback,
+  }) {
+    Object? current = payload;
+    for (final segment in path) {
+      if (current is! Map) {
+        return fallback;
+      }
+      current = current[segment];
+    }
+    return _extractText(current, fallback: fallback);
+  }
+
+  String _extractText(Object? value, {required String fallback}) {
+    final text = value == null ? '' : '$value'.trim();
+    return text.isEmpty ? fallback : text;
   }
 
   String _newCorrelationId() {

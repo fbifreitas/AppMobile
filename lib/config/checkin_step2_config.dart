@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 enum TipoImovel { urbano, rural, comercial, industrial }
 
@@ -77,6 +77,8 @@ class CheckinStep2Config {
   final String subtituloTela;
   final int minFotos;
   final int? maxFotos;
+  final bool visivelNoFluxo;
+  final bool obrigatoriaNoFluxo;
   final List<CheckinStep2PhotoFieldConfig> camposFotos;
   final List<CheckinStep2OptionGroupConfig> gruposOpcoes;
 
@@ -86,6 +88,8 @@ class CheckinStep2Config {
     required this.subtituloTela,
     this.minFotos = 0,
     this.maxFotos,
+    this.visivelNoFluxo = true,
+    this.obrigatoriaNoFluxo = false,
     required this.camposFotos,
     required this.gruposOpcoes,
   });
@@ -412,3 +416,5 @@ class CheckinStep2Configs {
     );
   }
 }
+
+

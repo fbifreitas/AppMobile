@@ -94,7 +94,42 @@ void main() {
     expect(result.sentCount, 1);
     expect(result.failedCount, 1);
     expect(result.remainingCount, 1);
+    expect(result.syncedReferences, hasLength(1));
+    expect(result.syncedReferences.first.jobId, 'job-ok');
     expect(await service.pendingCount(), 1);
+  });
+
+  test('flush returns reconciliable references from backend success payload', () async {
+    const service = InspectionSyncQueueService();
+    await service.enqueue(
+      _payload(jobId: 'job-1', exportedAt: '2026-03-29T10:00:00.000Z'),
+    );
+
+    final result = await service.flush(
+      syncService: _FakeSyncService(
+        configured: true,
+        resultsByJobId: const {
+          'job-1': InspectionSyncResult(
+            success: true,
+            message: 'ok',
+            statusCode: 200,
+            processId: 'proc-1',
+            protocolId: 'INS-2026-0001',
+            processNumber: '190108',
+            backendStatus: 'SUBMITTED',
+            receivedAtIso: '2026-04-05T13:00:00Z',
+          ),
+        },
+      ),
+    );
+
+    expect(result.syncedReferences, hasLength(1));
+    expect(result.syncedReferences.first.jobId, 'job-1');
+    expect(result.syncedReferences.first.externalId, 'proc-1');
+    expect(result.syncedReferences.first.protocolId, 'INS-2026-0001');
+    expect(result.syncedReferences.first.processNumber, '190108');
+    expect(result.syncedReferences.first.backendStatus, 'SUBMITTED');
+    expect(result.syncedReferences.first.receivedAtIso, '2026-04-05T13:00:00Z');
   });
 
   test('flush respects max items per run', () async {

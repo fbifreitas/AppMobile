@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../config/checkin_step2_config.dart';
 import '../config/inspection_menu_package.dart';
 import '../models/checkin_step2_model.dart';
 import '../services/checkin_dynamic_config_service.dart';
@@ -73,8 +74,10 @@ class _CheckinScreenState extends State<CheckinScreen> {
   final VoiceInputService _voiceService = VoiceInputService();
   bool _hydrated = false;
   bool _loadingDynamicConfig = false;
+  bool _loadingStep2Policy = false;
   bool _step1SectionExpanded = true;
   String? _expandedQuestionId = _questionClienteId;
+  CheckinStep2Config? _step2RuntimeConfig;
 
   @override
   void initState() {
@@ -121,6 +124,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
     });
 
     await _persistStep1();
+    await _loadStep2RuntimeConfigForSelection();
   }
 
   @override
@@ -151,6 +155,41 @@ class _CheckinScreenState extends State<CheckinScreen> {
     if (porOndeComecar != null && porOndeComecar!.trim().isNotEmpty) {
       _niveisSelecionados[_contextLevelId] = porOndeComecar!.trim();
     }
+
+    _loadStep2RuntimeConfigForSelection();
+  }
+
+  Future<void> _loadStep2RuntimeConfigForSelection() async {
+    final selectedTipo = tipoImovel;
+    if (selectedTipo == null || selectedTipo.trim().isEmpty) {
+      if (!mounted) return;
+      setState(() => _step2RuntimeConfig = null);
+      return;
+    }
+
+    final tipo = TipoImovelExtension.fromString(selectedTipo);
+    final fallback = CheckinStep2Configs.byTipo(tipo);
+
+    setState(() => _loadingStep2Policy = true);
+    final config = await _dynamicConfigService.loadStep2Config(
+      tipo: tipo,
+      fallback: fallback,
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _step2RuntimeConfig = config;
+      _loadingStep2Policy = false;
+    });
+  }
+
+  CheckinStep2Config _resolveCurrentStep2Config() {
+    final selectedTipo = tipoImovel;
+    if (selectedTipo == null || selectedTipo.trim().isEmpty) {
+      return CheckinStep2Configs.byTipo(TipoImovel.urbano);
+    }
+    return _step2RuntimeConfig ??
+        CheckinStep2Configs.byTipo(TipoImovelExtension.fromString(selectedTipo));
   }
 
   Future<void> _persistStep1() async {
@@ -552,6 +591,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
                           _sanitizeSelectedLevels();
                           _expandedQuestionId = _questionSubtipoId;
                         });
+                        await _loadStep2RuntimeConfigForSelection();
                         await _persistStep1();
                       },
                     ),
@@ -652,7 +692,10 @@ class _CheckinScreenState extends State<CheckinScreen> {
         }
       }
 
-      if (clientePresente == true) {
+      final step2Config = _resolveCurrentStep2Config();
+      final shouldShowStep2Action = step2Config.visivelNoFluxo;
+
+      if (clientePresente == true && shouldShowStep2Action) {
         step1Cards.add(const SizedBox(height: 16));
         step1Cards.add(
           SizedBox(
@@ -951,6 +994,13 @@ class _CheckinScreenState extends State<CheckinScreen> {
   }
 
   Future<void> _handleConfirm() async {
+    if (_loadingStep2Policy) {
+      _mostrarInfo(
+        'Aguarde a configuracao operacional da Etapa 2 carregar para continuar.',
+      );
+      return;
+    }
+
     if (clientePresente != true ||
         tipoImovel == null ||
         subtipoImovel == null ||
@@ -961,7 +1011,34 @@ class _CheckinScreenState extends State<CheckinScreen> {
       return;
     }
 
+    final appState = context.read<AppState>();
     await _persistStep1();
+    if (!mounted) return;
+
+    final step2Config = _resolveCurrentStep2Config();
+    final step2ObrigatoriaNoFluxo =
+        step2Config.visivelNoFluxo && step2Config.obrigatoriaNoFluxo;
+
+    if (step2ObrigatoriaNoFluxo) {
+      final restoredModel = _dynamicConfigService.restoreStep2Model(
+        tipo: step2Config.tipoImovel,
+        step2Payload: appState.step2Payload,
+      );
+      final mandatoryFields =
+          step2Config.camposFotos.where((field) => field.obrigatorio).length;
+      final completedMandatoryFields =
+          step2Config.camposFotos
+              .where((field) => field.obrigatorio)
+              .where((field) => restoredModel.isPhotoCaptured(field.id))
+              .length;
+      if (completedMandatoryFields < mandatoryFields) {
+        _mostrarInfo(
+          'A Etapa 2 do check-in esta obrigatoria para este tenant. '
+          'Conclua os registros obrigatorios antes de abrir a camera.',
+        );
+        return;
+      }
+    }
 
     final initialMacroLocal = _resolveInitialMacroLocal();
     final initialAmbiente = _resolveInitialAmbiente();

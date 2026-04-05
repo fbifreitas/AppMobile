@@ -135,4 +135,33 @@ void main() {
       );
     },
   );
+
+  test('atualizarReferenciasExternasJob updates finalized job by id', () {
+    final appState = AppState(_ImmediateJobRepository());
+    appState.jobs = [
+      Job(
+        id: 'job-1',
+        titulo: 'Vistoria A',
+        endereco: 'Rua A, 1',
+        nomeCliente: 'Cliente A',
+      ),
+      Job(
+        id: 'job-2',
+        titulo: 'Vistoria B',
+        endereco: 'Rua B, 2',
+        nomeCliente: 'Cliente B',
+      ),
+    ];
+
+    appState.atualizarReferenciasExternasJob(
+      jobId: 'job-2',
+      idExterno: 'proc-2',
+      protocoloExterno: 'INS-2026-0002',
+    );
+
+    expect(appState.jobs.first.idExterno, isNull);
+    expect(appState.jobs.first.protocoloExterno, isNull);
+    expect(appState.jobs.last.idExterno, 'proc-2');
+    expect(appState.jobs.last.protocoloExterno, 'INS-2026-0002');
+  });
 }

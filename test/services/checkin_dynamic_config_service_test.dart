@@ -1,8 +1,9 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:io';
 
 import 'package:appmobile/config/checkin_step2_config.dart';
 import 'package:appmobile/services/checkin_dynamic_config_service.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -275,6 +276,33 @@ void main() {
     expect(serialized['maxFotos'], fallback.maxFotos);
   });
 
+  test('parseStep2ConfigMap parses visible and required step2 policy', () {
+    final service = CheckinDynamicConfigService.instance;
+    final fallback = CheckinStep2Configs.byTipo(TipoImovel.urbano);
+
+    final parsed = service.parseStep2ConfigMap(
+      tipo: TipoImovel.urbano,
+      raw: <String, dynamic>{
+        'visivel': false,
+        'obrigatoria': true,
+        'camposFotos': <Map<String, dynamic>>[
+          {
+            'id': 'fachada_dynamic',
+            'titulo': 'Fachada dinamica',
+            'icon': 'home_work_outlined',
+            'obrigatorio': true,
+            'cameraMacroLocal': 'Rua',
+            'cameraAmbiente': 'Fachada',
+          },
+        ],
+      },
+      fallback: fallback,
+    );
+
+    expect(parsed.visivelNoFluxo, isFalse);
+    expect(parsed.obrigatoriaNoFluxo, isTrue);
+  });
+
   test(
     'loadDeveloperMockDocument exposes unified developer document',
     () async {
@@ -375,4 +403,291 @@ void main() {
     expect(result.tituloTela, 'Config remota real');
     expect(result.camposFotos.first.id, 'fachada_remota');
   });
+
+  test('loadStep2Config accepts remote payload with valid hmac signature', () async {
+    const signingKey = 'tenant-hmac-secret';
+    SharedPreferences.setMockInitialValues({
+      'integration_tenant_id_v1': 'tenant-ops',
+      'integration_actor_id_v1': 'actor-ops',
+      'integration_api_version_v1': 'v1',
+    });
+
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    addTearDown(() async => server.close(force: true));
+
+    server.listen((request) async {
+      final payload = jsonEncode({
+        'step2': {
+          'byTipo': {
+            'urbano': {
+              'tituloTela': 'Config assinada',
+              'camposFotos': [
+                {
+                  'id': 'fachada_assinada',
+                  'titulo': 'Fachada assinada',
+                  'icon': 'home_work_outlined',
+                  'obrigatorio': true,
+                  'cameraMacroLocal': 'Rua',
+                  'cameraAmbiente': 'Fachada',
+                },
+              ],
+            },
+          },
+        },
+      });
+      final signature = base64Encode(
+        Hmac(sha256, utf8.encode(signingKey)).convert(utf8.encode(payload)).bytes,
+      );
+
+      request.response.statusCode = 200;
+      request.response.headers.contentType = ContentType.json;
+      request.response.headers.set('X-Config-Signature', signature);
+      request.response.headers.set('X-Config-Signature-Alg', 'hmac-sha256');
+      request.response.write(payload);
+      await request.response.close();
+    });
+
+    final service = CheckinDynamicConfigService(
+      baseUrl: 'http://${server.address.host}:${server.port}',
+      authToken: 'token-checkin',
+      checkinConfigEndpoint: '/api/mobile/checkin-config',
+      configSigningHmacKey: signingKey,
+    );
+    final fallback = CheckinStep2Configs.byTipo(TipoImovel.urbano);
+
+    final result = await service.loadStep2Config(
+      tipo: TipoImovel.urbano,
+      fallback: fallback,
+    );
+
+    expect(result.tituloTela, 'Config assinada');
+    expect(result.camposFotos.first.id, 'fachada_assinada');
+  });
+
+  test('loadStep2Config rejects remote payload with invalid hmac signature', () async {
+    const signingKey = 'tenant-hmac-secret';
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    addTearDown(() async => server.close(force: true));
+
+    server.listen((request) async {
+      final payload = jsonEncode({
+        'step2': {
+          'byTipo': {
+            'urbano': {
+              'tituloTela': 'Config invalida',
+              'camposFotos': [
+                {
+                  'id': 'fachada_invalida',
+                  'titulo': 'Fachada invalida',
+                  'icon': 'home_work_outlined',
+                  'obrigatorio': true,
+                  'cameraMacroLocal': 'Rua',
+                  'cameraAmbiente': 'Fachada',
+                },
+              ],
+            },
+          },
+        },
+      });
+
+      request.response.statusCode = 200;
+      request.response.headers.contentType = ContentType.json;
+      request.response.headers.set('X-Config-Signature', 'assinatura-invalida');
+      request.response.headers.set('X-Config-Signature-Alg', 'hmac-sha256');
+      request.response.write(payload);
+      await request.response.close();
+    });
+
+    final service = CheckinDynamicConfigService(
+      baseUrl: 'http://${server.address.host}:${server.port}',
+      authToken: 'token-checkin',
+      checkinConfigEndpoint: '/api/mobile/checkin-config',
+      configSigningHmacKey: signingKey,
+    );
+    final fallback = CheckinStep2Configs.byTipo(TipoImovel.urbano);
+
+    final result = await service.loadStep2Config(
+      tipo: TipoImovel.urbano,
+      fallback: fallback,
+    );
+
+    expect(result.tituloTela, fallback.tituloTela);
+    expect(result.camposFotos.first.id, fallback.camposFotos.first.id);
+  });
+
+  test('loadStep1Config accepts remote payload with valid hmac signature', () async {
+    const signingKey = 'tenant-hmac-secret';
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    addTearDown(() async => server.close(force: true));
+
+    server.listen((request) async {
+      final payload = jsonEncode({
+        'version': 'cfg-signed-v1',
+        'step1': {
+          'tipos': <String>['Comercial'],
+          'contextos': <String>['Area interna'],
+          'subtiposPorTipo': {
+            'Comercial': <String>['Loja'],
+          },
+        },
+      });
+      final signature = base64Encode(
+        Hmac(sha256, utf8.encode(signingKey)).convert(utf8.encode(payload)).bytes,
+      );
+
+      request.response.statusCode = 200;
+      request.response.headers.contentType = ContentType.json;
+      request.response.headers.set('X-Config-Signature', signature);
+      request.response.headers.set('X-Config-Signature-Alg', 'hmac-sha256');
+      request.response.write(payload);
+      await request.response.close();
+    });
+
+    final service = CheckinDynamicConfigService(
+      baseUrl: 'http://${server.address.host}:${server.port}',
+      authToken: 'token-checkin',
+      checkinConfigEndpoint: '/api/mobile/checkin-config',
+      configSigningHmacKey: signingKey,
+    );
+
+    final result = await service.loadStep1Config(
+      fallbackTipos: defaultTipos,
+      fallbackSubtiposPorTipo: defaultSubtipos,
+      fallbackContextos: defaultContextos,
+    );
+
+    expect(result.tipos, <String>['Comercial']);
+    expect(result.contextos, <String>['Area interna']);
+    expect(result.subtiposPorTipo['Comercial'], <String>['Loja']);
+  });
+
+  test(
+    'loadStep1Config falls back to cached document when remote signature is invalid',
+    () async {
+      const signingKey = 'tenant-hmac-secret';
+      SharedPreferences.setMockInitialValues({
+        'checkin_dynamic_step1_config_v1': jsonEncode({
+          'step1': {
+            'tipos': <String>['Rural'],
+            'contextos': <String>['Estrada'],
+            'subtiposPorTipo': {
+              'Rural': <String>['Sitio'],
+            },
+          },
+        }),
+      });
+
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() async => server.close(force: true));
+
+      server.listen((request) async {
+        final payload = jsonEncode({
+          'version': 'cfg-invalid-signature',
+          'step1': {
+            'tipos': <String>['Comercial'],
+            'contextos': <String>['Area interna'],
+            'subtiposPorTipo': {
+              'Comercial': <String>['Loja'],
+            },
+          },
+        });
+
+        request.response.statusCode = 200;
+        request.response.headers.contentType = ContentType.json;
+        request.response.headers.set('X-Config-Signature', 'assinatura-invalida');
+        request.response.headers.set('X-Config-Signature-Alg', 'hmac-sha256');
+        request.response.write(payload);
+        await request.response.close();
+      });
+
+      final service = CheckinDynamicConfigService(
+        baseUrl: 'http://${server.address.host}:${server.port}',
+        authToken: 'token-checkin',
+        checkinConfigEndpoint: '/api/mobile/checkin-config',
+        configSigningHmacKey: signingKey,
+      );
+
+      final result = await service.loadStep1Config(
+        fallbackTipos: defaultTipos,
+        fallbackSubtiposPorTipo: defaultSubtipos,
+        fallbackContextos: defaultContextos,
+      );
+
+      expect(result.tipos, <String>['Rural']);
+      expect(result.contextos, <String>['Estrada']);
+      expect(result.subtiposPorTipo['Rural'], <String>['Sitio']);
+    },
+  );
+
+  test('loadStep2Config reflects remote rollback on next fetch instead of stale cache', () async {
+    var requestCount = 0;
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    addTearDown(() async => server.close(force: true));
+
+    server.listen((request) async {
+      requestCount += 1;
+      request.response.statusCode = 200;
+      request.response.headers.contentType = ContentType.json;
+      if (requestCount == 1) {
+        request.response.write(
+          jsonEncode({
+            'version': 'cfg-v1',
+            'step2': {
+              'byTipo': {
+                'urbano': {
+                  'tituloTela': 'Config publicada',
+                  'camposFotos': [
+                    {
+                      'id': 'fachada_publicada',
+                      'titulo': 'Fachada publicada',
+                      'icon': 'home_work_outlined',
+                      'obrigatorio': true,
+                      'cameraMacroLocal': 'Rua',
+                      'cameraAmbiente': 'Fachada',
+                    },
+                  ],
+                },
+              },
+            },
+          }),
+        );
+      } else {
+        request.response.write(
+          jsonEncode({
+            'version': 'cfg-v2-rollback',
+            'step1': {
+              'tipos': <String>['Urbano'],
+              'contextos': <String>['Rua'],
+              'subtiposPorTipo': {
+                'Urbano': <String>['Casa'],
+              },
+            },
+          }),
+        );
+      }
+      await request.response.close();
+    });
+
+    final service = CheckinDynamicConfigService(
+      baseUrl: 'http://${server.address.host}:${server.port}',
+      authToken: 'token-checkin',
+      checkinConfigEndpoint: '/api/mobile/checkin-config',
+    );
+    final fallback = CheckinStep2Configs.byTipo(TipoImovel.urbano);
+
+    final published = await service.loadStep2Config(
+      tipo: TipoImovel.urbano,
+      fallback: fallback,
+    );
+    final rolledBack = await service.loadStep2Config(
+      tipo: TipoImovel.urbano,
+      fallback: fallback,
+    );
+
+    expect(published.tituloTela, 'Config publicada');
+    expect(published.camposFotos.first.id, 'fachada_publicada');
+    expect(rolledBack.tituloTela, fallback.tituloTela);
+    expect(rolledBack.camposFotos.first.id, fallback.camposFotos.first.id);
+  });
 }
+

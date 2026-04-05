@@ -66,7 +66,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Future<void> _bootstrap() async {
     final appState = context.read<AppState>();
-    await _syncQueueService.flush();
+    final flushResult = await _syncQueueService.flush();
+    _applySyncedReferences(appState, flushResult);
     if (!mounted) return;
 
     final bootstrap = _homeBootstrapService.evaluate(
@@ -85,11 +86,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Future<void> _manualRefresh() async {
     final appState = context.read<AppState>();
-    await _syncQueueService.flush();
+    final flushResult = await _syncQueueService.flush();
+    _applySyncedReferences(appState, flushResult);
     if (!mounted) return;
 
     await appState.carregarJobs();
     await _refreshLocation();
+  }
+
+  void _applySyncedReferences(
+    AppState appState,
+    InspectionSyncQueueFlushResult flushResult,
+  ) {
+    for (final reference in flushResult.syncedReferences) {
+      appState.atualizarReferenciasExternasJob(
+        jobId: reference.jobId,
+        idExterno: reference.externalId,
+        protocoloExterno: reference.protocolId ?? reference.processNumber,
+      );
+    }
   }
 
   Future<void> _refreshLocation() async {

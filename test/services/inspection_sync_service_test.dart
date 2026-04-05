@@ -58,6 +58,35 @@ void main() {
     expect(result.backendStatus, 'Em Andamento');
   });
 
+  test('parses canonical protocol response for real backend sync contract', () async {
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    addTearDown(() async => server.close(force: true));
+
+    server.listen((request) async {
+      request.response.statusCode = 200;
+      request.response.headers.contentType = ContentType.json;
+      request.response.write(
+        '{"protocol":"INS-2026-00123","status":"SUBMITTED","message":"Recebido com sucesso"}',
+      );
+      await request.response.close();
+    });
+
+    final service = InspectionSyncService(
+      baseUrl: 'http://${server.address.host}:${server.port}',
+      syncEndpoint: '/sync',
+    );
+
+    final result = await service.syncFinalInspection(const {
+      'job': {'id': 'job-123'},
+      'exportedAt': '2026-04-05T10:00:00Z',
+    });
+
+    expect(result.success, isTrue);
+    expect(result.protocolId, 'INS-2026-00123');
+    expect(result.backendStatus, 'SUBMITTED');
+    expect(result.message, 'Recebido com sucesso');
+  });
+
   test('returns backend message for non-2xx response', () async {
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     addTearDown(() async => server.close(force: true));
