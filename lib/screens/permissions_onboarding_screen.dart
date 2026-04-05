@@ -35,7 +35,7 @@ class _PermissionsOnboardingScreenState
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Permissões essenciais concedidas com sucesso.'),
+          content: Text('Permissoes essenciais concedidas com sucesso.'),
         ),
       );
       return;
@@ -44,7 +44,7 @@ class _PermissionsOnboardingScreenState
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text(
-          'Ainda faltam permissões essenciais. Conceda para continuar.',
+          'Ainda faltam permissoes essenciais. Conceda para continuar.',
         ),
       ),
     );
@@ -71,29 +71,29 @@ class _PermissionsOnboardingScreenState
     final current = _status;
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Permissões essenciais')),
+      appBar: AppBar(title: const Text('Permissoes essenciais')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Antes de usar o app em campo, conceda as permissões operacionais obrigatórias.',
+              'Antes de usar o app em campo, conceda as permissoes operacionais obrigatorias.',
             ),
             const SizedBox(height: 16),
             _permissionTile(
-              title: 'Câmera',
-              description: 'Necessária para captura técnica da vistoria.',
+              title: 'Camera',
+              description: 'Necessaria para captura tecnica da vistoria.',
               granted: current?.cameraGranted ?? false,
             ),
             _permissionTile(
-              title: 'Localização',
-              description: 'Necessária para validação operacional em campo.',
+              title: 'Localizacao',
+              description: 'Necessaria para validacao operacional em campo.',
               granted: current?.locationGranted ?? false,
             ),
             _permissionTile(
               title: 'Microfone',
-              description: 'Necessário para recursos de voz operacionais.',
+              description: 'Necessario para recursos de voz operacionais.',
               granted: current?.microphoneGranted ?? false,
             ),
             const Spacer(),
@@ -110,7 +110,7 @@ class _PermissionsOnboardingScreenState
                           color: Colors.white,
                         ),
                       )
-                    : const Text('Conceder permissões e continuar'),
+                    : const Text('Conceder permissoes e continuar'),
               ),
             ),
           ],

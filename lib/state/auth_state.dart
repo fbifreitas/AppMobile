@@ -39,6 +39,8 @@ class AuthState extends ChangeNotifier {
   bool get loading => _loading;
   bool get isAuthenticated => _status != AppAuthStatus.unauthenticated;
   bool get permissionsOnboardingCompleted => _permissionsOnboardingCompleted;
+  bool get requiresPermissionsOnboarding =>
+      !_permissionsOnboardingCompleted && _status != AppAuthStatus.awaitingApproval;
 
   Future<void> _load() async {
     final statusStr = await _preferencesRepository.getString(_statusKey);
