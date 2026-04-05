@@ -90,3 +90,8 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
 - Origem: codex/mvp-pack-1-20260405
 - Escopo: consolidacao PACK-1 (BL-056 + hardening de integracao BL-001/BL-012/INT-006) e correcao do Internal Docs CI.
 - Gate de versao: pubspec.yaml incrementado para 1.2.29+49.
+
+## Checkpoint 2026-04-05 - PACK-2 (fix de permissao e UX Android)
+- Branch tecnica: codex/mvp-pack-2-20260405
+- Escopo: correcao da tela de permissoes com CTA visivel no Android (SafeArea no bottomNavigationBar) e reforco de concessao real de permissao de camera no onboarding.
+- Validacao: teste de widget dedicado `test/screens/permissions_onboarding_screen_test.dart` validado em PowerShell nativo.

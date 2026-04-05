@@ -32,8 +32,23 @@ class PermissionsOnboardingService {
 
   Future<bool> _requestCamera() async {
     try {
-      await availableCameras();
-      return true;
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        return false;
+      }
+      final controller = CameraController(
+        cameras.first,
+        ResolutionPreset.low,
+        enableAudio: false,
+      );
+      try {
+        await controller.initialize();
+        return controller.value.isInitialized;
+      } finally {
+        await controller.dispose();
+      }
+    } on CameraException {
+      return false;
     } catch (_) {
       return false;
     }
