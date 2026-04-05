@@ -118,3 +118,14 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
   - `mvn -q -Dtest=MobileCheckinConfigIntegrationTest,OpenApiContractIntegrationTest test` com sucesso.
 - Observacao:
   - assinatura e opcional por configuracao; se a chave nao estiver definida, o endpoint permanece compativel sem header.
+
+## Checkpoint 2026-04-05 - MVP Final Program (Checkpoint C)
+- Branch tecnica: codex/mvp-final-program-20260405
+- Objetivo: consolidar comportamento de INT-004/BOW-131 no ciclo mobile de configuracao com rollback efetivo.
+- Escopo implementado:
+  - testes de integracao: novo caso `shouldReflectRollbackOnNextMobileConfigResolve` em `MobileCheckinConfigIntegrationTest`;
+  - evidencia validada: pacote aprovado afeta `GET /api/mobile/checkin-config` e, apos rollback, o mobile recebe fallback default na proxima leitura.
+- Validacao executada:
+  - `mvn -q -Dtest=MobileCheckinConfigIntegrationTest test` com sucesso.
+- Resultado operacional:
+  - rollback de pacote ja propagado no backend para leitura mobile subsequente, sem necessidade de deploy adicional.
