@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../config/checkin_step2_config.dart';
 import '../config/inspection_menu_package.dart';
 import '../models/checkin_step2_model.dart';
+import '../models/inspection_capture_context.dart';
 import '../models/overlay_camera_capture_result.dart';
 import '../services/checkin_dynamic_config_service.dart';
 import '../services/inspection_environment_instance_service.dart';
@@ -96,11 +97,8 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   bool _loadingMenus = true;
   String? _error;
 
-  String? _macroLocal;
-  String? _ambiente;
-  String? _elemento;
-  String? _material;
-  String? _estado;
+  InspectionCaptureFlowState _captureFlowState =
+      InspectionCaptureFlowState.bootstrap();
 
   List<String> _macroLocais = const [];
   List<String> _ambientesAtuais = const [];
@@ -134,14 +132,22 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
 
   bool get _hasAnyCaptures => _captures.isNotEmpty || _hasPreviousPhotos;
 
+  String? get _macroLocal => _captureFlowState.current.macroLocal;
+  String? get _ambiente => _captureFlowState.current.ambiente;
+  String? get _elemento => _captureFlowState.current.elemento;
+  String? get _material => _captureFlowState.current.material;
+  String? get _estado => _captureFlowState.current.estado;
+
   @override
   void initState() {
     super.initState();
-    _macroLocal = widget.preselectedMacroLocal;
-    _ambiente = widget.initialAmbiente;
-    _elemento = widget.initialElemento;
-    _material = widget.initialMaterial;
-    _estado = widget.initialEstado;
+    _captureFlowState = InspectionCaptureFlowState.bootstrap(
+      macroLocal: widget.preselectedMacroLocal,
+      ambiente: widget.initialAmbiente,
+      elemento: widget.initialElemento,
+      material: widget.initialMaterial,
+      estado: widget.initialEstado,
+    );
     _setup();
     if (widget.cameFromCheckinStep1) {
       WidgetsBinding.instance.addPostFrameCallback(
@@ -409,11 +415,18 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       _recentElementos = recentElementos;
       _predictedSelection = prediction;
       _contextSuggestionSummary = contextSuggestionSummary;
-      _macroLocal = macroLocal;
-      _ambiente = ambiente;
-      _elemento = elemento;
-      _material = material;
-      _estado = estado;
+      _captureFlowState = _captureFlowState.copyWith(
+        current: InspectionCaptureContext(
+          macroLocal: macroLocal,
+          ambiente: ambiente,
+          ambienteBase: _environmentInstanceService.baseLabelOf(ambiente),
+          ambienteInstanceIndex:
+              _environmentInstanceService.parse(ambiente).instanceIndex,
+          elemento: elemento,
+          material: material,
+          estado: estado,
+        ),
+      );
       _loadingMenus = false;
     });
   }
@@ -439,11 +452,17 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       value: value,
     );
     setState(() {
-      _macroLocal = value;
-      _ambiente = null;
-      _elemento = null;
-      _material = null;
-      _estado = null;
+      _captureFlowState = _captureFlowState.copyWith(
+        current: _captureFlowState.current.copyWith(
+          macroLocal: value,
+          clearAmbiente: true,
+          clearAmbienteBase: true,
+          clearAmbienteInstanceIndex: true,
+          clearElemento: true,
+          clearMaterial: true,
+          clearEstado: true,
+        ),
+      );
     });
     await _reloadMenus();
   }
@@ -454,10 +473,17 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       value: value,
     );
     setState(() {
-      _ambiente = value;
-      _elemento = null;
-      _material = null;
-      _estado = null;
+      final parsed = _environmentInstanceService.parse(value);
+      _captureFlowState = _captureFlowState.copyWith(
+        current: _captureFlowState.current.copyWith(
+          ambiente: value,
+          ambienteBase: parsed.baseLabel,
+          ambienteInstanceIndex: parsed.instanceIndex,
+          clearElemento: true,
+          clearMaterial: true,
+          clearEstado: true,
+        ),
+      );
     });
     await _reloadMenus();
   }
@@ -482,10 +508,17 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
         nextAmbientes.add(nextLabel);
       }
       _ambientesAtuais = nextAmbientes;
-      _ambiente = nextLabel;
-      _elemento = null;
-      _material = null;
-      _estado = null;
+      final parsed = _environmentInstanceService.parse(nextLabel);
+      _captureFlowState = _captureFlowState.copyWith(
+        current: _captureFlowState.current.copyWith(
+          ambiente: nextLabel,
+          ambienteBase: parsed.baseLabel,
+          ambienteInstanceIndex: parsed.instanceIndex,
+          clearElemento: true,
+          clearMaterial: true,
+          clearEstado: true,
+        ),
+      );
     });
 
     if (widget.useTestMenuData) {
@@ -507,9 +540,13 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       value: value,
     );
     setState(() {
-      _elemento = value;
-      _material = null;
-      _estado = null;
+      _captureFlowState = _captureFlowState.copyWith(
+        current: _captureFlowState.current.copyWith(
+          elemento: value,
+          clearMaterial: true,
+          clearEstado: true,
+        ),
+      );
     });
     await _reloadMenus();
   }
@@ -803,8 +840,12 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
             selected: _material,
             onSelect: (value) {
               setState(() {
-                _material = value;
-                _estado = null;
+                _captureFlowState = _captureFlowState.copyWith(
+                  current: _captureFlowState.current.copyWith(
+                    material: value,
+                    clearEstado: true,
+                  ),
+                );
               });
             },
           );
@@ -819,7 +860,11 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
             values: _estadosAtuais,
             selected: _estado,
             onSelect: (value) {
-              setState(() => _estado = value);
+              setState(() {
+                _captureFlowState = _captureFlowState.copyWith(
+                  current: _captureFlowState.current.copyWith(estado: value),
+                );
+              });
             },
           );
         }
@@ -980,8 +1025,12 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                 selected: _material,
                 onSelect: (value) async {
                   setState(() {
-                    _material = value;
-                    _estado = null;
+                    _captureFlowState = _captureFlowState.copyWith(
+                      current: _captureFlowState.current.copyWith(
+                        material: value,
+                        clearEstado: true,
+                      ),
+                    );
                   });
                 },
               ),
@@ -998,7 +1047,13 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                 values: _estadosAtuais,
                 selected: _estado,
                 onSelect: (value) async {
-                  setState(() => _estado = value);
+                  setState(() {
+                    _captureFlowState = _captureFlowState.copyWith(
+                      current: _captureFlowState.current.copyWith(
+                        estado: value,
+                      ),
+                    );
+                  });
                 },
               ),
             );

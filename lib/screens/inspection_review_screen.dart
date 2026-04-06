@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../config/checkin_step2_config.dart';
 import '../config/inspection_menu_package.dart';
+import '../models/inspection_capture_context.dart';
 import '../models/job_status.dart';
 import '../models/overlay_camera_capture_result.dart';
 import '../state/app_state.dart';
@@ -17,6 +18,7 @@ import '../widgets/inspection_technical_summary_card.dart';
 import '../widgets/technical_justification_card.dart';
 import '../services/checkin_dynamic_config_service.dart';
 import '../services/inspection_export_service.dart';
+import '../services/inspection_capture_recovery_adapter.dart';
 import '../services/inspection_menu_service.dart';
 import '../services/inspection_requirement_policy_service.dart';
 import '../services/inspection_semantic_field_service.dart';
@@ -60,6 +62,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   final CheckinDynamicConfigService _dynamicConfigService =
       CheckinDynamicConfigService.instance;
   final InspectionMenuService _menuService = InspectionMenuService.instance;
+  final InspectionCaptureRecoveryAdapter _captureRecoveryAdapter =
+      InspectionCaptureRecoveryAdapter.instance;
   final InspectionRequirementPolicyService _requirementPolicy =
       InspectionRequirementPolicyService.instance;
   final InspectionSemanticFieldService _semanticFieldService =
@@ -198,7 +202,18 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   Future<void> _persistReviewState() async {
     final appState = Provider.of<AppState>(context, listen: false);
     final step2Payload = _buildStep2PayloadFromCaptures(appState.step2Payload);
-    final resumeCapture = _resolveResumeCaptureContext();
+    final resumeContext = _resolveResumeCaptureContext();
+    final reviewPayload = <String, dynamic>{
+      'tipoImovel': widget.tipoImovel,
+      'captures': _capturesCurrent.map((capture) => capture.toMap()).toList(),
+      'capturesRevisadas': _serializeReviewedCaptures(),
+    };
+    final serializedContext = _captureRecoveryAdapter.serializeContext(
+      resumeContext,
+    );
+    if (serializedContext.isNotEmpty) {
+      reviewPayload['cameraContext'] = serializedContext;
+    }
 
     await appState.setInspectionRecoveryStage(
       stageKey: 'inspection_review',
@@ -208,13 +223,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         ...appState.inspectionRecoveryPayload,
         'step1': appState.step1Payload,
         'step2': step2Payload,
-        'review': {
-          'tipoImovel': widget.tipoImovel,
-          'captures':
-              _capturesCurrent.map((capture) => capture.toMap()).toList(),
-          'cameraContext': resumeCapture?.toMap(),
-          'capturesRevisadas': _serializeReviewedCaptures(),
-        },
+        'review': reviewPayload,
       },
     );
   }
@@ -1332,7 +1341,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   Future<void> _captureMissingRequirement(
     _CheckinRequirementStatus status,
   ) async {
-    final resumeCapture = _resolveResumeCaptureContext();
+    final resumeContext = _resolveResumeCaptureContext();
     final result = await widget.flowCoordinator.openOverlayCamera(
       context,
       title: status.field.titulo,
@@ -1340,12 +1349,12 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       subtipoImovel: widget.tipoImovel,
       singleCaptureMode: true,
       preselectedMacroLocal:
-          resumeCapture?.macroLocal ?? status.field.cameraMacroLocal,
-      initialAmbiente: resumeCapture?.ambiente ?? status.field.cameraAmbiente,
+          resumeContext?.macroLocal ?? status.field.cameraMacroLocal,
+      initialAmbiente: resumeContext?.ambiente ?? status.field.cameraAmbiente,
       initialElemento:
-          resumeCapture?.elemento ?? status.field.cameraElementoInicial,
-      initialMaterial: resumeCapture?.material,
-      initialEstado: resumeCapture?.estado,
+          resumeContext?.elemento ?? status.field.cameraElementoInicial,
+      initialMaterial: resumeContext?.material,
+      initialEstado: resumeContext?.estado,
       cameFromCheckinStep1: false,
     );
     if (result == null || !mounted) return;
@@ -1360,22 +1369,12 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     );
   }
 
-  OverlayCameraCaptureResult? _resolveResumeCaptureContext() {
-    if (_capturesCurrent.isNotEmpty) {
-      return _capturesCurrent.last;
-    }
-
+  InspectionCaptureContext? _resolveResumeCaptureContext() {
     final appState = Provider.of<AppState>(context, listen: false);
-    final reviewPayload = appState.inspectionRecoveryPayload['review'];
-    if (reviewPayload is! Map<String, dynamic>) {
-      return null;
-    }
-
-    final rawContext = reviewPayload['cameraContext'];
-    if (rawContext is Map<String, dynamic>) {
-      return OverlayCameraCaptureResult.fromMap(rawContext);
-    }
-    return null;
+    return _captureRecoveryAdapter.resolveResumeContext(
+      currentCaptures: _capturesCurrent,
+      inspectionRecoveryPayload: appState.inspectionRecoveryPayload,
+    );
   }
 
   void _applySubtype(_NodeGroup group) {

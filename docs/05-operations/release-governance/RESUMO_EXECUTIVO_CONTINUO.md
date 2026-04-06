@@ -240,3 +240,22 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
 - Estado operacional:
   - retomada de camera e ambientes repetidos estabilizados no fluxo principal;
   - base pronta para fechamento documental/commit do pacote ou hardening adicional antes da promocao.
+
+## Checkpoint 2026-04-06 - Onda 3 (Checkpoint A semantica e estado)
+- Branch de trabalho: `codex/onda-3-v2-refactor-20260406`
+- Escopo: iniciar a refatoracao V2 do fluxo configuravel de inspection com foco em separar estado de captura do widget e extrair a persistencia de `cameraContext` da revisao para uma fronteira propria.
+- Escopo implementado:
+  - mobile: novo modelo `InspectionCaptureContext` e `InspectionCaptureFlowState` para representar estado inicial sugerido e estado corrente da captura sem depender de strings soltas no widget da camera;
+  - mobile: `OverlayCameraScreen` passou a concentrar a selecao atual em `InspectionCaptureFlowState`, reduzindo mutacoes diretas espalhadas de `macroLocal/ambiente/elemento/material/estado`;
+  - mobile: novo `InspectionCaptureRecoveryAdapter` para serializar e resolver `review.cameraContext` com compatibilidade ao payload atual;
+  - mobile: `InspectionReviewScreen` deixou de montar e ler `cameraContext` manualmente, delegando a persistencia e a retomada ao adapter dedicado.
+  - mobile: novo `InspectionCaptureContextResolver` para resolver o contexto inicial da camera a partir da Etapa 1 em um unico adapter, substituindo a montagem manual por cinco metodos separados em `CheckinScreen`;
+  - mobile: `CheckinScreen` passou a abrir a camera a partir do contexto resolvido pelo adapter, preservando o payload atual e reduzindo regra semantica espalhada no widget.
+- Validacoes executadas:
+  - `flutter test --no-pub test/services/inspection_capture_context_resolver_test.dart` verde;
+  - `flutter test --no-pub test/services/inspection_capture_recovery_adapter_test.dart` verde;
+  - `flutter test --no-pub test/screens/checkin_flow_navigation_test.dart test/screens/inspection_review_screen_test.dart test/screens/overlay_camera_screen_test.dart` verde;
+  - `flutter analyze --no-pub` sem issues.
+- Estado operacional:
+  - Checkpoint A validado e pronto para commit;
+  - proximo passo: avancar para o Checkpoint B, focando a acao contextual e o desacoplamento progressivo da especializacao inspection.
