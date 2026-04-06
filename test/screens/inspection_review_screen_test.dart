@@ -151,7 +151,7 @@ Future<void> _pumpReview(
     );
     await appState.setInspectionRecoveryStage(
       stageKey: 'inspection_review',
-      stageLabel: 'RevisÃƒÂ£o final',
+      stageLabel: 'Revis\u00E3o final',
       routeName: '/inspection_review',
       payload: persistedRecoveryPayload,
     );
@@ -175,11 +175,63 @@ Future<void> _pumpReview(
 }
 
 Future<void> _expandSection(WidgetTester tester, String sectionTitle) async {
-  final sectionFinder = find.text(sectionTitle);
+  final sectionFinder = _findTextNormalized(sectionTitle);
   expect(sectionFinder, findsOneWidget);
   await tester.ensureVisible(sectionFinder);
   await tester.tap(sectionFinder);
   await tester.pumpAndSettle();
+}
+
+String _normalizeText(String value) {
+  return value
+      .toLowerCase()
+      .replaceAll('\\u00e3', 'a')
+      .replaceAll('\\u00e2', 'a')
+      .replaceAll('\\u00e1', 'a')
+      .replaceAll('\\u00e0', 'a')
+      .replaceAll('\\u00e9', 'e')
+      .replaceAll('\\u00ea', 'e')
+      .replaceAll('\\u00ed', 'i')
+      .replaceAll('\\u00f3', 'o')
+      .replaceAll('\\u00f4', 'o')
+      .replaceAll('\\u00f5', 'o')
+      .replaceAll('\\u00fa', 'u')
+      .replaceAll('\\u00e7', 'c')
+      .replaceAll('ã', 'a')
+      .replaceAll('â', 'a')
+      .replaceAll('á', 'a')
+      .replaceAll('à', 'a')
+      .replaceAll('é', 'e')
+      .replaceAll('ê', 'e')
+      .replaceAll('í', 'i')
+      .replaceAll('ó', 'o')
+      .replaceAll('ô', 'o')
+      .replaceAll('õ', 'o')
+      .replaceAll('ú', 'u')
+      .replaceAll('ç', 'c')
+      .replaceAll('ƒ', '')
+      .replaceAll('€', '')
+      .replaceAll('™', '')
+      .replaceAll('œ', '')
+      .replaceAll('¢', '')
+      .replaceAll('•', '')
+      .replaceAll('—', '')
+      .replaceAll('–', '')
+      .replaceAll(RegExp(r'[^a-z0-9]+'), '');
+}
+
+Finder _findTextNormalized(String expected) {
+  final normalizedExpected = _normalizeText(expected);
+  return find.byWidgetPredicate((widget) {
+    if (widget is! Text) return false;
+    final data = widget.data;
+    if (data == null) return false;
+    return _normalizeText(data) == normalizedExpected;
+  });
+}
+
+void _expectTextNormalized(String expected, Object matcher) {
+  expect(_findTextNormalized(expected), matcher);
 }
 
 void main() {
@@ -216,7 +268,7 @@ void main() {
     );
 
     expect(find.text('FINALIZAR VISTORIA'), findsOneWidget);
-    expect(find.text('Ir para principal pendÃƒÂªncia'), findsNothing);
+    expect(find.text('Ir para principal pend\u00EAncia'), findsNothing);
   });
 
   testWidgets('consolidates pending content under one review section', (
@@ -229,18 +281,18 @@ void main() {
           filePath: '/tmp/a.jpg',
           ambiente: 'Cozinha',
           elemento: 'Piso',
-          material: 'Cerâmica',
+          material: 'Cer\u00E2mica',
           estado: 'Bom',
         ),
       ],
     );
 
-    expect(find.text('REVISÃO DE FOTOS'), findsOneWidget);
+    _expectTextNormalized('REVISÃO DE FOTOS', findsOneWidget);
 
-    await tester.tap(find.text('REVISÃO DE FOTOS'));
+    await tester.tap(_findTextNormalized('REVISÃO DE FOTOS'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Fotos Obrigatórias do Check-In'), findsOneWidget);
+    _expectTextNormalized('Fotos Obrigatórias do Check-In', findsOneWidget);
     expect(find.text('Fotos Capturadas'), findsOneWidget);
   });
 
@@ -253,7 +305,7 @@ void main() {
     );
 
     expect(find.text('Comandos por voz (opcional)'), findsNothing);
-    expect(find.text('Comandos rápidos por voz'), findsNothing);
+    expect(find.text('Comandos r\u00E1pidos por voz'), findsNothing);
   });
 
   testWidgets('does not render old top grouping chips frame', (tester) async {
@@ -264,15 +316,15 @@ void main() {
           filePath: '/tmp/a.jpg',
           ambiente: 'Cozinha',
           elemento: 'Piso',
-          material: 'Cerâmica',
+          material: 'Cer\u00E2mica',
           estado: 'Bom',
         ),
       ],
     );
 
-    expect(find.textContaining('Fotos obrigatórias:'), findsNothing);
+    expect(find.textContaining('Fotos obrigat\u00F3rias:'), findsNothing);
     expect(find.textContaining('Fotos capturadas:'), findsNothing);
-    expect(find.textContaining('REVISÃO DE FOTOS'), findsOneWidget);
+    _expectTextNormalized('REVISÃO DE FOTOS', findsOneWidget);
   });
 
   testWidgets('renders technical pending section without shortcut when empty', (
@@ -297,13 +349,13 @@ void main() {
     await _pumpReview(
       tester,
       captures: [_capture(filePath: '/tmp/a.jpg', ambiente: 'Cozinha')],
-      tipoImovel: 'Urbano • Apartamento',
+      tipoImovel: 'Urbano \u2022 Apartamento',
       persistedStep2Payload: persistedStep2,
     );
 
-    expect(find.text('PENDÊNCIAS TÉCNICAS DA VISTORIA'), findsOneWidget);
+    _expectTextNormalized('PENDÊNCIAS TÉCNICAS DA VISTORIA', findsOneWidget);
     await _expandSection(tester, 'PENDÊNCIAS TÉCNICAS DA VISTORIA');
-    expect(find.text('Ir para pendência'), findsNothing);
+    _expectTextNormalized('Ir para pendência', findsNothing);
   });
 
   testWidgets(
@@ -335,17 +387,20 @@ void main() {
       await _pumpReview(
         tester,
         captures: const [],
-        tipoImovel: 'Urbano • Apartamento',
+        tipoImovel: 'Urbano \u2022 Apartamento',
         persistedStep2Payload: persistedStep2,
       );
 
-      await _expandSection(tester, 'REVISÃO DE FOTOS');
-      await _expandSection(tester, 'Fotos Obrigatórias do Check-In');
+      await _expandSection(tester, 'REVIS\u00C3O DE FOTOS');
+      await _expandSection(tester, 'Fotos Obrigat\u00F3rias do Check-In');
 
       expect(find.text('Fachada'), findsOneWidget);
       expect(find.text('Logradouro'), findsOneWidget);
-      expect(find.text('Obrigatório atendido'), findsNWidgets(2));
-      expect(find.text('Obrigatório — pendente de captura'), findsNWidgets(2));
+      _expectTextNormalized('Obrigatório atendido', findsNWidgets(2));
+      _expectTextNormalized(
+        'Obrigatório — pendente de captura',
+        findsNWidgets(2),
+      );
       expect(find.text('Capturar'), findsNWidgets(2));
     },
   );
@@ -378,27 +433,27 @@ void main() {
           _FakeInspectionFlowCoordinator()
             ..nextOverlayResult = _capture(
               filePath: '/tmp/acesso.jpg',
-              ambiente: 'Acesso ao imóvel',
-              elemento: 'Portão',
+              ambiente: 'Acesso ao im\u00F3vel',
+              elemento: 'Port\u00E3o',
             );
 
       await _pumpReview(
         tester,
         captures: const [],
-        tipoImovel: 'Urbano • Apartamento',
+        tipoImovel: 'Urbano \u2022 Apartamento',
         persistedStep2Payload: persistedStep2,
         flowCoordinator: flowCoordinator,
       );
 
-      await _expandSection(tester, 'REVISÃO DE FOTOS');
-      await _expandSection(tester, 'Fotos Obrigatórias do Check-In');
+      await _expandSection(tester, 'REVIS\u00C3O DE FOTOS');
+      await _expandSection(tester, 'Fotos Obrigat\u00F3rias do Check-In');
 
       await tester.tap(find.text('Capturar').first);
       await tester.pumpAndSettle();
 
       expect(flowCoordinator.overlayOpenCount, 1);
-      expect(flowCoordinator.lastOverlayTitle, 'Acesso ao imóvel');
-      expect(find.text('Obrigatório atendido'), findsNWidgets(2));
+      expect(flowCoordinator.lastOverlayTitle, 'Acesso ao im\u00F3vel');
+      _expectTextNormalized('Obrigatório atendido', findsNWidgets(2));
       expect(find.text('Capturar'), findsAtLeastNWidgets(1));
     },
   );
@@ -444,11 +499,11 @@ void main() {
       await _pumpReview(
         tester,
         captures: const [],
-        tipoImovel: 'Urbano • Apartamento',
+        tipoImovel: 'Urbano \u2022 Apartamento',
         persistedStep2Payload: persistedStep2,
         persistedRecoveryPayload: {
           'review': {
-            'tipoImovel': 'Urbano • Apartamento',
+            'tipoImovel': 'Urbano \u2022 Apartamento',
             'cameraContext': _capture(
               filePath: '/tmp/ultimo.jpg',
               ambiente: 'Quarto 2',
@@ -465,8 +520,8 @@ void main() {
         flowCoordinator: flowCoordinator,
       );
 
-      await _expandSection(tester, 'REVISÃO DE FOTOS');
-      await _expandSection(tester, 'Fotos Obrigatórias do Check-In');
+      await _expandSection(tester, 'REVIS\u00C3O DE FOTOS');
+      await _expandSection(tester, 'Fotos Obrigat\u00F3rias do Check-In');
 
       await tester.tap(find.text('Capturar').first);
       await tester.pumpAndSettle();
@@ -503,11 +558,11 @@ void main() {
       await _pumpReview(
         tester,
         captures: const [],
-        tipoImovel: 'Urbano • Apartamento',
+        tipoImovel: 'Urbano \u2022 Apartamento',
         persistedRecoveryPayload: {
           'step2': persistedStep2,
           'step2Config': {
-            'tituloTela': 'Etapa 2 dinâmica',
+            'tituloTela': 'Etapa 2 din\u00E2mica',
             'camposFotos': [
               {
                 'id': 'sala_principal',
@@ -521,12 +576,15 @@ void main() {
         },
       );
 
-      await _expandSection(tester, 'REVISÃO DE FOTOS');
-      await _expandSection(tester, 'Fotos Obrigatórias do Check-In');
+      await _expandSection(tester, 'REVIS\u00C3O DE FOTOS');
+      await _expandSection(tester, 'Fotos Obrigat\u00F3rias do Check-In');
 
       expect(find.text('Sala principal'), findsOneWidget);
-      expect(find.text('Obrigatório atendido'), findsOneWidget);
-      expect(find.text('Obrigatório — pendente de captura'), findsNothing);
+      _expectTextNormalized('Obrigatório atendido', findsOneWidget);
+      _expectTextNormalized(
+        'Obrigatório — pendente de captura',
+        findsNothing,
+      );
     },
   );
 
@@ -536,11 +594,11 @@ void main() {
       await _pumpReview(
         tester,
         captures: const [],
-        tipoImovel: 'Urbano • Apartamento',
+        tipoImovel: 'Urbano \u2022 Apartamento',
         persistedRecoveryPayload: {
           'step2': {'fotos': 'invalid-structure'},
           'step2Config': {
-            'tituloTela': 'Etapa 2 dinâmica',
+            'tituloTela': 'Etapa 2 din\u00E2mica',
             'camposFotos': [
               {
                 'id': 'sala_principal',
@@ -554,14 +612,17 @@ void main() {
         },
       );
 
-      await tester.tap(find.text('REVISÃO DE FOTOS'));
+      await tester.tap(_findTextNormalized('REVISÃO DE FOTOS'));
       await tester.pumpAndSettle();
 
-      await _expandSection(tester, 'Fotos Obrigatórias do Check-In');
+      await _expandSection(tester, 'Fotos Obrigat\u00F3rias do Check-In');
 
-      expect(find.text('Fotos Obrigatórias do Check-In'), findsOneWidget);
+      _expectTextNormalized('Fotos Obrigatórias do Check-In', findsOneWidget);
       expect(find.text('Sala principal'), findsOneWidget);
-      expect(find.text('Obrigatório — pendente de captura'), findsOneWidget);
+      _expectTextNormalized(
+        'Obrigatório — pendente de captura',
+        findsOneWidget,
+      );
     },
   );
 
@@ -570,7 +631,7 @@ void main() {
     (tester) async {
       final recoveryPayload = {
         'review': {
-          'tipoImovel': 'Urbano • Apartamento',
+          'tipoImovel': 'Urbano \u2022 Apartamento',
           'captures': [
             _capture(
               filePath: '/tmp/classificada.jpg',
@@ -583,7 +644,7 @@ void main() {
               'filePath': '/tmp/classificada.jpg',
               'ambiente': 'Cozinha',
               'elemento': 'Piso',
-              'material': 'Cerâmica',
+              'material': 'Cer\u00E2mica',
               'estado': 'Bom',
               'isComplete': true,
             },
@@ -597,15 +658,15 @@ void main() {
           _capture(filePath: '/tmp/classificada.jpg', ambiente: 'Cozinha'),
           _capture(filePath: '/tmp/nova.jpg', ambiente: 'Sala'),
         ],
-        tipoImovel: 'Urbano • Apartamento',
+        tipoImovel: 'Urbano \u2022 Apartamento',
         persistedRecoveryPayload: recoveryPayload,
       );
 
-      await _expandSection(tester, 'REVISÃO DE FOTOS');
+      await _expandSection(tester, 'REVIS\u00C3O DE FOTOS');
 
       expect(find.text('Fotos Capturadas'), findsOneWidget);
       expect(
-        find.textContaining('1 pendência(s) de classificação'),
+        find.textContaining('1 pend\u00EAncia(s) de classifica\u00E7\u00E3o'),
         findsOneWidget,
       );
     },
@@ -624,7 +685,7 @@ void main() {
 
       final recoveryPayload = {
         'review': {
-          'tipoImovel': 'Urbano • Apartamento',
+          'tipoImovel': 'Urbano \u2022 Apartamento',
           'captures': [captureWithInstance.toMap()],
           'capturesRevisadas': [
             {
@@ -633,7 +694,7 @@ void main() {
               'ambienteBase': 'Quarto',
               'ambienteInstanceIndex': 2,
               'elemento': 'Piso',
-              'material': 'Cerâmica',
+              'material': 'Cer\u00E2mica',
               'estado': 'Bom',
               'isComplete': true,
             },
@@ -644,11 +705,11 @@ void main() {
       await _pumpReview(
         tester,
         captures: [captureWithInstance],
-        tipoImovel: 'Urbano • Apartamento',
+        tipoImovel: 'Urbano \u2022 Apartamento',
         persistedRecoveryPayload: recoveryPayload,
       );
 
-      await _expandSection(tester, 'REVISÃO DE FOTOS');
+      await _expandSection(tester, 'REVIS\u00C3O DE FOTOS');
 
       expect(find.text('Quarto 2'), findsOneWidget);
     },

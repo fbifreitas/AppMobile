@@ -9,6 +9,7 @@ import '../models/checkin_step2_model.dart';
 import '../models/inspection_capture_context.dart';
 import '../models/overlay_camera_capture_result.dart';
 import '../services/checkin_dynamic_config_service.dart';
+import '../services/inspection_context_actions_service.dart';
 import '../services/inspection_environment_instance_service.dart';
 import '../services/inspection_menu_service.dart';
 import '../services/inspection_requirement_policy_service.dart';
@@ -81,6 +82,8 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   final InspectionMenuService _menuService = InspectionMenuService.instance;
   final InspectionEnvironmentInstanceService _environmentInstanceService =
       InspectionEnvironmentInstanceService.instance;
+  final InspectionContextActionsService _contextActionsService =
+      InspectionContextActionsService.instance;
   final InspectionRequirementPolicyService _requirementPolicy =
       InspectionRequirementPolicyService.instance;
   final InspectionSemanticFieldService _semanticFieldService =
@@ -494,8 +497,8 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       return;
     }
 
-    final nextLabel = _environmentInstanceService.nextDisplayLabel(
-      selectedLabel: selectedAmbiente,
+    final nextLabel = _contextActionsService.nextDuplicatedAmbienteLabel(
+      selectedAmbiente: selectedAmbiente,
       existingLabels: _ambientesAtuais,
     );
     if (nextLabel.trim().isEmpty) {
@@ -897,16 +900,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   bool _isCameraLevelEnabled(String id) => _cameraLevelOrder.contains(id);
 
   String? get _newAmbienteActionLabel {
-    final selectedAmbiente = _ambiente;
-    if (selectedAmbiente == null || selectedAmbiente.trim().isEmpty) {
-      return null;
-    }
-
-    final parsed = _environmentInstanceService.parse(selectedAmbiente);
-    if (parsed.baseLabel.trim().isEmpty) {
-      return null;
-    }
-    return 'Novo ${parsed.baseLabel}';
+    return _contextActionsService.duplicateActionLabelFor(_ambiente);
   }
 
   String _labelForCameraLevel(String levelId) {
