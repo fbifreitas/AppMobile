@@ -409,3 +409,19 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
   - publicar `release/v1.2.36+56`;
   - acompanhar `Android Homologation` e `Internal Docs CI`;
   - somente apos esteira verde abrir PR de promocao para `main`.
+
+## Checkpoint 2026-04-06 - Pacote corretivo camera/revisao pos-validacao em aparelho
+- Branch candidata: `release/v1.2.37+57`
+- Versao candidata: `1.2.37+57`
+- Escopo implementado:
+  - mobile: correção de layout na `OverlayCameraScreen` para impedir quebra dos botões inline da câmera por `minimumSize` infinito no scroll horizontal;
+  - mobile: preservação de ambiente instanciado (`Quarto 2`) no resolver de menus e no catálogo/fallback da câmera;
+  - mobile: `Área da foto` volta a permanecer visível ao entrar na câmera a partir do check-in etapa 1, mantendo o contexto da caminhada para o usuário.
+- Validacoes executadas:
+  - `flutter analyze --no-pub` sem issues;
+  - `flutter test --no-pub test/services/inspection_camera_selector_section_service_test.dart test/screens/overlay_camera_screen_test.dart test/screens/checkin_flow_navigation_test.dart` verde;
+  - `flutter test --no-pub test/services/inspection_camera_presentation_service_test.dart test/screens/overlay_camera_screen_test.dart test/screens/inspection_review_screen_test.dart` verde;
+  - validação manual em aparelho: botões de captura/revisão voltaram a renderizar após o ajuste de layout.
+- Estado operacional:
+  - pacote corretivo fechado localmente e pronto para publicação em homologação/Firebase;
+  - próximo passo: criar branch `release/v1.2.37+57`, publicar, acompanhar `Android Homologation` e `Internal Docs CI`.

@@ -1373,6 +1373,8 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                       style: FilledButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: Colors.black87,
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 8,
@@ -1390,6 +1392,8 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,
                         side: const BorderSide(color: Colors.white70),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 8,

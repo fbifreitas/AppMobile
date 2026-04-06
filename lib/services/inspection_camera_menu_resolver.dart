@@ -48,7 +48,7 @@ class InspectionCameraMenuResolver {
       macroLocal = macroLocals.isNotEmpty ? macroLocals.first : null;
     }
 
-    final ambientes =
+    final fetchedAmbientes =
         macroLocal == null
             ? const <String>[]
             : await _menuService.getAmbientes(
@@ -56,13 +56,21 @@ class InspectionCameraMenuResolver {
               macroLocal: macroLocal,
             );
 
+    final ambientes = List<String>.from(fetchedAmbientes);
+    final currentAmbiente = currentContext.ambiente;
+    if (currentAmbiente != null &&
+        currentAmbiente.trim().isNotEmpty &&
+        !ambientes.contains(currentAmbiente)) {
+      ambientes.add(currentAmbiente);
+    }
+
     final recentAmbientes =
         macroLocal == null
             ? const <String>[]
             : await _menuService.getRecentAmbienteSuggestions(
               propertyType: propertyType,
               macroLocal: macroLocal,
-              availableAmbientes: ambientes,
+              availableAmbientes: fetchedAmbientes,
             );
 
     String? ambiente = currentContext.ambiente;
@@ -74,7 +82,7 @@ class InspectionCameraMenuResolver {
       final suggestedContext = await _menuService.getSuggestedContext(
         propertyType: propertyType,
         macroLocal: macroLocal,
-        availableAmbientes: ambientes,
+        availableAmbientes: fetchedAmbientes,
       );
       if (initialSuggestedContext.ambiente == null &&
           suggestedContext?.ambiente != null) {

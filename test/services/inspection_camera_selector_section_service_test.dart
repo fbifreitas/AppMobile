@@ -36,7 +36,7 @@ void main() {
     expect(sections.last.levelId, 'elemento');
   });
 
-  test('omits macro section when bootstrap already fixed macro local', () {
+  test('keeps macro section visible when bootstrap already fixed macro local', () {
     final sections = service.buildSections(
       levelOrder: const <String>['macroLocal', 'ambiente'],
       labelsByLevel: const <String, String>{},
@@ -55,6 +55,10 @@ void main() {
       estados: const <String>[],
     );
 
-    expect(sections.map((section) => section.levelId), <String>['ambiente']);
+    expect(
+      sections.map((section) => section.levelId),
+      <String>['macroLocal', 'ambiente'],
+    );
+    expect(sections.first.selected, 'Rua');
   });
 }

@@ -36,7 +36,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets(
-    'OverlayCameraScreen hides material and estado when subtipo overrides camera levels',
+    'OverlayCameraScreen keeps area and hides material and estado when subtipo overrides camera levels',
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -50,7 +50,11 @@ void main() {
               elemento: 'Portao',
             ),
             useTestMenuData: true,
-            testCameraLevelOrder: const <String>['ambiente', 'elemento'],
+            testCameraLevelOrder: const <String>[
+              'macroLocal',
+              'ambiente',
+              'elemento',
+            ],
             testMacroLocais: const <String>['Rua'],
             testAmbientes: const <String>['Fachada'],
             testElementos: const <String>['Portao'],
@@ -63,15 +67,18 @@ void main() {
       );
       await _pumpUntilFound(tester, find.text('Elemento fotografado'));
 
+      expect(find.text('Área da foto'), findsOneWidget);
       expect(find.text('Local da foto'), findsOneWidget);
       expect(find.text('Elemento fotografado'), findsOneWidget);
       expect(find.text('Material'), findsNothing);
       expect(find.text('Estado'), findsNothing);
 
+      final macroDy = tester.getTopLeft(find.text('Área da foto')).dy;
       final ambienteDy = tester.getTopLeft(find.text('Local da foto')).dy;
       final elementoDy =
           tester.getTopLeft(find.text('Elemento fotografado')).dy;
 
+      expect(macroDy < ambienteDy, isTrue);
       expect(ambienteDy < elementoDy, isTrue);
     },
   );
