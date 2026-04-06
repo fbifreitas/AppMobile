@@ -27,8 +27,6 @@ class InspectionCameraSelectorSectionService {
     required List<String> estados,
   }) {
     final sections = <InspectionCameraSelectorSection>[];
-    final showMacroLocalSelector =
-        flowState.initialSuggested.macroLocal == null;
     final current = flowState.current;
 
     for (final levelId in levelOrder) {
@@ -41,7 +39,7 @@ class InspectionCameraSelectorSectionService {
 
       switch (levelId) {
         case 'macroLocal':
-          if (!showMacroLocalSelector) {
+          if (macroLocais.isEmpty && current.macroLocal == null) {
             continue;
           }
           sections.add(
@@ -51,7 +49,10 @@ class InspectionCameraSelectorSectionService {
                 levelId: levelId,
                 labelsByLevel: labelsByLevel,
               ),
-              values: macroLocais,
+              values:
+                  macroLocais.isNotEmpty
+                      ? macroLocais
+                      : <String>[if (current.macroLocal != null) current.macroLocal!],
               selected: current.macroLocal,
             ),
           );

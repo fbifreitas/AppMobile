@@ -1,15 +1,19 @@
 import '../config/inspection_menu_package.dart';
+import 'inspection_environment_instance_service.dart';
 import 'inspection_menu_ranking_service.dart';
 
 class InspectionMenuCatalogService {
   const InspectionMenuCatalogService({
     this.rankingService = InspectionMenuRankingService.instance,
+    this.environmentInstanceService =
+        InspectionEnvironmentInstanceService.instance,
   });
 
   static const InspectionMenuCatalogService instance =
       InspectionMenuCatalogService();
 
   final InspectionMenuRankingService rankingService;
+  final InspectionEnvironmentInstanceService environmentInstanceService;
 
   List<String> macroLocals({
     required InspectionMenuPackage? package,
@@ -61,7 +65,7 @@ class InspectionMenuCatalogService {
     );
     final selectedAmbiente = _firstWhereOrNull<RankedMenuOption>(
       selectedMacro?.ambientes ?? const <RankedMenuOption>[],
-      (item) => item.label == ambiente,
+      (item) => _matchesAmbiente(item.label, ambiente),
     );
     final options =
         selectedAmbiente?.elements ??
@@ -139,7 +143,7 @@ class InspectionMenuCatalogService {
     );
     final selectedAmbiente = _firstWhereOrNull<RankedMenuOption>(
       selectedMacro?.ambientes ?? const <RankedMenuOption>[],
-      (item) => item.label == ambiente,
+      (item) => _matchesAmbiente(item.label, ambiente),
     );
     return _firstWhereOrNull<RankedMenuOption>(
       selectedAmbiente?.elements ?? const <RankedMenuOption>[],
@@ -152,6 +156,14 @@ class InspectionMenuCatalogService {
       if (test(value)) return value;
     }
     return null;
+  }
+
+  bool _matchesAmbiente(String configuredLabel, String selectedLabel) {
+    final configuredBase = environmentInstanceService.baseLabelOf(
+      configuredLabel,
+    );
+    final selectedBase = environmentInstanceService.baseLabelOf(selectedLabel);
+    return _normalize(configuredBase) == _normalize(selectedBase);
   }
 
   List<T> _rankOptions<T extends RankedMenuOption>({
@@ -240,7 +252,8 @@ class InspectionMenuCatalogService {
     String macroLocal,
     String ambiente,
   ) {
-    switch (ambiente) {
+    final normalizedAmbiente = environmentInstanceService.baseLabelOf(ambiente);
+    switch (normalizedAmbiente) {
       case 'Fachada':
       case 'Fachada / portaria':
         return const <RankedMenuOption>[
@@ -290,6 +303,21 @@ class InspectionMenuCatalogService {
           RankedMenuOption(label: 'Visão geral', baseScore: 100, pinnedTop: true),
           RankedMenuOption(label: 'Rua / via', baseScore: 90),
           RankedMenuOption(label: 'Vegetação', baseScore: 76),
+          RankedMenuOption(label: 'Outro elemento', baseScore: 1, pinnedBottom: true),
+        ];
+      case 'Sala':
+      case 'Quarto':
+      case 'Cozinha':
+      case 'Garagem':
+      case 'Quintal':
+      case 'Jardim':
+        return const <RankedMenuOption>[
+          RankedMenuOption(label: 'Visão geral', baseScore: 100, pinnedTop: true),
+          RankedMenuOption(label: 'Piso', baseScore: 95),
+          RankedMenuOption(label: 'Parede', baseScore: 92),
+          RankedMenuOption(label: 'Teto', baseScore: 88),
+          RankedMenuOption(label: 'Porta', baseScore: 84),
+          RankedMenuOption(label: 'Janela', baseScore: 80),
           RankedMenuOption(label: 'Outro elemento', baseScore: 1, pinnedBottom: true),
         ];
       default:
@@ -403,4 +431,6 @@ class InspectionMenuCatalogService {
       RankedMenuOption(label: 'Péssimo', baseScore: 45),
     ];
   }
+
+  String _normalize(String value) => value.trim().toLowerCase();
 }
