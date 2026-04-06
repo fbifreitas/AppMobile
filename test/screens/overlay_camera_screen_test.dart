@@ -123,11 +123,54 @@ void main() {
       await tester.tap(find.text('Novo Quarto'));
       await tester.pumpAndSettle();
 
-      final currentAmbienteText = tester.widget<Text>(
-        find.byKey(const ValueKey('camera_current_ambiente_label')),
-      );
-      expect(currentAmbienteText.data, 'Quarto 2');
+      final selectedChip = tester.widget<Text>(find.text('Quarto 2').first);
+      expect(selectedChip.data, 'Quarto 2');
       expect(find.text('Novo Quarto'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'OverlayCameraScreen keeps ambiente actions inline with local selector',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: OverlayCameraScreen(
+            title: 'Câmera',
+            tipoImovel: 'Urbano',
+            subtipoImovel: 'Casa',
+            preselectedMacroLocal: 'Área interna',
+            initialAmbiente: 'Sala',
+            useTestMenuData: true,
+            testCameraLevelOrder: <String>['ambiente'],
+            testMacroLocais: <String>['Área interna'],
+            testAmbientes: <String>['Sala', 'Quarto', 'Cozinha'],
+            skipDeviceInitialization: true,
+            showVoiceActions: false,
+          ),
+        ),
+      );
+
+      await _pumpUntilFound(tester, find.text('Local da foto'));
+      expect(find.text('Local da foto'), findsOneWidget);
+      expect(find.text('Nova Sala'), findsOneWidget);
+      expect(find.text('Trocar'), findsOneWidget);
+      expect(find.byKey(const ValueKey('camera_ambiente_selector_list')), findsOneWidget);
+      expect(find.byKey(const ValueKey('camera_current_ambiente_label')), findsNothing);
+      expect(find.text('Sala'), findsWidgets);
+      expect(find.text('Quarto'), findsOneWidget);
+      expect(find.text('Cozinha'), findsOneWidget);
+
+      final titleDy = tester.getTopLeft(find.text('Local da foto')).dy;
+      final duplicateDy = tester.getTopLeft(find.text('Nova Sala')).dy;
+      final changeDy = tester.getTopLeft(find.text('Trocar')).dy;
+      final selectorListDy =
+          tester
+              .getTopLeft(find.byKey(const ValueKey('camera_ambiente_selector_list')))
+              .dy;
+
+      expect(duplicateDy <= selectorListDy, isTrue);
+      expect(changeDy <= selectorListDy, isTrue);
+      expect(titleDy <= selectorListDy, isTrue);
     },
   );
 }

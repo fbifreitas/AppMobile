@@ -1,4 +1,5 @@
 import 'package:appmobile/models/job.dart';
+import 'package:appmobile/models/inspection_camera_flow_request.dart';
 import 'package:appmobile/models/inspection_session_model.dart';
 import 'package:appmobile/models/overlay_camera_capture_result.dart';
 import 'package:appmobile/repositories/job_repository.dart';
@@ -22,12 +23,7 @@ class _ImmediateJobRepository implements JobRepository {
 class _FakeInspectionFlowCoordinator extends InspectionFlowCoordinator {
   OverlayCameraCaptureResult? nextOverlayResult;
   int overlayOpenCount = 0;
-  String? lastOverlayTitle;
-  String? lastPreselectedMacroLocal;
-  String? lastInitialAmbiente;
-  String? lastInitialElemento;
-  String? lastInitialMaterial;
-  String? lastInitialEstado;
+  InspectionCameraFlowRequest? lastOverlayRequest;
 
   @override
   void openCheckin(BuildContext context, {bool silent = false}) {}
@@ -44,24 +40,10 @@ class _FakeInspectionFlowCoordinator extends InspectionFlowCoordinator {
   @override
   Future<OverlayCameraCaptureResult?> openOverlayCamera(
     BuildContext context, {
-    required String title,
-    required String tipoImovel,
-    required String subtipoImovel,
-    bool singleCaptureMode = false,
-    String? preselectedMacroLocal,
-    String? initialAmbiente,
-    String? initialElemento,
-    String? initialMaterial,
-    String? initialEstado,
-    required bool cameFromCheckinStep1,
+    required InspectionCameraFlowRequest request,
   }) async {
     overlayOpenCount += 1;
-    lastOverlayTitle = title;
-    lastPreselectedMacroLocal = preselectedMacroLocal;
-    lastInitialAmbiente = initialAmbiente;
-    lastInitialElemento = initialElemento;
-    lastInitialMaterial = initialMaterial;
-    lastInitialEstado = initialEstado;
+    lastOverlayRequest = request;
     return nextOverlayResult;
   }
 
@@ -452,7 +434,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(flowCoordinator.overlayOpenCount, 1);
-      expect(flowCoordinator.lastOverlayTitle, 'Acesso ao im\u00F3vel');
+      expect(
+        flowCoordinator.lastOverlayRequest?.title,
+        'Acesso ao im\u00F3vel',
+      );
       _expectTextNormalized('Obrigatório atendido', findsNWidgets(2));
       expect(find.text('Capturar'), findsAtLeastNWidgets(1));
     },
@@ -527,11 +512,13 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(flowCoordinator.overlayOpenCount, 1);
-      expect(flowCoordinator.lastPreselectedMacroLocal, 'Interna');
-      expect(flowCoordinator.lastInitialAmbiente, 'Quarto 2');
-      expect(flowCoordinator.lastInitialElemento, 'Janela');
-      expect(flowCoordinator.lastInitialMaterial, 'Madeira');
-      expect(flowCoordinator.lastInitialEstado, 'Bom');
+      final request = flowCoordinator.lastOverlayRequest;
+      expect(request, isNotNull);
+      expect(request!.captureFlowState.current.macroLocal, 'Interna');
+      expect(request.captureFlowState.current.ambiente, 'Quarto 2');
+      expect(request.captureFlowState.current.elemento, 'Janela');
+      expect(request.captureFlowState.current.material, 'Madeira');
+      expect(request.captureFlowState.current.estado, 'Bom');
     },
   );
 

@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:appmobile/config/checkin_step2_config.dart';
 import 'package:appmobile/models/checkin_step2_model.dart';
 import 'package:appmobile/models/job.dart';
+import 'package:appmobile/models/inspection_camera_flow_request.dart';
 import 'package:appmobile/models/inspection_session_model.dart';
 import 'package:appmobile/models/overlay_camera_capture_result.dart';
 import 'package:appmobile/repositories/job_repository.dart';
@@ -36,11 +37,7 @@ class _FakeInspectionFlowCoordinator extends InspectionFlowCoordinator {
   CheckinStep2Model? restoredInitialData;
   List<OverlayCameraCaptureResult> restoredCaptures =
       const <OverlayCameraCaptureResult>[];
-  String? lastPreselectedMacroLocal;
-  String? lastInitialAmbiente;
-  String? lastInitialElemento;
-  String? lastInitialMaterial;
-  String? lastInitialEstado;
+  InspectionCameraFlowRequest? lastOverlayRequest;
 
   @override
   void openCheckin(BuildContext context, {bool silent = false}) {
@@ -59,23 +56,10 @@ class _FakeInspectionFlowCoordinator extends InspectionFlowCoordinator {
   @override
   Future<OverlayCameraCaptureResult?> openOverlayCamera(
     BuildContext context, {
-    required String title,
-    required String tipoImovel,
-    required String subtipoImovel,
-    bool singleCaptureMode = false,
-    String? preselectedMacroLocal,
-    String? initialAmbiente,
-    String? initialElemento,
-    String? initialMaterial,
-    String? initialEstado,
-    required bool cameFromCheckinStep1,
+    required InspectionCameraFlowRequest request,
   }) async {
     overlayOpenCount += 1;
-    lastPreselectedMacroLocal = preselectedMacroLocal;
-    lastInitialAmbiente = initialAmbiente;
-    lastInitialElemento = initialElemento;
-    lastInitialMaterial = initialMaterial;
-    lastInitialEstado = initialEstado;
+    lastOverlayRequest = request;
     return null;
   }
 
@@ -406,11 +390,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(flowCoordinator.lastPreselectedMacroLocal, 'Rua');
-    expect(flowCoordinator.lastInitialAmbiente, 'Fachada');
-    expect(flowCoordinator.lastInitialElemento, 'Portão');
-    expect(flowCoordinator.lastInitialMaterial, 'Metal');
-    expect(flowCoordinator.lastInitialEstado, 'Bom');
+    final request = flowCoordinator.lastOverlayRequest;
+    expect(request, isNotNull);
+    expect(request!.captureFlowState.initialSuggested.macroLocal, 'Rua');
+    expect(request.captureFlowState.initialSuggested.ambiente, 'Fachada');
+    expect(request.captureFlowState.initialSuggested.elemento, 'Portão');
+    expect(request.captureFlowState.initialSuggested.material, 'Metal');
+    expect(request.captureFlowState.initialSuggested.estado, 'Bom');
   });
 
   testWidgets('check-in etapa 1 hides step2 action when backend marks it invisible', (

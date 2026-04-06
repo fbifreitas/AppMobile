@@ -133,6 +133,7 @@ class InspectionSemanticFieldService {
     for (final entry in _cameraLevelIds.entries) {
       final aliases = _fallbackAliases[entry.key] ?? const <String>[];
       if (_normalize(entry.value) == normalizedRaw ||
+          _normalize(entry.key) == normalizedRaw ||
           aliases.map(_normalize).contains(normalizedRaw)) {
         return entry.value;
       }

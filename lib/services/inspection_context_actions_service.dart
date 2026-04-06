@@ -13,10 +13,12 @@ class InspectionContextActionsService {
 
   String? duplicateActionLabelFor(String? selectedAmbiente) {
     final parsed = _environmentInstanceService.parse(selectedAmbiente);
-    if (parsed.baseLabel.trim().isEmpty) {
+    final baseLabel = parsed.baseLabel.trim();
+    if (baseLabel.isEmpty) {
       return null;
     }
-    return 'Novo ${parsed.baseLabel}';
+    final prefix = baseLabel.toLowerCase().endsWith('a') ? 'Nova' : 'Novo';
+    return '$prefix $baseLabel';
   }
 
   String nextDuplicatedAmbienteLabel({

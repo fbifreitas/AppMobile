@@ -258,6 +258,61 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
   - `flutter analyze --no-pub` sem issues.
 - Estado operacional:
   - Checkpoint A validado e pronto para commit;
+
+## Checkpoint 2026-04-06 - Onda 3 (Checkpoint B fluxo operacional e inspection)
+- Branch de trabalho: `codex/onda-3-v2-refactor-20260406`
+- Escopo: retirar da camera e da revisao a regra operacional de ambientes repetidos e a taxonomia inspection hardcoded, mantendo a acao contextual fora da arvore principal.
+- Escopo implementado:
+  - mobile: novo `InspectionContextActionsService` para resolver `Trocar`, `Novo <ambiente>` e label contextual com genero correto (`Novo Quarto`, `Nova Sala`);
+  - mobile: novo `InspectionTaxonomyService` para centralizar taxonomia review/camera de ambiente, elemento, material e estado;
+  - mobile: `OverlayCameraScreen` passou a consumir acao contextual inline no cabecalho de `Local da foto`, sem submenu adicional;
+  - mobile: `InspectionReviewScreen` deixou de manter listas locais hardcoded e passou a consumir taxonomia dedicada;
+  - mobile: textos sensiveis da revisao estabilizados para evitar corrupcao visual em labels operacionais.
+- Validacoes executadas:
+  - `flutter test --no-pub test/services/inspection_context_actions_service_test.dart` verde;
+  - `flutter test --no-pub test/services/inspection_taxonomy_service_test.dart` verde;
+  - `flutter test --no-pub test/screens/overlay_camera_screen_test.dart` verde;
+  - `flutter test --no-pub test/screens/inspection_review_screen_test.dart` verde;
+  - `flutter analyze --no-pub` sem issues.
+- Estado operacional:
+  - Checkpoint B validado e pronto para commit.
+
+## Checkpoint 2026-04-06 - Onda 3 (Checkpoint C quebra incremental da fachada)
+- Branch de trabalho: `codex/onda-3-v2-refactor-20260406`
+- Escopo: concluir a quebra incremental do `InspectionMenuService`, preservando a API publica e o payload atual enquanto as responsabilidades sao movidas para camadas dedicadas.
+- Escopo implementado:
+  - mobile: novo `InspectionMenuDocumentLoader` para leitura de asset/mock;
+  - mobile: novo `InspectionMenuDocumentMergeResolver` para merge remoto/fallback/mock;
+  - mobile: novo `InspectionMenuPreferencesStore` para persistencia de `usage/prediction`;
+  - mobile: novo `InspectionMenuRankingService` para ranking editorial/local/recencia;
+  - mobile: novo `InspectionMenuCatalogService` para hierarchy lookup e fallback operacional do menu;
+  - mobile: novo `InspectionMenuIntelligenceService` para sugestao de contexto, prediction e recentes;
+  - mobile: `InspectionMenuService` mantido como facade temporaria, mas deixando de concentrar carga/merge/prefs/ranking/catalogo/inteligencia.
+- Validacoes executadas:
+  - `flutter test --no-pub test/services/inspection_menu_document_loader_test.dart test/services/inspection_menu_document_merge_resolver_test.dart` verde;
+  - `flutter test --no-pub test/services/inspection_menu_preferences_store_test.dart` verde;
+  - `flutter test --no-pub test/services/inspection_menu_ranking_service_test.dart` verde;
+  - `flutter test --no-pub test/services/inspection_menu_catalog_service_test.dart` verde;
+  - `flutter test --no-pub test/services/inspection_menu_intelligence_service_test.dart test/services/inspection_menu_service_test.dart` verde;
+  - `flutter analyze --no-pub` sem issues.
+- Estado operacional:
+  - Checkpoint C validado e pronto para fechamento da onda.
+
+## Fechamento 2026-04-06 - Onda 3 concluida
+- Branch de trabalho: `codex/onda-3-v2-refactor-20260406`
+- Resultado tecnico consolidado:
+  - `OverlayCameraScreen` deixou de ser fonte de verdade do fluxo e passou a consumir estado canonico, resolvedor de menu, service de apresentacao dos niveis e service de transicao;
+  - `InspectionFlowCoordinator` passou a trafegar contexto coeso por `InspectionCameraFlowRequest`, removendo passagem espalhada de parametros legados;
+  - `InspectionReviewScreen` deixou de montar `resume context` e `cameraContext` manualmente, passando a consumir adapter/policy/estado dedicados;
+  - `InspectionMenuService` foi reduzido a facade real, com responsabilidades distribuidas em camadas especificas;
+  - semantica canonica e aliases legados ficaram concentrados em adapters semanticos, preservando labels por surface e compatibilidade com payload atual;
+  - ambientes repetidos (`Quarto 2`, `Sala 2`) permanecem funcionando de ponta a ponta em camera, revisao e retomada.
+- Validacao final executada:
+  - `flutter analyze --no-pub` verde;
+  - `flutter test --no-pub test/services/inspection_capture_context_resolver_test.dart test/services/inspection_capture_recovery_adapter_test.dart test/services/inspection_capture_flow_transition_service_test.dart test/services/inspection_context_actions_service_test.dart test/services/inspection_semantic_field_service_test.dart test/services/inspection_camera_level_presentation_service_test.dart test/services/inspection_menu_catalog_service_test.dart test/services/inspection_menu_intelligence_service_test.dart test/services/inspection_menu_service_test.dart` verde;
+  - `flutter test --no-pub test/screens/checkin_flow_navigation_test.dart test/screens/inspection_review_screen_test.dart test/screens/overlay_camera_screen_test.dart` verde.
+- Estado operacional:
+  - Onda 3 encerrada localmente e pronta para consolidacao final de commits/release.
   - proximo passo: avancar para o Checkpoint B, focando a acao contextual e o desacoplamento progressivo da especializacao inspection.
 
 ## Checkpoint 2026-04-06 - Onda 3 (Checkpoint B acao contextual e taxonomia inspection)

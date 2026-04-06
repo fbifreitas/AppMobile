@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../config/checkin_step2_config.dart';
 import '../config/inspection_menu_package.dart';
 import '../models/checkin_step2_model.dart';
+import '../models/inspection_camera_flow_request.dart';
 import '../services/checkin_dynamic_config_service.dart';
 import '../services/inspection_capture_context_resolver.dart';
 import '../services/inspection_flow_coordinator.dart';
@@ -1074,15 +1075,13 @@ class _CheckinScreenState extends State<CheckinScreen> {
     if (!mounted) return;
     await widget.flowCoordinator.openOverlayCamera(
       context,
-      title: 'COLETA',
-      tipoImovel: tipoImovel!,
-      subtipoImovel: subtipoImovel!,
-      preselectedMacroLocal: initialContext.macroLocal,
-      initialAmbiente: initialContext.ambiente,
-      initialElemento: initialContext.elemento,
-      initialMaterial: initialContext.material,
-      initialEstado: initialContext.estado,
-      cameFromCheckinStep1: true,
+      request: InspectionCameraFlowRequest.bootstrap(
+        title: 'COLETA',
+        tipoImovel: tipoImovel!,
+        subtipoImovel: subtipoImovel!,
+        initialContext: initialContext,
+        cameFromCheckinStep1: true,
+      ),
     );
   }
 

@@ -1,6 +1,7 @@
 import 'package:appmobile/models/checkin_step2_model.dart';
 import 'package:appmobile/config/checkin_step2_config.dart';
 import 'package:appmobile/models/inspection_session_model.dart';
+import 'package:appmobile/models/inspection_camera_flow_request.dart';
 import 'package:appmobile/models/job.dart';
 import 'package:appmobile/models/overlay_camera_capture_result.dart';
 import 'package:appmobile/repositories/fake_job_repository.dart';
@@ -34,16 +35,7 @@ class _FakeInspectionFlowCoordinator extends InspectionFlowCoordinator {
   @override
   Future<OverlayCameraCaptureResult?> openOverlayCamera(
     BuildContext context, {
-    required String title,
-    required String tipoImovel,
-    required String subtipoImovel,
-    bool singleCaptureMode = false,
-    String? preselectedMacroLocal,
-    String? initialAmbiente,
-    String? initialElemento,
-    String? initialMaterial,
-    String? initialEstado,
-    required bool cameFromCheckinStep1,
+    required InspectionCameraFlowRequest request,
   }) async {
     return null;
   }
