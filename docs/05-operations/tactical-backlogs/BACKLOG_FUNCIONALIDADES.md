@@ -140,6 +140,11 @@ Step 8️⃣ (BACKEND BLOQUEADO — aguarda Onda 1 BOW) → BL-031 (depende de B
 | 🔗 | BL-022 | Observabilidade com correlation id por vistoria | Planejado | 🟡 Media | Eventos de ponta a ponta rastreáveis por job/correlation id |
 | 🔐 | BL-023 | Hardening de segurança e gestão de secrets | Em andamento | 🟠 Alta | Segredos fora do código, validação de configuração e checklist de segurança em release |
 | ⚡ | BL-024 | Performance budgets em fluxos críticos | Planejado | 🟡 Media | Metas de tempo por etapa monitoradas com alerta de regressão |
+| 🧩 | BL-057 | Semântica canônica única para labels e aliases do fluxo de inspection | Em andamento | 🟠 Alta | Coordinator, câmera e revisão deixam de depender de vocabulário legado como regra operacional |
+| 🧭 | BL-058 | Estado canônico inicial/current/resume fora da UI | Em andamento | 🟠 Alta | Bootstrap, operação e retomada passam a trafegar por objeto coeso compatível com payload legado |
+| 🏷️ | BL-059 | Ambientes repetidos como ação contextual estável | Em andamento | 🟠 Alta | `Novo Quarto`/`Quarto 2` persistem ponta a ponta sem submenu nem regra paralela em tela |
+| 🧱 | BL-060 | Quebra incremental do concentrador de menus/configuração | Em andamento | 🟠 Alta | Loader, merge, prefs, catálogo, inteligência e ranking deixam de viver no mesmo service |
+| 🧰 | BL-061 | Especialização inspection sobre core configurável reutilizável | Em andamento | 🟠 Alta | Taxonomia imobiliária fica no domínio e não volta a contaminar a semântica global |
 | 📦 | BL-025 | Governança de dependências e vulnerabilidades | Planejado | 🟡 Media | Rotina de atualização com scanner e política de correção de CVEs |
 | 🧾 | BL-026 | ADRs para decisões arquiteturais | Planejado | 🟡 Media | Decisões técnicas relevantes registradas com contexto e trade-offs |
 | 🚩 | BL-027 | Ciclo de vida de feature flags | Planejado | 🟡 Media | Processo de criação, auditoria e remoção de flags sem acúmulo técnico |
@@ -458,6 +463,8 @@ Refatorar o fluxo de vistoria como alinhamento arquitetural ao V2 da plataforma,
 - Docs que precisam ser atualizados: este backlog, backlog V2 prioritário se houver mudança de fronteira, resumo executivo contínuo
 - Criterio de pronto: widgets deixam de decidir semântica funcional por texto exibido; remoto e fallback usam o mesmo shape lógico
 
+Observacao 2026-04-06 (FECHAMENTO OBRIGATORIO ONDA 3): rodada reaberta para eliminar a última inconsistência pública entre `InspectionFlowCoordinator` e `OverlayCameraScreen`, removendo contrato fragmentado legado da câmera e consolidando labels/surface aliases na mesma chave semântica canônica.
+
 ### BL-058
 Separar explicitamente o estado inicial sugerido, o estado atual da captura e o último estado utilizado para retomada, mantendo compatibilidade com o payload de recovery existente.
 
@@ -477,6 +484,8 @@ Separar explicitamente o estado inicial sugerido, o estado atual da captura e o 
 - Docs que precisam ser atualizados: este backlog e resumo executivo contínuo
 - Criterio de pronto: bootstrap, operação corrente e retomada passam a existir como estados distintos fora da UI; payload novo é aditivo e o legado continua suportado
 
+Observacao 2026-04-06 (FECHAMENTO OBRIGATORIO ONDA 3): revisão reaberta para retirar montagem manual de `resumeContext` e serialização manual de `cameraContext`, centralizando leitura/escrita no adapter de recovery sem quebrar payload legado.
+
 ### BL-059
 Consolidar a duplicação de ambiente repetido como ação contextual do nível atual, fora da árvore principal, preservando o comportamento operacional `Trocar` e `Novo <ambiente>`.
 
@@ -494,6 +503,8 @@ Consolidar a duplicação de ambiente repetido como ação contextual do nível 
 - Evidencia esperada: ação contextual fora da árvore principal com estado operacional preservado ponta a ponta
 - Docs que precisam ser atualizados: este backlog e resumo executivo contínuo
 - Criterio de pronto: instância operacional de ambiente fica estável no fluxo principal sem aumento de profundidade da navegação
+
+Observacao 2026-04-06 (FECHAMENTO OBRIGATORIO ONDA 3): a rodada de fechamento mantém `Novo Quarto`/`Quarto 2` como ação contextual fora da árvore principal, com persistência e retomada validadas a partir do estado canônico.
 
 ### BL-060
 Quebrar incrementalmente o service concentrador de configuração/menus em fatias coesas e compatíveis com a arquitetura V2, sem mudança abrupta de contrato externo.
@@ -514,6 +525,8 @@ Quebrar incrementalmente o service concentrador de configuração/menus em fatia
 - Docs que precisam ser atualizados: este backlog e lições aprendidas quando a primeira fatia entrar
 - Criterio de pronto: o service atual deixa de ser dono simultâneo de loader + merge + fallback + history + prediction; a migração permanece invisível para a UI no primeiro estágio
 
+Observacao 2026-04-06 (FECHAMENTO OBRIGATORIO ONDA 3): esta rodada não amplia escopo do service deus; apenas fecha a fronteira residual de recovery/semântica entre coordinator, câmera e revisão para concluir a migração canônica já iniciada.
+
 ### BL-061
 Isolar a especialização do domínio inspection sobre um core reutilizável de fluxo configurável, preservando taxonomia imobiliária no domínio sem contaminar a semântica global da plataforma.
 
@@ -531,6 +544,8 @@ Isolar a especialização do domínio inspection sobre um core reutilizável de 
 - Evidencia esperada: inspection permanece funcional como domain pack, mas o core reutilizável deixa de depender do vocabulário imobiliário
 - Docs que precisam ser atualizados: este backlog, backlog V2 prioritário se houver ajuste de fronteira, resumo executivo contínuo
 - Criterio de pronto: vocabulário imobiliário permanece no domain layer e não exige rename global para neutralizar o core
+
+Observacao 2026-04-06 (FECHAMENTO OBRIGATORIO ONDA 3): o fechamento desta etapa exige que a câmera continue aceitando labels por surface e aliases legados apenas via camada semântica/adapters, sem regra crítica hardcoded na UI.
 
 ### BL-034
 Disponibilizar atualização cadastral no menu de configurações, mantendo consistência com os campos definidos no onboarding.

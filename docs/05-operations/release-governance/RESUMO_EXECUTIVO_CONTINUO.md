@@ -352,3 +352,44 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
 - Estado operacional:
   - Checkpoint C validado e pronto para commit;
   - proximo passo: consolidar o fechamento da Onda 3 e decidir promocao pela esteira ou hardening adicional curto.
+
+## Checkpoint 2026-04-06 - Onda 3 (Fechamento obrigatorio das fronteiras camera/revisao)
+- Branch de trabalho: `codex/onda-3-v2-refactor-20260406`
+- Escopo: fechar a ultima inconsistência residual entre coordinator, camera e revisao sem reescrever a navegacao nem romper compatibilidade de payload.
+- Escopo implementado:
+  - mobile: `OverlayCameraScreen` passou a expor `initialFlowState` como contrato principal, removendo do contrato publico os parametros fragmentados `preselectedMacroLocal`, `initialAmbiente`, `initialElemento`, `initialMaterial` e `initialEstado`;
+  - mobile: `InspectionCaptureRecoveryAdapter` passou a centralizar `buildCameraFlowRequest`, `buildReviewPayload`, leitura de capturas persistidas e merge de capturas da revisao sem duplicacao por `filePath`;
+  - mobile: `InspectionReviewScreen` deixou de montar `resumeContext` e `cameraContext` manualmente, passando a consumir o adapter de recovery para persistencia e reabertura da camera;
+  - mobile: novo `InspectionCameraSelectorSectionService` para tirar da `OverlayCameraScreen` a decisao de quais seletores/acoes inline aparecem por nivel no estado canonico atual;
+  - mobile: novos `InspectionReviewRequirementService` e `InspectionReviewAccordionService` para reduzir regra local de requiredness/agrupamento/resumo dentro da `InspectionReviewScreen`;
+  - mobile: a camera passou a recalcular seções derivadas apos transicoes locais (`macroLocal`, `ambiente`, duplicacao, `elemento`, `material`, `estado`), preservando `Novo Quarto` / `Quarto 2` no fluxo de captura, revisao e retomada.
+- Validacoes executadas:
+  - `flutter test --no-pub test/services/inspection_capture_recovery_adapter_test.dart` verde;
+  - `flutter test --no-pub test/services/inspection_camera_selector_section_service_test.dart test/screens/overlay_camera_screen_test.dart test/screens/checkin_flow_navigation_test.dart` verde;
+  - `flutter test --no-pub test/screens/inspection_review_screen_test.dart` verde;
+  - `flutter test --no-pub test/services/inspection_semantic_field_service_test.dart test/services/inspection_camera_level_presentation_service_test.dart` verde;
+  - `flutter analyze --no-pub` sem issues.
+- Estado operacional:
+  - fronteira `coordinator -> camera` fechada no contrato canonico;
+  - recovery saiu da revisao e foi centralizado no adapter;
+  - camera e revisao perderam mais uma camada real de regra critica local;
+  - etapa pronta para consolidacao em commit e esteira seguindo o procedimento documentado.
+
+## Checkpoint 2026-04-06 - Onda 3 (Fechamento final do residuo operacional)
+- Branch de trabalho: `codex/onda-3-v2-refactor-20260406`
+- Escopo: reduzir o residuo final de regra operacional ainda embutido em `OverlayCameraScreen` e `InspectionReviewScreen`, sem ampliar escopo, sem reescrever navegacao e sem alterar o payload vigente.
+- Escopo implementado:
+  - mobile: novo `InspectionCameraBatchService` para encapsular construcao do resultado de captura e sincronizacao do lote para payload de step2;
+  - mobile: novos `InspectionCameraPresentationService` e `InspectionCameraVoiceCommandService` para tirar da camera a decisao operacional de painel/checklist/sugestoes e o roteamento dos comandos de voz;
+  - mobile: novos `InspectionReviewPresentationService` e `InspectionReviewTechnicalPresentationService` para tirar da revisao o calculo de resumo, agrupamento base, atalhos de pendencia, subtitulos dos accordions e mensagens tecnicas de fechamento;
+  - mobile: novo `inspection_review_models.dart` para remover do widget da revisao os tipos privados de dominio/apresentacao (`editable capture`, grupos e status), reduzindo acoplamento entre estado de negocio e UI;
+  - mobile: `OverlayCameraScreen` e `InspectionReviewScreen` ficaram mais restritas a composicao de widgets, wiring de callbacks e estado efemero de expansao/colapso.
+- Validacoes executadas:
+  - `flutter test --no-pub test/services/inspection_camera_batch_service_test.dart test/services/inspection_camera_presentation_service_test.dart test/services/inspection_camera_selector_section_service_test.dart test/services/inspection_camera_voice_command_service_test.dart` verde;
+  - `flutter test --no-pub test/services/inspection_review_presentation_service_test.dart test/services/inspection_review_technical_presentation_service_test.dart` verde;
+  - `flutter test --no-pub test/screens/overlay_camera_screen_test.dart test/screens/inspection_review_screen_test.dart test/screens/checkin_flow_navigation_test.dart` verde;
+  - `flutter analyze --no-pub` sem issues.
+- Estado operacional:
+  - requisito de fechamento da Onda 3 considerado atendido no escopo arquitetural desta trilha;
+  - risco residual agora concentrado em composicao visual/wiring e nao mais em regra critica hardcoded de fluxo;
+  - pronto para commit e implantacao pela esteira.

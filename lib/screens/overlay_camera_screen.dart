@@ -3,21 +3,24 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 
-import '../config/checkin_step2_config.dart';
 import '../config/inspection_menu_package.dart';
 import '../models/checkin_step2_model.dart';
 import '../models/inspection_camera_menu_view_state.dart';
+import '../models/inspection_camera_selector_section.dart';
 import '../models/inspection_capture_context.dart';
 import '../models/inspection_menu_intelligence_models.dart';
 import '../models/overlay_camera_capture_result.dart';
+import '../services/inspection_camera_batch_service.dart';
 import '../services/inspection_capture_flow_transition_service.dart';
-import '../services/checkin_dynamic_config_service.dart';
+import '../services/inspection_capture_recovery_adapter.dart';
 import '../services/inspection_camera_menu_resolver.dart';
 import '../services/inspection_camera_level_presentation_service.dart';
+import '../services/inspection_camera_presentation_service.dart';
+import '../services/inspection_camera_selector_section_service.dart';
+import '../services/inspection_camera_voice_command_service.dart';
 import '../services/inspection_context_actions_service.dart';
 import '../services/inspection_environment_instance_service.dart';
 import '../services/inspection_menu_service.dart';
-import '../services/inspection_requirement_policy_service.dart';
 import '../services/inspection_semantic_field_service.dart';
 import '../services/voice_command_catalog_service.dart';
 import '../services/voice_command_parser_service.dart';
@@ -33,11 +36,6 @@ class OverlayCameraScreen extends StatefulWidget {
   final String subtipoImovel;
   final bool singleCaptureMode;
   final InspectionCaptureFlowState? initialFlowState;
-  final String? preselectedMacroLocal;
-  final String? initialAmbiente;
-  final String? initialElemento;
-  final String? initialMaterial;
-  final String? initialEstado;
   final bool cameFromCheckinStep1;
   final bool skipDeviceInitialization;
   final bool showVoiceActions;
@@ -56,11 +54,6 @@ class OverlayCameraScreen extends StatefulWidget {
     required this.subtipoImovel,
     this.singleCaptureMode = false,
     this.initialFlowState,
-    this.preselectedMacroLocal,
-    this.initialAmbiente,
-    this.initialElemento,
-    this.initialMaterial,
-    this.initialEstado,
     this.cameFromCheckinStep1 = false,
     this.skipDeviceInitialization = false,
     this.showVoiceActions = true,
@@ -93,6 +86,8 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       InspectionContextActionsService.instance;
   final InspectionCameraLevelPresentationService _cameraLevelPresentationService =
       InspectionCameraLevelPresentationService.instance;
+  final InspectionCameraSelectorSectionService _selectorSectionService =
+      InspectionCameraSelectorSectionService.instance;
   late final InspectionCameraMenuResolver _cameraMenuResolver =
       InspectionCameraMenuResolver(
         menuService: _menuService,
@@ -104,8 +99,14 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
         environmentInstanceService: _environmentInstanceService,
         contextActionsService: _contextActionsService,
       );
-  final InspectionRequirementPolicyService _requirementPolicy =
-      InspectionRequirementPolicyService.instance;
+  final InspectionCaptureRecoveryAdapter _captureRecoveryAdapter =
+      InspectionCaptureRecoveryAdapter.instance;
+  final InspectionCameraBatchService _batchService =
+      InspectionCameraBatchService.instance;
+  final InspectionCameraPresentationService _presentationService =
+      InspectionCameraPresentationService.instance;
+  final InspectionCameraVoiceCommandService _voiceCommandService =
+      InspectionCameraVoiceCommandService.instance;
   final VoiceInputService _voiceService = VoiceInputService();
   final VoiceCommandParserService _voiceCommandParser =
       VoiceCommandParserService();
@@ -130,6 +131,8 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   List<String> _recentElementos = const [];
   List<String> _cameraLevelOrder = List<String>.from(_defaultCameraLevels);
   Map<String, String> _cameraLevelLabels = const <String, String>{};
+  List<InspectionCameraSelectorSection> _selectorSections =
+      const <InspectionCameraSelectorSection>[];
 
   PredictedSelection? _predictedSelection;
   String? _contextSuggestionSummary;
@@ -167,14 +170,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   void initState() {
     super.initState();
     _captureFlowState =
-        widget.initialFlowState ??
-        InspectionCaptureFlowState.bootstrap(
-          macroLocal: widget.preselectedMacroLocal,
-          ambiente: widget.initialAmbiente,
-          elemento: widget.initialElemento,
-          material: widget.initialMaterial,
-          estado: widget.initialEstado,
-        );
+        widget.initialFlowState ?? InspectionCaptureFlowState.bootstrap();
     _setup();
     if (widget.cameFromCheckinStep1) {
       WidgetsBinding.instance.addPostFrameCallback(
@@ -187,15 +183,36 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     try {
       if (widget.useTestMenuData) {
         if (!mounted) return;
+        final flowState =
+            widget.initialFlowState ?? InspectionCaptureFlowState.bootstrap();
+        final levelOrder = _normalizeCameraLevels(
+          widget.testCameraLevelOrder ?? const <String>[],
+        );
+        final labels = _resolveCameraLevelLabels(const <ConfigLevelDefinition>[]);
+        final macroLocais = List<String>.from(widget.testMacroLocais);
+        final ambientes = List<String>.from(widget.testAmbientes);
+        final elementos = List<String>.from(widget.testElementos);
+        final materiais = List<String>.from(widget.testMateriais);
+        final estados = List<String>.from(widget.testEstados);
         setState(() {
-          _cameraLevelOrder = _normalizeCameraLevels(
-            widget.testCameraLevelOrder ?? const <String>[],
+          _captureFlowState = flowState;
+          _cameraLevelOrder = levelOrder;
+          _cameraLevelLabels = labels;
+          _macroLocais = macroLocais;
+          _ambientesAtuais = ambientes;
+          _elementosAtuais = elementos;
+          _materiaisAtuais = materiais;
+          _estadosAtuais = estados;
+          _selectorSections = _selectorSectionService.buildSections(
+            levelOrder: _cameraLevelOrder,
+            labelsByLevel: _cameraLevelLabels,
+            flowState: _captureFlowState,
+            macroLocais: _macroLocais,
+            ambientes: _ambientesAtuais,
+            elementos: _elementosAtuais,
+            materiais: _materiaisAtuais,
+            estados: _estadosAtuais,
           );
-          _macroLocais = List<String>.from(widget.testMacroLocais);
-          _ambientesAtuais = List<String>.from(widget.testAmbientes);
-          _elementosAtuais = List<String>.from(widget.testElementos);
-          _materiaisAtuais = List<String>.from(widget.testMateriais);
-          _estadosAtuais = List<String>.from(widget.testEstados);
           _loadingMenus = false;
           _initializing = false;
         });
@@ -287,6 +304,29 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     _predictedSelection = viewState.prediction;
     _contextSuggestionSummary = viewState.contextSuggestionSummary;
     _captureFlowState = _captureFlowState.copyWith(current: viewState.currentContext);
+    _selectorSections = _selectorSectionService.buildSections(
+      levelOrder: _cameraLevelOrder,
+      labelsByLevel: _cameraLevelLabels,
+      flowState: _captureFlowState,
+      macroLocais: _macroLocais,
+      ambientes: _ambientesAtuais,
+      elementos: _elementosAtuais,
+      materiais: _materiaisAtuais,
+      estados: _estadosAtuais,
+    );
+  }
+
+  void _rebuildSelectorSections() {
+    _selectorSections = _selectorSectionService.buildSections(
+      levelOrder: _cameraLevelOrder,
+      labelsByLevel: _cameraLevelLabels,
+      flowState: _captureFlowState,
+      macroLocais: _macroLocais,
+      ambientes: _ambientesAtuais,
+      elementos: _elementosAtuais,
+      materiais: _materiaisAtuais,
+      estados: _estadosAtuais,
+    );
   }
 
   Future<void> _ensureLocationReady() async {
@@ -312,6 +352,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     );
     setState(() {
       _captureFlowState = result.flowState;
+      _rebuildSelectorSections();
     });
     await _reloadMenus();
   }
@@ -325,6 +366,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     );
     setState(() {
       _captureFlowState = result.flowState;
+      _rebuildSelectorSections();
     });
     await _reloadMenus();
   }
@@ -345,6 +387,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     setState(() {
       _ambientesAtuais = result.ambientes ?? _ambientesAtuais;
       _captureFlowState = result.flowState;
+      _rebuildSelectorSections();
     });
 
     if (widget.useTestMenuData) {
@@ -364,6 +407,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     );
     setState(() {
       _captureFlowState = result.flowState;
+      _rebuildSelectorSections();
     });
     await _reloadMenus();
   }
@@ -375,6 +419,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     );
     setState(() {
       _captureFlowState = result.flowState;
+      _rebuildSelectorSections();
     });
   }
 
@@ -385,6 +430,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     );
     setState(() {
       _captureFlowState = result.flowState;
+      _rebuildSelectorSections();
     });
   }
 
@@ -413,28 +459,17 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
 
       final navigator = Navigator.of(context);
       final messenger = ScaffoldMessenger.of(context);
-      final hadSilentSuggestion =
-          (_contextSuggestionSummary != null) ||
-          (_predictedSelection != null && _predictedSelection!.hasAnyValue);
-
-      final result = OverlayCameraCaptureResult(
+      final result = _batchService.buildCaptureResult(
         filePath: file.path,
         macroLocal: _macroLocal,
         ambiente: _ambiente!,
-        ambienteBase: _environmentInstanceService.baseLabelOf(_ambiente),
-        ambienteInstanceIndex:
-            _environmentInstanceService.parse(_ambiente).instanceIndex,
         elemento: _elemento,
         material: _material,
         estado: _estado,
         capturedAt: DateTime.now(),
-        latitude: position.latitude,
-        longitude: position.longitude,
-        accuracy: position.accuracy,
-        classificationConfirmed: false,
-        learningPersisted: false,
-        usedSuggestion: hadSilentSuggestion,
-        suggestionSummary: _predictionSummary ?? _contextSuggestionSummary,
+        position: position,
+        predictionSummary: _predictionSummary,
+        contextSuggestionSummary: _contextSuggestionSummary,
       );
 
       if (widget.singleCaptureMode) {
@@ -447,7 +482,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            hadSilentSuggestion
+            result.usedSuggestion
                 ? 'Foto adicionada ao lote com sugestÃ£o silenciosa.'
                 : 'Foto adicionada ao lote.',
           ),
@@ -500,32 +535,11 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
 
     if (!mounted) return;
 
-    // Mescla captures de sessÃµes anteriores (salvas no payload de recovery)
-    // com as captures desta sessÃ£o. Desta forma, fotos capturadas em sessÃµes
-    // anteriores de cÃ¢mera nÃ£o sÃ£o perdidas ao chegar na tela de revisÃ£o.
     final appState = Provider.of<AppState>(context, listen: false);
-    final savedReview = appState.inspectionRecoveryPayload['review'];
-    final previousCaptures = <OverlayCameraCaptureResult>[];
-    if (savedReview is Map<String, dynamic>) {
-      final rawCaptures = savedReview['captures'];
-      if (rawCaptures is List) {
-        for (final raw in rawCaptures) {
-          if (raw is Map<String, dynamic>) {
-            previousCaptures.add(OverlayCameraCaptureResult.fromMap(raw));
-          }
-        }
-      }
-    }
-
-    // Captures novas substituem as anteriores com mesmo filePath;
-    // as que nÃ£o conflitam sÃ£o preservadas.
-    final currentPaths = _captures.map((c) => c.filePath).toSet();
-    final mergedCaptures = [
-      ...previousCaptures.where(
-        (prev) => !currentPaths.contains(prev.filePath),
-      ),
-      ..._captures,
-    ];
+    final mergedCaptures = _captureRecoveryAdapter.mergeReviewCaptures(
+      currentCaptures: _captures,
+      inspectionRecoveryPayload: appState.inspectionRecoveryPayload,
+    );
 
     Navigator.push(
       context,
@@ -544,8 +558,9 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     if (!widget.cameFromCheckinStep1 || _captures.isEmpty || !mounted) return;
 
     final appState = Provider.of<AppState>(context, listen: false);
-    final mergedStep2 = _buildStep2PayloadFromCaptures(
+    final mergedStep2 = _batchService.buildStep2PayloadFromCaptures(
       existingStep2Payload: appState.step2Payload,
+      inspectionRecoveryPayload: appState.inspectionRecoveryPayload,
       captures: _captures,
       tipoImovel: widget.tipoImovel,
     );
@@ -561,42 +576,6 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
         'step2': mergedStep2,
       },
     );
-  }
-
-  Map<String, dynamic> _buildStep2PayloadFromCaptures({
-    required Map<String, dynamic> existingStep2Payload,
-    required List<OverlayCameraCaptureResult> captures,
-    required String tipoImovel,
-  }) {
-    final tipo = TipoImovelExtension.fromString(tipoImovel);
-    var model = CheckinDynamicConfigService.instance.restoreStep2Model(
-      tipo: tipo,
-      step2Payload: existingStep2Payload,
-    );
-    final appState = Provider.of<AppState>(context, listen: false);
-    final config = CheckinDynamicConfigService.instance
-        .resolveStoredStep2Config(
-          tipo: tipo,
-          inspectionRecoveryPayload: appState.inspectionRecoveryPayload,
-        );
-
-    for (final campo in config.camposFotos) {
-      final matchedCapture = _requirementPolicy.findMatchingCapture(
-        captures: captures,
-        field: campo,
-      );
-
-      if (matchedCapture != null) {
-        model = model.setPhoto(
-          fieldId: campo.id,
-          titulo: campo.titulo,
-          imagePath: matchedCapture.filePath,
-          geoPoint: matchedCapture.toGeoPointData(),
-        );
-      }
-    }
-
-    return model.toMap();
   }
 
   @override
@@ -629,67 +608,57 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   }
 
   Future<void> _handleCameraVoiceCommand(VoiceCommandMatch match) async {
-    switch (match.commandId) {
-      case 'capturar_foto':
-        await _capture();
+    if (_voiceCommandService.isCaptureCommand(match.commandId)) {
+      await _capture();
+      return;
+    }
+
+    final levelId = _voiceCommandService.selectorLevelForCommand(match.commandId);
+    if (levelId == null) return;
+
+    final section = _selectorSection(levelId);
+    if (section == null) return;
+
+    switch (levelId) {
+      case 'macroLocal':
+        await _selectFromVoiceSheet(
+          title: section.title,
+          values: section.values,
+          selected: section.selected,
+          onSelect: _selectMacroLocal,
+        );
         return;
-      case 'abrir_area':
-        if (_showMacroLocalSelector && _isCameraLevelEnabled('macroLocal')) {
-          await _selectFromVoiceSheet(
-            title: _labelForCameraLevel('macroLocal'),
-            values: _macroLocais,
-            selected: _macroLocal,
-            onSelect: _selectMacroLocal,
-          );
-        }
+      case 'ambiente':
+        await _selectFromVoiceSheet(
+          title: section.title,
+          values: section.values,
+          selected: section.selected,
+          onSelect: _selectAmbiente,
+        );
         return;
-      case 'abrir_local':
-        if (_isCameraLevelEnabled('ambiente') &&
-            _macroLocal != null &&
-            _ambientesAtuais.isNotEmpty) {
-          await _selectFromVoiceSheet(
-            title: _labelForCameraLevel('ambiente'),
-            values: _ambientesAtuais,
-            selected: _ambiente,
-            onSelect: _selectAmbiente,
-          );
-        }
+      case 'elemento':
+        await _selectFromVoiceSheet(
+          title: section.title,
+          values: section.values,
+          selected: section.selected,
+          onSelect: _selectElemento,
+        );
         return;
-      case 'abrir_elemento':
-        if (_isCameraLevelEnabled('elemento') &&
-            _ambiente != null &&
-            _elementosAtuais.isNotEmpty) {
-          await _selectFromVoiceSheet(
-            title: _labelForCameraLevel('elemento'),
-            values: _elementosAtuais,
-            selected: _elemento,
-            onSelect: _selectElemento,
-          );
-        }
+      case 'material':
+        await _selectFromVoiceSheet(
+          title: section.title,
+          values: section.values,
+          selected: section.selected,
+          onSelect: _selectMaterial,
+        );
         return;
-      case 'abrir_material':
-        if (_isCameraLevelEnabled('material') &&
-            _elemento != null &&
-            _materiaisAtuais.isNotEmpty) {
-          await _selectFromVoiceSheet(
-            title: _labelForCameraLevel('material'),
-            values: _materiaisAtuais,
-            selected: _material,
-            onSelect: _selectMaterial,
-          );
-        }
-        return;
-      case 'abrir_estado':
-        if (_isCameraLevelEnabled('estado') &&
-            _elemento != null &&
-            (_materiaisAtuais.isEmpty || _material != null)) {
-          await _selectFromVoiceSheet(
-            title: _labelForCameraLevel('estado'),
-            values: _estadosAtuais,
-            selected: _estado,
-            onSelect: _selectEstado,
-          );
-        }
+      case 'estado':
+        await _selectFromVoiceSheet(
+          title: section.title,
+          values: section.values,
+          selected: section.selected,
+          onSelect: _selectEstado,
+        );
         return;
     }
   }
@@ -697,21 +666,16 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   List<String> _normalizeCameraLevels(List<String> rawLevels) =>
       _cameraLevelPresentationService.normalizeLevelOrder(rawLevels);
 
-  bool _isCameraLevelEnabled(String id) =>
-      _cameraLevelPresentationService.isLevelEnabled(
-        levelOrder: _cameraLevelOrder,
-        levelId: id,
-      );
+  bool _hasSelectorSection(String levelId) =>
+      _selectorSections.any((section) => section.levelId == levelId);
 
-  String? get _newAmbienteActionLabel {
-    return _contextActionsService.duplicateActionLabelFor(_ambiente);
-  }
-
-  String _labelForCameraLevel(String levelId) {
-    return _cameraLevelPresentationService.labelForLevel(
-      levelId: levelId,
-      labelsByLevel: _cameraLevelLabels,
-    );
+  InspectionCameraSelectorSection? _selectorSection(String levelId) {
+    for (final section in _selectorSections) {
+      if (section.levelId == levelId) {
+        return section;
+      }
+    }
+    return null;
   }
 
   Map<String, String> _resolveCameraLevelLabels(
@@ -726,87 +690,74 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   List<Widget> _buildCameraSelectors() {
     final widgets = <Widget>[];
 
-    for (final level in _cameraLevelOrder) {
-      switch (level) {
+    for (final section in _selectorSections) {
+      switch (section.levelId) {
         case 'macroLocal':
-          if (_showMacroLocalSelector) {
-            widgets.add(const SizedBox(height: 8));
-            widgets.add(
-              _carouselCard(
-                title: _labelForCameraLevel('macroLocal'),
-                values: _macroLocais,
-                selected: _macroLocal,
-                onSelect: _selectMacroLocal,
-              ),
-            );
-          }
+          widgets.add(const SizedBox(height: 8));
+          widgets.add(
+            _carouselCard(
+              title: section.title,
+              values: section.values,
+              selected: section.selected,
+              onSelect: _selectMacroLocal,
+            ),
+          );
           break;
         case 'ambiente':
-          if (_macroLocal != null) {
-            widgets.add(const SizedBox(height: 8));
-            widgets.add(
-              _ambienteSelectorCard(
-                title: _labelForCameraLevel('ambiente'),
-                values: _ambientesAtuais,
-                selected: _ambiente,
-                onSelect: _selectAmbiente,
-                onChange:
-                    (_ambiente == null || _ambientesAtuais.isEmpty)
-                        ? null
-                        : () => _selectFromVoiceSheet(
-                          title: _labelForCameraLevel('ambiente'),
-                          values: _ambientesAtuais,
-                          selected: _ambiente,
-                          onSelect: _selectAmbiente,
-                        ),
-                onDuplicate:
-                    (_ambiente == null || _ambiente!.trim().isEmpty)
-                        ? null
-                        : _duplicateCurrentAmbiente,
-                duplicateLabel: _newAmbienteActionLabel ?? 'Novo ambiente',
-              ),
-            );
-          }
+          widgets.add(const SizedBox(height: 8));
+          widgets.add(
+            _ambienteSelectorCard(
+              title: section.title,
+              values: section.values,
+              selected: section.selected,
+              onSelect: _selectAmbiente,
+              onChange:
+                  !section.allowVoiceSelection
+                      ? null
+                      : () => _selectFromVoiceSheet(
+                        title: section.title,
+                        values: section.values,
+                        selected: section.selected,
+                        onSelect: _selectAmbiente,
+                      ),
+              onDuplicate:
+                  !section.allowDuplicate ? null : _duplicateCurrentAmbiente,
+              duplicateLabel: section.duplicateLabel ?? 'Novo ambiente',
+            ),
+          );
           break;
         case 'elemento':
-          if (_ambiente != null && _elementosAtuais.isNotEmpty) {
-            widgets.add(const SizedBox(height: 8));
-            widgets.add(
-              _carouselCard(
-                title: _labelForCameraLevel('elemento'),
-                values: _elementosAtuais,
-                selected: _elemento,
-                onSelect: _selectElemento,
-              ),
-            );
-          }
+          widgets.add(const SizedBox(height: 8));
+          widgets.add(
+            _carouselCard(
+              title: section.title,
+              values: section.values,
+              selected: section.selected,
+              onSelect: _selectElemento,
+            ),
+          );
           break;
         case 'material':
-          if (_elemento != null && _materiaisAtuais.isNotEmpty) {
-            widgets.add(const SizedBox(height: 8));
-            widgets.add(
-              _carouselCard(
-                title: _labelForCameraLevel('material'),
-                values: _materiaisAtuais,
-                selected: _material,
-                onSelect: _selectMaterial,
-              ),
-            );
-          }
+          widgets.add(const SizedBox(height: 8));
+          widgets.add(
+            _carouselCard(
+              title: section.title,
+              values: section.values,
+              selected: section.selected,
+              onSelect: _selectMaterial,
+            ),
+          );
           break;
         case 'estado':
-          if (_elemento != null &&
-              (_materiaisAtuais.isEmpty || _material != null)) {
-            widgets.add(const SizedBox(height: 8));
-            widgets.add(
-              _carouselCard(
-                title: _labelForCameraLevel('estado'),
-                values: _estadosAtuais,
-                selected: _estado,
-                onSelect: _selectEstado,
-              ),
-            );
-          }
+          widgets.add(const SizedBox(height: 8));
+          widgets.add(
+            _carouselCard(
+              title: section.title,
+              values: section.values,
+              selected: section.selected,
+              onSelect: _selectEstado,
+            ),
+          );
           break;
       }
     }
@@ -839,6 +790,20 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       if (_material != null) _material!,
       if (_estado != null) _estado!,
     ].join(' > ');
+    final presentation = _presentationService.build(
+      capturesCount: _captures.length,
+      hasPreviousPhotos: _hasPreviousPhotos,
+      hasSelectorAmbiente: _hasSelectorSection('ambiente'),
+      hasSelectorElemento: _hasSelectorSection('elemento'),
+      hasMacroLocal: _macroLocal != null,
+      hasAmbiente: _ambiente != null,
+      singleCaptureMode: widget.singleCaptureMode,
+      resumo: resumo,
+      contextSuggestionSummary: _contextSuggestionSummary,
+      predictionSummary: _predictionSummary,
+      recentAmbientes: _recentAmbientes,
+      recentElementos: _recentElementos,
+    );
 
     return Scaffold(
       body: Stack(
@@ -894,10 +859,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                           const SizedBox(width: 8),
                         _glassButton(
                           icon: Icons.checklist_outlined,
-                          onTap:
-                              (!widget.singleCaptureMode && _hasAnyCaptures)
-                                  ? _finalizeBatch
-                                  : null,
+                          onTap: presentation.canOpenChecklist ? _finalizeBatch : null,
                         ),
                       ],
                     ),
@@ -940,13 +902,11 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 ..._buildCameraSelectors(),
-                                if (_contextSuggestionSummary != null) ...[
+                                if (presentation.showContextSuggestion) ...[
                                   const SizedBox(height: 8),
                                   _hintCard(_contextSuggestionSummary!),
                                 ],
-                                if (_isCameraLevelEnabled('ambiente') &&
-                                    _recentAmbientes.isNotEmpty &&
-                                    _macroLocal != null) ...[
+                                if (presentation.showRecentAmbientes) ...[
                                   const SizedBox(height: 8),
                                   _quickSuggestionCard(
                                     title: 'Locais mais usados nesta Ã¡rea',
@@ -955,13 +915,11 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                                     onSelect: _selectAmbiente,
                                   ),
                                 ],
-                                if (_predictionSummary != null) ...[
+                                if (presentation.showPredictionSuggestion) ...[
                                   const SizedBox(height: 8),
                                   _hintCard(_predictionSummary!),
                                 ],
-                                if (_isCameraLevelEnabled('elemento') &&
-                                    _recentElementos.isNotEmpty &&
-                                    _ambiente != null) ...[
+                                if (presentation.showRecentElementos) ...[
                                   const SizedBox(height: 8),
                                   _quickSuggestionCard(
                                     title: 'Mais usados neste contexto',
@@ -999,7 +957,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Text(
-                        'Capturas no lote: ${_captures.length}${resumo.isEmpty ? '' : ' â€¢ $resumo'}',
+                        presentation.batchSummary,
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w600,
@@ -1110,6 +1068,9 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   }
 
   Widget _buildFinalizeButton() {
+    final finalizeSubtitle =
+        _captures.isNotEmpty ? '${_captures.length} nova(s)' : 'fotos anteriores';
+
     if (widget.singleCaptureMode) {
       return _circleAction(
         icon: Icons.fact_check_outlined,
@@ -1172,9 +1133,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                   ),
                 ),
                 Text(
-                  _captures.isNotEmpty
-                      ? '${_captures.length} nova(s)'
-                      : 'fotos anteriores',
+                  finalizeSubtitle,
                   style: const TextStyle(color: Colors.white70, fontSize: 9),
                 ),
               ],

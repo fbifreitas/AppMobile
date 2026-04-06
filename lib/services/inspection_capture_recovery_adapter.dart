@@ -1,3 +1,4 @@
+import '../models/inspection_camera_flow_request.dart';
 import '../models/inspection_capture_context.dart';
 import '../models/overlay_camera_capture_result.dart';
 
@@ -52,5 +53,104 @@ class InspectionCaptureRecoveryAdapter {
       material: capture.material,
       estado: capture.estado,
     );
+  }
+
+  List<OverlayCameraCaptureResult> readPersistedReviewCaptures(
+    Map<String, dynamic> inspectionRecoveryPayload,
+  ) {
+    final reviewPayload = inspectionRecoveryPayload['review'];
+    if (reviewPayload is! Map) {
+      return const <OverlayCameraCaptureResult>[];
+    }
+
+    final rawCaptures = reviewPayload['captures'];
+    if (rawCaptures is! List) {
+      return const <OverlayCameraCaptureResult>[];
+    }
+
+    final captures = <OverlayCameraCaptureResult>[];
+    for (final raw in rawCaptures) {
+      if (raw is Map<String, dynamic>) {
+        captures.add(OverlayCameraCaptureResult.fromMap(raw));
+        continue;
+      }
+      if (raw is Map) {
+        captures.add(
+          OverlayCameraCaptureResult.fromMap(
+            raw.map((key, value) => MapEntry('$key', value)),
+          ),
+        );
+      }
+    }
+    return captures;
+  }
+
+  List<OverlayCameraCaptureResult> mergeReviewCaptures({
+    required List<OverlayCameraCaptureResult> currentCaptures,
+    required Map<String, dynamic> inspectionRecoveryPayload,
+  }) {
+    final persistedCaptures = readPersistedReviewCaptures(
+      inspectionRecoveryPayload,
+    );
+    final currentPaths = currentCaptures.map((capture) => capture.filePath).toSet();
+    return <OverlayCameraCaptureResult>[
+      ...persistedCaptures.where(
+        (persisted) => !currentPaths.contains(persisted.filePath),
+      ),
+      ...currentCaptures,
+    ];
+  }
+
+  InspectionCameraFlowRequest buildCameraFlowRequest({
+    required String title,
+    required String tipoImovel,
+    required String subtipoImovel,
+    bool singleCaptureMode = false,
+    bool cameFromCheckinStep1 = false,
+    InspectionCaptureContext? initialContext,
+    required List<OverlayCameraCaptureResult> currentCaptures,
+    required Map<String, dynamic> inspectionRecoveryPayload,
+  }) {
+    return InspectionCameraFlowRequest.bootstrap(
+      title: title,
+      tipoImovel: tipoImovel,
+      subtipoImovel: subtipoImovel,
+      singleCaptureMode: singleCaptureMode,
+      cameFromCheckinStep1: cameFromCheckinStep1,
+      initialContext: initialContext,
+      resumeContext: resolveResumeContext(
+        currentCaptures: currentCaptures,
+        inspectionRecoveryPayload: inspectionRecoveryPayload,
+      ),
+    );
+  }
+
+  Map<String, dynamic> buildReviewPayload({
+    required String tipoImovel,
+    required List<OverlayCameraCaptureResult> currentCaptures,
+    required List<Map<String, dynamic>> reviewedCaptures,
+    required Map<String, dynamic> inspectionRecoveryPayload,
+    Map<String, dynamic>? existingReviewPayload,
+  }) {
+    final reviewPayload = <String, dynamic>{
+      ...?existingReviewPayload,
+      'tipoImovel': tipoImovel,
+      'captures': currentCaptures.map((capture) => capture.toMap()).toList(),
+      'capturesRevisadas': reviewedCaptures,
+    };
+
+    final serializedContext = serializeContext(
+      resolveResumeContext(
+        currentCaptures: currentCaptures,
+        inspectionRecoveryPayload: inspectionRecoveryPayload,
+      ),
+    );
+    if (serializedContext.isEmpty) {
+      reviewPayload.remove('cameraContext');
+    } else {
+      reviewPayload['cameraContext'] = serializedContext;
+    }
+
+    return reviewPayload;
   }
 }
