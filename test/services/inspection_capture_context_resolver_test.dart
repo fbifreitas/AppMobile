@@ -1,5 +1,4 @@
 import 'package:appmobile/config/inspection_menu_package.dart';
-import 'package:appmobile/models/inspection_capture_context.dart';
 import 'package:appmobile/services/inspection_capture_context_resolver.dart';
 import 'package:appmobile/services/inspection_semantic_field_service.dart';
 import 'package:flutter_test/flutter_test.dart';

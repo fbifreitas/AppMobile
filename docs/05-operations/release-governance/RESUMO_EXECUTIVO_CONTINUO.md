@@ -278,3 +278,22 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
 - Estado operacional:
   - Checkpoint B validado e pronto para commit;
   - proximo passo: avancar para o Checkpoint C, focando a quebra incremental do concentrador de config sem romper a facade atual.
+
+## Checkpoint 2026-04-06 - Onda 3 (Checkpoint C quebra incremental do concentrador de config)
+- Branch de trabalho: `codex/onda-3-v2-refactor-20260406`
+- Escopo: reduzir o acoplamento interno de `InspectionMenuService` preservando a fachada publica e o comportamento atual do fluxo configuravel.
+- Escopo implementado:
+  - mobile: novo `InspectionMenuDocumentLoader` para encapsular leitura do asset e do developer mock fora do service principal;
+  - mobile: novo `InspectionMenuDocumentMergeResolver` para isolar a logica de merge entre documento base e override;
+  - mobile: `InspectionMenuService` passou a delegar carregamento e merge de documentos a essas duas fronteiras novas, mantendo a API publica intacta;
+  - mobile: nova `InspectionMenuPreferencesStore` para encapsular persistencia de `usage` e `prediction` em `SharedPreferences`;
+  - mobile: `InspectionMenuService` passou a delegar leitura/escrita desse estado a store dedicada, reduzindo concentracao de IO/persistencia no mesmo arquivo;
+  - mobile: limpeza pontual de import sem uso em teste de contexto de captura para manter a base limpa.
+- Validacoes executadas:
+  - `flutter test --no-pub test/services/inspection_menu_document_loader_test.dart test/services/inspection_menu_document_merge_resolver_test.dart` verde;
+  - `flutter test --no-pub test/services/inspection_menu_preferences_store_test.dart` verde;
+  - `flutter test --no-pub test/services/inspection_menu_service_test.dart` verde;
+  - `flutter analyze --no-pub` sem issues.
+- Estado operacional:
+  - Checkpoint C validado e pronto para commit;
+  - proximo passo: consolidar o fechamento da Onda 3 e decidir promocao pela esteira ou hardening adicional curto.
