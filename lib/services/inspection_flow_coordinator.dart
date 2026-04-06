@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/checkin_step2_model.dart';
+import '../models/inspection_camera_flow_request.dart';
 import '../models/overlay_camera_capture_result.dart';
 import '../screens/checkin_screen.dart';
 import '../screens/camera_flow_screen.dart';
@@ -23,16 +24,7 @@ abstract class InspectionFlowCoordinator {
 
   Future<OverlayCameraCaptureResult?> openOverlayCamera(
     BuildContext context, {
-    required String title,
-    required String tipoImovel,
-    required String subtipoImovel,
-    bool singleCaptureMode = false,
-    String? preselectedMacroLocal,
-    String? initialAmbiente,
-    String? initialElemento,
-    String? initialMaterial,
-    String? initialEstado,
-    required bool cameFromCheckinStep1,
+    required InspectionCameraFlowRequest request,
   });
 
   void openInspectionReview(
@@ -95,31 +87,18 @@ class DefaultInspectionFlowCoordinator implements InspectionFlowCoordinator {
   @override
   Future<OverlayCameraCaptureResult?> openOverlayCamera(
     BuildContext context, {
-    required String title,
-    required String tipoImovel,
-    required String subtipoImovel,
-    bool singleCaptureMode = false,
-    String? preselectedMacroLocal,
-    String? initialAmbiente,
-    String? initialElemento,
-    String? initialMaterial,
-    String? initialEstado,
-    required bool cameFromCheckinStep1,
+    required InspectionCameraFlowRequest request,
   }) {
     return Navigator.of(context).push<OverlayCameraCaptureResult>(
       MaterialPageRoute<OverlayCameraCaptureResult>(
         builder:
             (_) => OverlayCameraScreen(
-              title: title,
-              tipoImovel: tipoImovel,
-              subtipoImovel: subtipoImovel,
-              singleCaptureMode: singleCaptureMode,
-              preselectedMacroLocal: preselectedMacroLocal,
-              initialAmbiente: initialAmbiente,
-              initialElemento: initialElemento,
-              initialMaterial: initialMaterial,
-              initialEstado: initialEstado,
-              cameFromCheckinStep1: cameFromCheckinStep1,
+              title: request.title,
+              tipoImovel: request.tipoImovel,
+              subtipoImovel: request.subtipoImovel,
+              singleCaptureMode: request.singleCaptureMode,
+              cameFromCheckinStep1: request.cameFromCheckinStep1,
+              initialFlowState: request.captureFlowState,
             ),
       ),
     );

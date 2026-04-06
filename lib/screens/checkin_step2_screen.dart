@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../config/checkin_step2_config.dart';
+import '../models/inspection_camera_flow_request.dart';
+import '../models/inspection_capture_context.dart';
 import '../models/checkin_step2_model.dart';
 import '../services/checkin_dynamic_config_service.dart';
 import '../services/inspection_flow_coordinator.dart';
@@ -218,14 +220,18 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
 
       final result = await flowCoordinator.openOverlayCamera(
         buildContext,
-        title: field.titulo,
-        tipoImovel: widget.tipoImovel,
-        subtipoImovel: _defaultSubtype(),
-        singleCaptureMode: true,
-        preselectedMacroLocal: field.cameraMacroLocal,
-        initialAmbiente: field.cameraAmbiente,
-        initialElemento: field.cameraElementoInicial,
-        cameFromCheckinStep1: false,
+        request: InspectionCameraFlowRequest.bootstrap(
+          title: field.titulo,
+          tipoImovel: widget.tipoImovel,
+          subtipoImovel: _defaultSubtype(),
+          singleCaptureMode: true,
+          cameFromCheckinStep1: false,
+          initialContext: InspectionCaptureContext(
+            macroLocal: field.cameraMacroLocal,
+            ambiente: field.cameraAmbiente,
+            elemento: field.cameraElementoInicial,
+          ),
+        ),
       );
 
       if (!mounted || result == null) return;
@@ -265,11 +271,12 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
 
     await widget.flowCoordinator.openOverlayCamera(
       context,
-      title: 'COLETA',
-      tipoImovel: widget.tipoImovel,
-      subtipoImovel: _defaultSubtype(),
-      preselectedMacroLocal: null,
-      cameFromCheckinStep1: true,
+      request: InspectionCameraFlowRequest.bootstrap(
+        title: 'COLETA',
+        tipoImovel: widget.tipoImovel,
+        subtipoImovel: _defaultSubtype(),
+        cameFromCheckinStep1: true,
+      ),
     );
   }
 

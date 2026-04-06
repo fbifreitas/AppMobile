@@ -8,6 +8,10 @@ void main() {
     expect(service.duplicateActionLabelFor('Quarto 2'), 'Novo Quarto');
   });
 
+  test('builds feminine contextual duplicate label from current ambiente', () {
+    expect(service.duplicateActionLabelFor('Sala 2'), 'Nova Sala');
+  });
+
   test('returns next duplicated ambiente label', () {
     final next = service.nextDuplicatedAmbienteLabel(
       selectedAmbiente: 'Quarto',
