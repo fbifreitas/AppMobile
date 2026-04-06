@@ -1,3 +1,4 @@
+﻿import 'package:appmobile/models/inspection_capture_context.dart';
 import 'package:appmobile/screens/overlay_camera_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,6 +16,22 @@ Future<void> _pumpUntilFound(
   }
 }
 
+InspectionCaptureFlowState _flowState({
+  String? macroLocal,
+  String? ambiente,
+  String? elemento,
+  String? material,
+  String? estado,
+}) {
+  return InspectionCaptureFlowState.bootstrap(
+    macroLocal: macroLocal,
+    ambiente: ambiente,
+    elemento: elemento,
+    material: material,
+    estado: estado,
+  );
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -22,21 +39,23 @@ void main() {
     'OverlayCameraScreen hides material and estado when subtipo overrides camera levels',
     (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
+        MaterialApp(
           home: OverlayCameraScreen(
-            title: 'Câmera',
+            title: 'Camera',
             tipoImovel: 'Urbano',
-            subtipoImovel: 'Galpão',
-            preselectedMacroLocal: 'Rua',
-            initialAmbiente: 'Fachada',
-            initialElemento: 'Portão',
+            subtipoImovel: 'Galpao',
+            initialFlowState: _flowState(
+              macroLocal: 'Rua',
+              ambiente: 'Fachada',
+              elemento: 'Portao',
+            ),
             useTestMenuData: true,
-            testCameraLevelOrder: <String>['ambiente', 'elemento'],
-            testMacroLocais: <String>['Rua'],
-            testAmbientes: <String>['Fachada'],
-            testElementos: <String>['Portão'],
-            testMateriais: <String>['Metal'],
-            testEstados: <String>['Bom'],
+            testCameraLevelOrder: const <String>['ambiente', 'elemento'],
+            testMacroLocais: const <String>['Rua'],
+            testAmbientes: const <String>['Fachada'],
+            testElementos: const <String>['Portao'],
+            testMateriais: const <String>['Metal'],
+            testEstados: const <String>['Bom'],
             skipDeviceInitialization: true,
             showVoiceActions: false,
           ),
@@ -61,27 +80,29 @@ void main() {
     'OverlayCameraScreen falls back to tipo camera levels when subtipo has no override',
     (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
+        MaterialApp(
           home: OverlayCameraScreen(
-            title: 'Câmera',
+            title: 'Camera',
             tipoImovel: 'Urbano',
             subtipoImovel: 'Casa',
-            preselectedMacroLocal: 'Rua',
-            initialAmbiente: 'Fachada',
-            initialElemento: 'Portão',
-            initialMaterial: 'Metal',
+            initialFlowState: _flowState(
+              macroLocal: 'Rua',
+              ambiente: 'Fachada',
+              elemento: 'Portao',
+              material: 'Metal',
+            ),
             useTestMenuData: true,
-            testCameraLevelOrder: <String>[
+            testCameraLevelOrder: const <String>[
               'ambiente',
               'elemento',
               'material',
               'estado',
             ],
-            testMacroLocais: <String>['Rua'],
-            testAmbientes: <String>['Fachada'],
-            testElementos: <String>['Portão'],
-            testMateriais: <String>['Metal'],
-            testEstados: <String>['Bom'],
+            testMacroLocais: const <String>['Rua'],
+            testAmbientes: const <String>['Fachada'],
+            testElementos: const <String>['Portao'],
+            testMateriais: const <String>['Metal'],
+            testEstados: const <String>['Bom'],
             skipDeviceInitialization: true,
             showVoiceActions: false,
           ),
@@ -100,17 +121,19 @@ void main() {
     'OverlayCameraScreen creates a new ambiente instance through contextual action',
     (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
+        MaterialApp(
           home: OverlayCameraScreen(
-            title: 'Câmera',
+            title: 'Camera',
             tipoImovel: 'Urbano',
             subtipoImovel: 'Casa',
-            preselectedMacroLocal: 'Área interna',
-            initialAmbiente: 'Quarto',
+            initialFlowState: _flowState(
+              macroLocal: 'Area interna',
+              ambiente: 'Quarto',
+            ),
             useTestMenuData: true,
-            testCameraLevelOrder: <String>['ambiente'],
-            testMacroLocais: <String>['Área interna'],
-            testAmbientes: <String>['Quarto', 'Sala'],
+            testCameraLevelOrder: const <String>['ambiente'],
+            testMacroLocais: const <String>['Area interna'],
+            testAmbientes: const <String>['Quarto', 'Sala'],
             skipDeviceInitialization: true,
             showVoiceActions: false,
           ),
@@ -123,8 +146,7 @@ void main() {
       await tester.tap(find.text('Novo Quarto'));
       await tester.pumpAndSettle();
 
-      final selectedChip = tester.widget<Text>(find.text('Quarto 2').first);
-      expect(selectedChip.data, 'Quarto 2');
+      expect(find.text('Quarto 2'), findsWidgets);
       expect(find.text('Novo Quarto'), findsOneWidget);
     },
   );
@@ -133,17 +155,19 @@ void main() {
     'OverlayCameraScreen keeps ambiente actions inline with local selector',
     (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
+        MaterialApp(
           home: OverlayCameraScreen(
-            title: 'Câmera',
+            title: 'Camera',
             tipoImovel: 'Urbano',
             subtipoImovel: 'Casa',
-            preselectedMacroLocal: 'Área interna',
-            initialAmbiente: 'Sala',
+            initialFlowState: _flowState(
+              macroLocal: 'Area interna',
+              ambiente: 'Sala',
+            ),
             useTestMenuData: true,
-            testCameraLevelOrder: <String>['ambiente'],
-            testMacroLocais: <String>['Área interna'],
-            testAmbientes: <String>['Sala', 'Quarto', 'Cozinha'],
+            testCameraLevelOrder: const <String>['ambiente'],
+            testMacroLocais: const <String>['Area interna'],
+            testAmbientes: const <String>['Sala', 'Quarto', 'Cozinha'],
             skipDeviceInitialization: true,
             showVoiceActions: false,
           ),
@@ -154,8 +178,14 @@ void main() {
       expect(find.text('Local da foto'), findsOneWidget);
       expect(find.text('Nova Sala'), findsOneWidget);
       expect(find.text('Trocar'), findsOneWidget);
-      expect(find.byKey(const ValueKey('camera_ambiente_selector_list')), findsOneWidget);
-      expect(find.byKey(const ValueKey('camera_current_ambiente_label')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('camera_ambiente_selector_list')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('camera_current_ambiente_label')),
+        findsNothing,
+      );
       expect(find.text('Sala'), findsWidgets);
       expect(find.text('Quarto'), findsOneWidget);
       expect(find.text('Cozinha'), findsOneWidget);
@@ -165,7 +195,9 @@ void main() {
       final changeDy = tester.getTopLeft(find.text('Trocar')).dy;
       final selectorListDy =
           tester
-              .getTopLeft(find.byKey(const ValueKey('camera_ambiente_selector_list')))
+              .getTopLeft(
+                find.byKey(const ValueKey('camera_ambiente_selector_list')),
+              )
               .dy;
 
       expect(duplicateDy <= selectorListDy, isTrue);

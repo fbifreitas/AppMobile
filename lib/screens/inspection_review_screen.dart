@@ -5,8 +5,8 @@ import 'package:provider/provider.dart';
 
 import '../config/checkin_step2_config.dart';
 import '../config/inspection_menu_package.dart';
-import '../models/inspection_camera_flow_request.dart';
 import '../models/inspection_capture_context.dart';
+import '../models/inspection_review_models.dart';
 import '../models/job_status.dart';
 import '../models/overlay_camera_capture_result.dart';
 import '../state/app_state.dart';
@@ -21,7 +21,11 @@ import '../services/checkin_dynamic_config_service.dart';
 import '../services/inspection_export_service.dart';
 import '../services/inspection_capture_recovery_adapter.dart';
 import '../services/inspection_menu_service.dart';
+import '../services/inspection_review_accordion_service.dart';
+import '../services/inspection_review_presentation_service.dart';
+import '../services/inspection_review_technical_presentation_service.dart';
 import '../services/inspection_requirement_policy_service.dart';
+import '../services/inspection_review_requirement_service.dart';
 import '../services/inspection_semantic_field_service.dart';
 import '../services/inspection_sync_queue_service.dart';
 import '../services/inspection_sync_service.dart';
@@ -49,7 +53,7 @@ class InspectionReviewScreen extends StatefulWidget {
 }
 
 class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
-  late final List<_EditableCapture> _items;
+  late final List<InspectionReviewEditableCapture> _items;
   late List<OverlayCameraCaptureResult> _capturesCurrent;
   final TextEditingController _observacaoController = TextEditingController();
   final TextEditingController _technicalJustificationController =
@@ -68,6 +72,15 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       InspectionCaptureRecoveryAdapter.instance;
   final InspectionRequirementPolicyService _requirementPolicy =
       InspectionRequirementPolicyService.instance;
+  final InspectionReviewAccordionService _reviewAccordionService =
+      InspectionReviewAccordionService.instance;
+  final InspectionReviewPresentationService _reviewPresentationService =
+      InspectionReviewPresentationService.instance;
+  final InspectionReviewTechnicalPresentationService
+  _reviewTechnicalPresentationService =
+      InspectionReviewTechnicalPresentationService.instance;
+  final InspectionReviewRequirementService _reviewRequirementService =
+      InspectionReviewRequirementService.instance;
   final InspectionSemanticFieldService _semanticFieldService =
       InspectionSemanticFieldService.instance;
   final InspectionTaxonomyService _taxonomyService =
@@ -94,7 +107,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   @override
   void initState() {
     super.initState();
-    _items = widget.captures.map(_EditableCapture.fromCapture).toList();
+    _items =
+        widget.captures.map(InspectionReviewEditableCapture.fromCapture).toList();
     _hydrateReviewedItemsFromRecovery();
     _capturesCurrent = List.of(widget.captures);
     _capturedAccordionExpanded = _items.any(
@@ -163,21 +177,18 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   Future<void> _persistReviewState() async {
     final appState = Provider.of<AppState>(context, listen: false);
     final step2Payload = _buildStep2PayloadFromCaptures(appState.step2Payload);
-    final resumeContext = _captureRecoveryAdapter.resolveResumeContext(
+    final existingReviewPayload =
+        appState.inspectionRecoveryPayload['review'] as Map?;
+    final reviewPayload = _captureRecoveryAdapter.buildReviewPayload(
+      tipoImovel: widget.tipoImovel,
       currentCaptures: _capturesCurrent,
+      reviewedCaptures: _serializeReviewedCaptures(),
       inspectionRecoveryPayload: appState.inspectionRecoveryPayload,
+      existingReviewPayload:
+          existingReviewPayload?.map(
+            (key, value) => MapEntry('$key', value),
+          ),
     );
-    final reviewPayload = <String, dynamic>{
-      'tipoImovel': widget.tipoImovel,
-      'captures': _capturesCurrent.map((capture) => capture.toMap()).toList(),
-      'capturesRevisadas': _serializeReviewedCaptures(),
-    };
-    final serializedContext = _captureRecoveryAdapter.serializeContext(
-      resumeContext,
-    );
-    if (serializedContext.isNotEmpty) {
-      reviewPayload['cameraContext'] = serializedContext;
-    }
 
     await appState.setInspectionRecoveryStage(
       stageKey: 'inspection_review',
@@ -203,7 +214,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
             'elemento': item.elemento,
             'material': item.material,
             'estado': item.estado,
-            'isComplete': item.status == _PhotoStatus.classified,
+            'isComplete':
+                item.status == InspectionReviewPhotoStatus.classified,
           },
         )
         .toList();
@@ -328,8 +340,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final summary = _buildSummary();
     final checkinStatuses = _buildCheckinRequirements();
+    final summary = _buildSummary(checkinStatuses);
     final technicalSummary = _technicalSummaryService.build(
       tipoImovel: _resolvedTipoImovel().label,
       evidences: _buildTechnicalEvidenceInputs(),
@@ -435,7 +447,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   Widget _buildTechnicalPendingAccordionsSection({
     required BuildContext context,
     required InspectionTechnicalSummary technicalSummary,
-    required List<_CheckinRequirementStatus> checkinStatuses,
+    required List<InspectionReviewRequirementStatus> checkinStatuses,
   }) {
     final matrix = technicalSummary.pendingMatrix;
     if (!matrix.hasAny) {
@@ -450,7 +462,12 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
 
     final reviewTotal = _items.length;
     final reviewDone =
-        _items.where((item) => item.status == _PhotoStatus.classified).length;
+        _items
+            .where(
+              (item) =>
+                  item.status == InspectionReviewPhotoStatus.classified,
+            )
+            .length;
 
     final finalizationTotal = matrix.finalization.isEmpty ? 1 : matrix.finalization.length;
     final finalizationDone = matrix.finalization.isEmpty ? 1 : 0;
@@ -618,16 +635,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   }
 
   String _friendlyDescription(TechnicalRuleResult item) {
-    switch (item.stage) {
-      case TechnicalRuleStage.checkin:
-        return 'No check-in obrigat\u00F3rio: ${item.description}';
-      case TechnicalRuleStage.capture:
-        return 'Nas fotos capturadas: ${item.description}';
-      case TechnicalRuleStage.review:
-        return 'Na revis\u00E3o das fotos: ${item.description}';
-      case TechnicalRuleStage.finalization:
-        return 'Na etapa de finaliza\u00E7\u00E3o: ${item.description}';
-    }
+    return _reviewTechnicalPresentationService.friendlyDescription(item);
   }
 
   List<TechnicalEvidenceInput> _buildTechnicalEvidenceInputs() {
@@ -646,7 +654,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   }
 
   List<TechnicalCheckRequirementInput> _buildTechnicalRequirementInputs(
-    List<_CheckinRequirementStatus> statuses,
+    List<InspectionReviewRequirementStatus> statuses,
   ) {
     return statuses
         .map(
@@ -659,79 +667,50 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   }
 
   Future<void> _handlePendingShortcut(TechnicalRuleResult item) async {
-    switch (item.stage) {
-      case TechnicalRuleStage.checkin:
-        setState(() {
-          _technicalPendingSectionExpanded = true;
-          _checkinAccordionExpanded = true;
-        });
-        await Future<void>.delayed(const Duration(milliseconds: 220));
+    final shortcut = _reviewPresentationService.buildPendingShortcut(
+      stage: item.stage.name,
+      subtipo: item.subtipo,
+    );
+
+    setState(() {
+      _technicalPendingSectionExpanded =
+          shortcut.expandTechnicalPending || _technicalPendingSectionExpanded;
+      _reviewSectionExpanded = shortcut.expandReview || _reviewSectionExpanded;
+      _checkinAccordionExpanded =
+          shortcut.expandCheckinAccordion || _checkinAccordionExpanded;
+      _capturedAccordionExpanded =
+          shortcut.expandCapturedAccordion || _capturedAccordionExpanded;
+      _closingSectionExpanded =
+          shortcut.expandClosing || _closingSectionExpanded;
+      if (shortcut.expandedSubtype != null) {
+        _expandedSubtype = shortcut.expandedSubtype;
+      }
+    });
+
+    if (shortcut.scrollDelayMs > 0) {
+      await Future<void>.delayed(Duration(milliseconds: shortcut.scrollDelayMs));
+    }
+
+    switch (shortcut.target) {
+      case InspectionReviewShortcutTargetData.checkinPending:
         await _scrollToSection(_checkinPendingSectionKey);
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Pend\u00EAncia aberta na se\u00E7\u00E3o de check-in.'),
-
-          ),
-        );
         break;
-      case TechnicalRuleStage.capture:
-        setState(() {
-          _technicalPendingSectionExpanded = true;
-          _reviewSectionExpanded = true;
-          _capturedAccordionExpanded = true;
-          final subtipo = item.subtipo?.trim();
-          if (subtipo != null && subtipo.isNotEmpty) {
-            _expandedSubtype = subtipo;
-          }
-        });
-        await Future<void>.delayed(const Duration(milliseconds: 220));
+      case InspectionReviewShortcutTargetData.capturedPhotos:
         await _scrollToSection(_capturedPhotosSectionKey);
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              item.subtipo?.trim().isNotEmpty == true
-                  ? 'Navegado para captura/revisao de \\.'
-                  : 'Pend\u00EAncia de captura aberta na se\u00E7\u00E3o de revis\u00E3o de fotos.'
-            ),
-            duration: const Duration(milliseconds: 1500),
-          ),
-        );
         break;
-      case TechnicalRuleStage.review:
-        if (item.subtipo != null && item.subtipo!.trim().isNotEmpty) {
-          setState(() {
-            _technicalPendingSectionExpanded = true;
-            _reviewSectionExpanded = true;
-            _expandedSubtype = item.subtipo!.trim();
-            _capturedAccordionExpanded = true;
-          });
-        }
-        await Future<void>.delayed(const Duration(milliseconds: 280));
-        await _scrollToSection(_capturedPhotosSectionKey);
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Pend\u00EAncia aberta na se\u00E7\u00E3o de revis\u00E3o de fotos.'),
-
-          ),
-        );
-        break;
-      case TechnicalRuleStage.finalization:
-        setState(() {
-          _technicalPendingSectionExpanded = true;
-          _closingSectionExpanded = true;
-        });
+      case InspectionReviewShortcutTargetData.closing:
         await _scrollToSection(_closingSectionKey);
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Pend\u00EAncia aberta na se\u00E7\u00E3o de encerramento.'),
-
-          ),
-        );
         break;
+    }
+
+    if (!mounted) return;
+    if (shortcut.snackbarMessage.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(shortcut.snackbarMessage),
+          duration: const Duration(milliseconds: 1500),
+        ),
+      );
     }
   }
 
@@ -748,81 +727,101 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
 
   Widget _buildReviewAccordionsSection({
     required BuildContext context,
-    required List<_CheckinRequirementStatus> checkinStatuses,
+    required List<InspectionReviewRequirementStatus> checkinStatuses,
   }) {
-    final mandatoryCapturedItems = <_EditableCapture>[];
-    final mandatoryCapturedPaths = <String>{};
-
-    for (final status in checkinStatuses.where((status) => status.isDone)) {
-      final matched = _items.firstWhere(
-        (item) {
-          final sameAmbiente =
-              _requirementPolicy.normalizeComparableText(item.ambiente) ==
-              _requirementPolicy.normalizeComparableText(
-                status.field.cameraAmbiente,
-              );
-          final sameElemento =
-              status.field.cameraElementoInicial == null ||
-              _requirementPolicy.normalizeComparableText(item.elemento) ==
-                  _requirementPolicy.normalizeComparableText(
-                    status.field.cameraElementoInicial,
-                  );
-          final notUsed = !mandatoryCapturedPaths.contains(item.filePath);
-          return sameAmbiente && sameElemento && notUsed;
-        },
-        orElse:
-            () => _EditableCapture(
-              filePath: '',
-              macroLocal: null,
-              ambiente: '',
-              ambienteBase: null,
-              ambienteInstanceIndex: null,
-              elemento: null,
-              material: null,
-              estado: null,
-              capturedAt: DateTime.fromMillisecondsSinceEpoch(0),
-              status: _PhotoStatus.pending,
-            ),
-      );
-      if (matched.filePath.isNotEmpty) {
-        mandatoryCapturedItems.add(matched);
-        mandatoryCapturedPaths.add(matched.filePath);
-      }
-    }
-
-    final mandatoryGroups = _buildGroupsForItems(mandatoryCapturedItems);
     final groupedRequirements = _groupCheckinRequirements(checkinStatuses);
-    final visibleGroupedRequirements =
-      groupedRequirements.where((group) {
-        if (!group.isDone) return true;
-        return !group.isFullyRepresentedByMandatoryCapturedItems(
-          mandatoryCapturedItems,
-          normalizeComparableText: _requirementPolicy.normalizeComparableText,
-        );
-      }).toList();
-    final capturedGroups = _buildGroupsForItems(
+    final accordionData = _reviewAccordionService.build(
+      items:
+          _items
+              .map(
+                (item) => InspectionReviewCaptureItemData(
+                  filePath: item.filePath,
+                  ambiente: item.ambiente,
+                  elemento: item.elemento,
+                  status: switch (item.status) {
+                    InspectionReviewPhotoStatus.pending =>
+                      InspectionReviewCaptureStatusData.pending,
+                    InspectionReviewPhotoStatus.suggested =>
+                      InspectionReviewCaptureStatusData.suggested,
+                    InspectionReviewPhotoStatus.classified =>
+                      InspectionReviewCaptureStatusData.classified,
+                  },
+                ),
+              )
+              .toList(),
+      checkinStatuses:
+          checkinStatuses
+              .map(
+                (status) => InspectionReviewRequirementStatusData(
+                  field: status.field,
+                  isDone: status.isDone,
+                ),
+              )
+              .toList(),
+      groupedRequirements:
+          groupedRequirements
+              .map(
+                (group) => InspectionReviewRequirementGroupData(
+                  title: group.title,
+                  icon: group.icon,
+                  doneCount: group.doneCount,
+                  totalCount: group.totalCount,
+                  pendingStatus:
+                      group.pendingStatus == null
+                          ? null
+                          : InspectionReviewRequirementStatusData(
+                            field: group.pendingStatus!.field,
+                            isDone: group.pendingStatus!.isDone,
+                          ),
+                  statuses:
+                      group.statuses
+                          .map(
+                            (status) => InspectionReviewRequirementStatusData(
+                              field: status.field,
+                              isDone: status.isDone,
+                            ),
+                          )
+                          .toList(),
+                ),
+              )
+              .toList(),
+      normalizeComparableText: _requirementPolicy.normalizeComparableText,
+    );
+    final mandatoryGroups = _buildGroupsForItems(
       _items
-          .where((item) => !mandatoryCapturedPaths.contains(item.filePath))
+          .where(
+            (item) => accordionData.mandatoryCapturedPaths.contains(item.filePath),
+          )
           .toList(),
     );
-
-    final checkinPendencias =
-        checkinStatuses.where((status) => !status.isDone).length;
-    final hasCheckinPending =
-        checkinPendencias > 0 ||
-        mandatoryGroups.any(
-          (group) => group.pending > 0 || group.suggested > 0,
-        );
-    final capturedPendencias = capturedGroups.fold<int>(
-      0,
-      (sum, group) => sum + group.pending,
+    final visibleGroupedRequirements =
+        groupedRequirements.where((group) {
+          return accordionData.visibleRequirementGroups.any(
+            (visible) =>
+                visible.title == group.title &&
+                visible.doneCount == group.doneCount &&
+                visible.totalCount == group.totalCount,
+          );
+        }).toList();
+    final capturedGroups = _buildGroupsForItems(
+      _items
+          .where(
+            (item) => !accordionData.mandatoryCapturedPaths.contains(item.filePath),
+          )
+          .toList(),
     );
-    final requiredDone = checkinStatuses.where((status) => status.isDone).length;
-    final requiredTotal = checkinStatuses.length;
-    final capturedClassified =
-        _items.where((item) => item.status == _PhotoStatus.classified).length;
-    final capturedTotal = _items.length;
-    final hasCapturedPending = capturedPendencias > 0;
+    final mandatorySection = _reviewPresentationService.buildMandatorySection(
+      checkinPendencias: accordionData.checkinPendencias,
+      requiredDone: accordionData.requiredDone,
+      requiredTotal: accordionData.requiredTotal,
+      hasCheckinPending: accordionData.hasCheckinPending,
+    );
+    final capturedSection = _reviewPresentationService.buildCapturedSection(
+      capturedPendencias: accordionData.capturedPendencias,
+      capturedClassified: accordionData.capturedClassified,
+      capturedTotal: accordionData.capturedTotal,
+      hasCapturedPending: accordionData.hasCapturedPending,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -830,11 +829,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         _buildReviewAccordion(
           key: _checkinPendingSectionKey,
           title: 'Fotos Obrigat\u00F3rias do Check-In',
-          isOk: !hasCheckinPending,
-          subtitle:
-              hasCheckinPending
-                  ? '$checkinPendencias pend\u00EAncia(s) para captura \u2022 progresso $requiredDone/$requiredTotal'
-                  : 'Todas as fotos obrigat\u00F3rias foram registradas \u2022 progresso $requiredDone/$requiredTotal',
+          isOk: mandatorySection.isOk,
+          subtitle: mandatorySection.subtitle,
           expanded: _checkinAccordionExpanded,
           onExpansionChanged:
               (expanded) =>
@@ -891,11 +887,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         _buildReviewAccordion(
           key: _capturedPhotosSectionKey,
           title: 'Fotos Capturadas',
-          isOk: !hasCapturedPending,
-          subtitle:
-              hasCapturedPending
-                  ? '$capturedPendencias pend\u00EAncia(s) de classifica\u00E7\u00E3o \u2022 progresso $capturedClassified/$capturedTotal'
-                  : 'Todas as fotos capturadas est\u00E3o classificadas \u2022 progresso $capturedClassified/$capturedTotal',
+          isOk: capturedSection.isOk,
+          subtitle: capturedSection.subtitle,
           expanded: _capturedAccordionExpanded,
           onExpansionChanged:
               (expanded) =>
@@ -991,7 +984,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
 
   Widget _buildClosingCard(
     BuildContext context,
-    _ReviewSummary summary,
+    InspectionReviewSummaryData summary,
     InspectionTechnicalSummary technicalSummary,
   ) {
     final annotationRequired = technicalSummary.requiresJustification;
@@ -1067,24 +1060,14 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                     appState,
                   );
                   final totalCaptures = _capturesCurrent.length;
-                  final minMsg =
-                      totalCaptures < config.minFotos
-                          ? 'M\u00EDnimo de ${config.minFotos} foto(s) n\u00E3o atingido.'
-                          : null;
-                  final maxFotos = config.maxFotos;
-                  final maxMsg =
-                      maxFotos != null &&
-                              maxFotos > 0 &&
-                              totalCaptures > maxFotos
-                          ? 'M\u00E1ximo de $maxFotos foto(s) excedido.'
-                          : null;
-                  final message = [
-                    if (minMsg != null) minMsg,
-                    if (maxMsg != null) maxMsg,
-                  ].join(' ');
+                  final message = _reviewTechnicalPresentationService
+                      .photoCountPolicyMessage(
+                        config: config,
+                        totalCaptures: totalCaptures,
+                      );
 
                   return Text(
-                    message,
+                    message ?? '',
                     style: TextStyle(
                       color: Colors.orange.shade800,
                       fontWeight: FontWeight.w700,
@@ -1094,15 +1077,18 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                 },
               ),
             ),
-          if (!technicalSummary.canProceedWith(
-            _technicalJustificationController.text,
-          ))
+          if (_reviewTechnicalPresentationService.closingBlockingMessage(
+                technicalSummary: technicalSummary,
+                justificationText: _technicalJustificationController.text,
+              ) !=
+              null)
             Padding(
               padding: const EdgeInsets.only(top: 6),
               child: Text(
-                technicalSummary.pendingMatrix.hasBlocking
-                    ? 'Conclus\u00E3o t\u00E9cnica bloqueada at\u00E9 resolver as pend\u00EAncias normativas.'
-                    : 'Preencha a anota\u00E7\u00E3o do vistoriador para concluir a vistoria.',
+                _reviewTechnicalPresentationService.closingBlockingMessage(
+                      technicalSummary: technicalSummary,
+                      justificationText: _technicalJustificationController.text,
+                    )!,
                 style: TextStyle(
                   color: Colors.orange.shade800,
                   fontWeight: FontWeight.w700,
@@ -1158,23 +1144,25 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     );
   }
 
-  _ReviewSummary _buildSummary() {
-    final photoPending =
-        _items.where((item) => item.status == _PhotoStatus.pending).length;
-    final suggested =
-        _items.where((item) => item.status == _PhotoStatus.suggested).length;
-    final classified =
-        _items.where((item) => item.status == _PhotoStatus.classified).length;
-    final missingCheckin =
-        _buildCheckinRequirements().where((item) => !item.isDone).length;
-    final photoCountPolicyPending = _buildPhotoCountPolicyPending();
-    return _ReviewSummary(
-      total: _items.length,
-      photoPending: photoPending,
-      missingCheckin: missingCheckin,
-      photoCountPolicyPending: photoCountPolicyPending,
-      suggested: suggested,
-      classified: classified,
+  InspectionReviewSummaryData _buildSummary(
+    List<InspectionReviewRequirementStatus> checkinStatuses,
+  ) {
+    return _reviewPresentationService.buildSummary(
+      itemStatuses:
+          _items
+              .map(
+                (item) => switch (item.status) {
+                  InspectionReviewPhotoStatus.pending =>
+                    InspectionReviewItemStatusData.pending,
+                  InspectionReviewPhotoStatus.suggested =>
+                    InspectionReviewItemStatusData.suggested,
+                  InspectionReviewPhotoStatus.classified =>
+                    InspectionReviewItemStatusData.classified,
+                },
+              )
+              .toList(),
+      missingCheckin: checkinStatuses.where((item) => !item.isDone).length,
+      photoCountPolicyPending: _buildPhotoCountPolicyPending(),
     );
   }
 
@@ -1193,35 +1181,45 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     return 0;
   }
 
-  List<_NodeGroup> _buildGroupsForItems(List<_EditableCapture> sourceItems) {
-    final map = <String, List<_EditableCapture>>{};
-    for (final item in sourceItems) {
-      final key = item.ambiente.trim().isEmpty ? 'Sem subtipo' : item.ambiente;
-      map.putIfAbsent(key, () => <_EditableCapture>[]).add(item);
-    }
-    final groups =
-        map.entries.map((entry) {
-          final items = entry.value;
-          return _NodeGroup(
-            title: entry.key,
-            items: items,
-            pending:
-                items.where((e) => e.status == _PhotoStatus.pending).length,
-            suggested:
-                items.where((e) => e.status == _PhotoStatus.suggested).length,
-            classified:
-                items.where((e) => e.status == _PhotoStatus.classified).length,
-          );
-        }).toList();
-    groups.sort((a, b) {
-      if (a.pending != b.pending) return b.pending.compareTo(a.pending);
-      if (a.suggested != b.suggested) return b.suggested.compareTo(a.suggested);
-      return a.title.compareTo(b.title);
-    });
-    return groups;
+  List<InspectionReviewNodeGroup> _buildGroupsForItems(
+    List<InspectionReviewEditableCapture> sourceItems,
+  ) {
+    final grouped = _reviewPresentationService.buildGroups(
+      sourceItems
+          .map(
+            (item) => InspectionReviewGroupingItemData(
+              ambiente: item.ambiente,
+              status: switch (item.status) {
+                InspectionReviewPhotoStatus.pending =>
+                  InspectionReviewItemStatusData.pending,
+                InspectionReviewPhotoStatus.suggested =>
+                  InspectionReviewItemStatusData.suggested,
+                InspectionReviewPhotoStatus.classified =>
+                  InspectionReviewItemStatusData.classified,
+              },
+            ),
+          )
+          .toList(),
+    );
+
+    return grouped.map((group) {
+      final items =
+          sourceItems.where((item) {
+            final ambiente =
+                item.ambiente.trim().isEmpty ? 'Sem subtipo' : item.ambiente;
+            return ambiente == group.title;
+          }).toList();
+      return InspectionReviewNodeGroup(
+        title: group.title,
+        items: items,
+        pending: group.pending,
+        suggested: group.suggested,
+        classified: group.classified,
+      );
+    }).toList();
   }
 
-  List<_CheckinRequirementStatus> _buildCheckinRequirements() {
+  List<InspectionReviewRequirementStatus> _buildCheckinRequirements() {
     final appState = Provider.of<AppState>(context, listen: false);
     final tipo = _resolvedTipoImovel();
     final persistedStep2Model = _dynamicConfigService.restoreStep2Model(
@@ -1231,14 +1229,14 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
 
     final config = _resolveStep2ConfigForTipo(tipo, appState);
 
-    return _requirementPolicy
-        .evaluateMandatoryFieldStatuses(
+    return _reviewRequirementService
+        .buildStatuses(
           fields: config.camposFotos,
           captures: _capturesCurrent,
           persistedModel: persistedStep2Model,
         )
         .map(
-          (status) => _CheckinRequirementStatus(
+          (status) => InspectionReviewRequirementStatus(
             field: status.field,
             isDone: status.isDone,
           ),
@@ -1246,42 +1244,45 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         .toList();
   }
 
-  List<_CheckinRequirementGroupStatus> _groupCheckinRequirements(
-    List<_CheckinRequirementStatus> statuses,
+  List<InspectionReviewRequirementGroupStatus> _groupCheckinRequirements(
+    List<InspectionReviewRequirementStatus> statuses,
   ) {
-    final map = <String, List<_CheckinRequirementStatus>>{};
-    for (final status in statuses) {
-      final key = _requirementPolicy.normalizeComparableText(
-        status.field.titulo,
-      );
-      map.putIfAbsent(key, () => <_CheckinRequirementStatus>[]).add(status);
-    }
-
-    final groups = map.values
-        .map((items) {
-          final doneCount = items.where((item) => item.isDone).length;
-          final firstPending = items.cast<_CheckinRequirementStatus?>().firstWhere(
-            (item) => item != null && !item.isDone,
-            orElse: () => null,
-          );
-          return _CheckinRequirementGroupStatus(
-            title: items.first.field.titulo,
-            icon: items.first.field.icon,
-            doneCount: doneCount,
-            totalCount: items.length,
-            pendingStatus: firstPending,
-            statuses: items,
-          );
-        })
+    return _reviewRequirementService
+        .groupStatuses(
+          statuses
+              .map(
+                (status) => InspectionReviewRequirementStatusData(
+                  field: status.field,
+                  isDone: status.isDone,
+                ),
+              )
+              .toList(),
+        )
+        .map(
+          (group) => InspectionReviewRequirementGroupStatus(
+            title: group.title,
+            icon: group.icon,
+            doneCount: group.doneCount,
+            totalCount: group.totalCount,
+            pendingStatus:
+                group.pendingStatus == null
+                    ? null
+                    : InspectionReviewRequirementStatus(
+                      field: group.pendingStatus!.field,
+                      isDone: group.pendingStatus!.isDone,
+                    ),
+            statuses:
+                group.statuses
+                    .map(
+                      (status) => InspectionReviewRequirementStatus(
+                        field: status.field,
+                        isDone: status.isDone,
+                      ),
+                    )
+                    .toList(),
+          ),
+        )
         .toList();
-
-    groups.sort((a, b) {
-      if (a.isDone != b.isDone) {
-        return a.isDone ? 1 : -1;
-      }
-      return a.title.compareTo(b.title);
-    });
-    return groups;
   }
 
   // ignore: unused_element
@@ -1307,19 +1308,16 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   }
 
   Future<void> _captureMissingRequirement(
-    _CheckinRequirementStatus status,
+    InspectionReviewRequirementStatus status,
   ) async {
     final appState = Provider.of<AppState>(context, listen: false);
-    final resumeContext = _captureRecoveryAdapter.resolveResumeContext(
-      currentCaptures: _capturesCurrent,
-      inspectionRecoveryPayload: appState.inspectionRecoveryPayload,
-    );
     final result = await widget.flowCoordinator.openOverlayCamera(
       context,
-      request: InspectionCameraFlowRequest.bootstrap(
+      request: _captureRecoveryAdapter.buildCameraFlowRequest(
         title: status.field.titulo,
         tipoImovel: widget.tipoImovel,
-        subtipoImovel: widget.tipoImovel,
+        subtipoImovel:
+            _resolvedSubtipoImovel(appState) ?? _resolvedTipoImovel().label,
         singleCaptureMode: true,
         cameFromCheckinStep1: false,
         initialContext: InspectionCaptureContext(
@@ -1327,13 +1325,14 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
           ambiente: status.field.cameraAmbiente,
           elemento: status.field.cameraElementoInicial,
         ),
-        resumeContext: resumeContext,
+        currentCaptures: _capturesCurrent,
+        inspectionRecoveryPayload: appState.inspectionRecoveryPayload,
       ),
     );
     if (result == null || !mounted) return;
     _capturesCurrent.add(result);
     setState(() {
-      _items.add(_EditableCapture.fromCapture(result));
+      _items.add(InspectionReviewEditableCapture.fromCapture(result));
     });
     await _persistReviewState();
     if (!mounted) return;
@@ -1342,7 +1341,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     );
   }
 
-  void _applySubtype(_NodeGroup group) {
+  void _applySubtype(InspectionReviewNodeGroup group) {
     if (group.items.isEmpty) return;
     final source = group.items.firstWhere(
       (item) => item.hasAnyClassification,
@@ -1357,10 +1356,10 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     _persistReviewState();
   }
 
-  void _acceptSuggestions(_NodeGroup group) {
+  void _acceptSuggestions(InspectionReviewNodeGroup group) {
     setState(() {
       for (final item in group.items) {
-        if (item.status == _PhotoStatus.suggested) {
+        if (item.status == InspectionReviewPhotoStatus.suggested) {
           item.recalculateStatus(forceClassified: true);
         }
       }
@@ -1368,7 +1367,10 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     _persistReviewState();
   }
 
-  void _applySimilar(_NodeGroup group, _EditableCapture source) {
+  void _applySimilar(
+    InspectionReviewNodeGroup group,
+    InspectionReviewEditableCapture source,
+  ) {
     setState(() {
       for (final item in group.items) {
         item.copyClassificationFrom(source);
@@ -1378,7 +1380,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     _persistReviewState();
   }
 
-  Future<void> _editItem(_EditableCapture item) async {
+  Future<void> _editItem(InspectionReviewEditableCapture item) async {
     final edited = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -1624,7 +1626,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                 'elemento': item.elemento,
                 'material': item.material,
                 'estado': item.estado,
-                'isComplete': item.status == _PhotoStatus.classified,
+                'isComplete':
+                    item.status == InspectionReviewPhotoStatus.classified,
               },
             )
             .toList();
@@ -1653,7 +1656,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
 }
 
 class _CheckinRequirementCard extends StatelessWidget {
-  final _CheckinRequirementGroupStatus status;
+  final InspectionReviewRequirementGroupStatus status;
   final VoidCallback? onCapture;
 
   const _CheckinRequirementCard({
@@ -1752,14 +1755,14 @@ class _CheckinRequirementCard extends StatelessWidget {
 }
 
 class _NodeCard extends StatelessWidget {
-  final _NodeGroup group;
+  final InspectionReviewNodeGroup group;
   final bool initiallyExpanded;
   final ValueChanged<bool> onExpansionChanged;
   final VoidCallback onChanged;
   final VoidCallback onApplySubtype;
   final VoidCallback onAcceptSuggestions;
-  final ValueChanged<_EditableCapture> onApplySimilar;
-  final Future<void> Function(_EditableCapture) onEditItem;
+  final ValueChanged<InspectionReviewEditableCapture> onApplySimilar;
+  final Future<void> Function(InspectionReviewEditableCapture) onEditItem;
 
   const _NodeCard({
     required this.group,
@@ -1938,7 +1941,7 @@ class _NodeCard extends StatelessWidget {
 }
 
 class _ThumbCard extends StatelessWidget {
-  final _EditableCapture item;
+  final InspectionReviewEditableCapture item;
   final VoidCallback onTap;
 
   const _ThumbCard({required this.item, required this.onTap});
@@ -1946,9 +1949,9 @@ class _ThumbCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status =
-        item.status == _PhotoStatus.pending
+        item.status == InspectionReviewPhotoStatus.pending
             ? _VisualStatus.pending
-            : item.status == _PhotoStatus.suggested
+            : item.status == InspectionReviewPhotoStatus.suggested
             ? _VisualStatus.suggested
             : _VisualStatus.ok;
     return InkWell(
@@ -2179,7 +2182,7 @@ extension on _VisualStatus {
           ? 'Sug.'
           : 'Pend.';
 
-  String label(_NodeGroup group) {
+  String label(InspectionReviewNodeGroup group) {
     switch (this) {
       case _VisualStatus.ok:
         return 'OK';
@@ -2187,7 +2190,7 @@ extension on _VisualStatus {
         return 'Revisar';
       case _VisualStatus.pending:
         final source = group.items.firstWhere(
-          (item) => item.status == _PhotoStatus.pending,
+          (item) => item.status == InspectionReviewPhotoStatus.pending,
           orElse: () => group.items.first,
         );
         return source.elemento?.trim().isNotEmpty == true
@@ -2196,7 +2199,7 @@ extension on _VisualStatus {
     }
   }
 
-  String subtitle(_NodeGroup group) {
+  String subtitle(InspectionReviewNodeGroup group) {
     switch (this) {
       case _VisualStatus.ok:
         return 'Tudo revisado e pronto para finalizar';
@@ -2204,7 +2207,7 @@ extension on _VisualStatus {
         return 'Existem sugest\u00F5es autom\u00E1ticas para revisar';
       case _VisualStatus.pending:
         final source = group.items.firstWhere(
-          (item) => item.status == _PhotoStatus.pending,
+          (item) => item.status == InspectionReviewPhotoStatus.pending,
           orElse: () => group.items.first,
         );
         return source.elemento?.trim().isNotEmpty == true
@@ -2214,195 +2217,3 @@ extension on _VisualStatus {
   }
 }
 
-class _CheckinRequirementStatus {
-  final CheckinStep2PhotoFieldConfig field;
-  final bool isDone;
-
-  const _CheckinRequirementStatus({required this.field, required this.isDone});
-}
-
-class _CheckinRequirementGroupStatus {
-  final String title;
-  final IconData icon;
-  final int doneCount;
-  final int totalCount;
-  final _CheckinRequirementStatus? pendingStatus;
-  final List<_CheckinRequirementStatus> statuses;
-
-  const _CheckinRequirementGroupStatus({
-    required this.title,
-    required this.icon,
-    required this.doneCount,
-    required this.totalCount,
-    required this.pendingStatus,
-    required this.statuses,
-  });
-
-  bool get isDone => doneCount >= totalCount;
-
-  bool isFullyRepresentedByMandatoryCapturedItems(
-    List<_EditableCapture> mandatoryCapturedItems, {
-    required String Function(String?) normalizeComparableText,
-  }) {
-    final doneStatuses = statuses.where((status) => status.isDone);
-    for (final status in doneStatuses) {
-      final hasMatchingCapture = mandatoryCapturedItems.any((item) {
-        final sameAmbiente =
-            normalizeComparableText(item.ambiente) ==
-            normalizeComparableText(status.field.cameraAmbiente);
-        final sameElemento =
-            status.field.cameraElementoInicial == null ||
-            normalizeComparableText(item.elemento) ==
-                normalizeComparableText(status.field.cameraElementoInicial);
-        return sameAmbiente && sameElemento;
-      });
-      if (!hasMatchingCapture) {
-        return false;
-      }
-    }
-    return true;
-  }
-}
-
-class _NodeGroup {
-  final String title;
-  final List<_EditableCapture> items;
-  final int pending;
-  final int suggested;
-  final int classified;
-
-  const _NodeGroup({
-    required this.title,
-    required this.items,
-    required this.pending,
-    required this.suggested,
-    required this.classified,
-  });
-}
-
-class _EditableCapture {
-  String filePath;
-  String? macroLocal;
-  String ambiente;
-  String? ambienteBase;
-  int? ambienteInstanceIndex;
-  String? elemento;
-  String? material;
-  String? estado;
-  DateTime capturedAt;
-  _PhotoStatus status;
-
-  _EditableCapture({
-    required this.filePath,
-    required this.macroLocal,
-    required this.ambiente,
-    required this.ambienteBase,
-    required this.ambienteInstanceIndex,
-    required this.elemento,
-    required this.material,
-    required this.estado,
-    required this.capturedAt,
-    required this.status,
-  });
-
-  factory _EditableCapture.fromCapture(OverlayCameraCaptureResult capture) {
-    final hasCompleteClassification =
-        (capture.elemento?.trim().isNotEmpty ?? false) &&
-        (capture.material?.trim().isNotEmpty ?? false) &&
-        (capture.estado?.trim().isNotEmpty ?? false);
-    final hasAnyClassification =
-        (capture.elemento?.trim().isNotEmpty ?? false) ||
-        (capture.material?.trim().isNotEmpty ?? false) ||
-        (capture.estado?.trim().isNotEmpty ?? false);
-
-    return _EditableCapture(
-      filePath: capture.filePath,
-      macroLocal: capture.macroLocal,
-      ambiente: capture.ambiente,
-      ambienteBase: capture.ambienteBase,
-      ambienteInstanceIndex: capture.ambienteInstanceIndex,
-      elemento: capture.elemento,
-      material: capture.material,
-      estado: capture.estado,
-      capturedAt: capture.capturedAt,
-      status:
-          hasCompleteClassification
-              ? _PhotoStatus.classified
-              : hasAnyClassification
-              ? _PhotoStatus.suggested
-              : _PhotoStatus.pending,
-    );
-  }
-
-  bool get hasAnyClassification =>
-      (elemento?.trim().isNotEmpty ?? false) ||
-      (material?.trim().isNotEmpty ?? false) ||
-      (estado?.trim().isNotEmpty ?? false);
-
-  String get hourMinute =>
-      '${capturedAt.hour.toString().padLeft(2, '0')}:${capturedAt.minute.toString().padLeft(2, '0')}';
-
-  String get shortDescription {
-    final parts = <String>[
-      if (elemento?.trim().isNotEmpty == true) elemento!,
-      if (material?.trim().isNotEmpty == true) material!,
-      if (estado?.trim().isNotEmpty == true) estado!,
-    ];
-    return parts.isEmpty ? 'Sem classifica\u00E7\u00E3o' : parts.join(' \u2022 ');
-  }
-  void copyClassificationFrom(_EditableCapture source) {
-    ambiente = source.ambiente;
-    ambienteBase = source.ambienteBase;
-    ambienteInstanceIndex = source.ambienteInstanceIndex;
-    elemento = source.elemento;
-    material = source.material;
-    estado = source.estado;
-    macroLocal = source.macroLocal;
-  }
-
-  void recalculateStatus({bool forceClassified = false}) {
-    final hasCompleteClassification =
-        (elemento?.trim().isNotEmpty ?? false) &&
-        (material?.trim().isNotEmpty ?? false) &&
-        (estado?.trim().isNotEmpty ?? false);
-    final hasAnyClassification =
-        (elemento?.trim().isNotEmpty ?? false) ||
-        (material?.trim().isNotEmpty ?? false) ||
-        (estado?.trim().isNotEmpty ?? false);
-
-    if (forceClassified && hasAnyClassification) {
-      status = _PhotoStatus.classified;
-      return;
-    }
-    if (hasCompleteClassification) {
-      status = _PhotoStatus.classified;
-    } else if (hasAnyClassification) {
-      status = _PhotoStatus.suggested;
-    } else {
-      status = _PhotoStatus.pending;
-    }
-  }
-}
-
-enum _PhotoStatus { pending, suggested, classified }
-
-class _ReviewSummary {
-  final int total;
-  final int photoPending;
-  final int missingCheckin;
-  final int photoCountPolicyPending;
-  final int suggested;
-  final int classified;
-
-  const _ReviewSummary({
-    required this.total,
-    required this.photoPending,
-    required this.missingCheckin,
-    required this.photoCountPolicyPending,
-    required this.suggested,
-    required this.classified,
-  });
-
-  int get totalPending =>
-      photoPending + missingCheckin + photoCountPolicyPending;
-}
