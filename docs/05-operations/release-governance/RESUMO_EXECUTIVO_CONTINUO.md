@@ -393,3 +393,19 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
   - requisito de fechamento da Onda 3 considerado atendido no escopo arquitetural desta trilha;
   - risco residual agora concentrado em composicao visual/wiring e nao mais em regra critica hardcoded de fluxo;
   - pronto para commit e implantacao pela esteira.
+
+## Checkpoint 2026-04-06 - Release candidata da Onda 3
+- Branch de release: `release/v1.2.36+56`
+- Versao candidata: `1.2.36+56`
+- Base tecnica promovida para homologacao:
+  - commit local de fechamento: `97023f6` (`[onda-3] refactor: fechar residuo operacional de camera e revisao`);
+  - escopo: contrato canonico `coordinator -> camera`, recovery fora da revisao, residuo operacional final de camera/revisao extraido para services/modelos dedicados.
+- Gate local consolidado antes da esteira:
+  - `flutter analyze --no-pub` verde;
+  - `flutter test --no-pub test/services/inspection_camera_batch_service_test.dart test/services/inspection_camera_presentation_service_test.dart test/services/inspection_camera_selector_section_service_test.dart test/services/inspection_camera_voice_command_service_test.dart` verde;
+  - `flutter test --no-pub test/services/inspection_review_presentation_service_test.dart test/services/inspection_review_technical_presentation_service_test.dart` verde;
+  - `flutter test --no-pub test/screens/overlay_camera_screen_test.dart test/screens/inspection_review_screen_test.dart test/screens/checkin_flow_navigation_test.dart` verde.
+- Proximo passo:
+  - publicar `release/v1.2.36+56`;
+  - acompanhar `Android Homologation` e `Internal Docs CI`;
+  - somente apos esteira verde abrir PR de promocao para `main`.
