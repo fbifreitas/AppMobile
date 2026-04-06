@@ -201,3 +201,42 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
 - Estado operacional:
   - implementacao web do checkpoint C concluida e validada;
   - pacote unico MVP-GoLive-Core com checkpoints A/B/C fechados localmente, pendente apenas do fluxo final de release que voce decidir.
+
+## Checkpoint 2026-04-05 - Onda 2 (Checkpoint A core configuravel)
+- Branch de trabalho: `main`
+- Escopo: iniciar saneamento do core configuravel da vistoria antes do bloco operacional de ambientes repetidos, consolidando semantica canonica, labels por surface e politica unica de obrigatoriedade.
+- Escopo implementado:
+  - mobile: extracao de `OverlayCameraCaptureResult` para model proprio, desacoplando o contrato de captura de `OverlayCameraScreen`;
+  - mobile: novo `InspectionSemanticFieldService` para resolver chave semantica canonica, aliases de fallback e `labelsBySurface` em check-in/camera/review;
+  - mobile: novo `InspectionRequirementPolicyService` para unificar matching de obrigatorios da Etapa 2 entre camera, revisao e payload persistido;
+  - mobile: `CheckinScreen`, `OverlayCameraScreen`, `InspectionReviewScreen` e `CheckinDynamicConfigService` alinhados ao novo core compartilhado;
+  - mobile: camera principal e revisao passaram a consumir labels por surface com fallback seguro quando o pacote remoto nao trouxer configuracao explicita.
+- Validacoes executadas:
+  - `flutter test --no-pub test/services/inspection_semantic_field_service_test.dart` verde;
+  - `flutter test --no-pub test/services/inspection_requirement_policy_service_test.dart` verde;
+  - `flutter test --no-pub test/screens/checkin_flow_navigation_test.dart test/screens/inspection_review_screen_test.dart` verde;
+  - `flutter test --no-pub test/screens/overlay_camera_screen_test.dart` verde;
+  - `flutter analyze --no-pub` sem issues.
+- Estado operacional:
+  - base semantica do Checkpoint A estabilizada com fallback forte preservado;
+  - pendente apenas continuar a reducao incremental de hardcodes de classificacao antes de entrar no Checkpoint B.
+
+## Checkpoint 2026-04-05 - Onda 2 (Checkpoint B fluxo operacional)
+- Branch de trabalho: `main`
+- Escopo: levar o novo core configuravel para o fluxo operacional da vistoria, com suporte a ambientes repetidos, acao contextual no menu principal da camera e retomada pelo ultimo contexto real.
+- Escopo implementado:
+  - mobile: novo `InspectionEnvironmentInstanceService` para criar instancias operacionais do ambiente atual (`Quarto 2`, `Quarto 3`) sem adicionar nivel novo na arvore principal;
+  - mobile: `OverlayCameraCaptureResult` passou a persistir `ambienteBase` e `ambienteInstanceIndex`, preservando a diferenca entre label exibido e identidade operacional;
+  - mobile: `InspectionRequirementPolicyService` passou a considerar `ambienteBase` no matching de obrigatorios, permitindo que `Quarto 2` satisfaça requisito configurado como `Quarto`;
+  - mobile: `OverlayCameraScreen` ganhou acao contextual `Novo <ambiente>` e passou a refletir a nova instancia no fluxo principal sem depender de submenu adicional;
+  - mobile: `InspectionReviewScreen` passou a persistir `review.cameraContext` no recovery e a priorizar o ultimo contexto real capturado ao reabrir a camera por pendencia, em vez de reaplicar apenas o target estatico do requisito;
+  - mobile: revisao/recovery preservam `ambienteBase` e `ambienteInstanceIndex`, mantendo a instancia operacional apos reabertura do fluxo.
+- Validacoes executadas:
+  - `flutter test --no-pub test/services/inspection_environment_instance_service_test.dart` verde;
+  - `flutter test --no-pub test/services/inspection_requirement_policy_service_test.dart` verde;
+  - `flutter test --no-pub test/screens/overlay_camera_screen_test.dart` verde;
+  - `flutter test --no-pub test/screens/inspection_review_screen_test.dart` verde;
+  - `flutter analyze --no-pub` sem issues.
+- Estado operacional:
+  - retomada de camera e ambientes repetidos estabilizados no fluxo principal;
+  - base pronta para fechamento documental/commit do pacote ou hardening adicional antes da promocao.

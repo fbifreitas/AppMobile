@@ -7,6 +7,8 @@ import '../config/inspection_menu_package.dart';
 import '../models/checkin_step2_model.dart';
 import '../services/checkin_dynamic_config_service.dart';
 import '../services/inspection_flow_coordinator.dart';
+import '../services/inspection_requirement_policy_service.dart';
+import '../services/inspection_semantic_field_service.dart';
 import '../services/location_service.dart';
 import '../services/voice_input_service.dart';
 import '../state/app_state.dart';
@@ -59,6 +61,10 @@ class _CheckinScreenState extends State<CheckinScreen> {
 
   final CheckinDynamicConfigService _dynamicConfigService =
       CheckinDynamicConfigService.instance;
+  final InspectionRequirementPolicyService _requirementPolicy =
+      InspectionRequirementPolicyService.instance;
+  final InspectionSemanticFieldService _semanticFieldService =
+      InspectionSemanticFieldService.instance;
 
   List<String> _tipos = List<String>.from(_defaultTipos);
   Map<String, List<String>> _subtiposPorTipo =
@@ -212,6 +218,16 @@ class _CheckinScreenState extends State<CheckinScreen> {
           required: true,
           dependsOn: null,
           options: _contextos,
+          semanticKey: InspectionSemanticFieldKeys.captureContext,
+          aliases: const <String>[
+            'porOndeComecar',
+            'area_foto',
+            'macroLocal',
+          ],
+          labelsBySurface: const <String, String>{
+            InspectionSurfaceKeys.checkinStep1: 'Por onde deseja começar?',
+            InspectionSurfaceKeys.camera: 'Onde estou?',
+          },
         ),
       ];
     }
@@ -234,6 +250,13 @@ class _CheckinScreenState extends State<CheckinScreen> {
       return level.options.isNotEmpty ? level.options : _contextos;
     }
     return level.options;
+  }
+
+  String _labelForStep1Level(ConfigLevelDefinition level) {
+    return _semanticFieldService.labelForLevel(
+      level: level,
+      surface: InspectionSurfaceKeys.checkinStep1,
+    );
   }
 
   void _sanitizeSelectedLevels() {
@@ -655,7 +678,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
           step1Cards.add(
             _buildQuestionAccordion(
               id: questionId,
-              question: level.label,
+              question: _labelForStep1Level(level),
               answer: selected,
               expanded: resolvedExpandedId == questionId,
               onToggle: () => _toggleQuestion(questionId),
@@ -978,7 +1001,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
       context,
       voiceService: _voiceService,
       options: options,
-      title: level.label,
+      title: _labelForStep1Level(level),
       currentValue: _niveisSelecionados[level.id],
     );
     if (selected == null || !mounted) return;
@@ -1027,10 +1050,10 @@ class _CheckinScreenState extends State<CheckinScreen> {
       final mandatoryFields =
           step2Config.camposFotos.where((field) => field.obrigatorio).length;
       final completedMandatoryFields =
-          step2Config.camposFotos
-              .where((field) => field.obrigatorio)
-              .where((field) => restoredModel.isPhotoCaptured(field.id))
-              .length;
+          _requirementPolicy.countCompletedMandatoryFields(
+            fields: step2Config.camposFotos,
+            persistedModel: restoredModel,
+          );
       if (completedMandatoryFields < mandatoryFields) {
         _mostrarInfo(
           'A Etapa 2 do check-in esta obrigatoria para este tenant. '
@@ -1062,62 +1085,43 @@ class _CheckinScreenState extends State<CheckinScreen> {
   }
 
   String? _resolveInitialMacroLocal() {
-    return _resolveFirstLevelValue(const <String>[
-      'macroLocal',
-      'macro_local',
-      'area_foto',
-      'areaFoto',
-      _contextLevelId,
-      'porOndeComecar',
-    ]);
+    return _semanticFieldService.resolveSelectedValueForSemantic(
+      levels: _resolveActiveStep1Levels(),
+      semanticKey: InspectionSemanticFieldKeys.captureContext,
+      selectedLevels: _niveisSelecionados,
+    );
   }
 
   String? _resolveInitialAmbiente() {
-    return _resolveFirstLevelValue(const <String>[
-      'ambiente',
-      'local_foto',
-      'localFoto',
-      'local',
-      'cameraAmbiente',
-    ]);
+    return _semanticFieldService.resolveSelectedValueForSemantic(
+      levels: _resolveActiveStep1Levels(),
+      semanticKey: InspectionSemanticFieldKeys.photoLocation,
+      selectedLevels: _niveisSelecionados,
+    );
   }
 
   String? _resolveInitialElemento() {
-    return _resolveFirstLevelValue(const <String>[
-      'elemento',
-      'cameraElementoInicial',
-      'item',
-    ]);
+    return _semanticFieldService.resolveSelectedValueForSemantic(
+      levels: _resolveActiveStep1Levels(),
+      semanticKey: InspectionSemanticFieldKeys.photoElement,
+      selectedLevels: _niveisSelecionados,
+    );
   }
 
   String? _resolveInitialMaterial() {
-    return _resolveFirstLevelValue(const <String>['material', 'materiais']);
+    return _semanticFieldService.resolveSelectedValueForSemantic(
+      levels: _resolveActiveStep1Levels(),
+      semanticKey: InspectionSemanticFieldKeys.photoMaterial,
+      selectedLevels: _niveisSelecionados,
+    );
   }
 
   String? _resolveInitialEstado() {
-    return _resolveFirstLevelValue(const <String>['estado', 'condicao']);
-  }
-
-  String? _resolveFirstLevelValue(List<String> aliases) {
-    for (final key in aliases) {
-      final direct = _niveisSelecionados[key];
-      if (direct != null && direct.trim().isNotEmpty) {
-        return direct.trim();
-      }
-
-      final fallback =
-          _niveisSelecionados.entries
-              .firstWhere(
-                (entry) => entry.key.trim().toLowerCase() == key.toLowerCase(),
-                orElse: () => const MapEntry('', ''),
-              )
-              .value;
-      if (fallback.trim().isNotEmpty) {
-        return fallback.trim();
-      }
-    }
-
-    return null;
+    return _semanticFieldService.resolveSelectedValueForSemantic(
+      levels: _resolveActiveStep1Levels(),
+      semanticKey: InspectionSemanticFieldKeys.photoState,
+      selectedLevels: _niveisSelecionados,
+    );
   }
 
   Future<void> _abrirWhatsApp(String? telefone) async {

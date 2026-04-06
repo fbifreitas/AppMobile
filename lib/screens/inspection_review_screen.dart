@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../config/checkin_step2_config.dart';
+import '../config/inspection_menu_package.dart';
 import '../models/job_status.dart';
+import '../models/overlay_camera_capture_result.dart';
 import '../state/app_state.dart';
 import '../models/technical_check_requirement_input.dart';
 import '../models/technical_evidence_input.dart';
@@ -15,11 +17,13 @@ import '../widgets/inspection_technical_summary_card.dart';
 import '../widgets/technical_justification_card.dart';
 import '../services/checkin_dynamic_config_service.dart';
 import '../services/inspection_export_service.dart';
+import '../services/inspection_menu_service.dart';
+import '../services/inspection_requirement_policy_service.dart';
+import '../services/inspection_semantic_field_service.dart';
 import '../services/inspection_sync_queue_service.dart';
 import '../services/inspection_sync_service.dart';
 import '../services/voice_input_service.dart';
 import '../widgets/voice_text_field.dart';
-import 'overlay_camera_screen.dart';
 import '../models/inspection_technical_summary.dart';
 
 class InspectionReviewScreen extends StatefulWidget {
@@ -55,6 +59,11 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       const InspectionSyncQueueService();
   final CheckinDynamicConfigService _dynamicConfigService =
       CheckinDynamicConfigService.instance;
+  final InspectionMenuService _menuService = InspectionMenuService.instance;
+  final InspectionRequirementPolicyService _requirementPolicy =
+      InspectionRequirementPolicyService.instance;
+  final InspectionSemanticFieldService _semanticFieldService =
+      InspectionSemanticFieldService.instance;
 
   final GlobalKey _checkinPendingSectionKey = GlobalKey();
   final GlobalKey _capturedPhotosSectionKey = GlobalKey();
@@ -72,6 +81,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   bool _technicalFinalizationExpanded = false;
   bool _closingNotesExpanded = false;
   bool _closingObservationExpanded = false;
+  Map<String, String> _reviewLevelLabels = const <String, String>{};
 
   static const _elementos = <String>[
     'Visão geral',
@@ -122,8 +132,25 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     _items = widget.captures.map(_EditableCapture.fromCapture).toList();
     _hydrateReviewedItemsFromRecovery();
     _capturesCurrent = List.of(widget.captures);
+    _capturedAccordionExpanded = _items.any(
+      (item) => (item.ambienteInstanceIndex ?? 1) > 1,
+    );
+    _loadReviewLabels();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _persistReviewState();
+    });
+  }
+
+  Future<void> _loadReviewLabels() async {
+    final appState = Provider.of<AppState>(context, listen: false);
+    final levels = await _menuService.getCameraLevels(
+      propertyType: _resolvedTipoImovel().label,
+      subtipo: _resolvedSubtipoImovel(appState),
+    );
+    if (!mounted) return;
+
+    setState(() {
+      _reviewLevelLabels = _resolveReviewLevelLabels(levels);
     });
   }
 
@@ -153,6 +180,12 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       if (reviewed == null) continue;
 
       item.ambiente = _nonEmptyText(reviewed['ambiente']) ?? item.ambiente;
+      item.ambienteBase =
+          _nonEmptyText(reviewed['ambienteBase']) ?? item.ambienteBase;
+      item.ambienteInstanceIndex =
+          (reviewed['ambienteInstanceIndex'] as num?)?.toInt() ??
+          int.tryParse('${reviewed['ambienteInstanceIndex'] ?? ''}') ??
+          item.ambienteInstanceIndex;
       item.elemento = _nonEmptyText(reviewed['elemento']);
       item.material = _nonEmptyText(reviewed['material']);
       item.estado = _nonEmptyText(reviewed['estado']);
@@ -165,6 +198,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   Future<void> _persistReviewState() async {
     final appState = Provider.of<AppState>(context, listen: false);
     final step2Payload = _buildStep2PayloadFromCaptures(appState.step2Payload);
+    final resumeCapture = _resolveResumeCaptureContext();
 
     await appState.setInspectionRecoveryStage(
       stageKey: 'inspection_review',
@@ -178,6 +212,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
           'tipoImovel': widget.tipoImovel,
           'captures':
               _capturesCurrent.map((capture) => capture.toMap()).toList(),
+          'cameraContext': resumeCapture?.toMap(),
           'capturesRevisadas': _serializeReviewedCaptures(),
         },
       },
@@ -190,6 +225,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
           (item) => {
             'filePath': item.filePath,
             'ambiente': item.ambiente,
+            'ambienteBase': item.ambienteBase,
+            'ambienteInstanceIndex': item.ambienteInstanceIndex,
             'elemento': item.elemento,
             'material': item.material,
             'estado': item.estado,
@@ -213,21 +250,10 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     for (final campo in config.camposFotos) {
       if (model.isPhotoCaptured(campo.id)) continue;
 
-      OverlayCameraCaptureResult? matchedCapture;
-      for (final capture in _capturesCurrent) {
-        final sameAmbiente =
-            capture.ambiente.trim().toLowerCase() ==
-            campo.cameraAmbiente.trim().toLowerCase();
-        final sameElemento =
-            campo.cameraElementoInicial == null ||
-            capture.elemento?.trim().toLowerCase() ==
-                campo.cameraElementoInicial!.trim().toLowerCase();
-
-        if (sameAmbiente && sameElemento) {
-          matchedCapture = capture;
-          break;
-        }
-      }
+      final matchedCapture = _requirementPolicy.findMatchingCapture(
+        captures: _capturesCurrent,
+        field: campo,
+      );
 
       if (matchedCapture != null) {
         model = model.setPhoto(
@@ -255,6 +281,67 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   TipoImovel _resolvedTipoImovel() {
     final rawTipo = widget.tipoImovel.split('•').first.trim();
     return TipoImovelExtension.fromString(rawTipo);
+  }
+
+  String? _resolvedSubtipoImovel(AppState appState) {
+    final direct = appState.step1Payload['subtipoImovel'];
+    if (direct is String && direct.trim().isNotEmpty) {
+      return direct.trim();
+    }
+
+    final rawStep1 = appState.inspectionRecoveryPayload['step1'];
+    if (rawStep1 is Map) {
+      final restored = rawStep1['subtipoImovel'];
+      if (restored is String && restored.trim().isNotEmpty) {
+        return restored.trim();
+      }
+    }
+
+    return null;
+  }
+
+  Map<String, String> _resolveReviewLevelLabels(
+    List<ConfigLevelDefinition> levels,
+  ) {
+    if (levels.isEmpty) {
+      return const <String, String>{};
+    }
+
+    final labels = <String, String>{};
+    for (final level in levels) {
+      final cameraLevelId =
+          _semanticFieldService.mapCameraLevelId(level.id) ??
+          _semanticFieldService.cameraLevelIdForSemantic(
+            level.semanticKey ?? '',
+          );
+      if (cameraLevelId == null || cameraLevelId.trim().isEmpty) {
+        continue;
+      }
+      labels[cameraLevelId] = _semanticFieldService.labelForLevel(
+        level: level,
+        surface: InspectionSurfaceKeys.review,
+      );
+    }
+    return labels;
+  }
+
+  String _labelForReviewField(String levelId) {
+    final configured = _reviewLevelLabels[levelId]?.trim();
+    if (configured != null && configured.isNotEmpty) {
+      return configured;
+    }
+
+    switch (levelId) {
+      case 'ambiente':
+        return 'Subtipo / Local';
+      case 'elemento':
+        return 'Elemento';
+      case 'material':
+        return 'Material';
+      case 'estado':
+        return 'Estado';
+    }
+    return levelId;
   }
 
   @override
@@ -696,12 +783,16 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       final matched = _items.firstWhere(
         (item) {
           final sameAmbiente =
-              _normalizeComparableText(item.ambiente) ==
-              _normalizeComparableText(status.field.cameraAmbiente);
+              _requirementPolicy.normalizeComparableText(item.ambiente) ==
+              _requirementPolicy.normalizeComparableText(
+                status.field.cameraAmbiente,
+              );
           final sameElemento =
               status.field.cameraElementoInicial == null ||
-              _normalizeComparableText(item.elemento) ==
-                  _normalizeComparableText(status.field.cameraElementoInicial);
+              _requirementPolicy.normalizeComparableText(item.elemento) ==
+                  _requirementPolicy.normalizeComparableText(
+                    status.field.cameraElementoInicial,
+                  );
           final notUsed = !mandatoryCapturedPaths.contains(item.filePath);
           return sameAmbiente && sameElemento && notUsed;
         },
@@ -710,6 +801,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
               filePath: '',
               macroLocal: null,
               ambiente: '',
+              ambienteBase: null,
+              ambienteInstanceIndex: null,
               elemento: null,
               material: null,
               estado: null,
@@ -730,7 +823,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         if (!group.isDone) return true;
         return !group.isFullyRepresentedByMandatoryCapturedItems(
           mandatoryCapturedItems,
-          normalizeComparableText: _normalizeComparableText,
+          normalizeComparableText: _requirementPolicy.normalizeComparableText,
         );
       }).toList();
     final capturedGroups = _buildGroupsForItems(
@@ -1164,24 +1257,19 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
 
     final config = _resolveStep2ConfigForTipo(tipo, appState);
 
-    return config.camposFotos.where((campo) => campo.obrigatorio).map((campo) {
-      final hasEvidence = _items.any((item) {
-        final sameAmbiente =
-            _normalizeComparableText(item.ambiente) ==
-            _normalizeComparableText(campo.cameraAmbiente);
-        final sameElemento =
-            campo.cameraElementoInicial == null
-                ? true
-                : (_normalizeComparableText(item.elemento) ==
-                    _normalizeComparableText(campo.cameraElementoInicial));
-        return sameAmbiente && sameElemento;
-      });
-      final isPersisted = persistedStep2Model.isPhotoCaptured(campo.id);
-      return _CheckinRequirementStatus(
-        field: campo,
-        isDone: hasEvidence || isPersisted,
-      );
-    }).toList();
+    return _requirementPolicy
+        .evaluateMandatoryFieldStatuses(
+          fields: config.camposFotos,
+          captures: _capturesCurrent,
+          persistedModel: persistedStep2Model,
+        )
+        .map(
+          (status) => _CheckinRequirementStatus(
+            field: status.field,
+            isDone: status.isDone,
+          ),
+        )
+        .toList();
   }
 
   List<_CheckinRequirementGroupStatus> _groupCheckinRequirements(
@@ -1189,7 +1277,9 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   ) {
     final map = <String, List<_CheckinRequirementStatus>>{};
     for (final status in statuses) {
-      final key = _normalizeComparableText(status.field.titulo);
+      final key = _requirementPolicy.normalizeComparableText(
+        status.field.titulo,
+      );
       map.putIfAbsent(key, () => <_CheckinRequirementStatus>[]).add(status);
     }
 
@@ -1220,6 +1310,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     return groups;
   }
 
+  // ignore: unused_element
   String _normalizeComparableText(String? value) {
     final text = (value ?? '').trim().toLowerCase();
     if (text.isEmpty) return '';
@@ -1241,15 +1332,20 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   Future<void> _captureMissingRequirement(
     _CheckinRequirementStatus status,
   ) async {
+    final resumeCapture = _resolveResumeCaptureContext();
     final result = await widget.flowCoordinator.openOverlayCamera(
       context,
       title: status.field.titulo,
       tipoImovel: widget.tipoImovel,
       subtipoImovel: widget.tipoImovel,
       singleCaptureMode: true,
-      preselectedMacroLocal: status.field.cameraMacroLocal,
-      initialAmbiente: status.field.cameraAmbiente,
-      initialElemento: status.field.cameraElementoInicial,
+      preselectedMacroLocal:
+          resumeCapture?.macroLocal ?? status.field.cameraMacroLocal,
+      initialAmbiente: resumeCapture?.ambiente ?? status.field.cameraAmbiente,
+      initialElemento:
+          resumeCapture?.elemento ?? status.field.cameraElementoInicial,
+      initialMaterial: resumeCapture?.material,
+      initialEstado: resumeCapture?.estado,
       cameFromCheckinStep1: false,
     );
     if (result == null || !mounted) return;
@@ -1262,6 +1358,24 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('${status.field.titulo} registrado com sucesso.')),
     );
+  }
+
+  OverlayCameraCaptureResult? _resolveResumeCaptureContext() {
+    if (_capturesCurrent.isNotEmpty) {
+      return _capturesCurrent.last;
+    }
+
+    final appState = Provider.of<AppState>(context, listen: false);
+    final reviewPayload = appState.inspectionRecoveryPayload['review'];
+    if (reviewPayload is! Map<String, dynamic>) {
+      return null;
+    }
+
+    final rawContext = reviewPayload['cameraContext'];
+    if (rawContext is Map<String, dynamic>) {
+      return OverlayCameraCaptureResult.fromMap(rawContext);
+    }
+    return null;
   }
 
   void _applySubtype(_NodeGroup group) {
@@ -1346,7 +1460,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                       ),
                       const SizedBox(height: 12),
                       _EditorDropdown(
-                        label: 'Subtipo / Local',
+                        label: _labelForReviewField('ambiente'),
                         value: _ambientes.contains(ambiente) ? ambiente : null,
                         items: _ambientes,
                         onChanged:
@@ -1354,7 +1468,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                       ),
                       const SizedBox(height: 10),
                       _EditorDropdown(
-                        label: 'Elemento',
+                        label: _labelForReviewField('elemento'),
                         value: _elementos.contains(elemento) ? elemento : null,
                         items: _elementos,
                         onChanged:
@@ -1362,7 +1476,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                       ),
                       const SizedBox(height: 10),
                       _EditorDropdown(
-                        label: 'Material',
+                        label: _labelForReviewField('material'),
                         value: _materiais.contains(material) ? material : null,
                         items: _materiais,
                         onChanged:
@@ -1370,7 +1484,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                       ),
                       const SizedBox(height: 10),
                       _EditorDropdown(
-                        label: 'Estado',
+                        label: _labelForReviewField('estado'),
                         value: _estados.contains(estado) ? estado : null,
                         items: _estados,
                         onChanged:
@@ -2204,6 +2318,8 @@ class _EditableCapture {
   String filePath;
   String? macroLocal;
   String ambiente;
+  String? ambienteBase;
+  int? ambienteInstanceIndex;
   String? elemento;
   String? material;
   String? estado;
@@ -2214,6 +2330,8 @@ class _EditableCapture {
     required this.filePath,
     required this.macroLocal,
     required this.ambiente,
+    required this.ambienteBase,
+    required this.ambienteInstanceIndex,
     required this.elemento,
     required this.material,
     required this.estado,
@@ -2235,6 +2353,8 @@ class _EditableCapture {
       filePath: capture.filePath,
       macroLocal: capture.macroLocal,
       ambiente: capture.ambiente,
+      ambienteBase: capture.ambienteBase,
+      ambienteInstanceIndex: capture.ambienteInstanceIndex,
       elemento: capture.elemento,
       material: capture.material,
       estado: capture.estado,
@@ -2267,6 +2387,8 @@ class _EditableCapture {
 
   void copyClassificationFrom(_EditableCapture source) {
     ambiente = source.ambiente;
+    ambienteBase = source.ambienteBase;
+    ambienteInstanceIndex = source.ambienteInstanceIndex;
     elemento = source.elemento;
     material = source.material;
     estado = source.estado;

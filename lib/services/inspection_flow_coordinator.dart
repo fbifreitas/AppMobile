@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/checkin_step2_model.dart';
+import '../models/overlay_camera_capture_result.dart';
 import '../screens/checkin_screen.dart';
 import '../screens/camera_flow_screen.dart';
 import '../screens/checkin_step2_screen.dart';

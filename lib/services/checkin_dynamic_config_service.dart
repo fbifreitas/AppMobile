@@ -9,6 +9,7 @@ import '../models/checkin_step2_model.dart';
 import '../config/checkin_step2_config.dart';
 import '../config/inspection_menu_package.dart';
 import 'integration_context_service.dart';
+import 'inspection_requirement_policy_service.dart';
 
 class CheckinStep1DynamicConfig {
   final List<String> tipos;
@@ -56,6 +57,8 @@ class CheckinDynamicConfigService {
            integrationContextService ?? const IntegrationContextService();
 
   static final CheckinDynamicConfigService instance = CheckinDynamicConfigService();
+  static const InspectionRequirementPolicyService _requirementPolicy =
+      InspectionRequirementPolicyService.instance;
 
   static const String _baseUrl = String.fromEnvironment('APP_API_BASE_URL');
   static const String _authToken = String.fromEnvironment('APP_API_TOKEN');
@@ -280,10 +283,10 @@ class CheckinDynamicConfigService {
     );
     final model = restoreStep2Model(tipo: tipo, step2Payload: step2Payload);
 
-    return config.camposFotos
-        .where((field) => field.obrigatorio)
-        .where((field) => model.isPhotoCaptured(field.id))
-        .length;
+    return _requirementPolicy.countCompletedMandatoryFields(
+      fields: config.camposFotos,
+      persistedModel: model,
+    );
   }
 
   CheckinStep2Config parseStep2ConfigMap({

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../models/home_location_snapshot.dart';
 import '../models/job.dart';
+import '../models/overlay_camera_capture_result.dart';
 import '../config/checkin_step2_config.dart';
 import '../services/app_navigation_coordinator.dart';
 import '../services/home_bootstrap_service.dart';
@@ -13,7 +14,6 @@ import '../services/inspection_sync_queue_service.dart';
 import '../services/location_service.dart';
 import '../services/map_service.dart';
 import '../state/app_state.dart';
-import 'overlay_camera_screen.dart';
 import '../widgets/home/home_header.dart';
 import '../widgets/home/jobs_section.dart';
 import '../widgets/home/proposals_section.dart';
