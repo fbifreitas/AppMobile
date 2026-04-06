@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../config/checkin_step2_config.dart';
 import '../config/inspection_menu_package.dart';
+import '../models/inspection_capture_context.dart';
 import '../models/job_status.dart';
 import '../models/overlay_camera_capture_result.dart';
 import '../state/app_state.dart';
@@ -17,11 +18,13 @@ import '../widgets/inspection_technical_summary_card.dart';
 import '../widgets/technical_justification_card.dart';
 import '../services/checkin_dynamic_config_service.dart';
 import '../services/inspection_export_service.dart';
+import '../services/inspection_capture_recovery_adapter.dart';
 import '../services/inspection_menu_service.dart';
 import '../services/inspection_requirement_policy_service.dart';
 import '../services/inspection_semantic_field_service.dart';
 import '../services/inspection_sync_queue_service.dart';
 import '../services/inspection_sync_service.dart';
+import '../services/inspection_taxonomy_service.dart';
 import '../services/voice_input_service.dart';
 import '../widgets/voice_text_field.dart';
 import '../models/inspection_technical_summary.dart';
@@ -60,10 +63,14 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   final CheckinDynamicConfigService _dynamicConfigService =
       CheckinDynamicConfigService.instance;
   final InspectionMenuService _menuService = InspectionMenuService.instance;
+  final InspectionCaptureRecoveryAdapter _captureRecoveryAdapter =
+      InspectionCaptureRecoveryAdapter.instance;
   final InspectionRequirementPolicyService _requirementPolicy =
       InspectionRequirementPolicyService.instance;
   final InspectionSemanticFieldService _semanticFieldService =
       InspectionSemanticFieldService.instance;
+  final InspectionTaxonomyService _taxonomyService =
+      InspectionTaxonomyService.instance;
 
   final GlobalKey _checkinPendingSectionKey = GlobalKey();
   final GlobalKey _capturedPhotosSectionKey = GlobalKey();
@@ -82,49 +89,6 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   bool _closingNotesExpanded = false;
   bool _closingObservationExpanded = false;
   Map<String, String> _reviewLevelLabels = const <String, String>{};
-
-  static const _elementos = <String>[
-    'Visão geral',
-    'Número',
-    'Porta',
-    'Portão',
-    'Janela',
-    'Piso',
-    'Parede',
-    'Teto',
-    'Outro',
-  ];
-  static const _materiais = <String>[
-    'Alvenaria',
-    'Metal',
-    'Madeira',
-    'Vidro',
-    'Cerâmica',
-    'Concreto',
-    'Outro',
-  ];
-  static const _estados = <String>[
-    'Bom',
-    'Regular',
-    'Ruim',
-    'Necessita reparo',
-    'Não se aplica',
-  ];
-  static const _ambientes = <String>[
-    'Fachada',
-    'Logradouro',
-    'Acesso ao imóvel',
-    'Entorno',
-    'Sala de Estar',
-    'Sala',
-    'Dormitório',
-    'Cozinha',
-    'Banheiro',
-    'Área de serviço',
-    'Áreas Comuns',
-    'Garagem',
-    'Outro ambiente',
-  ];
 
   @override
   void initState() {
@@ -198,23 +162,28 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   Future<void> _persistReviewState() async {
     final appState = Provider.of<AppState>(context, listen: false);
     final step2Payload = _buildStep2PayloadFromCaptures(appState.step2Payload);
-    final resumeCapture = _resolveResumeCaptureContext();
+    final resumeContext = _resolveResumeCaptureContext();
+    final reviewPayload = <String, dynamic>{
+      'tipoImovel': widget.tipoImovel,
+      'captures': _capturesCurrent.map((capture) => capture.toMap()).toList(),
+      'capturesRevisadas': _serializeReviewedCaptures(),
+    };
+    final serializedContext = _captureRecoveryAdapter.serializeContext(
+      resumeContext,
+    );
+    if (serializedContext.isNotEmpty) {
+      reviewPayload['cameraContext'] = serializedContext;
+    }
 
     await appState.setInspectionRecoveryStage(
       stageKey: 'inspection_review',
-      stageLabel: 'Revisão final',
+      stageLabel: 'RevisÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o final',
       routeName: '/inspection_review',
       payload: {
         ...appState.inspectionRecoveryPayload,
         'step1': appState.step1Payload,
         'step2': step2Payload,
-        'review': {
-          'tipoImovel': widget.tipoImovel,
-          'captures':
-              _capturesCurrent.map((capture) => capture.toMap()).toList(),
-          'cameraContext': resumeCapture?.toMap(),
-          'capturesRevisadas': _serializeReviewedCaptures(),
-        },
+        'review': reviewPayload,
       },
     );
   }
@@ -279,7 +248,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   }
 
   TipoImovel _resolvedTipoImovel() {
-    final rawTipo = widget.tipoImovel.split('•').first.trim();
+    final rawTipo = widget.tipoImovel.split('ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢').first.trim();
     return TipoImovelExtension.fromString(rawTipo);
   }
 
@@ -395,7 +364,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
             InspectionTechnicalSummaryCard(summary: technicalSummary),
             const SizedBox(height: 8),
             _buildSectionAccordion(
-              title: 'PENDÊNCIAS TÉCNICAS DA VISTORIA',
+              title: 'PEND\u00CANCIAS T\u00C9CNICAS DA VISTORIA',
               expanded: _technicalPendingSectionExpanded,
               onExpansionChanged: (expanded) => setState(
                 () => _technicalPendingSectionExpanded = expanded,
@@ -408,7 +377,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
             ),
             const SizedBox(height: 8),
             _buildSectionAccordion(
-              title: 'REVISÃO DE FOTOS',
+              title: 'REVIS\u00C3O DE FOTOS',
               expanded: _reviewSectionExpanded,
               onExpansionChanged:
                   (expanded) => setState(() => _reviewSectionExpanded = expanded),
@@ -485,7 +454,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Toque em "Ir para pendência" para navegar direto ao ponto de ajuste.',
+          'Toque em "Ir para pendÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âªncia" para navegar direto ao ponto de ajuste.',
           style: Theme.of(context).textTheme.bodySmall,
         ),
         const SizedBox(height: 10),
@@ -504,14 +473,14 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
           items: matrix.capture,
         ),
         _buildTechnicalStageAccordion(
-          title: 'Revisão $reviewDone/$reviewTotal',
+          title: 'RevisÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o $reviewDone/$reviewTotal',
           expanded: _technicalReviewExpanded,
           onExpansionChanged:
               (expanded) => setState(() => _technicalReviewExpanded = expanded),
           items: matrix.review,
         ),
         _buildTechnicalStageAccordion(
-          title: 'Finalização $finalizationDone/$finalizationTotal',
+          title: 'FinalizaÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o $finalizationDone/$finalizationTotal',
           expanded: _technicalFinalizationExpanded,
           onExpansionChanged:
               (expanded) =>
@@ -530,8 +499,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   }) {
     final hasPending = items.isNotEmpty;
     final pendingLabel = hasPending
-        ? '${items.length} pendência(s)'
-        : 'Sem pendências nesta etapa';
+        ? '${items.length} pendÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âªncia(s)'
+        : 'Sem pendÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âªncias nesta etapa';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -625,7 +594,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                     TextButton.icon(
                       onPressed: () => _handlePendingShortcut(item),
                       icon: const Icon(Icons.near_me_outlined, size: 16),
-                      label: const Text('Ir para pendência'),
+                      label: const Text('Ir para pendÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âªncia'),
                       style: TextButton.styleFrom(
                         visualDensity: VisualDensity.compact,
                         padding: const EdgeInsets.symmetric(
@@ -646,13 +615,13 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   String _friendlyDescription(TechnicalRuleResult item) {
     switch (item.stage) {
       case TechnicalRuleStage.checkin:
-        return 'No check-in obrigatório: ${item.description}';
+        return 'No check-in obrigatÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³rio: ${item.description}';
       case TechnicalRuleStage.capture:
         return 'Nas fotos capturadas: ${item.description}';
       case TechnicalRuleStage.review:
-        return 'Na revisão das fotos: ${item.description}';
+        return 'Na revisÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o das fotos: ${item.description}';
       case TechnicalRuleStage.finalization:
-        return 'Na etapa de finalização: ${item.description}';
+        return 'Na etapa de finalizaÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o: ${item.description}';
     }
   }
 
@@ -696,7 +665,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Pendência aberta na seção de check-in.'),
+            content: Text('PendÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âªncia aberta na seÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o de check-in.'),
             duration: Duration(milliseconds: 1400),
           ),
         );
@@ -718,8 +687,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
           SnackBar(
             content: Text(
               item.subtipo?.trim().isNotEmpty == true
-                  ? 'Navegado para captura/revisão de ${item.subtipo!.trim()}.'
-                  : 'Pendência de captura aberta na revisão de fotos.',
+                  ? 'Navegado para captura/revisÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o de ${item.subtipo!.trim()}.'
+                  : 'PendÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âªncia de captura aberta na revisÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o de fotos.',
             ),
             duration: const Duration(milliseconds: 1500),
           ),
@@ -739,7 +708,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Pendência aberta na seção de revisão de fotos.'),
+            content: Text('PendÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âªncia aberta na seÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o de revisÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o de fotos.'),
             duration: Duration(milliseconds: 1400),
           ),
         );
@@ -753,7 +722,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Pendência aberta na seção de encerramento.'),
+            content: Text('PendÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âªncia aberta na seÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o de encerramento.'),
             duration: Duration(milliseconds: 1400),
           ),
         );
@@ -855,12 +824,12 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       children: [
         _buildReviewAccordion(
           key: _checkinPendingSectionKey,
-          title: 'Fotos Obrigatórias do Check-In',
+          title: 'Fotos Obrigat\u00F3rias do Check-In',
           isOk: !hasCheckinPending,
           subtitle:
               hasCheckinPending
-                  ? '$checkinPendencias pendência(s) para captura • progresso $requiredDone/$requiredTotal'
-                  : 'Todas as fotos obrigatórias foram registradas • progresso $requiredDone/$requiredTotal',
+                  ? '$checkinPendencias pend\u00EAncia(s) para captura \u2022 progresso $requiredDone/$requiredTotal'
+                  : 'Todas as fotos obrigat\u00F3rias foram registradas \u2022 progresso $requiredDone/$requiredTotal',
           expanded: _checkinAccordionExpanded,
           onExpansionChanged:
               (expanded) =>
@@ -871,7 +840,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),
                   child: Text(
-                    'Sem cartões de captura obrigatória disponíveis.',
+                    'Sem cart\u00F5es de captura obrigat\u00F3ria dispon\u00EDveis.',
                   ),
                 )
               else
@@ -920,8 +889,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
           isOk: !hasCapturedPending,
           subtitle:
               hasCapturedPending
-                  ? '$capturedPendencias pendência(s) de classificação • progresso $capturedClassified/$capturedTotal'
-                  : 'Todas as fotos capturadas estão classificadas • progresso $capturedClassified/$capturedTotal',
+                  ? '$capturedPendencias pend\u00EAncia(s) de classifica\u00E7\u00E3o \u2022 progresso $capturedClassified/$capturedTotal'
+                  : 'Todas as fotos capturadas est\u00E3o classificadas \u2022 progresso $capturedClassified/$capturedTotal',
           expanded: _capturedAccordionExpanded,
           onExpansionChanged:
               (expanded) =>
@@ -1036,7 +1005,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildClosingAccordion(
-            title: 'Anotações do Vistoriador ${annotationDone ? 1 : 0}/1',
+            title: 'Anota\u00E7\u00F5es do Vistoriador ${annotationDone ? 1 : 0}/1',
             expanded: _closingNotesExpanded,
             isDone: annotationDone,
             onExpansionChanged:
@@ -1048,30 +1017,30 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                     onChanged: (_) => setState(() {}),
                   )
                 : const Text(
-                    'Sem justificativa técnica obrigatória para este cenário.',
+                    'Sem justificativa t\u00E9cnica obrigat\u00F3ria para este cen\u00E1rio.',
                   ),
           ),
           const SizedBox(height: 10),
           _buildClosingAccordion(
-            title: 'Observação Final ${observationDone ? 1 : 0}/1',
+            title: 'Observa\u00E7\u00E3o Final ${observationDone ? 1 : 0}/1',
             expanded: _closingObservationExpanded,
             isDone: observationDone,
             onExpansionChanged: (expanded) =>
                 setState(() => _closingObservationExpanded = expanded),
             child: VoiceTextField(
               controller: _observacaoController,
-              labelText: 'Observação Final',
+              labelText: 'Observa\u00E7\u00E3o Final',
               minLines: 3,
               maxLines: 4,
               voiceService: _voiceService,
-              helperText: 'Toque no microfone para ditar a observação.',
+              helperText: 'Toque no microfone para ditar a observa\u00E7\u00E3o.',
             ),
           ),
           if (summary.totalPending > 0)
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
-                'Atenção: ainda existem ${summary.totalPending} pendência(s).',
+                'Aten\u00E7\u00E3o: ainda existem ${summary.totalPending} pend\u00EAncia(s).',
                 style: TextStyle(
                   color: Colors.orange.shade800,
                   fontWeight: FontWeight.w700,
@@ -1095,14 +1064,14 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                   final totalCaptures = _capturesCurrent.length;
                   final minMsg =
                       totalCaptures < config.minFotos
-                          ? 'Mínimo de ${config.minFotos} foto(s) não atingido.'
+                          ? 'M\u00EDnimo de ${config.minFotos} foto(s) n\u00E3o atingido.'
                           : null;
                   final maxFotos = config.maxFotos;
                   final maxMsg =
                       maxFotos != null &&
                               maxFotos > 0 &&
                               totalCaptures > maxFotos
-                          ? 'Máximo de $maxFotos foto(s) excedido.'
+                          ? 'M\u00E1ximo de $maxFotos foto(s) excedido.'
                           : null;
                   final message = [
                     if (minMsg != null) minMsg,
@@ -1127,8 +1096,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
               padding: const EdgeInsets.only(top: 6),
               child: Text(
                 technicalSummary.pendingMatrix.hasBlocking
-                    ? 'Conclusão técnica bloqueada até resolver as pendências normativas.'
-                    : 'Preencha a anotação do vistoriador para concluir a vistoria.',
+                    ? 'Conclus\u00E3o t\u00E9cnica bloqueada at\u00E9 resolver as pend\u00EAncias normativas.'
+                    : 'Preencha a anota\u00E7\u00E3o do vistoriador para concluir a vistoria.',
                 style: TextStyle(
                   color: Colors.orange.shade800,
                   fontWeight: FontWeight.w700,
@@ -1315,24 +1284,24 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     final text = (value ?? '').trim().toLowerCase();
     if (text.isEmpty) return '';
     return text
-        .replaceAll('á', 'a')
-        .replaceAll('à', 'a')
-        .replaceAll('â', 'a')
-        .replaceAll('ã', 'a')
-        .replaceAll('é', 'e')
-        .replaceAll('ê', 'e')
-        .replaceAll('í', 'i')
-        .replaceAll('ó', 'o')
-        .replaceAll('ô', 'o')
-        .replaceAll('õ', 'o')
-        .replaceAll('ú', 'u')
-        .replaceAll('ç', 'c');
+        .replaceAll('ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡', 'a')
+        .replaceAll('ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ', 'a')
+        .replaceAll('ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢', 'a')
+        .replaceAll('ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£', 'a')
+        .replaceAll('ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©', 'e')
+        .replaceAll('ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âª', 'e')
+        .replaceAll('ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­', 'i')
+        .replaceAll('ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â³', 'o')
+        .replaceAll('ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â´', 'o')
+        .replaceAll('ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âµ', 'o')
+        .replaceAll('ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âº', 'u')
+        .replaceAll('ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§', 'c');
   }
 
   Future<void> _captureMissingRequirement(
     _CheckinRequirementStatus status,
   ) async {
-    final resumeCapture = _resolveResumeCaptureContext();
+    final resumeContext = _resolveResumeCaptureContext();
     final result = await widget.flowCoordinator.openOverlayCamera(
       context,
       title: status.field.titulo,
@@ -1340,12 +1309,12 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       subtipoImovel: widget.tipoImovel,
       singleCaptureMode: true,
       preselectedMacroLocal:
-          resumeCapture?.macroLocal ?? status.field.cameraMacroLocal,
-      initialAmbiente: resumeCapture?.ambiente ?? status.field.cameraAmbiente,
+          resumeContext?.macroLocal ?? status.field.cameraMacroLocal,
+      initialAmbiente: resumeContext?.ambiente ?? status.field.cameraAmbiente,
       initialElemento:
-          resumeCapture?.elemento ?? status.field.cameraElementoInicial,
-      initialMaterial: resumeCapture?.material,
-      initialEstado: resumeCapture?.estado,
+          resumeContext?.elemento ?? status.field.cameraElementoInicial,
+      initialMaterial: resumeContext?.material,
+      initialEstado: resumeContext?.estado,
       cameFromCheckinStep1: false,
     );
     if (result == null || !mounted) return;
@@ -1360,22 +1329,12 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     );
   }
 
-  OverlayCameraCaptureResult? _resolveResumeCaptureContext() {
-    if (_capturesCurrent.isNotEmpty) {
-      return _capturesCurrent.last;
-    }
-
+  InspectionCaptureContext? _resolveResumeCaptureContext() {
     final appState = Provider.of<AppState>(context, listen: false);
-    final reviewPayload = appState.inspectionRecoveryPayload['review'];
-    if (reviewPayload is! Map<String, dynamic>) {
-      return null;
-    }
-
-    final rawContext = reviewPayload['cameraContext'];
-    if (rawContext is Map<String, dynamic>) {
-      return OverlayCameraCaptureResult.fromMap(rawContext);
-    }
-    return null;
+    return _captureRecoveryAdapter.resolveResumeContext(
+      currentCaptures: _capturesCurrent,
+      inspectionRecoveryPayload: appState.inspectionRecoveryPayload,
+    );
   }
 
   void _applySubtype(_NodeGroup group) {
@@ -1428,6 +1387,10 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         String? material = item.material;
         String? estado = item.estado;
         String? ambiente = item.ambiente;
+        final ambientes = _taxonomyService.environmentOptions();
+        final elementos = _taxonomyService.elementOptions();
+        final materiais = _taxonomyService.materialOptions();
+        final estados = _taxonomyService.stateOptions();
 
         return StatefulBuilder(
           builder: (context, setSheetState) {
@@ -1461,32 +1424,32 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                       const SizedBox(height: 12),
                       _EditorDropdown(
                         label: _labelForReviewField('ambiente'),
-                        value: _ambientes.contains(ambiente) ? ambiente : null,
-                        items: _ambientes,
+                        value: ambientes.contains(ambiente) ? ambiente : null,
+                        items: ambientes,
                         onChanged:
                             (value) => setSheetState(() => ambiente = value),
                       ),
                       const SizedBox(height: 10),
                       _EditorDropdown(
                         label: _labelForReviewField('elemento'),
-                        value: _elementos.contains(elemento) ? elemento : null,
-                        items: _elementos,
+                        value: elementos.contains(elemento) ? elemento : null,
+                        items: elementos,
                         onChanged:
                             (value) => setSheetState(() => elemento = value),
                       ),
                       const SizedBox(height: 10),
                       _EditorDropdown(
                         label: _labelForReviewField('material'),
-                        value: _materiais.contains(material) ? material : null,
-                        items: _materiais,
+                        value: materiais.contains(material) ? material : null,
+                        items: materiais,
                         onChanged:
                             (value) => setSheetState(() => material = value),
                       ),
                       const SizedBox(height: 10),
                       _EditorDropdown(
                         label: _labelForReviewField('estado'),
-                        value: _estados.contains(estado) ? estado : null,
-                        items: _estados,
+                        value: estados.contains(estado) ? estado : null,
+                        items: estados,
                         onChanged:
                             (value) => setSheetState(() => estado = value),
                       ),
@@ -1502,7 +1465,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                             item.recalculateStatus();
                             Navigator.of(sheetContext).pop(true);
                           },
-                          child: const Text('Salvar classificação'),
+                          child: const Text('Salvar classificaÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o'),
                         ),
                       ),
                     ],
@@ -1532,9 +1495,9 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                   context: context,
                   builder:
                       (dialogContext) => AlertDialog(
-                        title: const Text('Existem pendências'),
+                        title: const Text('Existem pendÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âªncias'),
                         content: Text(
-                          'Ainda existem $pendingCount item(ns) com pendência. Deseja finalizar a vistoria mesmo assim?',
+                          'Ainda existem $pendingCount item(ns) com pendÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âªncia. Deseja finalizar a vistoria mesmo assim?',
                         ),
                         actions: [
                           TextButton(
@@ -1616,7 +1579,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     if (flushResult == null || flushResult.sentCount == 0) {
       return ' Sincronizado com backend.$protocolSuffix';
     }
-    return ' Sincronizado com backend e ${flushResult.sentCount} pendência(s) antiga(s) enviada(s).$protocolSuffix';
+    return ' Sincronizado com backend e ${flushResult.sentCount} pendÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âªncia(s) antiga(s) enviada(s).$protocolSuffix';
   }
 
   String _buildSyncFailureMessage({
@@ -1624,7 +1587,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     required int queuedCount,
   }) {
     if (!_syncService.isConfigured) {
-      return ' Sync não configurado; JSON mantido localmente.';
+      return ' Sync nÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o configurado; JSON mantido localmente.';
     }
 
     final shortMessage = _truncateMessage(syncResult.message);
@@ -1698,8 +1661,8 @@ class _CheckinRequirementCard extends StatelessWidget {
     final color = status.isDone ? Colors.green : Colors.orange;
     final subtitle =
         status.isDone
-        ? 'Obrigatório atendido'
-        : 'Obrigatório — pendente de captura';
+        ? 'Obrigat\u00F3rio atendido'
+        : 'Obrigat\u00F3rio \u2014 pendente de captura';
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -1919,7 +1882,7 @@ class _NodeCard extends StatelessWidget {
                   onPressed: onAcceptSuggestions,
                   icon: const Icon(Icons.task_alt_outlined, size: 16),
                   label: const Text(
-                    'Aceitar sugestões',
+                    'Aceitar sugestÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âµes',
                     style: TextStyle(fontSize: 12),
                   ),
                 ),
@@ -1959,7 +1922,7 @@ class _NodeCard extends StatelessWidget {
     if (normalized.contains('banheiro')) {
       return Icons.shower_outlined;
     }
-    if (normalized.contains('área') || normalized.contains('comum')) {
+    if (normalized.contains('ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡rea') || normalized.contains('comum')) {
       return Icons.apartment_outlined;
     }
     if (normalized.contains('garagem')) {
@@ -2233,7 +2196,7 @@ extension on _VisualStatus {
       case _VisualStatus.ok:
         return 'Tudo revisado e pronto para finalizar';
       case _VisualStatus.suggested:
-        return 'Existem sugestões automáticas para revisar';
+        return 'Existem sugestÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âµes automÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ticas para revisar';
       case _VisualStatus.pending:
         final source = group.items.firstWhere(
           (item) => item.status == _PhotoStatus.pending,
@@ -2242,7 +2205,7 @@ extension on _VisualStatus {
         final detail =
             source.elemento?.trim().isNotEmpty == true
                 ? source.elemento!
-                : 'Classificação incompleta';
+                : 'ClassificaÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o incompleta';
         return 'Pendente: $detail';
     }
   }
@@ -2382,7 +2345,7 @@ class _EditableCapture {
       if (material?.trim().isNotEmpty == true) material!,
       if (estado?.trim().isNotEmpty == true) estado!,
     ];
-    return parts.isEmpty ? 'Sem classificação' : parts.join(' • ');
+    return parts.isEmpty ? 'Sem classificaÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o' : parts.join(' ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ ');
   }
 
   void copyClassificationFrom(_EditableCapture source) {

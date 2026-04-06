@@ -6,6 +6,7 @@ import '../config/checkin_step2_config.dart';
 import '../config/inspection_menu_package.dart';
 import '../models/checkin_step2_model.dart';
 import '../services/checkin_dynamic_config_service.dart';
+import '../services/inspection_capture_context_resolver.dart';
 import '../services/inspection_flow_coordinator.dart';
 import '../services/inspection_requirement_policy_service.dart';
 import '../services/inspection_semantic_field_service.dart';
@@ -65,6 +66,8 @@ class _CheckinScreenState extends State<CheckinScreen> {
       InspectionRequirementPolicyService.instance;
   final InspectionSemanticFieldService _semanticFieldService =
       InspectionSemanticFieldService.instance;
+  final InspectionCaptureContextResolver _captureContextResolver =
+      InspectionCaptureContextResolver.instance;
 
   List<String> _tipos = List<String>.from(_defaultTipos);
   Map<String, List<String>> _subtiposPorTipo =
@@ -1063,11 +1066,10 @@ class _CheckinScreenState extends State<CheckinScreen> {
       }
     }
 
-    final initialMacroLocal = _resolveInitialMacroLocal();
-    final initialAmbiente = _resolveInitialAmbiente();
-    final initialElemento = _resolveInitialElemento();
-    final initialMaterial = _resolveInitialMaterial();
-    final initialEstado = _resolveInitialEstado();
+    final initialContext = _captureContextResolver.resolveFromStep1(
+      levels: _resolveActiveStep1Levels(),
+      selectedLevels: _niveisSelecionados,
+    );
 
     if (!mounted) return;
     await widget.flowCoordinator.openOverlayCamera(
@@ -1075,52 +1077,12 @@ class _CheckinScreenState extends State<CheckinScreen> {
       title: 'COLETA',
       tipoImovel: tipoImovel!,
       subtipoImovel: subtipoImovel!,
-      preselectedMacroLocal: initialMacroLocal,
-      initialAmbiente: initialAmbiente,
-      initialElemento: initialElemento,
-      initialMaterial: initialMaterial,
-      initialEstado: initialEstado,
+      preselectedMacroLocal: initialContext.macroLocal,
+      initialAmbiente: initialContext.ambiente,
+      initialElemento: initialContext.elemento,
+      initialMaterial: initialContext.material,
+      initialEstado: initialContext.estado,
       cameFromCheckinStep1: true,
-    );
-  }
-
-  String? _resolveInitialMacroLocal() {
-    return _semanticFieldService.resolveSelectedValueForSemantic(
-      levels: _resolveActiveStep1Levels(),
-      semanticKey: InspectionSemanticFieldKeys.captureContext,
-      selectedLevels: _niveisSelecionados,
-    );
-  }
-
-  String? _resolveInitialAmbiente() {
-    return _semanticFieldService.resolveSelectedValueForSemantic(
-      levels: _resolveActiveStep1Levels(),
-      semanticKey: InspectionSemanticFieldKeys.photoLocation,
-      selectedLevels: _niveisSelecionados,
-    );
-  }
-
-  String? _resolveInitialElemento() {
-    return _semanticFieldService.resolveSelectedValueForSemantic(
-      levels: _resolveActiveStep1Levels(),
-      semanticKey: InspectionSemanticFieldKeys.photoElement,
-      selectedLevels: _niveisSelecionados,
-    );
-  }
-
-  String? _resolveInitialMaterial() {
-    return _semanticFieldService.resolveSelectedValueForSemantic(
-      levels: _resolveActiveStep1Levels(),
-      semanticKey: InspectionSemanticFieldKeys.photoMaterial,
-      selectedLevels: _niveisSelecionados,
-    );
-  }
-
-  String? _resolveInitialEstado() {
-    return _semanticFieldService.resolveSelectedValueForSemantic(
-      levels: _resolveActiveStep1Levels(),
-      semanticKey: InspectionSemanticFieldKeys.photoState,
-      selectedLevels: _niveisSelecionados,
     );
   }
 

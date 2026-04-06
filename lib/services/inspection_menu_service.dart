@@ -1,11 +1,9 @@
-import 'dart:convert';
-
-import 'package:flutter/services.dart' show rootBundle;
-import 'package:shared_preferences/shared_preferences.dart';
-
 import '../config/checkin_step2_config.dart';
 import '../config/inspection_menu_package.dart';
 import 'checkin_dynamic_config_service.dart';
+import 'inspection_menu_document_loader.dart';
+import 'inspection_menu_document_merge_resolver.dart';
+import 'inspection_menu_preferences_store.dart';
 
 class _UsageEntry {
   int count;
@@ -119,6 +117,12 @@ class InspectionMenuService {
   Future<void>? _loading;
   Map<String, _UsageEntry> _usage = {};
   Map<String, _PredictionEntry> _prediction = {};
+  final InspectionMenuDocumentLoader _documentLoader =
+      InspectionMenuDocumentLoader.instance;
+  final InspectionMenuDocumentMergeResolver _mergeResolver =
+      InspectionMenuDocumentMergeResolver.instance;
+  final InspectionMenuPreferencesStore _preferencesStore =
+      InspectionMenuPreferencesStore.instance;
 
   Future<void> ensureLoaded() {
     return _loading ??= _load();
@@ -133,30 +137,16 @@ class InspectionMenuService {
   }
 
   Future<void> _load() async {
-    Map<String, dynamic>? assetDocument;
-    Map<String, dynamic>? developerDocument;
+    final documents = await _documentLoader.load(
+      assetPath: _assetPath,
+      loadDeveloperDocument:
+          CheckinDynamicConfigService.instance.loadDeveloperMockDocument,
+    );
 
     try {
-      final raw = await rootBundle.loadString(_assetPath);
-      assetDocument = Map<String, dynamic>.from(
-        jsonDecode(raw) as Map<String, dynamic>,
-      );
-    } catch (_) {
-      assetDocument = null;
-    }
-
-    try {
-      developerDocument =
-          await CheckinDynamicConfigService.instance
-              .loadDeveloperMockDocument();
-    } catch (_) {
-      developerDocument = null;
-    }
-
-    try {
-      final mergedDocument = _mergeDocuments(
-        base: assetDocument,
-        override: developerDocument,
+      final mergedDocument = _mergeResolver.merge(
+        base: documents.assetDocument,
+        override: documents.developerDocument,
       );
       if (mergedDocument != null) {
         _package = InspectionMenuPackage.fromJson(mergedDocument);
@@ -168,62 +158,26 @@ class InspectionMenuService {
     }
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final rawUsage = prefs.getString(_usageKey);
-      if (rawUsage != null && rawUsage.trim().isNotEmpty) {
-        final decoded = jsonDecode(rawUsage) as Map<String, dynamic>;
-        _usage = decoded.map(
-          (key, value) => MapEntry(
-            key,
-            _UsageEntry.fromJson(Map<String, dynamic>.from(value as Map)),
-          ),
-        );
-      }
-
-      final rawPrediction = prefs.getString(_predictionKey);
-      if (rawPrediction != null && rawPrediction.trim().isNotEmpty) {
-        final decoded = jsonDecode(rawPrediction) as Map<String, dynamic>;
-        _prediction = decoded.map(
-          (key, value) => MapEntry(
-            key,
-            _PredictionEntry.fromJson(Map<String, dynamic>.from(value as Map)),
-          ),
-        );
-      }
+      final snapshot = await _preferencesStore.load(
+        usageKey: _usageKey,
+        predictionKey: _predictionKey,
+      );
+      _usage = snapshot.usage.map(
+        (key, value) => MapEntry(
+          key,
+          _UsageEntry.fromJson(Map<String, dynamic>.from(value as Map)),
+        ),
+      );
+      _prediction = snapshot.prediction.map(
+        (key, value) => MapEntry(
+          key,
+          _PredictionEntry.fromJson(Map<String, dynamic>.from(value as Map)),
+        ),
+      );
     } catch (_) {
       _usage = {};
       _prediction = {};
     }
-  }
-
-  Map<String, dynamic>? _mergeDocuments({
-    Map<String, dynamic>? base,
-    Map<String, dynamic>? override,
-  }) {
-    if (base == null && override == null) return null;
-    if (base == null) return Map<String, dynamic>.from(override!);
-    if (override == null) return Map<String, dynamic>.from(base);
-
-    final result = <String, dynamic>{};
-    final keys = <String>{...base.keys, ...override.keys};
-
-    for (final key in keys) {
-      final baseValue = base[key];
-      final overrideValue = override[key];
-
-      if (baseValue is Map && overrideValue is Map) {
-        result[key] = _mergeDocuments(
-          base: Map<String, dynamic>.from(baseValue),
-          override: Map<String, dynamic>.from(overrideValue),
-        );
-      } else if (override.containsKey(key)) {
-        result[key] = overrideValue;
-      } else {
-        result[key] = baseValue;
-      }
-    }
-
-    return result;
   }
 
   Future<void> registerUsage({
@@ -933,20 +887,16 @@ class InspectionMenuService {
   }
 
   Future<void> _persistUsage() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _usageKey,
-      jsonEncode(_usage.map((key, value) => MapEntry(key, value.toJson()))),
+    await _preferencesStore.persistUsage(
+      usageKey: _usageKey,
+      usage: _usage.map((key, value) => MapEntry(key, value.toJson())),
     );
   }
 
   Future<void> _persistPrediction() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _predictionKey,
-      jsonEncode(
-        _prediction.map((key, value) => MapEntry(key, value.toJson())),
-      ),
+    await _preferencesStore.persistPrediction(
+      predictionKey: _predictionKey,
+      prediction: _prediction.map((key, value) => MapEntry(key, value.toJson())),
     );
   }
 

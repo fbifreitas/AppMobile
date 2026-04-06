@@ -167,6 +167,11 @@ Step 8️⃣ (BACKEND BLOQUEADO — aguarda Onda 1 BOW) → BL-031 (depende de B
 | 5️⃣3️⃣ | BL-054 | UX progressiva no Check-in etapa 1 e 2 com acordeões por pergunta e resumo inline da resposta | Em andamento | 🟠 Alta | Exibir apenas a próxima pergunta pendente, colapsar respostas já preenchidas com status visual OK/NOK e manter feedback de progresso x/y durante o preenchimento |
 | 5️⃣4️⃣ | BL-055 | Revisar hierarquia visual e regras de casing por nível no Menu de Vistoria e Check-in Etapa 2 | Concluído | 🟠 Alta | Nível 1 em Title Case, nível 2 em CAIXA ALTA, nível 3 em Title Case, com acordeões iniciando recolhidos conforme regra operacional |
 | 5️⃣5️⃣ | BL-056 | Tela dedicada de onboarding de permissões Android e iOS com reentrada obrigatória para usuários sem etapa de onboarding (ex.: CLTs criados via web) | Pendente | 🔴 Crítica | Usuário concede permissões essenciais no onboarding inicial e, quando autenticado sem onboarding concluído, é redirecionado para tela de permissões antes de usar fluxos operacionais |
+| 5️⃣6️⃣ | BL-057 | Alinhar semântica canônica do fluxo de captura à arquitetura V2 da plataforma | Planejado | 🔴 Crítica | Labels diferentes por tela continuam possíveis, mas Check-in, Câmera, Revisão e Menu passam a apontar para a mesma dimensão semântica canônica, sem inspection definir o core global |
+| 5️⃣7️⃣ | BL-058 | Separar estado inicial sugerido, estado atual e estado de retomada da captura | Planejado | 🔴 Crítica | O fluxo mantém bootstrap do check-in, operação corrente e retomada como estados distintos, com recovery compatível e sem travar a câmera no contexto inicial |
+| 5️⃣8️⃣ | BL-059 | Tratar duplicação de ambiente repetido como ação contextual do nível atual | Planejado | 🔴 Crítica | A câmera permite `Trocar` e `Novo <ambiente>` sem criar novo nível na árvore principal, preservando revisão/retomada e matching de obrigatórios |
+| 5️⃣9️⃣ | BL-060 | Quebrar o service concentrador de configuração em fatias coesas e compatíveis com V2 | Planejado | 🟠 Alta | Carregamento, merge, fallback, histórico e prediction deixam de ficar concentrados em um único service, mantendo a API pública estável na migração |
+| 6️⃣0️⃣ | BL-061 | Isolar especialização do domínio inspection sobre um core reutilizável de fluxo configurável | Planejado | 🟠 Alta | Taxonomia imobiliária, instâncias operacionais e labels de inspection permanecem no domain layer, desacopladas do core/plataforma e sem rename cego |
 
 ---
 
@@ -436,6 +441,97 @@ Adicionar tela de aguardando aprovação de cadastro para usuários onboarded qu
 
 Observacao 2026-03-30 (CONCLUIDO): tela dedicada de aguardando aprovacao adicionada, com acao de verificacao de status e simulacao de aprovacao em ambiente de desenvolvimento.
 
+### BL-057
+Refatorar o fluxo de vistoria como alinhamento arquitetural ao V2 da plataforma, removendo a semântica inspection-centric do núcleo do fluxo configurável sem reescrever a navegação atual.
+
+- Camada: domain-inspection
+- Dominio: domain-inspection
+- Area: fluxo configurável / semântica
+- Objetivo: unificar a dimensão funcional hoje exibida como `Por onde deseja começar?`, `Onde estou?` e `Área da foto` sob uma chave semântica canônica única
+- Arquivos provaveis: `lib/screens/checkin_screen.dart`, `lib/screens/overlay_camera_screen.dart`, `lib/screens/inspection_review_screen.dart`, `lib/services/inspection_semantic_field_service.dart`, `lib/config/inspection_menu_package.dart`
+- Dependencias: BL-051, BL-052
+- Testes obrigatorios:
+  - regressão de label por etapa (check-in, câmera, revisão)
+  - regressão de aliases/payload legado
+  - `flutter analyze --no-pub`
+- Evidencia esperada: labels diferentes por surface apontando para a mesma semântica canônica sem duplicação de regra na UI
+- Docs que precisam ser atualizados: este backlog, backlog V2 prioritário se houver mudança de fronteira, resumo executivo contínuo
+- Criterio de pronto: widgets deixam de decidir semântica funcional por texto exibido; remoto e fallback usam o mesmo shape lógico
+
+### BL-058
+Separar explicitamente o estado inicial sugerido, o estado atual da captura e o último estado utilizado para retomada, mantendo compatibilidade com o payload de recovery existente.
+
+- Camada: domain-inspection
+- Dominio: domain-inspection
+- Area: estado / recovery
+- Objetivo: impedir que o contexto inicial vindo do check-in continue funcionando como trava operacional da câmera
+- Arquivos provaveis: `lib/screens/overlay_camera_screen.dart`, `lib/screens/inspection_review_screen.dart`, `lib/services/inspection_flow_coordinator.dart`, `lib/state/app_state.dart`
+- Dependencias: BL-057
+- Testes obrigatorios:
+  - abrir câmera com sugestão inicial
+  - trocar contexto atual
+  - voltar da revisão reabrindo no último contexto real
+  - compatibilidade de recovery antigo e novo
+  - `flutter analyze --no-pub`
+- Evidencia esperada: retomada priorizando o último contexto real, com bootstrap e recovery claramente separados
+- Docs que precisam ser atualizados: este backlog e resumo executivo contínuo
+- Criterio de pronto: bootstrap, operação corrente e retomada passam a existir como estados distintos fora da UI; payload novo é aditivo e o legado continua suportado
+
+### BL-059
+Consolidar a duplicação de ambiente repetido como ação contextual do nível atual, fora da árvore principal, preservando o comportamento operacional `Trocar` e `Novo <ambiente>`.
+
+- Camada: domain-inspection
+- Dominio: domain-inspection
+- Area: UX operacional da câmera
+- Objetivo: suportar `Quarto 2`, `Sala 2` e equivalentes sem criar submenu e sem quebrar revisão/retomada
+- Arquivos provaveis: `lib/screens/overlay_camera_screen.dart`, `lib/screens/inspection_review_screen.dart`, `lib/services/inspection_environment_instance_service.dart`
+- Dependencias: BL-057, BL-058
+- Testes obrigatorios:
+  - `Novo Quarto` cria `Quarto 2`
+  - revisão mantém a instância operacional
+  - obrigatoriedade configurada para `Quarto` continua satisfeita por `Quarto 2`
+  - `flutter analyze --no-pub`
+- Evidencia esperada: ação contextual fora da árvore principal com estado operacional preservado ponta a ponta
+- Docs que precisam ser atualizados: este backlog e resumo executivo contínuo
+- Criterio de pronto: instância operacional de ambiente fica estável no fluxo principal sem aumento de profundidade da navegação
+
+### BL-060
+Quebrar incrementalmente o service concentrador de configuração/menus em fatias coesas e compatíveis com a arquitetura V2, sem mudança abrupta de contrato externo.
+
+- Camada: shared-foundation
+- Dominio: cross-domain
+- Area: config runtime / fallback / histórico
+- Objetivo: separar carregamento de documento, merge, fallback, histórico de uso e prediction em responsabilidades independentes
+- Arquivos provaveis: `lib/services/inspection_menu_service.dart`, `lib/config/inspection_menu_package.dart`, novos services/adapters seguindo o padrão real do projeto
+- Dependencias: BL-057
+- Testes obrigatorios:
+  - regressão de load do asset
+  - regressão de merge de override/mock
+  - regressão de fallback offline
+  - regressão de prediction/sugestão
+  - `flutter analyze --no-pub`
+- Evidencia esperada: responsabilidades hoje concentradas em `inspection_menu_service.dart` migradas por fatias, mantendo uma façade compatível durante a transição
+- Docs que precisam ser atualizados: este backlog e lições aprendidas quando a primeira fatia entrar
+- Criterio de pronto: o service atual deixa de ser dono simultâneo de loader + merge + fallback + history + prediction; a migração permanece invisível para a UI no primeiro estágio
+
+### BL-061
+Isolar a especialização do domínio inspection sobre um core reutilizável de fluxo configurável, preservando taxonomia imobiliária no domínio sem contaminar a semântica global da plataforma.
+
+- Camada: domain-inspection
+- Dominio: domain-inspection
+- Area: adapter de domínio / taxonomia
+- Objetivo: manter `tipoImovel`, `subtipo`, `ambiente`, `elemento`, `material` e `estado` como especialização do domínio inspection, desacoplados do core
+- Arquivos provaveis: `lib/screens/checkin_screen.dart`, `lib/screens/overlay_camera_screen.dart`, `lib/screens/inspection_review_screen.dart`, `lib/config/inspection_menu_package.dart`, novos adapters/taxonomy services conforme padrão do projeto
+- Dependencias: BL-057, BL-060
+- Testes obrigatorios:
+  - regressão de tradução semântica -> vocabulário inspection
+  - regressão de labels por surface
+  - regressão de taxonomia na revisão e na câmera
+  - `flutter analyze --no-pub`
+- Evidencia esperada: inspection permanece funcional como domain pack, mas o core reutilizável deixa de depender do vocabulário imobiliário
+- Docs que precisam ser atualizados: este backlog, backlog V2 prioritário se houver ajuste de fronteira, resumo executivo contínuo
+- Criterio de pronto: vocabulário imobiliário permanece no domain layer e não exige rename global para neutralizar o core
+
 ### BL-034
 Disponibilizar atualização cadastral no menu de configurações, mantendo consistência com os campos definidos no onboarding.
 
@@ -669,3 +765,27 @@ Ao pegar um item para implementar:
 - Ajustes de esteira aplicados: `backend_ci.yml` (gate OpenAPI resiliente) e `internal_docs_ci.yml` (portal interno ativo em `docs/internal-portal`).
 - Procedimento operacional reforcado no AGENT_OPERATING_SYSTEM: execucao serial de comandos pesados, timeout explicito e registro de evidencia quando validacao ocorrer em terminal nativo.
 - Backlog relacionado: BL-036 (eficiencia de pipeline) e trilha INT-016/INT-025 (contracts and CI gates).
+
+## ADENDO 2026-04-06 - Refatoracao V2 do fluxo configuravel de inspection
+
+- Esta frente deixa de ser tratada como melhoria isolada de tela e passa a ser rastreada como refatoracao de alinhamento arquitetural ao V2 da plataforma.
+- Restricao de desenho obrigatoria:
+  - Platform Core agnostico a dominio;
+  - Shared Foundations neutras e reutilizaveis;
+  - inspection como domain pack, sem definir a semantica global da plataforma.
+- Decisao de implantacao:
+  - nao fazer rename cego no projeto inteiro;
+  - nao reescrever toda a navegacao;
+  - executar por fatias/PRs incrementais, preservando o fluxo atual;
+  - tratar fallback como obrigatorio, mas no mesmo shape logico do remoto.
+- Fatias recomendadas:
+  1. semantica canonica + labels por surface + compatibilidade com payload/JSON atual;
+  2. estado inicial/atual/retomada + recovery aditivo;
+  3. acoes contextuais e instancias operacionais de ambiente;
+  4. quebra incremental do service concentrador de configuracao;
+  5. limpeza final de hardcodes na UI e consolidacao do adapter de dominio inspection.
+- Gates minimos por fatia:
+  - regressao da etapa afetada (check-in, camera, revisao ou retomada);
+  - compatibilidade com payloads/JSON existentes;
+  - `flutter analyze --no-pub`;
+  - documentacao do checkpoint no resumo executivo continuo.
