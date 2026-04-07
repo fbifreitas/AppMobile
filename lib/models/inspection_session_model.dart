@@ -1,3 +1,4 @@
+import 'flow_selection.dart';
 import 'inspection_template_model.dart';
 
 enum InspectionEnvironmentStatus {
@@ -120,6 +121,23 @@ class PhotoEvidence {
   bool get hasStateClassification =>
       estadoConservacao != null && estadoConservacao!.isNotEmpty;
 
+  // Canonical getters for domain-agnostic API
+  String get targetItemId => ambienteId;
+  String get targetItemLabel => ambienteNome;
+  String? get targetQualifierId => elementoId;
+  String? get targetQualifierLabel => elementoNome;
+  String? get targetCondition => estadoConservacao;
+  Map<String, dynamic> get domainAttributes => <String, dynamic>{
+    if (material != null && material!.trim().isNotEmpty)
+      'inspection.material': material,
+  };
+  FlowSelection get selection => FlowSelection(
+    targetItem: targetItemLabel,
+    targetQualifier: targetQualifierLabel,
+    targetCondition: targetCondition,
+    domainAttributes: domainAttributes,
+  );
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -213,6 +231,10 @@ class InspectionEnvironmentProgress {
 
   bool get hasPendingClassification =>
       evidencias.any((item) => !item.hasElementClassification);
+
+  String get targetItemId => ambienteId;
+  String get targetItemLabel => ambienteNome;
+  List<PhotoEvidence> get targetItemEvidence => evidencias;
 
   Map<String, dynamic> toMap() {
     return {
@@ -409,8 +431,13 @@ class InspectionSession {
     }
   }
 
+  InspectionEnvironmentProgress? getTargetItem(String targetItemId) =>
+      getEnvironment(targetItemId);
+
   List<PhotoEvidence> get allPhotos =>
       ambientes.expand((item) => item.evidencias).toList();
+
+  List<InspectionEnvironmentProgress> get targetItems => ambientes;
 
   int get totalRequiredPhotos {
     return ambientes

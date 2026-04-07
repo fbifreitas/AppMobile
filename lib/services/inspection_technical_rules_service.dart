@@ -28,7 +28,10 @@ class InspectionTechnicalRulesService {
 
     final grouped = <String, List<TechnicalEvidenceInput>>{};
     for (final evidence in evidences) {
-      final key = evidence.subtipo.trim().isEmpty ? 'Sem subtipo' : evidence.subtipo.trim();
+      final key =
+          evidence.targetItem.trim().isEmpty
+              ? 'Sem subtipo'
+              : evidence.targetItem.trim();
       grouped.putIfAbsent(key, () => <TechnicalEvidenceInput>[]).add(evidence);
     }
 
@@ -70,7 +73,7 @@ class InspectionTechnicalRulesService {
       for (var index = 0; index < items.length; index++) {
         final item = items[index];
 
-        if (!item.hasElemento) {
+        if (!item.hasTargetQualifier) {
           results.add(
             TechnicalRuleResult(
               id: 'missing_element_${subtipo}_$index',
@@ -84,7 +87,7 @@ class InspectionTechnicalRulesService {
           );
         }
 
-        if (item.hasElemento && !item.hasMaterial) {
+        if (item.hasTargetQualifier && !item.hasMaterial) {
           results.add(
             TechnicalRuleResult(
               id: 'missing_material_${subtipo}_$index',
@@ -98,7 +101,7 @@ class InspectionTechnicalRulesService {
           );
         }
 
-        if (item.hasElemento && !item.hasEstado) {
+        if (item.hasTargetQualifier && !item.hasTargetCondition) {
           results.add(
             TechnicalRuleResult(
               id: 'missing_state_${subtipo}_$index',

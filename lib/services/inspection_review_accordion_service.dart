@@ -14,6 +14,9 @@ class InspectionReviewCaptureItemData {
     required this.elemento,
     required this.status,
   });
+
+  String get targetItem => ambiente;
+  String? get targetQualifier => elemento;
 }
 
 class InspectionReviewAccordionData {
@@ -59,11 +62,11 @@ class InspectionReviewAccordionService {
     for (final status in checkinStatuses.where((status) => status.isDone)) {
       for (final item in items) {
         final sameAmbiente =
-            normalizeComparableText(item.ambiente) ==
+            normalizeComparableText(item.targetItem) ==
             normalizeComparableText(status.field.cameraAmbiente);
         final sameElemento =
             status.field.cameraElementoInicial == null ||
-            normalizeComparableText(item.elemento) ==
+            normalizeComparableText(item.targetQualifier) ==
                 normalizeComparableText(status.field.cameraElementoInicial);
         final notUsed = !mandatoryCapturedPaths.contains(item.filePath);
         if (sameAmbiente && sameElemento && notUsed) {
@@ -81,11 +84,11 @@ class InspectionReviewAccordionService {
           for (final status in group.statuses.where((status) => status.isDone)) {
             final represented = items.any((item) {
               final sameAmbiente =
-                  normalizeComparableText(item.ambiente) ==
+                  normalizeComparableText(item.targetItem) ==
                   normalizeComparableText(status.field.cameraAmbiente);
               final sameElemento =
                   status.field.cameraElementoInicial == null ||
-                  normalizeComparableText(item.elemento) ==
+                  normalizeComparableText(item.targetQualifier) ==
                       normalizeComparableText(status.field.cameraElementoInicial);
               return mandatoryCapturedPaths.contains(item.filePath) &&
                   sameAmbiente &&

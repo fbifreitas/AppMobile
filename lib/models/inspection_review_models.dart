@@ -1,5 +1,6 @@
 import '../config/checkin_step2_config.dart';
 import '../models/overlay_camera_capture_result.dart';
+import '../models/flow_selection.dart';
 
 enum InspectionReviewPhotoStatus { pending, suggested, classified }
 
@@ -88,6 +89,28 @@ class InspectionReviewEditableCapture {
               : InspectionReviewPhotoStatus.pending,
     );
   }
+
+  // Canonical getters for domain-agnostic API
+  String? get subjectContext => macroLocal;
+  String? get targetItem => ambiente.isEmpty ? null : ambiente;
+  String? get targetItemBase => ambienteBase;
+  int? get targetItemInstanceIndex => ambienteInstanceIndex;
+  String? get targetQualifier => elemento;
+  String? get targetCondition => estado;
+  Map<String, dynamic> get domainAttributes => <String, dynamic>{
+    if (material != null && material!.trim().isNotEmpty)
+      'inspection.material': material,
+  };
+
+  FlowSelection get selection => FlowSelection(
+    subjectContext: subjectContext,
+    targetItem: targetItem,
+    targetItemBase: targetItemBase,
+    targetItemInstanceIndex: targetItemInstanceIndex,
+    targetQualifier: targetQualifier,
+    targetCondition: targetCondition,
+    domainAttributes: domainAttributes,
+  );
 
   bool get hasAnyClassification =>
       (elemento?.trim().isNotEmpty ?? false) ||

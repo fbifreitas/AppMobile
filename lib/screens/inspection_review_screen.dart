@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import '../config/checkin_step2_config.dart';
 import '../config/inspection_menu_package.dart';
 import '../models/inspection_capture_context.dart';
-import '../models/inspection_review_models.dart';
+import '../models/inspection_review_models_v2.dart';
 import '../models/job_status.dart';
 import '../models/overlay_camera_capture_result.dart';
 import '../state/app_state.dart';
@@ -29,7 +29,7 @@ import '../services/inspection_review_requirement_service.dart';
 import '../services/inspection_semantic_field_service.dart';
 import '../services/inspection_sync_queue_service.dart';
 import '../services/inspection_sync_service.dart';
-import '../services/inspection_taxonomy_service.dart';
+import '../services/inspection_domain_adapter.dart';
 import '../services/voice_input_service.dart';
 import '../widgets/voice_text_field.dart';
 import '../models/inspection_technical_summary.dart';
@@ -83,8 +83,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       InspectionReviewRequirementService.instance;
   final InspectionSemanticFieldService _semanticFieldService =
       InspectionSemanticFieldService.instance;
-  final InspectionTaxonomyService _taxonomyService =
-      InspectionTaxonomyService.instance;
+  final InspectionDomainAdapter _domainAdapter =
+      InspectionDomainAdapter.instance;
 
   final GlobalKey _checkinPendingSectionKey = GlobalKey();
   final GlobalKey _capturedPhotosSectionKey = GlobalKey();
@@ -157,20 +157,12 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     for (final item in _items) {
       final reviewed = reviewedByPath[item.filePath];
       if (reviewed == null) continue;
-
-      item.ambiente = _nonEmptyText(reviewed['ambiente']) ?? item.ambiente;
-      item.ambienteBase =
-          _nonEmptyText(reviewed['ambienteBase']) ?? item.ambienteBase;
-      item.ambienteInstanceIndex =
-          (reviewed['ambienteInstanceIndex'] as num?)?.toInt() ??
-          int.tryParse('${reviewed['ambienteInstanceIndex'] ?? ''}') ??
-          item.ambienteInstanceIndex;
-      item.elemento = _nonEmptyText(reviewed['elemento']);
-      item.material = _nonEmptyText(reviewed['material']);
-      item.estado = _nonEmptyText(reviewed['estado']);
-
-      final isComplete = reviewed['isComplete'] == true;
-      item.recalculateStatus(forceClassified: isComplete);
+      final updated = InspectionReviewEditableCapture.fromReviewMap(
+        reviewed: reviewed,
+        fallback: item,
+      );
+      item.selection = updated.selection;
+      item.status = updated.status;
     }
   }
 
@@ -204,21 +196,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   }
 
   List<Map<String, dynamic>> _serializeReviewedCaptures() {
-    return _items
-        .map(
-          (item) => {
-            'filePath': item.filePath,
-            'ambiente': item.ambiente,
-            'ambienteBase': item.ambienteBase,
-            'ambienteInstanceIndex': item.ambienteInstanceIndex,
-            'elemento': item.elemento,
-            'material': item.material,
-            'estado': item.estado,
-            'isComplete':
-                item.status == InspectionReviewPhotoStatus.classified,
-          },
-        )
-        .toList();
+    return _items.map((item) => item.toReviewMap()).toList();
   }
 
   Map<String, dynamic> _buildStep2PayloadFromCaptures(
@@ -1311,23 +1289,23 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     InspectionReviewRequirementStatus status,
   ) async {
     final appState = Provider.of<AppState>(context, listen: false);
-    final result = await widget.flowCoordinator.openOverlayCamera(
-      context,
-      request: _captureRecoveryAdapter.buildCameraFlowRequest(
-        title: status.field.titulo,
-        tipoImovel: widget.tipoImovel,
-        subtipoImovel:
-            _resolvedSubtipoImovel(appState) ?? _resolvedTipoImovel().label,
-        singleCaptureMode: true,
-        cameFromCheckinStep1: false,
-        initialContext: InspectionCaptureContext(
-          macroLocal: status.field.cameraMacroLocal,
-          ambiente: status.field.cameraAmbiente,
-          elemento: status.field.cameraElementoInicial,
+      final result = await widget.flowCoordinator.openOverlayCamera(
+        context,
+        request: _captureRecoveryAdapter.buildCameraFlowRequestFromSelection(
+          title: status.field.titulo,
+          tipoImovel: widget.tipoImovel,
+          subtipoImovel:
+              _resolvedSubtipoImovel(appState) ?? _resolvedTipoImovel().label,
+          singleCaptureMode: true,
+          cameFromCheckinStep1: false,
+          initialSelection: InspectionCaptureContext(
+            macroLocal: status.field.cameraMacroLocal,
+            ambiente: status.field.cameraAmbiente,
+            elemento: status.field.cameraElementoInicial,
+          ).selection,
+          currentCaptures: _capturesCurrent,
+          inspectionRecoveryPayload: appState.inspectionRecoveryPayload,
         ),
-        currentCaptures: _capturesCurrent,
-        inspectionRecoveryPayload: appState.inspectionRecoveryPayload,
-      ),
     );
     if (result == null || !mounted) return;
     _capturesCurrent.add(result);
@@ -1394,10 +1372,10 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         String? material = item.material;
         String? estado = item.estado;
         String? ambiente = item.ambiente;
-        final ambientes = _taxonomyService.environmentOptions();
-        final elementos = _taxonomyService.elementOptions();
-        final materiais = _taxonomyService.materialOptions();
-        final estados = _taxonomyService.stateOptions();
+        final ambientes = _domainAdapter.environmentOptions();
+        final elementos = _domainAdapter.elementOptions();
+        final materiais = _domainAdapter.materialOptions();
+        final estados = _domainAdapter.stateOptions();
 
         return StatefulBuilder(
           builder: (context, setSheetState) {
@@ -1607,30 +1585,11 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     return '${text.substring(0, 120)}...';
   }
 
-  String? _nonEmptyText(Object? value) {
-    if (value == null) return null;
-    final text = '$value'.trim();
-    if (text.isEmpty) return null;
-    return text;
-  }
-
   Map<String, dynamic> _buildInspectionExportPayload(AppState appState) {
     final captures =
         _capturesCurrent.map((capture) => capture.toMap()).toList();
     final reviewedCaptures =
-        _items
-            .map(
-              (item) => {
-                'filePath': item.filePath,
-                'ambiente': item.ambiente,
-                'elemento': item.elemento,
-                'material': item.material,
-                'estado': item.estado,
-                'isComplete':
-                    item.status == InspectionReviewPhotoStatus.classified,
-              },
-            )
-            .toList();
+        _items.map((item) => item.toReviewMap()).toList();
 
     return {
       'exportedAt': DateTime.now().toIso8601String(),

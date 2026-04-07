@@ -7,7 +7,10 @@ class InspectionClassificationAuditService {
   List<ClassificationAuditEntry> build(List<TechnicalEvidenceInput> evidences) {
     final grouped = <String, List<TechnicalEvidenceInput>>{};
     for (final evidence in evidences) {
-      final key = evidence.subtipo.trim().isEmpty ? 'Sem subtipo' : evidence.subtipo.trim();
+      final key =
+          evidence.targetItem.trim().isEmpty
+              ? 'Sem subtipo'
+              : evidence.targetItem.trim();
       grouped.putIfAbsent(key, () => <TechnicalEvidenceInput>[]).add(evidence);
     }
 
@@ -17,9 +20,11 @@ class InspectionClassificationAuditService {
         subtipo: entry.key,
         totalFotos: items.length,
         fullyClassified: items.where((item) => item.isFullyClassified).length,
-        missingElemento: items.where((item) => !item.hasElemento).length,
-        missingMaterial: items.where((item) => item.hasElemento && !item.hasMaterial).length,
-        missingEstado: items.where((item) => item.hasElemento && !item.hasEstado).length,
+        missingElemento: items.where((item) => !item.hasTargetQualifier).length,
+        missingMaterial:
+            items.where((item) => item.hasTargetQualifier && !item.hasMaterial).length,
+        missingEstado:
+            items.where((item) => item.hasTargetQualifier && !item.hasTargetCondition).length,
       );
     }).toList()
       ..sort((a, b) => a.subtipo.compareTo(b.subtipo));

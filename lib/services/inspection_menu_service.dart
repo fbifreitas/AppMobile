@@ -1,5 +1,6 @@
 import '../config/checkin_step2_config.dart';
 import '../config/inspection_menu_package.dart';
+import '../models/flow_selection.dart';
 import '../models/inspection_menu_intelligence_models.dart';
 import 'checkin_dynamic_config_service.dart';
 import 'inspection_menu_catalog_service.dart';
@@ -231,6 +232,16 @@ class InspectionMenuService {
     await _persistUsage();
   }
 
+  Future<void> registerCaptureSelectionProfile({
+    required String propertyType,
+    required FlowSelection selection,
+  }) {
+    return _registerCaptureSelectionProfileInternal(
+      propertyType: propertyType,
+      selection: selection,
+    );
+  }
+
   Future<String?> getSuggestedMacroLocal({
     required String propertyType,
     List<String> availableMacroLocals = const [],
@@ -307,6 +318,27 @@ class InspectionMenuService {
     );
   }
 
+  Future<SuggestedCameraContext?> getSuggestedSelection({
+    required String propertyType,
+    FlowSelection currentSelection = FlowSelection.empty,
+    List<String> availableSubjectContexts = const [],
+    List<String> availableTargetItems = const [],
+  }) {
+    return Future<SuggestedCameraContext?>.value(
+      _intelligenceService.getSuggestedSelection(
+        featureFlags:
+            _package?.featureFlags ?? const FeatureFlagsConfig.fallback(),
+        predictionPolicy:
+            _package?.predictionPolicy ?? const PredictionPolicyConfig.fallback(),
+        usage: _usageSnapshot(),
+        propertyType: propertyType,
+        currentSelection: currentSelection,
+        availableSubjectContexts: availableSubjectContexts,
+        availableTargetItems: availableTargetItems,
+      ),
+    );
+  }
+
   Future<PredictedSelection?> getPrediction({
     required String propertyType,
     String? macroLocal,
@@ -332,6 +364,29 @@ class InspectionMenuService {
     );
   }
 
+  Future<PredictedSelection?> getPredictionForSelection({
+    required String propertyType,
+    required FlowSelection selection,
+    List<String> availableTargetQualifiers = const [],
+    List<String> availableTargetQualifierMaterials = const [],
+    List<String> availableTargetConditions = const [],
+  }) {
+    return Future<PredictedSelection?>.value(
+      _intelligenceService.getPredictionForSelection(
+        featureFlags:
+            _package?.featureFlags ?? const FeatureFlagsConfig.fallback(),
+        predictionPolicy:
+            _package?.predictionPolicy ?? const PredictionPolicyConfig.fallback(),
+        prediction: _predictionSnapshot(),
+        propertyType: propertyType,
+        selection: selection,
+        availableTargetQualifiers: availableTargetQualifiers,
+        availableTargetQualifierMaterials: availableTargetQualifierMaterials,
+        availableTargetConditions: availableTargetConditions,
+      ),
+    );
+  }
+
   Future<List<String>> getRecentElementSuggestions({
     required String propertyType,
     String? macroLocal,
@@ -350,6 +405,44 @@ class InspectionMenuService {
       macroLocal: macroLocal,
       ambiente: ambiente,
       availableElementos: availableElementos,
+    );
+  }
+
+  Future<List<String>> getRecentTargetItemSuggestions({
+    required String propertyType,
+    required String subjectContext,
+    List<String> availableTargetItems = const [],
+  }) {
+    return Future<List<String>>.value(
+      _intelligenceService.getRecentTargetItemSuggestions(
+        featureFlags:
+            _package?.featureFlags ?? const FeatureFlagsConfig.fallback(),
+        predictionPolicy:
+            _package?.predictionPolicy ?? const PredictionPolicyConfig.fallback(),
+        usage: _usageSnapshot(),
+        propertyType: propertyType,
+        subjectContext: subjectContext,
+        availableTargetItems: availableTargetItems,
+      ),
+    );
+  }
+
+  Future<List<String>> getRecentTargetQualifierSuggestions({
+    required String propertyType,
+    required FlowSelection selection,
+    List<String> availableTargetQualifiers = const [],
+  }) {
+    return Future<List<String>>.value(
+      _intelligenceService.getRecentTargetQualifierSuggestions(
+        featureFlags:
+            _package?.featureFlags ?? const FeatureFlagsConfig.fallback(),
+        predictionPolicy:
+            _package?.predictionPolicy ?? const PredictionPolicyConfig.fallback(),
+        prediction: _predictionSnapshot(),
+        propertyType: propertyType,
+        selection: selection,
+        availableTargetQualifiers: availableTargetQualifiers,
+      ),
     );
   }
 
@@ -387,6 +480,16 @@ class InspectionMenuService {
       package: _package,
       usage: _usageSnapshot(),
       propertyType: propertyType,
+    );
+  }
+
+  Future<List<String>> getSubjectContexts({required String propertyType}) {
+    return Future<List<String>>.value(
+      _catalogService.subjectContexts(
+        package: _package,
+        usage: _usageSnapshot(),
+        propertyType: propertyType,
+      ),
     );
   }
 
@@ -457,6 +560,20 @@ class InspectionMenuService {
     );
   }
 
+  Future<List<String>> getTargetItems({
+    required String propertyType,
+    required String subjectContext,
+  }) {
+    return Future<List<String>>.value(
+      _catalogService.targetItems(
+        package: _package,
+        usage: _usageSnapshot(),
+        propertyType: propertyType,
+        subjectContext: subjectContext,
+      ),
+    );
+  }
+
   Future<List<String>> getElementos({
     required String propertyType,
     required String macroLocal,
@@ -469,6 +586,20 @@ class InspectionMenuService {
       propertyType: propertyType,
       macroLocal: macroLocal,
       ambiente: ambiente,
+    );
+  }
+
+  Future<List<String>> getTargetQualifiers({
+    required String propertyType,
+    required FlowSelection selection,
+  }) {
+    return Future<List<String>>.value(
+      _catalogService.targetQualifiers(
+        package: _package,
+        usage: _usageSnapshot(),
+        propertyType: propertyType,
+        selection: selection,
+      ),
     );
   }
 
@@ -489,6 +620,20 @@ class InspectionMenuService {
     );
   }
 
+  Future<List<String>> getTargetQualifierMaterials({
+    required String propertyType,
+    required FlowSelection selection,
+  }) {
+    return Future<List<String>>.value(
+      _catalogService.targetQualifierMaterials(
+        package: _package,
+        usage: _usageSnapshot(),
+        propertyType: propertyType,
+        selection: selection,
+      ),
+    );
+  }
+
   Future<List<String>> getEstados({
     required String propertyType,
     required String macroLocal,
@@ -504,6 +649,93 @@ class InspectionMenuService {
       ambiente: ambiente,
       elemento: elemento,
     );
+  }
+
+  Future<List<String>> getTargetConditions({
+    required String propertyType,
+    required FlowSelection selection,
+  }) {
+    return Future<List<String>>.value(
+      _catalogService.targetConditions(
+        package: _package,
+        usage: _usageSnapshot(),
+        propertyType: propertyType,
+        selection: selection,
+      ),
+    );
+  }
+
+  Future<void> _registerCaptureSelectionProfileInternal({
+    required String propertyType,
+    required FlowSelection selection,
+  }) async {
+    await ensureLoaded();
+
+    final targetItem = selection.targetItem;
+    if (targetItem == null || targetItem.trim().isEmpty) {
+      return;
+    }
+
+    final predictionPolicy =
+        _package?.predictionPolicy ?? const PredictionPolicyConfig.fallback();
+    final featureFlags =
+        _package?.featureFlags ?? const FeatureFlagsConfig.fallback();
+    if (!featureFlags.enablePredictionV3 || !predictionPolicy.enabled) {
+      return;
+    }
+
+    final key = _intelligenceService.predictionContextKey(
+      propertyType: propertyType,
+      macroLocal: selection.subjectContext,
+      ambiente: targetItem,
+    );
+
+    final entry = _prediction.putIfAbsent(
+      key,
+      () => _PredictionEntry(
+        captures: 0,
+        lastUsedAt: null,
+        elementos: {},
+        materiais: {},
+        estados: {},
+      ),
+    );
+
+    entry.captures += 1;
+    entry.lastUsedAt = DateTime.now();
+
+    final targetQualifier = selection.targetQualifier;
+    final material = selection.attributeText('inspection.material');
+    final targetCondition = selection.targetCondition;
+
+    if (targetQualifier != null && targetQualifier.trim().isNotEmpty) {
+      entry.elementos.update(
+        targetQualifier,
+        (value) => value + 1,
+        ifAbsent: () => 1,
+      );
+    }
+    if (material != null && material.trim().isNotEmpty) {
+      entry.materiais.update(material, (value) => value + 1, ifAbsent: () => 1);
+    }
+    if (targetCondition != null && targetCondition.trim().isNotEmpty) {
+      entry.estados.update(
+        targetCondition,
+        (value) => value + 1,
+        ifAbsent: () => 1,
+      );
+    }
+
+    final usageSnapshot = _usageSnapshot();
+    _intelligenceService.registerConfirmedSelectionUsage(
+      usage: usageSnapshot,
+      propertyType: propertyType,
+      selection: selection,
+    );
+    _replaceUsageFromSnapshot(usageSnapshot);
+
+    await _persistPrediction();
+    await _persistUsage();
   }
 
   String _usageCompoundKey(String scope, String value) => '$scope::$value';

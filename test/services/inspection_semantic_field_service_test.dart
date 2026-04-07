@@ -48,6 +48,37 @@ void main() {
       expect(service.mapCameraLevelId('item'), 'elemento');
       expect(service.mapCameraLevelId('materiais'), 'material');
       expect(service.mapCameraLevelId('condicao'), 'estado');
+      expect(service.mapCameraLevelId('subjectContext'), 'macroLocal');
+      expect(service.mapCameraLevelId('targetItem'), 'ambiente');
+      expect(service.mapCameraLevelId('targetQualifier'), 'elemento');
+      expect(service.mapCameraLevelId('targetCondition'), 'estado');
+    });
+
+    test('exposes canonical field ids for semantics', () {
+      expect(
+        service.canonicalFieldIdForSemantic(
+          InspectionSemanticFieldKeys.captureContext,
+        ),
+        InspectionCanonicalFieldKeys.subjectContext,
+      );
+      expect(
+        service.canonicalFieldIdForSemantic(
+          InspectionSemanticFieldKeys.photoLocation,
+        ),
+        InspectionCanonicalFieldKeys.targetItem,
+      );
+      expect(
+        service.canonicalFieldIdForSemantic(
+          InspectionSemanticFieldKeys.photoElement,
+        ),
+        InspectionCanonicalFieldKeys.targetQualifier,
+      );
+      expect(
+        service.canonicalFieldIdForSemantic(
+          InspectionSemanticFieldKeys.photoState,
+        ),
+        InspectionCanonicalFieldKeys.targetCondition,
+      );
     });
 
     test('labelForLevel prefers surface label over default label', () {

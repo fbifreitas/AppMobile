@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../models/flow_selection.dart';
 import '../models/inspection_session_model.dart';
 import '../models/inspection_template_model.dart';
 import '../services/inspection_capture_service.dart';
@@ -32,6 +33,9 @@ class InspectionState extends ChangeNotifier {
 
   List<InspectionEnvironmentProgress> get ambientes =>
       _session?.ambientes ?? const [];
+  List<InspectionEnvironmentProgress> get targetItems =>
+      _session?.targetItems ?? const [];
+  String? get selectedTargetItemId => _selectedEnvironmentId;
 
   List<ReviewIssue> get reviewIssues =>
       _session?.buildReviewIssues() ?? const [];
@@ -112,6 +116,10 @@ class InspectionState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void selectTargetItem(String targetItemId) {
+    selectEnvironment(targetItemId);
+  }
+
   void clearSelectedEnvironment() {
     _selectedEnvironmentId = null;
     notifyListeners();
@@ -159,6 +167,39 @@ class InspectionState extends ChangeNotifier {
     return _session!.getEnvironment(_selectedEnvironmentId!);
   }
 
+  InspectionEnvironmentProgress? getSelectedTargetItem() {
+    if (_session == null || _selectedEnvironmentId == null) return null;
+    return _session!.getTargetItem(_selectedEnvironmentId!);
+  }
+
+  FlowSelection buildSelectionForTargetItem({
+    required String targetItemId,
+    String? targetQualifierId,
+    String? targetQualifierLabel,
+    String? targetCondition,
+    Map<String, dynamic> domainAttributes = const <String, dynamic>{},
+  }) {
+    final targetItem = _session?.getTargetItem(targetItemId);
+    final template = _session?.template.getEnvironmentById(targetItemId);
+    ElementTemplate? qualifierTemplate;
+    if (targetQualifierId != null) {
+      for (final candidate in template?.targetQualifiers ?? const <ElementTemplate>[]) {
+        if (candidate.targetQualifierId == targetQualifierId) {
+          qualifierTemplate = candidate;
+          break;
+        }
+      }
+    }
+
+    return FlowSelection(
+      targetItem: targetItem?.targetItemLabel,
+      targetQualifier:
+          targetQualifierLabel ?? qualifierTemplate?.targetQualifierLabel,
+      targetCondition: targetCondition,
+      domainAttributes: Map<String, dynamic>.unmodifiable(domainAttributes),
+    );
+  }
+
   Future<void> captureEvidenceFromCamera({
     required String ambienteId,
     String? elementoId,
@@ -166,22 +207,44 @@ class InspectionState extends ChangeNotifier {
     String? material,
     String? estadoConservacao,
   }) async {
+    return captureEvidenceForSelection(
+      targetItemId: ambienteId,
+      selection: buildSelectionForTargetItem(
+        targetItemId: ambienteId,
+        targetQualifierId: elementoId,
+        targetQualifierLabel: elementoNome,
+        targetCondition: estadoConservacao,
+        domainAttributes: <String, dynamic>{
+          if (material != null && material.trim().isNotEmpty)
+            'inspection.material': material,
+        },
+      ),
+    );
+  }
+
+  Future<void> captureEvidenceForSelection({
+    required String targetItemId,
+    required FlowSelection selection,
+  }) async {
     if (_session == null) return;
 
-    final ambiente = _session!.getEnvironment(ambienteId);
-    if (ambiente == null) return;
+    final targetItem = _session!.getTargetItem(targetItemId);
+    if (targetItem == null) return;
 
-    final evidence = await _captureService.captureCameraEvidence(
+    final evidence = await _captureService.captureCameraEvidenceForSelection(
       session: _session!,
-      ambienteId: ambiente.ambienteId,
-      ambienteNome: ambiente.ambienteNome,
-      elementoId: elementoId,
-      elementoNome: elementoNome,
-      material: material,
-      estadoConservacao: estadoConservacao,
+      targetItemId: targetItem.targetItemId,
+      targetItemLabel: selection.targetItem ?? targetItem.targetItemLabel,
+      targetQualifierId: _resolveTargetQualifierId(
+        targetItemId: targetItemId,
+        targetQualifierLabel: selection.targetQualifier,
+      ),
+      targetQualifierLabel: selection.targetQualifier,
+      targetCondition: selection.targetCondition,
+      domainAttributes: selection.domainAttributes,
     );
 
-    await _appendEvidence(ambienteId: ambienteId, evidence: evidence);
+    await _appendEvidence(ambienteId: targetItemId, evidence: evidence);
   }
 
   Future<void> captureEvidenceFromGallery({
@@ -191,6 +254,25 @@ class InspectionState extends ChangeNotifier {
     String? material,
     String? estadoConservacao,
   }) async {
+    return captureEvidenceFromGalleryForSelection(
+      targetItemId: ambienteId,
+      selection: buildSelectionForTargetItem(
+        targetItemId: ambienteId,
+        targetQualifierId: elementoId,
+        targetQualifierLabel: elementoNome,
+        targetCondition: estadoConservacao,
+        domainAttributes: <String, dynamic>{
+          if (material != null && material.trim().isNotEmpty)
+            'inspection.material': material,
+        },
+      ),
+    );
+  }
+
+  Future<void> captureEvidenceFromGalleryForSelection({
+    required String targetItemId,
+    required FlowSelection selection,
+  }) async {
     if (_session == null) return;
     if (!_session!.template.auditRules.galleryAllowed) {
       throw const InspectionCaptureException(
@@ -198,20 +280,23 @@ class InspectionState extends ChangeNotifier {
       );
     }
 
-    final ambiente = _session!.getEnvironment(ambienteId);
-    if (ambiente == null) return;
+    final targetItem = _session!.getTargetItem(targetItemId);
+    if (targetItem == null) return;
 
-    final evidence = await _captureService.pickGalleryEvidence(
+    final evidence = await _captureService.pickGalleryEvidenceForSelection(
       session: _session!,
-      ambienteId: ambiente.ambienteId,
-      ambienteNome: ambiente.ambienteNome,
-      elementoId: elementoId,
-      elementoNome: elementoNome,
-      material: material,
-      estadoConservacao: estadoConservacao,
+      targetItemId: targetItem.targetItemId,
+      targetItemLabel: selection.targetItem ?? targetItem.targetItemLabel,
+      targetQualifierId: _resolveTargetQualifierId(
+        targetItemId: targetItemId,
+        targetQualifierLabel: selection.targetQualifier,
+      ),
+      targetQualifierLabel: selection.targetQualifier,
+      targetCondition: selection.targetCondition,
+      domainAttributes: selection.domainAttributes,
     );
 
-    await _appendEvidence(ambienteId: ambienteId, evidence: evidence);
+    await _appendEvidence(ambienteId: targetItemId, evidence: evidence);
   }
 
   Future<void> updateEvidenceClassification({
@@ -223,19 +308,50 @@ class InspectionState extends ChangeNotifier {
     String? estadoConservacao,
     String? observacao,
   }) async {
+    return updateEvidenceClassificationForSelection(
+      targetItemId: ambienteId,
+      evidenceId: evidenceId,
+      selection: buildSelectionForTargetItem(
+        targetItemId: ambienteId,
+        targetQualifierId: elementoId,
+        targetQualifierLabel: elementoNome,
+        targetCondition: estadoConservacao,
+        domainAttributes: <String, dynamic>{
+          if (material != null && material.trim().isNotEmpty)
+            'inspection.material': material,
+        },
+      ),
+      observacao: observacao,
+    );
+  }
+
+  Future<void> updateEvidenceClassificationForSelection({
+    required String targetItemId,
+    required String evidenceId,
+    required FlowSelection selection,
+    String? observacao,
+  }) async {
     if (_session == null) return;
 
+    final resolvedTargetQualifierId = _resolveTargetQualifierId(
+      targetItemId: targetItemId,
+      targetQualifierLabel: selection.targetQualifier,
+    );
+    final resolvedMaterial = selection.attributeText('inspection.material');
+
     final novosAmbientes = _session!.ambientes.map((ambiente) {
-      if (ambiente.ambienteId != ambienteId) return ambiente;
+      if (ambiente.ambienteId != targetItemId) return ambiente;
 
       final novasEvidencias = ambiente.evidencias.map((evidence) {
         if (evidence.id != evidenceId) return evidence;
 
         return evidence.copyWith(
-          elementoId: elementoId ?? evidence.elementoId,
-          elementoNome: elementoNome ?? evidence.elementoNome,
-          material: material ?? evidence.material,
-          estadoConservacao: estadoConservacao ?? evidence.estadoConservacao,
+          elementoId: resolvedTargetQualifierId ?? evidence.targetQualifierId,
+          elementoNome:
+              selection.targetQualifier ?? evidence.targetQualifierLabel,
+          material: resolvedMaterial ?? evidence.material,
+          estadoConservacao:
+              selection.targetCondition ?? evidence.targetCondition,
           observacao: observacao ?? evidence.observacao,
         );
       }).toList();
@@ -371,6 +487,25 @@ class InspectionState extends ChangeNotifier {
   Future<void> _persistSession() async {
     if (_session == null) return;
     await _localStorageService.saveActiveSession(_session!);
+  }
+
+  String? _resolveTargetQualifierId({
+    required String targetItemId,
+    String? targetQualifierLabel,
+  }) {
+    if (targetQualifierLabel == null || targetQualifierLabel.trim().isEmpty) {
+      return null;
+    }
+    final template = _session?.template.getEnvironmentById(targetItemId);
+    if (template == null) {
+      return null;
+    }
+    for (final qualifier in template.targetQualifiers) {
+      if (qualifier.targetQualifierLabel == targetQualifierLabel) {
+        return qualifier.targetQualifierId;
+      }
+    }
+    return null;
   }
 
   InspectionEnvironmentStatus _calculateEnvironmentStatus(

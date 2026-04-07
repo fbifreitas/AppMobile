@@ -258,6 +258,10 @@ class RankedMenuOption {
               .toList(),
     );
   }
+
+  List<RankedMenuOption> get targetQualifiers => elements;
+  List<RankedMenuOption> get targetQualifierMaterials => materials;
+  List<RankedMenuOption> get targetConditions => states;
 }
 
 class MacroLocalOption extends RankedMenuOption {
@@ -287,6 +291,8 @@ class MacroLocalOption extends RankedMenuOption {
               .toList(),
     );
   }
+
+  List<RankedMenuOption> get targetItems => ambientes;
 }
 
 class PropertyTypeCameraConfig {
@@ -314,6 +320,8 @@ class PropertyTypeCameraConfig {
       levelsBySubtipo: _parseSubtypeLevels(json['levelsBySubtipo']),
     );
   }
+
+  List<MacroLocalOption> get subjectContexts => macroLocals;
 
   List<ConfigLevelDefinition> levelsForSubtype(String subtipo) {
     final key = subtipo.trim().toLowerCase();

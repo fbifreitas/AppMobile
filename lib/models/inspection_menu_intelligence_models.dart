@@ -1,3 +1,5 @@
+import 'flow_selection.dart';
+
 class PredictedSelection {
   final String? elemento;
   final String? material;
@@ -15,6 +17,13 @@ class PredictedSelection {
       (elemento != null && elemento!.trim().isNotEmpty) ||
       (material != null && material!.trim().isNotEmpty) ||
       (estado != null && estado!.trim().isNotEmpty);
+
+  String? get targetQualifier => elemento;
+  String? get targetCondition => estado;
+  Map<String, dynamic> get domainAttributes => <String, dynamic>{
+    if (material != null && material!.trim().isNotEmpty)
+      'inspection.material': material,
+  };
 }
 
 class SuggestedCameraContext {
@@ -31,4 +40,12 @@ class SuggestedCameraContext {
   bool get hasValue =>
       (macroLocal != null && macroLocal!.trim().isNotEmpty) ||
       (ambiente != null && ambiente!.trim().isNotEmpty);
+
+  String? get subjectContext => macroLocal;
+  String? get targetItem => ambiente;
+
+  FlowSelection toSelection() => FlowSelection(
+    subjectContext: subjectContext,
+    targetItem: targetItem,
+  );
 }

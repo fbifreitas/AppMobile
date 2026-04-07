@@ -29,14 +29,25 @@ class AssistiveSuggestionEngine {
       );
     }
 
-    final preferredSubtype = await learningStore.aggregate(context, 'subtipo');
-    final sortedSubtype = preferredSubtype.entries.toList()
+    final preferredSubtype = await learningStore.aggregate(
+      context,
+      'target_item',
+    );
+    final fallbackSubtype =
+        preferredSubtype.isEmpty
+            ? await learningStore.aggregate(context, 'subtipo')
+            : const <String, int>{};
+    final sortedSubtype = (preferredSubtype.isEmpty
+            ? fallbackSubtype
+            : preferredSubtype)
+        .entries
+        .toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     if (sortedSubtype.isNotEmpty) {
       final top = sortedSubtype.first;
       suggestions.add(
         AssistiveSuggestion(
-          id: 'subtipo_${top.key}',
+          id: 'target_item_${top.key}',
           context: context,
           title: 'Subtipo sugerido',
           description: 'O subtipo ${top.key} aparece com maior frequência neste contexto.',
@@ -46,14 +57,25 @@ class AssistiveSuggestionEngine {
       );
     }
 
-    final preferredElemento = await learningStore.aggregate(context, 'elemento');
-    final sortedElemento = preferredElemento.entries.toList()
+    final preferredElemento = await learningStore.aggregate(
+      context,
+      'target_qualifier',
+    );
+    final fallbackElemento =
+        preferredElemento.isEmpty
+            ? await learningStore.aggregate(context, 'elemento')
+            : const <String, int>{};
+    final sortedElemento = (preferredElemento.isEmpty
+            ? fallbackElemento
+            : preferredElemento)
+        .entries
+        .toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     if (sortedElemento.isNotEmpty) {
       final top = sortedElemento.first;
       suggestions.add(
         AssistiveSuggestion(
-          id: 'elemento_${top.key}',
+          id: 'target_qualifier_${top.key}',
           context: context,
           title: 'Elemento sugerido',
           description: 'O elemento ${top.key} é o mais recorrente neste contexto.',

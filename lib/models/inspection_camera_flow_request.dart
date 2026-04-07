@@ -1,4 +1,5 @@
 import 'inspection_capture_context.dart';
+import 'flow_selection.dart';
 
 class InspectionCameraFlowRequest {
   final String title;
@@ -6,16 +7,19 @@ class InspectionCameraFlowRequest {
   final String subtipoImovel;
   final bool singleCaptureMode;
   final bool cameFromCheckinStep1;
-  final InspectionCaptureFlowState captureFlowState;
+  final FlowSelectionState selectionState;
 
   const InspectionCameraFlowRequest({
     required this.title,
     required this.tipoImovel,
     required this.subtipoImovel,
-    required this.captureFlowState,
+    required this.selectionState,
     this.singleCaptureMode = false,
     this.cameFromCheckinStep1 = false,
   });
+
+  InspectionCaptureFlowState get captureFlowState =>
+      InspectionCaptureFlowState.fromCanonical(selectionState);
 
   factory InspectionCameraFlowRequest.bootstrap({
     required String title,
@@ -35,11 +39,11 @@ class InspectionCameraFlowRequest {
       subtipoImovel: subtipoImovel,
       singleCaptureMode: singleCaptureMode,
       cameFromCheckinStep1: cameFromCheckinStep1,
-      captureFlowState: InspectionCaptureFlowState(
+      selectionState: InspectionCaptureFlowState(
         initialSuggested: suggested,
         current: current,
         resume: resumeContext?.hasAnyValue == true ? resumeContext : null,
-      ),
+      ).canonical,
     );
   }
 }

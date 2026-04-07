@@ -17,6 +17,13 @@ class InspectionSurfaceKeys {
   static const String review = 'review';
 }
 
+class InspectionCanonicalFieldKeys {
+  static const String subjectContext = 'subject_context';
+  static const String targetItem = 'target_item';
+  static const String targetQualifier = 'target_qualifier';
+  static const String targetCondition = 'target_condition';
+}
+
 class InspectionSemanticFieldService {
   const InspectionSemanticFieldService();
 
@@ -26,6 +33,8 @@ class InspectionSemanticFieldService {
   static const Map<String, List<String>> _fallbackAliases =
       <String, List<String>>{
         InspectionSemanticFieldKeys.captureContext: <String>[
+          InspectionCanonicalFieldKeys.subjectContext,
+          'subjectContext',
           'contexto',
           'porOndeComecar',
           'por_onde_comecar',
@@ -35,6 +44,8 @@ class InspectionSemanticFieldService {
           'macro_local',
         ],
         InspectionSemanticFieldKeys.photoLocation: <String>[
+          InspectionCanonicalFieldKeys.targetItem,
+          'targetItem',
           'ambiente',
           'local_foto',
           'localFoto',
@@ -42,6 +53,8 @@ class InspectionSemanticFieldService {
           'cameraAmbiente',
         ],
         InspectionSemanticFieldKeys.photoElement: <String>[
+          InspectionCanonicalFieldKeys.targetQualifier,
+          'targetQualifier',
           'elemento',
           'cameraElementoInicial',
           'item',
@@ -49,8 +62,11 @@ class InspectionSemanticFieldService {
         InspectionSemanticFieldKeys.photoMaterial: <String>[
           'material',
           'materiais',
+          'inspection.material',
         ],
         InspectionSemanticFieldKeys.photoState: <String>[
+          InspectionCanonicalFieldKeys.targetCondition,
+          'targetCondition',
           'estado',
           'condicao',
         ],
@@ -62,6 +78,17 @@ class InspectionSemanticFieldService {
     InspectionSemanticFieldKeys.photoElement: 'elemento',
     InspectionSemanticFieldKeys.photoMaterial: 'material',
     InspectionSemanticFieldKeys.photoState: 'estado',
+  };
+
+  static const Map<String, String> _canonicalFieldIds = <String, String>{
+    InspectionSemanticFieldKeys.captureContext:
+        InspectionCanonicalFieldKeys.subjectContext,
+    InspectionSemanticFieldKeys.photoLocation:
+        InspectionCanonicalFieldKeys.targetItem,
+    InspectionSemanticFieldKeys.photoElement:
+        InspectionCanonicalFieldKeys.targetQualifier,
+    InspectionSemanticFieldKeys.photoState:
+        InspectionCanonicalFieldKeys.targetCondition,
   };
 
   String labelForLevel({
@@ -144,6 +171,10 @@ class InspectionSemanticFieldService {
 
   String? cameraLevelIdForSemantic(String semanticKey) {
     return _cameraLevelIds[semanticKey];
+  }
+
+  String? canonicalFieldIdForSemantic(String semanticKey) {
+    return _canonicalFieldIds[semanticKey];
   }
 
   String _normalize(String? value) {

@@ -1,5 +1,5 @@
 import '../models/inspection_camera_selector_section.dart';
-import '../models/inspection_capture_context.dart';
+import '../models/flow_selection.dart';
 import 'inspection_camera_level_presentation_service.dart';
 import 'inspection_context_actions_service.dart';
 
@@ -19,7 +19,7 @@ class InspectionCameraSelectorSectionService {
   List<InspectionCameraSelectorSection> buildSections({
     required List<String> levelOrder,
     required Map<String, String> labelsByLevel,
-    required InspectionCaptureFlowState flowState,
+    required FlowSelectionState selectionState,
     required List<String> macroLocais,
     required List<String> ambientes,
     required List<String> elementos,
@@ -27,7 +27,8 @@ class InspectionCameraSelectorSectionService {
     required List<String> estados,
   }) {
     final sections = <InspectionCameraSelectorSection>[];
-    final current = flowState.current;
+    final current = selectionState.currentSelection;
+    final selectedMaterial = current.attributeText('inspection.material');
 
     for (final levelId in levelOrder) {
       if (!levelPresentationService.isLevelEnabled(
@@ -39,7 +40,7 @@ class InspectionCameraSelectorSectionService {
 
       switch (levelId) {
         case 'macroLocal':
-          if (macroLocais.isEmpty && current.macroLocal == null) {
+          if (macroLocais.isEmpty && current.subjectContext == null) {
             continue;
           }
           sections.add(
@@ -52,13 +53,16 @@ class InspectionCameraSelectorSectionService {
               values:
                   macroLocais.isNotEmpty
                       ? macroLocais
-                      : <String>[if (current.macroLocal != null) current.macroLocal!],
-              selected: current.macroLocal,
+                      : <String>[
+                        if (current.subjectContext != null)
+                          current.subjectContext!,
+                      ],
+              selected: current.subjectContext,
             ),
           );
           break;
         case 'ambiente':
-          if (current.macroLocal == null) {
+          if (current.subjectContext == null) {
             continue;
           }
           sections.add(
@@ -69,22 +73,22 @@ class InspectionCameraSelectorSectionService {
                 labelsByLevel: labelsByLevel,
               ),
               values: ambientes,
-              selected: current.ambiente,
+              selected: current.targetItem,
               allowVoiceSelection:
-                  current.ambiente != null && ambientes.isNotEmpty,
+                  current.targetItem != null && ambientes.isNotEmpty,
               allowDuplicate:
-                  current.ambiente != null &&
-                  current.ambiente!.trim().isNotEmpty,
+                  current.targetItem != null &&
+                  current.targetItem!.trim().isNotEmpty,
               duplicateLabel:
                   contextActionsService.duplicateActionLabelFor(
-                    current.ambiente,
+                    current.targetItem,
                   ) ??
                   'Novo ambiente',
             ),
           );
           break;
         case 'elemento':
-          if (current.ambiente == null || elementos.isEmpty) {
+          if (current.targetItem == null || elementos.isEmpty) {
             continue;
           }
           sections.add(
@@ -95,12 +99,12 @@ class InspectionCameraSelectorSectionService {
                 labelsByLevel: labelsByLevel,
               ),
               values: elementos,
-              selected: current.elemento,
+              selected: current.targetQualifier,
             ),
           );
           break;
         case 'material':
-          if (current.elemento == null || materiais.isEmpty) {
+          if (current.targetQualifier == null || materiais.isEmpty) {
             continue;
           }
           sections.add(
@@ -111,13 +115,13 @@ class InspectionCameraSelectorSectionService {
                 labelsByLevel: labelsByLevel,
               ),
               values: materiais,
-              selected: current.material,
+              selected: selectedMaterial,
             ),
           );
           break;
         case 'estado':
-          if (current.elemento == null ||
-              (materiais.isNotEmpty && current.material == null)) {
+          if (current.targetQualifier == null ||
+              (materiais.isNotEmpty && selectedMaterial == null)) {
             continue;
           }
           sections.add(
@@ -128,7 +132,7 @@ class InspectionCameraSelectorSectionService {
                 labelsByLevel: labelsByLevel,
               ),
               values: estados,
-              selected: current.estado,
+              selected: current.targetCondition,
             ),
           );
           break;

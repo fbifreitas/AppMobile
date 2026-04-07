@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/flow_selection.dart';
 import '../models/inspection_session_model.dart';
 import '../models/inspection_template_model.dart';
 import '../services/inspection_capture_service.dart';
@@ -16,7 +17,7 @@ class CameraFlowScreen extends StatefulWidget {
 class _CameraFlowScreenState extends State<CameraFlowScreen> {
   String? _selectedElementId;
   String? _selectedMaterial;
-  String? _selectedEstado;
+  String? _selectedCondition; // maps to FlowSelection.targetCondition
   bool _busy = false;
 
   @override
@@ -33,16 +34,16 @@ class _CameraFlowScreenState extends State<CameraFlowScreen> {
     return Consumer<InspectionState>(
       builder: (context, inspectionState, _) {
         final session = inspectionState.session;
-        final ambiente = inspectionState.getSelectedEnvironment();
+        final activeEnv = inspectionState.getSelectedTargetItem();
 
-        if (session == null || ambiente == null) {
+        if (session == null || activeEnv == null) {
           return const Scaffold(
             body: Center(child: Text('Nenhum ambiente selecionado.')),
           );
         }
 
         final template =
-            session.template.getEnvironmentById(ambiente.ambienteId);
+            session.template.getEnvironmentById(activeEnv.targetItemId);
 
         return Scaffold(
           appBar: AppBar(
@@ -69,7 +70,7 @@ class _CameraFlowScreenState extends State<CameraFlowScreen> {
                 Column(
                   children: [
                     _WhereAmICard(
-                      ambiente: ambiente,
+                      ambiente: activeEnv,
                       onChangeEnvironment: () {
                         _showEnvironmentPicker(
                           context,
@@ -120,7 +121,7 @@ class _CameraFlowScreenState extends State<CameraFlowScreen> {
                                       setState(() {
                                         _selectedElementId = elemento.id;
                                         _selectedMaterial = null;
-                                        _selectedEstado = null;
+                                        _selectedCondition = null;
                                       });
                                     },
                                   );
@@ -130,7 +131,7 @@ class _CameraFlowScreenState extends State<CameraFlowScreen> {
                               if (_selectedElementId != null) ...[
                                 _buildMaterialSection(template),
                                 const SizedBox(height: 16),
-                                _buildEstadoSection(template),
+                                _buildConditionSection(template),
                                 const SizedBox(height: 20),
                               ],
                             ],
@@ -139,19 +140,17 @@ class _CameraFlowScreenState extends State<CameraFlowScreen> {
                               busy: _busy,
                               onCamera: session.gpsEnabled && !_busy
                                   ? () async {
-                                      final element =
-                                          _getSelectedElement(template);
+                                      final selection = _buildCurrentSelection(
+                                        activeEnv: activeEnv,
+                                        template: template,
+                                      );
 
                                       await _runBusyAction(
                                         action: () => context
                                             .read<InspectionState>()
-                                            .captureEvidenceFromCamera(
-                                              ambienteId: ambiente.ambienteId,
-                                              elementoId: element?.id,
-                                              elementoNome: element?.nome,
-                                              material: _selectedMaterial,
-                                              estadoConservacao:
-                                                  _selectedEstado,
+                                            .captureEvidenceForSelection(
+                                              targetItemId: activeEnv.targetItemId,
+                                              selection: selection,
                                             ),
                                         successMessage:
                                             'Foto capturada com sucesso.',
@@ -162,19 +161,17 @@ class _CameraFlowScreenState extends State<CameraFlowScreen> {
                                       session.template.auditRules.galleryAllowed &&
                                       !_busy
                                   ? () async {
-                                      final element =
-                                          _getSelectedElement(template);
+                                      final selection = _buildCurrentSelection(
+                                        activeEnv: activeEnv,
+                                        template: template,
+                                      );
 
                                       await _runBusyAction(
                                         action: () => context
                                             .read<InspectionState>()
-                                            .captureEvidenceFromGallery(
-                                              ambienteId: ambiente.ambienteId,
-                                              elementoId: element?.id,
-                                              elementoNome: element?.nome,
-                                              material: _selectedMaterial,
-                                              estadoConservacao:
-                                                  _selectedEstado,
+                                            .captureEvidenceFromGalleryForSelection(
+                                              targetItemId: activeEnv.targetItemId,
+                                              selection: selection,
                                             ),
                                         successMessage:
                                             'Imagem da galeria vinculada com sucesso.',
@@ -184,10 +181,10 @@ class _CameraFlowScreenState extends State<CameraFlowScreen> {
                             ),
                             const SizedBox(height: 24),
                             _EvidenceList(
-                              ambiente: ambiente,
+                              ambiente: activeEnv,
                               onDelete: (evidenceId) {
                                 inspectionState.removeEvidence(
-                                  ambienteId: ambiente.ambienteId,
+                                  ambienteId: activeEnv.targetItemId,
                                   evidenceId: evidenceId,
                                 );
                               },
@@ -277,12 +274,12 @@ class _CameraFlowScreenState extends State<CameraFlowScreen> {
     );
   }
 
-  Widget _buildEstadoSection(EnvironmentTemplate template) {
+  Widget _buildConditionSection(EnvironmentTemplate template) {
     final selectedElement = _getSelectedElement(template);
-    final estados =
+    final conditions =
         selectedElement?.estadosConservacao ?? const <String>[];
 
-    if (estados.isEmpty) return const SizedBox.shrink();
+    if (conditions.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -297,13 +294,13 @@ class _CameraFlowScreenState extends State<CameraFlowScreen> {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: estados.map((estado) {
+          children: conditions.map((condition) {
             return ChoiceChip(
-              label: Text(estado),
-              selected: _selectedEstado == estado,
+              label: Text(condition),
+              selected: _selectedCondition == condition,
               onSelected: (_) {
                 setState(() {
-                  _selectedEstado = estado;
+                  _selectedCondition = condition;
                 });
               },
             );
@@ -323,6 +320,22 @@ class _CameraFlowScreenState extends State<CameraFlowScreen> {
     } catch (_) {
       return null;
     }
+  }
+
+  FlowSelection _buildCurrentSelection({
+    required InspectionEnvironmentProgress activeEnv,
+    required EnvironmentTemplate? template,
+  }) {
+    final selectedElement = _getSelectedElement(template);
+    return FlowSelection(
+      targetItem: activeEnv.targetItemLabel,
+      targetQualifier: selectedElement?.targetQualifierLabel,
+      targetCondition: _selectedCondition,
+      domainAttributes: <String, dynamic>{
+        if (_selectedMaterial != null && _selectedMaterial!.trim().isNotEmpty)
+          'inspection.material': _selectedMaterial,
+      },
+    );
   }
 
   Future<void> _showEnvironmentPicker(
@@ -358,12 +371,12 @@ class _CameraFlowScreenState extends State<CameraFlowScreen> {
                         ),
                   ),
                   const SizedBox(height: 12),
-                  ...session.ambientes.map((ambiente) {
+                  ...session.targetItems.map((env) {
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: Text(ambiente.ambienteNome),
+                      title: Text(env.targetItemLabel),
                       onTap: () {
-                        inspectionState.selectEnvironment(ambiente.ambienteId);
+                        inspectionState.selectTargetItem(env.targetItemId);
                         Navigator.pop(context);
                       },
                     );
@@ -452,7 +465,7 @@ class _WhereAmICard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  ambiente.ambienteNome,
+                  ambiente.targetItemLabel,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -656,7 +669,9 @@ class _EvidenceList extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(evidence.elementoNome ?? 'Sem elemento definido'),
+                      Text(
+                        evidence.targetQualifierLabel ?? 'Sem item definido',
+                      ),
                       const SizedBox(height: 4),
                       Text(
                         '${evidence.source == EvidenceSource.camera ? 'Câmera' : 'Galeria'} • ${evidence.geoPoint.capturedAt}',

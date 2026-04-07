@@ -1,6 +1,7 @@
 import '../models/inspection_camera_flow_request.dart';
 import '../models/inspection_capture_context.dart';
 import '../models/overlay_camera_capture_result.dart';
+import '../models/flow_selection.dart';
 
 class InspectionCaptureRecoveryAdapter {
   const InspectionCaptureRecoveryAdapter._();
@@ -34,6 +35,16 @@ class InspectionCaptureRecoveryAdapter {
     return null;
   }
 
+  FlowSelection? resolveResumeSelection({
+    required List<OverlayCameraCaptureResult> currentCaptures,
+    required Map<String, dynamic> inspectionRecoveryPayload,
+  }) {
+    return resolveResumeContext(
+      currentCaptures: currentCaptures,
+      inspectionRecoveryPayload: inspectionRecoveryPayload,
+    )?.selection;
+  }
+
   Map<String, dynamic> serializeContext(InspectionCaptureContext? context) {
     if (context == null || !context.hasAnyValue) {
       return const <String, dynamic>{};
@@ -41,17 +52,24 @@ class InspectionCaptureRecoveryAdapter {
     return context.toMap();
   }
 
+  Map<String, dynamic> serializeSelection(FlowSelection? selection) {
+    if (selection == null || !selection.hasAnyValue) {
+      return const <String, dynamic>{};
+    }
+    return selection.toMap(includeCanonical: true, includeLegacy: true);
+  }
+
   InspectionCaptureContext contextFromCapture(
     OverlayCameraCaptureResult capture,
   ) {
     return InspectionCaptureContext(
-      macroLocal: capture.macroLocal,
-      ambiente: capture.ambiente,
+      macroLocal: capture.subjectContext,
+      ambiente: capture.targetItem,
       ambienteBase: capture.ambienteBase,
       ambienteInstanceIndex: capture.ambienteInstanceIndex,
-      elemento: capture.elemento,
+      elemento: capture.targetQualifier,
       material: capture.material,
-      estado: capture.estado,
+      estado: capture.targetCondition,
     );
   }
 
@@ -101,6 +119,32 @@ class InspectionCaptureRecoveryAdapter {
     ];
   }
 
+  bool hasPersistedPhotos({
+    required Map<String, dynamic> step2Payload,
+    required Map<String, dynamic> inspectionRecoveryPayload,
+  }) {
+    if (readPersistedReviewCaptures(inspectionRecoveryPayload).isNotEmpty) {
+      return true;
+    }
+
+    final fotos = step2Payload['fotos'];
+    if (fotos is! Map) {
+      return false;
+    }
+
+    for (final value in fotos.values) {
+      if (value is! Map) {
+        continue;
+      }
+      final hasImage = value['hasImage'] == true;
+      final imagePath = value['imagePath']?.toString().trim();
+      if (hasImage || (imagePath != null && imagePath.isNotEmpty)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   InspectionCameraFlowRequest buildCameraFlowRequest({
     required String title,
     required String tipoImovel,
@@ -111,17 +155,64 @@ class InspectionCaptureRecoveryAdapter {
     required List<OverlayCameraCaptureResult> currentCaptures,
     required Map<String, dynamic> inspectionRecoveryPayload,
   }) {
+    return buildCameraFlowRequestFromSelection(
+      title: title,
+      tipoImovel: tipoImovel,
+      subtipoImovel: subtipoImovel,
+      singleCaptureMode: singleCaptureMode,
+      cameFromCheckinStep1: cameFromCheckinStep1,
+      initialSelection: initialContext?.selection,
+      currentCaptures: currentCaptures,
+      inspectionRecoveryPayload: inspectionRecoveryPayload,
+    );
+  }
+
+  InspectionCameraFlowRequest buildCameraFlowRequestFromSelection({
+    required String title,
+    required String tipoImovel,
+    required String subtipoImovel,
+    bool singleCaptureMode = false,
+    bool cameFromCheckinStep1 = false,
+    FlowSelection? initialSelection,
+    required List<OverlayCameraCaptureResult> currentCaptures,
+    required Map<String, dynamic> inspectionRecoveryPayload,
+  }) {
+    final resumeSelection = resolveResumeSelection(
+      currentCaptures: currentCaptures,
+      inspectionRecoveryPayload: inspectionRecoveryPayload,
+    );
     return InspectionCameraFlowRequest.bootstrap(
       title: title,
       tipoImovel: tipoImovel,
       subtipoImovel: subtipoImovel,
       singleCaptureMode: singleCaptureMode,
       cameFromCheckinStep1: cameFromCheckinStep1,
-      initialContext: initialContext,
-      resumeContext: resolveResumeContext(
-        currentCaptures: currentCaptures,
-        inspectionRecoveryPayload: inspectionRecoveryPayload,
-      ),
+      initialContext:
+          initialSelection == null
+              ? null
+              : InspectionCaptureContext.canonical(
+                subjectContext: initialSelection.subjectContext,
+                targetItem: initialSelection.targetItem,
+                targetItemBase: initialSelection.targetItemBase,
+                targetItemInstanceIndex:
+                    initialSelection.targetItemInstanceIndex,
+                targetQualifier: initialSelection.targetQualifier,
+                targetCondition: initialSelection.targetCondition,
+                domainAttributes: initialSelection.domainAttributes,
+              ),
+      resumeContext:
+          resumeSelection == null
+              ? null
+              : InspectionCaptureContext.canonical(
+                subjectContext: resumeSelection.subjectContext,
+                targetItem: resumeSelection.targetItem,
+                targetItemBase: resumeSelection.targetItemBase,
+                targetItemInstanceIndex:
+                    resumeSelection.targetItemInstanceIndex,
+                targetQualifier: resumeSelection.targetQualifier,
+                targetCondition: resumeSelection.targetCondition,
+                domainAttributes: resumeSelection.domainAttributes,
+              ),
     );
   }
 
@@ -139,8 +230,8 @@ class InspectionCaptureRecoveryAdapter {
       'capturesRevisadas': reviewedCaptures,
     };
 
-    final serializedContext = serializeContext(
-      resolveResumeContext(
+    final serializedContext = serializeSelection(
+      resolveResumeSelection(
         currentCaptures: currentCaptures,
         inspectionRecoveryPayload: inspectionRecoveryPayload,
       ),

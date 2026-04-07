@@ -4,7 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 
 import '../config/inspection_menu_package.dart';
-import '../models/checkin_step2_model.dart';
+import '../models/flow_selection.dart';
 import '../models/inspection_camera_menu_view_state.dart';
 import '../models/inspection_camera_selector_section.dart';
 import '../models/inspection_capture_context.dart';
@@ -119,8 +119,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   bool _loadingMenus = true;
   String? _error;
 
-  InspectionCaptureFlowState _captureFlowState =
-      InspectionCaptureFlowState.bootstrap();
+  FlowSelectionState _selectionState = FlowSelectionState.bootstrap();
 
   List<String> _macroLocais = const [];
   List<String> _ambientesAtuais = const [];
@@ -153,38 +152,34 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   }
 
   bool get _showMacroLocalSelector =>
-      _captureFlowState.initialSuggested.macroLocal == null;
-
-  InspectionCaptureContext get _initialSuggestedContext =>
-      _captureFlowState.initialSuggested;
+      _selectionState.initialSuggestedSelection.subjectContext == null;
 
   bool get _hasAnyCaptures => _captures.isNotEmpty || _hasPreviousPhotos;
 
-  String? get _macroLocal => _captureFlowState.current.macroLocal;
-  String? get _ambiente => _captureFlowState.current.ambiente;
-  String? get _elemento => _captureFlowState.current.elemento;
-  String? get _material => _captureFlowState.current.material;
-  String? get _estado => _captureFlowState.current.estado;
+  String? get _macroLocal => _selectionState.currentSelection.subjectContext;
+  String? get _ambiente => _selectionState.currentSelection.targetItem;
+  String? get _elemento => _selectionState.currentSelection.targetQualifier;
+  String? get _material =>
+      _selectionState.currentSelection.attributeText('inspection.material');
+  String? get _estado => _selectionState.currentSelection.targetCondition;
 
   @override
   void initState() {
     super.initState();
-    _captureFlowState =
-        widget.initialFlowState ?? InspectionCaptureFlowState.bootstrap();
+    _selectionState =
+        widget.initialFlowState?.canonical ?? FlowSelectionState.bootstrap();
     _setup();
-    if (widget.cameFromCheckinStep1) {
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => _loadPreviousPhotosState(),
-      );
-    }
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _loadPreviousPhotosState(),
+    );
   }
 
   Future<void> _setup() async {
     try {
       if (widget.useTestMenuData) {
         if (!mounted) return;
-        final flowState =
-            widget.initialFlowState ?? InspectionCaptureFlowState.bootstrap();
+        final selectionState =
+            widget.initialFlowState?.canonical ?? FlowSelectionState.bootstrap();
         final levelOrder = _normalizeCameraLevels(
           widget.testCameraLevelOrder ?? const <String>[],
         );
@@ -195,7 +190,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
         final materiais = List<String>.from(widget.testMateriais);
         final estados = List<String>.from(widget.testEstados);
         setState(() {
-          _captureFlowState = flowState;
+          _selectionState = selectionState;
           _cameraLevelOrder = levelOrder;
           _cameraLevelLabels = labels;
           _macroLocais = macroLocais;
@@ -206,7 +201,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
           _selectorSections = _selectorSectionService.buildSections(
             levelOrder: _cameraLevelOrder,
             labelsByLevel: _cameraLevelLabels,
-            flowState: _captureFlowState,
+            selectionState: _selectionState,
             macroLocais: _macroLocais,
             ambientes: _ambientesAtuais,
             elementos: _elementosAtuais,
@@ -282,8 +277,8 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       propertyType: widget.tipoImovel,
       showMacroLocalSelector: _showMacroLocalSelector,
       initialLoad: initialLoad,
-      initialSuggestedContext: _initialSuggestedContext,
-      currentContext: _captureFlowState.current,
+      initialSuggestedSelection: _selectionState.initialSuggestedSelection,
+      currentSelection: _selectionState.currentSelection,
     );
 
     if (!mounted) return;
@@ -303,11 +298,13 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     _recentElementos = viewState.recentElementos;
     _predictedSelection = viewState.prediction;
     _contextSuggestionSummary = viewState.contextSuggestionSummary;
-    _captureFlowState = _captureFlowState.copyWith(current: viewState.currentContext);
+    _selectionState = _selectionState.copyWith(
+      currentSelection: viewState.currentSelection,
+    );
     _selectorSections = _selectorSectionService.buildSections(
       levelOrder: _cameraLevelOrder,
       labelsByLevel: _cameraLevelLabels,
-      flowState: _captureFlowState,
+      selectionState: _selectionState,
       macroLocais: _macroLocais,
       ambientes: _ambientesAtuais,
       elementos: _elementosAtuais,
@@ -320,7 +317,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     _selectorSections = _selectorSectionService.buildSections(
       levelOrder: _cameraLevelOrder,
       labelsByLevel: _cameraLevelLabels,
-      flowState: _captureFlowState,
+      selectionState: _selectionState,
       macroLocais: _macroLocais,
       ambientes: _ambientesAtuais,
       elementos: _elementosAtuais,
@@ -347,11 +344,11 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   Future<void> _selectMacroLocal(String value) async {
     final result = await _flowTransitionService.selectMacroLocal(
       propertyType: widget.tipoImovel,
-      flowState: _captureFlowState,
+      selectionState: _selectionState,
       value: value,
     );
     setState(() {
-      _captureFlowState = result.flowState;
+      _selectionState = result.selectionState;
       _rebuildSelectorSections();
     });
     await _reloadMenus();
@@ -360,12 +357,12 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   Future<void> _selectAmbiente(String value) async {
     final result = await _flowTransitionService.selectAmbiente(
       propertyType: widget.tipoImovel,
-      flowState: _captureFlowState,
+      selectionState: _selectionState,
       macroLocal: _macroLocal,
       value: value,
     );
     setState(() {
-      _captureFlowState = result.flowState;
+      _selectionState = result.selectionState;
       _rebuildSelectorSections();
     });
     await _reloadMenus();
@@ -374,7 +371,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   Future<void> _duplicateCurrentAmbiente() async {
     final result = await _flowTransitionService.duplicateAmbiente(
       propertyType: widget.tipoImovel,
-      flowState: _captureFlowState,
+      selectionState: _selectionState,
       macroLocal: _macroLocal,
       selectedAmbiente: _ambiente,
       existingAmbientes: _ambientesAtuais,
@@ -386,7 +383,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
 
     setState(() {
       _ambientesAtuais = result.ambientes ?? _ambientesAtuais;
-      _captureFlowState = result.flowState;
+      _selectionState = result.selectionState;
       _rebuildSelectorSections();
     });
 
@@ -400,13 +397,13 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   Future<void> _selectElemento(String value) async {
     final result = await _flowTransitionService.selectElemento(
       propertyType: widget.tipoImovel,
-      flowState: _captureFlowState,
+      selectionState: _selectionState,
       macroLocal: _macroLocal,
       ambiente: _ambiente,
       value: value,
     );
     setState(() {
-      _captureFlowState = result.flowState;
+      _selectionState = result.selectionState;
       _rebuildSelectorSections();
     });
     await _reloadMenus();
@@ -414,22 +411,22 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
 
   Future<void> _selectMaterial(String value) async {
     final result = _flowTransitionService.selectMaterial(
-      flowState: _captureFlowState,
+      selectionState: _selectionState,
       value: value,
     );
     setState(() {
-      _captureFlowState = result.flowState;
+      _selectionState = result.selectionState;
       _rebuildSelectorSections();
     });
   }
 
   Future<void> _selectEstado(String value) async {
     final result = _flowTransitionService.selectEstado(
-      flowState: _captureFlowState,
+      selectionState: _selectionState,
       value: value,
     );
     setState(() {
-      _captureFlowState = result.flowState;
+      _selectionState = result.selectionState;
       _rebuildSelectorSections();
     });
   }
@@ -497,10 +494,17 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
 
   void _loadPreviousPhotosState() {
     if (!mounted) return;
-    final step2 = Provider.of<AppState>(context, listen: false).step2Payload;
-    if (step2.isEmpty) return;
-    final model = CheckinStep2Model.fromMap(step2);
-    if (model.fotos.values.any((f) => f.hasImage)) {
+    AppState appState;
+    try {
+      appState = Provider.of<AppState>(context, listen: false);
+    } on ProviderNotFoundException {
+      return;
+    }
+    final hasPreviousPhotos = _captureRecoveryAdapter.hasPersistedPhotos(
+      step2Payload: appState.step2Payload,
+      inspectionRecoveryPayload: appState.inspectionRecoveryPayload,
+    );
+    if (hasPreviousPhotos) {
       setState(() => _hasPreviousPhotos = true);
     }
   }

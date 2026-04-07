@@ -116,6 +116,26 @@ class InspectionCaptureService {
     );
   }
 
+  Future<PhotoEvidence> captureCameraEvidenceForSelection({
+    required InspectionSession session,
+    required String targetItemId,
+    required String targetItemLabel,
+    String? targetQualifierId,
+    String? targetQualifierLabel,
+    String? targetCondition,
+    Map<String, dynamic> domainAttributes = const <String, dynamic>{},
+  }) {
+    return captureCameraEvidence(
+      session: session,
+      ambienteId: targetItemId,
+      ambienteNome: targetItemLabel,
+      elementoId: targetQualifierId,
+      elementoNome: targetQualifierLabel,
+      material: _materialFromAttributes(domainAttributes),
+      estadoConservacao: targetCondition,
+    );
+  }
+
   Future<PhotoEvidence> pickGalleryEvidence({
     required InspectionSession session,
     required String ambienteId,
@@ -161,6 +181,26 @@ class InspectionCaptureService {
       geoPoint: exifGeo,
       isValidForAudit: true,
       importedFromGallery: true,
+    );
+  }
+
+  Future<PhotoEvidence> pickGalleryEvidenceForSelection({
+    required InspectionSession session,
+    required String targetItemId,
+    required String targetItemLabel,
+    String? targetQualifierId,
+    String? targetQualifierLabel,
+    String? targetCondition,
+    Map<String, dynamic> domainAttributes = const <String, dynamic>{},
+  }) {
+    return pickGalleryEvidence(
+      session: session,
+      ambienteId: targetItemId,
+      ambienteNome: targetItemLabel,
+      elementoId: targetQualifierId,
+      elementoNome: targetQualifierLabel,
+      material: _materialFromAttributes(domainAttributes),
+      estadoConservacao: targetCondition,
     );
   }
 
@@ -278,5 +318,11 @@ class InspectionCaptureService {
         );
 
     return DateTime.tryParse(normalized);
+  }
+
+  String? _materialFromAttributes(Map<String, dynamic> attributes) {
+    final value = attributes['inspection.material'];
+    final text = value == null ? '' : '$value'.trim();
+    return text.isEmpty ? null : text;
   }
 }

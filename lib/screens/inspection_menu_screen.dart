@@ -89,14 +89,14 @@ class InspectionMenuScreen extends StatelessWidget {
               Expanded(
                 child: ListView.separated(
                   padding: const EdgeInsets.all(16),
-                  itemCount: session.ambientes.length,
+                  itemCount: session.targetItems.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
-                    final ambiente = session.ambientes[index];
+                    final ambiente = session.targetItems[index];
                     return _EnvironmentCard(
                       ambiente: ambiente,
                       onOpen: () {
-                        inspectionState.selectEnvironment(ambiente.ambienteId);
+                        inspectionState.selectTargetItem(ambiente.targetItemId);
                         flowCoordinator.openCameraFlow(context);
                       },
                     );

@@ -1,4 +1,5 @@
 import '../config/inspection_menu_package.dart';
+import '../models/flow_selection.dart';
 import '../models/inspection_menu_intelligence_models.dart';
 
 class InspectionMenuIntelligenceService {
@@ -26,6 +27,22 @@ class InspectionMenuIntelligenceService {
     );
   }
 
+  String? getSuggestedSubjectContext({
+    required FeatureFlagsConfig featureFlags,
+    required PredictionPolicyConfig predictionPolicy,
+    required Map<String, dynamic> usage,
+    required String propertyType,
+    List<String> availableSubjectContexts = const [],
+  }) {
+    return getSuggestedMacroLocal(
+      featureFlags: featureFlags,
+      predictionPolicy: predictionPolicy,
+      usage: usage,
+      propertyType: propertyType,
+      availableMacroLocals: availableSubjectContexts,
+    );
+  }
+
   String? getSuggestedAmbiente({
     required FeatureFlagsConfig featureFlags,
     required PredictionPolicyConfig predictionPolicy,
@@ -47,6 +64,24 @@ class InspectionMenuIntelligenceService {
     );
   }
 
+  String? getSuggestedTargetItem({
+    required FeatureFlagsConfig featureFlags,
+    required PredictionPolicyConfig predictionPolicy,
+    required Map<String, dynamic> usage,
+    required String propertyType,
+    required String subjectContext,
+    List<String> availableTargetItems = const [],
+  }) {
+    return getSuggestedAmbiente(
+      featureFlags: featureFlags,
+      predictionPolicy: predictionPolicy,
+      usage: usage,
+      propertyType: propertyType,
+      macroLocal: subjectContext,
+      availableAmbientes: availableTargetItems,
+    );
+  }
+
   List<String> getRecentAmbienteSuggestions({
     required FeatureFlagsConfig featureFlags,
     required PredictionPolicyConfig predictionPolicy,
@@ -65,6 +100,24 @@ class InspectionMenuIntelligenceService {
           'camera_confirmed.${propertyType.toLowerCase()}.$macroLocal.ambiente',
       allowed: availableAmbientes,
       limit: predictionPolicy.maxRecentAmbienteSuggestions,
+    );
+  }
+
+  List<String> getRecentTargetItemSuggestions({
+    required FeatureFlagsConfig featureFlags,
+    required PredictionPolicyConfig predictionPolicy,
+    required Map<String, dynamic> usage,
+    required String propertyType,
+    required String subjectContext,
+    List<String> availableTargetItems = const [],
+  }) {
+    return getRecentAmbienteSuggestions(
+      featureFlags: featureFlags,
+      predictionPolicy: predictionPolicy,
+      usage: usage,
+      propertyType: propertyType,
+      macroLocal: subjectContext,
+      availableAmbientes: availableTargetItems,
     );
   }
 
@@ -114,6 +167,26 @@ class InspectionMenuIntelligenceService {
       confidenceSignals: confidenceSignals,
     );
     return suggestion.hasValue ? suggestion : null;
+  }
+
+  SuggestedCameraContext? getSuggestedSelection({
+    required FeatureFlagsConfig featureFlags,
+    required PredictionPolicyConfig predictionPolicy,
+    required Map<String, dynamic> usage,
+    required String propertyType,
+    FlowSelection currentSelection = FlowSelection.empty,
+    List<String> availableSubjectContexts = const [],
+    List<String> availableTargetItems = const [],
+  }) {
+    return getSuggestedContext(
+      featureFlags: featureFlags,
+      predictionPolicy: predictionPolicy,
+      usage: usage,
+      propertyType: propertyType,
+      availableMacroLocals: availableSubjectContexts,
+      macroLocal: currentSelection.subjectContext,
+      availableAmbientes: availableTargetItems,
+    );
   }
 
   PredictedSelection? getPrediction({
@@ -178,6 +251,33 @@ class InspectionMenuIntelligenceService {
     return value.hasAnyValue ? value : null;
   }
 
+  PredictedSelection? getPredictionForSelection({
+    required FeatureFlagsConfig featureFlags,
+    required PredictionPolicyConfig predictionPolicy,
+    required Map<String, dynamic> prediction,
+    required String propertyType,
+    required FlowSelection selection,
+    List<String> availableTargetQualifiers = const [],
+    List<String> availableTargetQualifierMaterials = const [],
+    List<String> availableTargetConditions = const [],
+  }) {
+    final targetItem = selection.targetItem;
+    if (targetItem == null || targetItem.trim().isEmpty) {
+      return null;
+    }
+    return getPrediction(
+      featureFlags: featureFlags,
+      predictionPolicy: predictionPolicy,
+      prediction: prediction,
+      propertyType: propertyType,
+      macroLocal: selection.subjectContext,
+      ambiente: targetItem,
+      availableElementos: availableTargetQualifiers,
+      availableMateriais: availableTargetQualifierMaterials,
+      availableEstados: availableTargetConditions,
+    );
+  }
+
   List<String> getRecentElementSuggestions({
     required FeatureFlagsConfig featureFlags,
     required PredictionPolicyConfig predictionPolicy,
@@ -213,6 +313,29 @@ class InspectionMenuIntelligenceService {
       if (results.length >= predictionPolicy.maxRecentSuggestions) break;
     }
     return results;
+  }
+
+  List<String> getRecentTargetQualifierSuggestions({
+    required FeatureFlagsConfig featureFlags,
+    required PredictionPolicyConfig predictionPolicy,
+    required Map<String, dynamic> prediction,
+    required String propertyType,
+    required FlowSelection selection,
+    List<String> availableTargetQualifiers = const [],
+  }) {
+    final targetItem = selection.targetItem;
+    if (targetItem == null || targetItem.trim().isEmpty) {
+      return const <String>[];
+    }
+    return getRecentElementSuggestions(
+      featureFlags: featureFlags,
+      predictionPolicy: predictionPolicy,
+      prediction: prediction,
+      propertyType: propertyType,
+      macroLocal: selection.subjectContext,
+      ambiente: targetItem,
+      availableElementos: availableTargetQualifiers,
+    );
   }
 
   String predictionContextKey({
@@ -284,6 +407,22 @@ class InspectionMenuIntelligenceService {
         value: estado,
       );
     }
+  }
+
+  void registerConfirmedSelectionUsage({
+    required Map<String, dynamic> usage,
+    required String propertyType,
+    required FlowSelection selection,
+  }) {
+    registerConfirmedUsage(
+      usage: usage,
+      propertyType: propertyType,
+      macroLocal: selection.subjectContext,
+      ambiente: selection.targetItem ?? '',
+      elemento: selection.targetQualifier,
+      material: selection.attributeText('inspection.material'),
+      estado: selection.targetCondition,
+    );
   }
 
   static DateTime? _parseDate(Object? value) {

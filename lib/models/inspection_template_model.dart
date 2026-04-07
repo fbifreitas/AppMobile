@@ -151,6 +151,11 @@ class ElementTemplate {
       'estadosConservacao': estadosConservacao,
     };
   }
+
+  String get targetQualifierId => id;
+  String get targetQualifierLabel => nome;
+  List<String> get targetQualifierMaterialOptions => materiais;
+  List<String> get targetConditionOptions => estadosConservacao;
 }
 
 class EnvironmentTemplate {
@@ -198,6 +203,10 @@ class EnvironmentTemplate {
       'elementos': elementos.map((e) => e.toMap()).toList(),
     };
   }
+
+  String get targetItemId => id;
+  String get targetItemLabel => nome;
+  List<ElementTemplate> get targetQualifiers => elementos;
 }
 
 class InspectionTemplate {
@@ -254,6 +263,8 @@ class InspectionTemplate {
       return null;
     }
   }
+
+  List<EnvironmentTemplate> get targetItems => ambientes;
 }
 
 class InspectionTemplateFactory {

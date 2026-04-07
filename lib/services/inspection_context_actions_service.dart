@@ -1,24 +1,22 @@
 import 'inspection_environment_instance_service.dart';
+import 'inspection_domain_adapter.dart';
 
 class InspectionContextActionsService {
   const InspectionContextActionsService({
     InspectionEnvironmentInstanceService environmentInstanceService =
         InspectionEnvironmentInstanceService.instance,
-  }) : _environmentInstanceService = environmentInstanceService;
+    InspectionDomainAdapter domainAdapter = InspectionDomainAdapter.instance,
+  }) : _environmentInstanceService = environmentInstanceService,
+       _domainAdapter = domainAdapter;
 
   static const InspectionContextActionsService instance =
       InspectionContextActionsService();
 
   final InspectionEnvironmentInstanceService _environmentInstanceService;
+  final InspectionDomainAdapter _domainAdapter;
 
   String? duplicateActionLabelFor(String? selectedAmbiente) {
-    final parsed = _environmentInstanceService.parse(selectedAmbiente);
-    final baseLabel = parsed.baseLabel.trim();
-    if (baseLabel.isEmpty) {
-      return null;
-    }
-    final prefix = baseLabel.toLowerCase().endsWith('a') ? 'Nova' : 'Novo';
-    return '$prefix $baseLabel';
+    return _domainAdapter.duplicateActionLabelFor(selectedAmbiente);
   }
 
   String nextDuplicatedAmbienteLabel({

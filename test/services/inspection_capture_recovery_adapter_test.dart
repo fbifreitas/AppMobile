@@ -107,6 +107,21 @@ void main() {
     expect((payload['cameraContext'] as Map<String, dynamic>)['ambiente'], 'Quarto 2');
   });
 
+  test('detects persisted photos from review payload even without current batch', () {
+    final hasPersisted = adapter.hasPersistedPhotos(
+      step2Payload: const <String, dynamic>{},
+      inspectionRecoveryPayload: <String, dynamic>{
+        'review': <String, dynamic>{
+          'captures': <Map<String, dynamic>>[
+            capture(filePath: '/tmp/1.jpg', ambiente: 'Quarto').toMap(),
+          ],
+        },
+      },
+    );
+
+    expect(hasPersisted, isTrue);
+  });
+
   test('merges persisted review captures with current batch without duplicating filePath', () {
     final merged = adapter.mergeReviewCaptures(
       currentCaptures: <OverlayCameraCaptureResult>[

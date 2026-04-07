@@ -1,6 +1,7 @@
 import 'package:geolocator/geolocator.dart';
 
 import '../config/checkin_step2_config.dart';
+import '../models/flow_selection.dart';
 import '../models/overlay_camera_capture_result.dart';
 import 'checkin_dynamic_config_service.dart';
 import 'inspection_environment_instance_service.dart';
@@ -59,6 +60,33 @@ class InspectionCameraBatchService {
       accuracy: position.accuracy,
       usedSuggestion: usedSuggestion,
       suggestionSummary: predictionSummary ?? contextSuggestionSummary,
+    );
+  }
+
+  OverlayCameraCaptureResult buildCaptureResultFromSelection({
+    required String filePath,
+    required FlowSelection selection,
+    required DateTime capturedAt,
+    required Position position,
+    String? predictionSummary,
+    String? contextSuggestionSummary,
+  }) {
+    final targetItem = selection.targetItem;
+    if (targetItem == null || targetItem.trim().isEmpty) {
+      throw ArgumentError('selection.targetItem is required for capture.');
+    }
+
+    return buildCaptureResult(
+      filePath: filePath,
+      ambiente: targetItem,
+      capturedAt: capturedAt,
+      position: position,
+      macroLocal: selection.subjectContext,
+      elemento: selection.targetQualifier,
+      material: selection.attributeText('inspection.material'),
+      estado: selection.targetCondition,
+      predictionSummary: predictionSummary,
+      contextSuggestionSummary: contextSuggestionSummary,
     );
   }
 

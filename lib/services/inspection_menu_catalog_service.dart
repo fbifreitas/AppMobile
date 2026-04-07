@@ -1,4 +1,5 @@
 import '../config/inspection_menu_package.dart';
+import '../models/flow_selection.dart';
 import 'inspection_environment_instance_service.dart';
 import 'inspection_menu_ranking_service.dart';
 
@@ -30,6 +31,18 @@ class InspectionMenuCatalogService {
     ).map((item) => item.label).toList();
   }
 
+  List<String> subjectContexts({
+    required InspectionMenuPackage? package,
+    required Map<String, dynamic> usage,
+    required String propertyType,
+  }) {
+    return macroLocals(
+      package: package,
+      usage: usage,
+      propertyType: propertyType,
+    );
+  }
+
   List<String> ambientes({
     required InspectionMenuPackage? package,
     required Map<String, dynamic> usage,
@@ -49,6 +62,20 @@ class InspectionMenuCatalogService {
       rankingPolicy: package?.rankingPolicy,
       scope: 'camera.${propertyType.toLowerCase()}.$macroLocal.ambiente',
     ).map((item) => item.label).toList();
+  }
+
+  List<String> targetItems({
+    required InspectionMenuPackage? package,
+    required Map<String, dynamic> usage,
+    required String propertyType,
+    required String subjectContext,
+  }) {
+    return ambientes(
+      package: package,
+      usage: usage,
+      propertyType: propertyType,
+      macroLocal: subjectContext,
+    );
   }
 
   List<String> elementos({
@@ -79,6 +106,29 @@ class InspectionMenuCatalogService {
     ).map((item) => item.label).toList();
   }
 
+  List<String> targetQualifiers({
+    required InspectionMenuPackage? package,
+    required Map<String, dynamic> usage,
+    required String propertyType,
+    required FlowSelection selection,
+  }) {
+    final subjectContext = selection.subjectContext;
+    final targetItem = selection.targetItem;
+    if (subjectContext == null ||
+        subjectContext.trim().isEmpty ||
+        targetItem == null ||
+        targetItem.trim().isEmpty) {
+      return const <String>[];
+    }
+    return elementos(
+      package: package,
+      usage: usage,
+      propertyType: propertyType,
+      macroLocal: subjectContext,
+      ambiente: targetItem,
+    );
+  }
+
   List<String> materiais({
     required InspectionMenuPackage? package,
     required Map<String, dynamic> usage,
@@ -104,6 +154,33 @@ class InspectionMenuCatalogService {
     ).map((item) => item.label).toList();
   }
 
+  List<String> targetQualifierMaterials({
+    required InspectionMenuPackage? package,
+    required Map<String, dynamic> usage,
+    required String propertyType,
+    required FlowSelection selection,
+  }) {
+    final subjectContext = selection.subjectContext;
+    final targetItem = selection.targetItem;
+    final targetQualifier = selection.targetQualifier;
+    if (subjectContext == null ||
+        subjectContext.trim().isEmpty ||
+        targetItem == null ||
+        targetItem.trim().isEmpty ||
+        targetQualifier == null ||
+        targetQualifier.trim().isEmpty) {
+      return const <String>[];
+    }
+    return materiais(
+      package: package,
+      usage: usage,
+      propertyType: propertyType,
+      macroLocal: subjectContext,
+      ambiente: targetItem,
+      elemento: targetQualifier,
+    );
+  }
+
   List<String> estados({
     required InspectionMenuPackage? package,
     required Map<String, dynamic> usage,
@@ -127,6 +204,33 @@ class InspectionMenuCatalogService {
       scope:
           'camera.${propertyType.toLowerCase()}.$macroLocal.$ambiente.$elemento.estado',
     ).map((item) => item.label).toList();
+  }
+
+  List<String> targetConditions({
+    required InspectionMenuPackage? package,
+    required Map<String, dynamic> usage,
+    required String propertyType,
+    required FlowSelection selection,
+  }) {
+    final subjectContext = selection.subjectContext;
+    final targetItem = selection.targetItem;
+    final targetQualifier = selection.targetQualifier;
+    if (subjectContext == null ||
+        subjectContext.trim().isEmpty ||
+        targetItem == null ||
+        targetItem.trim().isEmpty ||
+        targetQualifier == null ||
+        targetQualifier.trim().isEmpty) {
+      return const <String>[];
+    }
+    return estados(
+      package: package,
+      usage: usage,
+      propertyType: propertyType,
+      macroLocal: subjectContext,
+      ambiente: targetItem,
+      elemento: targetQualifier,
+    );
   }
 
   RankedMenuOption? _findSelectedElement({

@@ -50,10 +50,14 @@ class InspectionTaxonomyService {
   ];
 
   List<String> environmentOptions() => _environmentOptions;
+  List<String> targetItemOptions() => environmentOptions();
 
   List<String> elementOptions() => _elementOptions;
+  List<String> targetQualifierOptions() => elementOptions();
 
   List<String> materialOptions() => _materialOptions;
+  List<String> targetQualifierMaterialOptions() => materialOptions();
 
   List<String> stateOptions() => _stateOptions;
+  List<String> targetConditionOptions() => stateOptions();
 }

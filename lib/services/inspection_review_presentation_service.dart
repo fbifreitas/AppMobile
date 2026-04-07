@@ -69,6 +69,8 @@ class InspectionReviewGroupingItemData {
     required this.ambiente,
     required this.status,
   });
+
+  String? get targetItem => ambiente;
 }
 
 class InspectionReviewGroupData {
@@ -130,9 +132,9 @@ class InspectionReviewPresentationService {
 
     for (final item in items) {
       final key =
-          item.ambiente == null || item.ambiente!.trim().isEmpty
+          item.targetItem == null || item.targetItem!.trim().isEmpty
               ? 'Sem subtipo'
-              : item.ambiente!.trim();
+              : item.targetItem!.trim();
       grouped.putIfAbsent(key, () => <InspectionReviewGroupingItemData>[]).add(
         item,
       );
