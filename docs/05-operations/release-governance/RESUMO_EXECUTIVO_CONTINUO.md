@@ -425,3 +425,22 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
 - Estado operacional:
   - pacote corretivo fechado localmente e pronto para publicação em homologação/Firebase;
   - próximo passo: criar branch `release/v1.2.37+57`, publicar, acompanhar `Android Homologation` e `Internal Docs CI`.
+
+## Checkpoint 2026-04-07 - Refatoração canônica: fechamento estrutural das camadas remanescentes
+- Branch de trabalho: `codex/refactor-canonical-flow-20260406`
+- Escopo: fechar os pontos estruturais remanescentes da refatoração canônica (vocabulário inspection-centric fora do domain adapter layer), após as ondas 1-3 já commitadas em main/homolog.
+- Estado de referência em homolog: `v1.2.37+57` (main).
+- Escopo implementado nesta rodada:
+  - mobile: `InspectionCameraMenuViewState` ganhou aliases canônicos (`subjectContextOptions`, `targetItemOptions`, `targetQualifierOptions`, `targetQualifierAttributeOptions`, `targetConditionOptions`, `recentTargetItems`, `recentTargetQualifiers`) mantendo os campos legacy como backing;
+  - mobile: `InspectionCaptureTransitionResult` ganhou alias canônico `availableTargetItems` para o campo `ambientes`;
+  - mobile: `inspection_domain_adapter_v2.dart` consolidado como re-export/typedef de `InspectionDomainAdapter` (v1 e v2 eram idênticos), eliminando duplicação sem quebrar os 2 consumidores existentes (`inspection_review_screen`, `inspection_context_actions_service`);
+  - mobile: `camera_flow_screen.dart` neutralizado: variável local `ambiente` renomeada para `activeEnv`, `_selectedEstado` para `_selectedCondition`, `_buildEstadoSection` para `_buildConditionSection`, `session.ambientes` trocado por `session.targetItems` (alias canônico), `ambiente.ambienteId` trocado por `ambiente.targetItemId` nos pontos de chamada de captura e remoção;
+  - test: `inspection_domain_adapter_test.dart` atualizado para usar `InspectionDomainAdapter` diretamente em vez de `InspectionDomainAdapterV2`.
+- Validações pendentes (executar no PowerShell nativo antes de promover):
+  - `flutter analyze --no-pub` sem issues;
+  - `flutter test --no-pub test/services/inspection_domain_adapter_test.dart` verde;
+  - `flutter test --no-pub test/state/inspection_state_test.dart test/screens/inspection_menu_screen_test.dart test/screens/inspection_review_screen_test.dart test/screens/overlay_camera_screen_test.dart` verde (regressão última bateria conhecida).
+- Estado operacional:
+  - pacote estrutural fechado localmente; aguarda gate de validação no terminal nativo antes de commit;
+  - o vocabulário inspection-centric agora existe primariamente na camada `domain-inspection` (template model, config) onde é correto, e como aliases de compatibilidade nos modelos core;
+  - próximo passo natural: commit deste pacote + avaliar se há mais pontos de cleanup ou se a refatoração canônica está encerrada para esta trilha.
