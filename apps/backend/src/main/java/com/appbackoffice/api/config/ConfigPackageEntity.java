@@ -5,7 +5,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
@@ -43,7 +42,6 @@ public class ConfigPackageEntity {
     private Instant rolloutStartsAt;
     private Instant rolloutEndsAt;
 
-    @Lob
     private String batchUserIdsCsv;
 
     private Boolean requireBiometric;
@@ -53,8 +51,7 @@ public class ConfigPackageEntity {
     private String theme;
     private String appUpdateChannel;
 
-    @Lob
-    @Column(columnDefinition = "CLOB")
+    @Column(columnDefinition = "TEXT")
     private String checkinSectionsJson;
 
     public String getId() {
