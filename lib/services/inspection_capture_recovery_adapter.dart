@@ -1,6 +1,7 @@
 import '../models/inspection_camera_flow_request.dart';
 import '../models/inspection_capture_context.dart';
 import '../models/overlay_camera_capture_result.dart';
+import '../models/flow_selection.dart';
 
 class InspectionCaptureRecoveryAdapter {
   const InspectionCaptureRecoveryAdapter._();
@@ -34,6 +35,17 @@ class InspectionCaptureRecoveryAdapter {
     return null;
   }
 
+  /// Canonical version of [resolveResumeContext].
+  FlowSelection? resolveResumeSelection({
+    required List<OverlayCameraCaptureResult> currentCaptures,
+    required Map<String, dynamic> inspectionRecoveryPayload,
+  }) {
+    return resolveResumeContext(
+      currentCaptures: currentCaptures,
+      inspectionRecoveryPayload: inspectionRecoveryPayload,
+    )?.selection;
+  }
+
   Map<String, dynamic> serializeContext(InspectionCaptureContext? context) {
     if (context == null || !context.hasAnyValue) {
       return const <String, dynamic>{};
@@ -41,17 +53,24 @@ class InspectionCaptureRecoveryAdapter {
     return context.toMap();
   }
 
+  Map<String, dynamic> serializeSelection(FlowSelection? selection) {
+    if (selection == null || !selection.hasAnyValue) {
+      return const <String, dynamic>{};
+    }
+    return selection.toMap(includeCanonical: true, includeLegacy: true);
+  }
+
   InspectionCaptureContext contextFromCapture(
     OverlayCameraCaptureResult capture,
   ) {
     return InspectionCaptureContext(
-      macroLocal: capture.macroLocal,
-      ambiente: capture.ambiente,
+      macroLocal: capture.subjectContext,
+      ambiente: capture.targetItem,
       ambienteBase: capture.ambienteBase,
       ambienteInstanceIndex: capture.ambienteInstanceIndex,
-      elemento: capture.elemento,
+      elemento: capture.targetQualifier,
       material: capture.material,
-      estado: capture.estado,
+      estado: capture.targetCondition,
     );
   }
 
@@ -92,13 +111,40 @@ class InspectionCaptureRecoveryAdapter {
     final persistedCaptures = readPersistedReviewCaptures(
       inspectionRecoveryPayload,
     );
-    final currentPaths = currentCaptures.map((capture) => capture.filePath).toSet();
+    final currentPaths =
+        currentCaptures.map((capture) => capture.filePath).toSet();
     return <OverlayCameraCaptureResult>[
       ...persistedCaptures.where(
         (persisted) => !currentPaths.contains(persisted.filePath),
       ),
       ...currentCaptures,
     ];
+  }
+
+  bool hasPersistedPhotos({
+    required Map<String, dynamic> step2Payload,
+    required Map<String, dynamic> inspectionRecoveryPayload,
+  }) {
+    if (readPersistedReviewCaptures(inspectionRecoveryPayload).isNotEmpty) {
+      return true;
+    }
+
+    final fotos = step2Payload['fotos'];
+    if (fotos is! Map) {
+      return false;
+    }
+
+    for (final value in fotos.values) {
+      if (value is! Map) {
+        continue;
+      }
+      final hasImage = value['hasImage'] == true;
+      final imagePath = value['imagePath']?.toString().trim();
+      if (hasImage || (imagePath != null && imagePath.isNotEmpty)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   InspectionCameraFlowRequest buildCameraFlowRequest({
@@ -139,8 +185,8 @@ class InspectionCaptureRecoveryAdapter {
       'capturesRevisadas': reviewedCaptures,
     };
 
-    final serializedContext = serializeContext(
-      resolveResumeContext(
+    final serializedContext = serializeSelection(
+      resolveResumeSelection(
         currentCaptures: currentCaptures,
         inspectionRecoveryPayload: inspectionRecoveryPayload,
       ),

@@ -12,7 +12,7 @@ void main() {
         'ambiente': 'Local da foto',
         'elemento': 'Elemento fotografado',
       },
-      flowState: InspectionCaptureFlowState(
+      selectionState: InspectionCaptureFlowState(
         initialSuggested: const InspectionCaptureContext(
           macroLocal: 'Area interna',
         ),
@@ -20,7 +20,7 @@ void main() {
           macroLocal: 'Area interna',
           ambiente: 'Sala',
         ),
-      ),
+      ).canonical,
       macroLocais: const <String>['Area interna'],
       ambientes: const <String>['Sala', 'Quarto'],
       elementos: const <String>['Janela'],
@@ -40,14 +40,14 @@ void main() {
     final sections = service.buildSections(
       levelOrder: const <String>['macroLocal', 'ambiente'],
       labelsByLevel: const <String, String>{},
-      flowState: InspectionCaptureFlowState(
+      selectionState: InspectionCaptureFlowState(
         initialSuggested: const InspectionCaptureContext(
           macroLocal: 'Rua',
         ),
         current: const InspectionCaptureContext(
           macroLocal: 'Rua',
         ),
-      ),
+      ).canonical,
       macroLocais: const <String>['Rua'],
       ambientes: const <String>['Fachada'],
       elementos: const <String>[],
