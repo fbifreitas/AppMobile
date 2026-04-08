@@ -2,6 +2,7 @@ package com.appbackoffice.api.valuation;
 
 import com.appbackoffice.api.identity.entity.Tenant;
 import com.appbackoffice.api.identity.entity.TenantStatus;
+import com.appbackoffice.api.identity.repository.MembershipRepository;
 import com.appbackoffice.api.identity.repository.TenantRepository;
 import com.appbackoffice.api.job.dto.AssignJobRequest;
 import com.appbackoffice.api.job.dto.CreateCaseRequest;
@@ -51,6 +52,7 @@ class ValuationReportBackofficeIntegrationTest {
     @Autowired private JobRepository jobRepository;
     @Autowired private CaseRepository caseRepository;
     @Autowired private UserRepository userRepository;
+    @Autowired private MembershipRepository membershipRepository;
     @Autowired private TenantRepository tenantRepository;
     @Autowired private CaseService caseService;
     @Autowired private JobService jobService;
@@ -66,6 +68,7 @@ class ValuationReportBackofficeIntegrationTest {
         assignmentRepository.deleteAll();
         jobRepository.deleteAll();
         caseRepository.deleteAll();
+        membershipRepository.deleteAll();
         userRepository.deleteAll();
         tenantRepository.deleteAll();
 
@@ -93,6 +96,7 @@ class ValuationReportBackofficeIntegrationTest {
         assignmentRepository.deleteAll();
         jobRepository.deleteAll();
         caseRepository.deleteAll();
+        membershipRepository.deleteAll();
         userRepository.deleteAll();
         tenantRepository.deleteAll();
     }

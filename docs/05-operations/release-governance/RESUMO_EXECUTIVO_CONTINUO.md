@@ -614,3 +614,17 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
   - web `test`, `lint` and `build` green;
   - release candidate branch cut before promotion;
   - next step is commit + push of `release/v1.2.40+60`, then CI/homologation monitoring and only after that PR to `main`.
+
+## Checkpoint 2026-04-08 - PR aberta para promocao da release v1.2.40+60
+- Branch de release: `release/v1.2.40+60`
+- PR para `main`: https://github.com/fbifreitas/AppMobile/pull/25
+- Estado da esteira antes da PR:
+  - `Android Homologation`: success
+  - `Internal Docs CI`: success
+- Procedimento seguido:
+  - branch de release criada antes da promocao;
+  - version bump aplicado em `pubspec.yaml`;
+  - push da branch candidata executado para disparar homologacao;
+  - PR aberta somente apos homologacao verde, sem push direto para `main`.
+- Proximo gate:
+  - validar checks da PR e aplicar o procedimento de excecao controlada apenas no instante do merge, se houver autorizacao explicita para promover em `main`.
