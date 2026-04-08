@@ -82,6 +82,17 @@ class IntegrationContextService {
     return 'idem-$hash';
   }
 
+  String buildRequestNonce() {
+    final random = Random();
+    final epoch = DateTime.now().microsecondsSinceEpoch;
+    final suffix = random.nextInt(0x7fffffff).toRadixString(16).padLeft(8, '0');
+    return 'nonce-$epoch-$suffix';
+  }
+
+  String buildRequestTimestamp({DateTime? now}) {
+    return (now ?? DateTime.now().toUtc()).toIso8601String();
+  }
+
   String _canonicalizeForHash(Object? value) {
     final normalized = _normalizeForHash(value);
     return jsonEncode(normalized);

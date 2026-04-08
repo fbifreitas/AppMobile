@@ -123,8 +123,12 @@ class InspectionSyncService {
       final client = (_httpClientFactory ?? HttpClient.new)();
       try {
         final context = await const IntegrationContextService().buildContext();
+        final integrationContextService = const IntegrationContextService();
         final idempotencyKey =
-            const IntegrationContextService().buildIdempotencyKey(payload);
+            integrationContextService.buildIdempotencyKey(payload);
+        final requestTimestamp =
+            integrationContextService.buildRequestTimestamp();
+        final requestNonce = integrationContextService.buildRequestNonce();
         final request = await client.postUrl(uri);
         request.headers.set(HttpHeaders.contentTypeHeader, 'application/json');
         request.headers.set(HttpHeaders.acceptHeader, 'application/json');
@@ -133,6 +137,8 @@ class InspectionSyncService {
         request.headers.set('X-Actor-Id', context.actorId);
         request.headers.set('X-Api-Version', context.apiVersion);
         request.headers.set('X-Idempotency-Key', idempotencyKey);
+        request.headers.set('X-Request-Timestamp', requestTimestamp);
+        request.headers.set('X-Request-Nonce', requestNonce);
         final authToken = _resolvedAuthToken;
         if (authToken.isNotEmpty) {
           request.headers.set(

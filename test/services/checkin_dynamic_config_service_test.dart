@@ -689,5 +689,167 @@ void main() {
     expect(rolledBack.tituloTela, fallback.tituloTela);
     expect(rolledBack.camposFotos.first.id, fallback.camposFotos.first.id);
   });
+
+  test('loadStep2Config reuses cached payload when remote version is unchanged', () async {
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    addTearDown(() async => server.close(force: true));
+
+    var requestCount = 0;
+    server.listen((request) async {
+      requestCount += 1;
+      request.response.statusCode = 200;
+      request.response.headers.contentType = ContentType.json;
+      if (requestCount == 1) {
+        request.response.write(
+          jsonEncode({
+            'version': 'cfg-stable-v1',
+            'step2': {
+              'byTipo': {
+                'urbano': {
+                  'tituloTela': 'Config cacheada',
+                  'camposFotos': [
+                    {
+                      'id': 'fachada_cacheada',
+                      'titulo': 'Fachada cacheada',
+                      'icon': 'home_work_outlined',
+                      'obrigatorio': true,
+                      'cameraMacroLocal': 'Rua',
+                      'cameraAmbiente': 'Fachada',
+                    },
+                  ],
+                },
+              },
+            },
+          }),
+        );
+      } else {
+        request.response.write(
+          jsonEncode({
+            'version': 'cfg-stable-v1',
+            'step2': {
+              'byTipo': {
+                'urbano': {
+                  'tituloTela': 'Config alterada sem bump',
+                  'camposFotos': [
+                    {
+                      'id': 'fachada_alterada_sem_bump',
+                      'titulo': 'Fachada alterada sem bump',
+                      'icon': 'home_work_outlined',
+                      'obrigatorio': true,
+                      'cameraMacroLocal': 'Rua',
+                      'cameraAmbiente': 'Fachada',
+                    },
+                  ],
+                },
+              },
+            },
+          }),
+        );
+      }
+      await request.response.close();
+    });
+
+    final service = CheckinDynamicConfigService(
+      baseUrl: 'http://${server.address.host}:${server.port}',
+      authToken: 'token-checkin',
+      checkinConfigEndpoint: '/api/mobile/checkin-config',
+    );
+    final fallback = CheckinStep2Configs.byTipo(TipoImovel.urbano);
+
+    final first = await service.loadStep2Config(
+      tipo: TipoImovel.urbano,
+      fallback: fallback,
+    );
+    final second = await service.loadStep2Config(
+      tipo: TipoImovel.urbano,
+      fallback: fallback,
+    );
+
+    expect(first.tituloTela, 'Config cacheada');
+    expect(first.camposFotos.first.id, 'fachada_cacheada');
+    expect(second.tituloTela, 'Config cacheada');
+    expect(second.camposFotos.first.id, 'fachada_cacheada');
+  });
+
+  test('loadStep2Config applies fresh payload when remote version changes', () async {
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    addTearDown(() async => server.close(force: true));
+
+    var requestCount = 0;
+    server.listen((request) async {
+      requestCount += 1;
+      request.response.statusCode = 200;
+      request.response.headers.contentType = ContentType.json;
+      if (requestCount == 1) {
+        request.response.write(
+          jsonEncode({
+            'version': 'cfg-v1',
+            'step2': {
+              'byTipo': {
+                'urbano': {
+                  'tituloTela': 'Config publicada v1',
+                  'camposFotos': [
+                    {
+                      'id': 'fachada_v1',
+                      'titulo': 'Fachada v1',
+                      'icon': 'home_work_outlined',
+                      'obrigatorio': true,
+                      'cameraMacroLocal': 'Rua',
+                      'cameraAmbiente': 'Fachada',
+                    },
+                  ],
+                },
+              },
+            },
+          }),
+        );
+      } else {
+        request.response.write(
+          jsonEncode({
+            'version': 'cfg-v2',
+            'step2': {
+              'byTipo': {
+                'urbano': {
+                  'tituloTela': 'Config publicada v2',
+                  'camposFotos': [
+                    {
+                      'id': 'fachada_v2',
+                      'titulo': 'Fachada v2',
+                      'icon': 'home_work_outlined',
+                      'obrigatorio': true,
+                      'cameraMacroLocal': 'Rua',
+                      'cameraAmbiente': 'Fachada',
+                    },
+                  ],
+                },
+              },
+            },
+          }),
+        );
+      }
+      await request.response.close();
+    });
+
+    final service = CheckinDynamicConfigService(
+      baseUrl: 'http://${server.address.host}:${server.port}',
+      authToken: 'token-checkin',
+      checkinConfigEndpoint: '/api/mobile/checkin-config',
+    );
+    final fallback = CheckinStep2Configs.byTipo(TipoImovel.urbano);
+
+    final first = await service.loadStep2Config(
+      tipo: TipoImovel.urbano,
+      fallback: fallback,
+    );
+    final second = await service.loadStep2Config(
+      tipo: TipoImovel.urbano,
+      fallback: fallback,
+    );
+
+    expect(first.tituloTela, 'Config publicada v1');
+    expect(first.camposFotos.first.id, 'fachada_v1');
+    expect(second.tituloTela, 'Config publicada v2');
+    expect(second.camposFotos.first.id, 'fachada_v2');
+  });
 }
 

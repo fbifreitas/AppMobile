@@ -119,6 +119,8 @@ class MobileCheckinConfigIntegrationTest {
                 .andReturn();
 
         assertThat(result.getResponse().getStatus()).isEqualTo(200);
+        assertThat(result.getResponse().getHeader("X-Correlation-Id")).isEqualTo(CORRELATION_ID);
+        assertThat(result.getResponse().getHeader("X-Trace-Id")).isNotBlank();
         JsonNode body = objectMapper.readTree(result.getResponse().getContentAsString());
 
         assertThat(body.get("version").asText()).startsWith("cfg-");
@@ -145,6 +147,8 @@ class MobileCheckinConfigIntegrationTest {
                 .andReturn();
 
         assertThat(result.getResponse().getStatus()).isEqualTo(200);
+        assertThat(result.getResponse().getHeader("X-Correlation-Id")).isEqualTo(CORRELATION_ID);
+        assertThat(result.getResponse().getHeader("X-Trace-Id")).isNotBlank();
         JsonNode body = objectMapper.readTree(result.getResponse().getContentAsString());
         assertThat(body.get("version").asText()).isEqualTo("v1-default");
         assertThat(body.get("publishedAt").asText()).isNotBlank();
@@ -221,6 +225,8 @@ class MobileCheckinConfigIntegrationTest {
                 .andReturn();
 
         assertThat(result.getResponse().getStatus()).isEqualTo(200);
+        assertThat(result.getResponse().getHeader("X-Correlation-Id")).isEqualTo(CORRELATION_ID);
+        assertThat(result.getResponse().getHeader("X-Trace-Id")).isNotBlank();
         assertThat(result.getResponse().getHeader("X-Config-Signature")).isNotBlank();
         assertThat(result.getResponse().getHeader("X-Config-Signature-Alg")).isEqualTo("hmac-sha256");
         JsonNode body = objectMapper.readTree(result.getResponse().getContentAsString());

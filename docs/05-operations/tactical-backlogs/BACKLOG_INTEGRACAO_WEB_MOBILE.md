@@ -211,3 +211,36 @@ Motivo:
 - INT-025: pacote `v1.2.28+48` incluiu ajuste de resiliencia no `openapi-compatibility-gate` da `backend_ci.yml`, evitando quebra hard quando o OpenAPI current nao sobe no run de PR.
 - INT-016: estabilizacao do backend CI com alinhamento de asserts canonicos em `ConfigPackageControllerContractErrorTest` para mensagem de contrato vigente.
 - Checkpoint de processo: pacote promovido para branch `release/v1.2.28+48` (sem PR direto para `main`), respeitando fluxo de homologacao documentado.
+
+## Adendo 2026-04-08 - Agrupamento operacional em 2 macro-pacotes
+
+### Macro-pacote A - Go-Live Core Web-Mobile
+Itens de integracao incluidos nesta rodada:
+1. INT-001
+2. INT-002
+3. INT-003
+4. INT-004
+5. INT-006
+6. INT-007
+7. INT-011
+8. INT-012
+9. INT-016
+10. INT-026
+11. INT-027
+12. INT-028
+13. INT-030
+
+Objetivo do conjunto:
+1. fechar configuracao remota com seguranca real;
+2. fechar uplink de vistoria com idempotencia, protocolo e reconciliacao;
+3. proteger contrato, contexto e assinatura em CI e em ambiente.
+
+Gate de saida do pacote:
+1. nenhuma operacao critica sem idempotency-key, correlation id e contexto minimo;
+2. nenhum pacote operacional sem assinatura e verificacao ativa onde exigido;
+3. nenhum merge permitido com quebra contratual mobile-web;
+4. segredo de assinatura por ambiente provisionado e evidenciado.
+
+### Macro-pacote B - Backoffice Operational Closure
+- Nao ha item de integracao entrando como prioridade principal nesta rodada.
+- Itens como INT-008, INT-009, INT-010, INT-018, INT-019 e INT-020 ficam explicitamente fora do caminho critico imediato e so devem subir apos fechamento do Macro-pacote A.

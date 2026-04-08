@@ -16,6 +16,7 @@ import com.appbackoffice.api.job.service.JobService;
 import com.appbackoffice.api.mobile.repository.InspectionRepository;
 import com.appbackoffice.api.mobile.repository.InspectionSubmissionRepository;
 import com.appbackoffice.api.user.entity.User;
+import com.appbackoffice.api.user.entity.UserStatus;
 import com.appbackoffice.api.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,6 +29,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Instant;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
@@ -38,6 +41,10 @@ class InspectionSubmissionIntegrationTest {
 
     private static final String TENANT_ID = "tenant-mobile-it";
     private static final String CORRELATION_ID = "corr-mobile-it-001";
+
+    private static String freshTimestamp() {
+        return Instant.now().toString();
+    }
 
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
@@ -53,6 +60,7 @@ class InspectionSubmissionIntegrationTest {
     @Autowired private JobService jobService;
 
     private Long operatorUserId;
+    private Long alternateOperatorUserId;
     private Long jobId;
 
     @BeforeEach
@@ -68,7 +76,13 @@ class InspectionSubmissionIntegrationTest {
 
         tenantRepository.save(new Tenant(TENANT_ID, TENANT_ID, "Tenant Mobile", TenantStatus.ACTIVE));
         User operator = userRepository.save(new User(TENANT_ID, "mobile@tenant.com", "Operador Mobile", "PJ"));
+        operator.setStatus(UserStatus.APPROVED);
+        operator = userRepository.save(operator);
         operatorUserId = operator.getId();
+        User alternateOperator = userRepository.save(new User(TENANT_ID, "mobile-alt@tenant.com", "Alternate Operator", "PJ"));
+        alternateOperator.setStatus(UserStatus.APPROVED);
+        alternateOperator = userRepository.save(alternateOperator);
+        alternateOperatorUserId = alternateOperator.getId();
 
         CreateCaseResponse created = caseService.createCase(TENANT_ID, "admin-1", new CreateCaseRequest(
                 "CASE-MOBILE-001", "Rua Mobile, 123", "RESIDENTIAL", null, "Job Mobile"
@@ -99,6 +113,8 @@ class InspectionSubmissionIntegrationTest {
                         .header("X-Correlation-Id", CORRELATION_ID)
                         .header("X-Actor-Id", String.valueOf(operatorUserId))
                         .header("X-Idempotency-Key", "idem-001")
+                        .header("X-Request-Timestamp", freshTimestamp())
+                        .header("X-Request-Nonce", "nonce-001")
                         .header("X-Api-Version", "v1")
                         .contentType("application/json")
                         .content(payload))
@@ -107,6 +123,10 @@ class InspectionSubmissionIntegrationTest {
         assertThat(result.getResponse().getStatus()).isEqualTo(202);
         JsonNode body = objectMapper.readTree(result.getResponse().getContentAsString());
         assertThat(body.get("protocolId").asText()).startsWith("INS-");
+        assertThat(body.get("processId").asText()).isNotBlank();
+        assertThat(body.get("processNumber").asText()).isEqualTo(body.get("protocolId").asText());
+        assertThat(body.get("jobId").asLong()).isEqualTo(jobId);
+        assertThat(body.get("receivedAt").asText()).isNotBlank();
         assertThat(body.get("status").asText()).isEqualTo("SUBMITTED");
         assertThat(body.get("duplicate").asBoolean()).isFalse();
 
@@ -126,6 +146,8 @@ class InspectionSubmissionIntegrationTest {
                         .header("X-Correlation-Id", CORRELATION_ID)
                         .header("X-Actor-Id", String.valueOf(operatorUserId))
                         .header("X-Idempotency-Key", "idem-002")
+                        .header("X-Request-Timestamp", freshTimestamp())
+                        .header("X-Request-Nonce", "nonce-002")
                         .header("X-Api-Version", "v1")
                         .contentType("application/json")
                         .content(payload))
@@ -136,6 +158,8 @@ class InspectionSubmissionIntegrationTest {
                         .header("X-Correlation-Id", CORRELATION_ID)
                         .header("X-Actor-Id", String.valueOf(operatorUserId))
                         .header("X-Idempotency-Key", "idem-002")
+                        .header("X-Request-Timestamp", freshTimestamp())
+                        .header("X-Request-Nonce", "nonce-003")
                         .header("X-Api-Version", "v1")
                         .contentType("application/json")
                         .content(payload))
@@ -148,9 +172,157 @@ class InspectionSubmissionIntegrationTest {
         assertThat(second.getResponse().getStatus()).isEqualTo(202);
         assertThat(secondBody.get("duplicate").asBoolean()).isTrue();
         assertThat(secondBody.get("protocolId").asText()).isEqualTo(firstBody.get("protocolId").asText());
+        assertThat(secondBody.get("processId").asText()).isEqualTo(firstBody.get("processId").asText());
+        assertThat(secondBody.get("processNumber").asText()).isEqualTo(firstBody.get("processNumber").asText());
+        assertThat(secondBody.get("jobId").asLong()).isEqualTo(firstBody.get("jobId").asLong());
         assertThat(secondBody.get("status").asText()).isEqualTo("SUBMITTED");
         assertThat(inspectionRepository.count()).isEqualTo(1);
         assertThat(inspectionSubmissionRepository.count()).isEqualTo(1);
+    }
+
+    @Test
+    void shouldRejectReusedIdempotencyKeyWhenPayloadChanges() throws Exception {
+        String firstPayload = payloadFor(jobId);
+        String secondPayload = """
+                {
+                  "exportedAt": "2026-04-03T12:05:00Z",
+                  "job": {"id": "%s", "titulo": "Job Mobile Updated"},
+                  "step1": {},
+                  "step2": {},
+                  "step2Config": {},
+                  "review": {"photos": 5}
+                }
+                """.formatted(jobId);
+
+        var first = mockMvc.perform(post("/api/mobile/inspections/finalized")
+                        .header("X-Tenant-Id", TENANT_ID)
+                        .header("X-Correlation-Id", CORRELATION_ID)
+                        .header("X-Actor-Id", String.valueOf(operatorUserId))
+                        .header("X-Idempotency-Key", "idem-003")
+                        .header("X-Request-Timestamp", freshTimestamp())
+                        .header("X-Request-Nonce", "nonce-004")
+                        .header("X-Api-Version", "v1")
+                        .contentType("application/json")
+                        .content(firstPayload))
+                .andReturn();
+
+        var second = mockMvc.perform(post("/api/mobile/inspections/finalized")
+                        .header("X-Tenant-Id", TENANT_ID)
+                        .header("X-Correlation-Id", CORRELATION_ID)
+                        .header("X-Actor-Id", String.valueOf(operatorUserId))
+                        .header("X-Idempotency-Key", "idem-003")
+                        .header("X-Request-Timestamp", freshTimestamp())
+                        .header("X-Request-Nonce", "nonce-005")
+                        .header("X-Api-Version", "v1")
+                        .contentType("application/json")
+                        .content(secondPayload))
+                .andReturn();
+
+        assertThat(first.getResponse().getStatus()).isEqualTo(202);
+        assertThat(second.getResponse().getStatus()).isEqualTo(409);
+
+        JsonNode body = objectMapper.readTree(second.getResponse().getContentAsString());
+        assertThat(body.get("code").asText()).isEqualTo("IDEMPOTENCY_KEY_PAYLOAD_MISMATCH");
+        assertThat(body.get("message").asText()).contains("Idempotency key");
+        assertThat(body.get("details").asText()).isEqualTo("idempotencyKey=idem-003");
+        assertThat(inspectionRepository.count()).isEqualTo(1);
+        assertThat(inspectionSubmissionRepository.count()).isEqualTo(1);
+    }
+
+    @Test
+    void shouldRejectReplayWhenNonceIsReusedInsideProtectionWindow() throws Exception {
+        String payload = payloadFor(jobId);
+
+        var first = mockMvc.perform(post("/api/mobile/inspections/finalized")
+                        .header("X-Tenant-Id", TENANT_ID)
+                        .header("X-Correlation-Id", CORRELATION_ID)
+                        .header("X-Actor-Id", String.valueOf(operatorUserId))
+                        .header("X-Idempotency-Key", "idem-004")
+                        .header("X-Request-Timestamp", Instant.now().toString())
+                        .header("X-Request-Nonce", "nonce-replay-001")
+                        .header("X-Api-Version", "v1")
+                        .contentType("application/json")
+                        .content(payload))
+                .andReturn();
+
+        var second = mockMvc.perform(post("/api/mobile/inspections/finalized")
+                        .header("X-Tenant-Id", TENANT_ID)
+                        .header("X-Correlation-Id", CORRELATION_ID)
+                        .header("X-Actor-Id", String.valueOf(operatorUserId))
+                        .header("X-Idempotency-Key", "idem-005")
+                        .header("X-Request-Timestamp", Instant.now().toString())
+                        .header("X-Request-Nonce", "nonce-replay-001")
+                        .header("X-Api-Version", "v1")
+                        .contentType("application/json")
+                        .content(payload))
+                .andReturn();
+
+        assertThat(first.getResponse().getStatus()).isEqualTo(202);
+        assertThat(second.getResponse().getStatus()).isEqualTo(409);
+
+        JsonNode body = objectMapper.readTree(second.getResponse().getContentAsString());
+        assertThat(body.get("code").asText()).isEqualTo("REQUEST_REPLAY_DETECTED");
+        assertThat(body.get("details").asText()).isEqualTo("header: X-Request-Nonce");
+        assertThat(inspectionRepository.count()).isEqualTo(1);
+        assertThat(inspectionSubmissionRepository.count()).isEqualTo(1);
+    }
+
+    @Test
+    void shouldRejectInspectionSubmissionFromNonAssignedOperator() throws Exception {
+        String payload = payloadFor(jobId);
+
+        var result = mockMvc.perform(post("/api/mobile/inspections/finalized")
+                        .header("X-Tenant-Id", TENANT_ID)
+                        .header("X-Correlation-Id", CORRELATION_ID)
+                        .header("X-Actor-Id", String.valueOf(alternateOperatorUserId))
+                        .header("X-Idempotency-Key", "idem-006")
+                        .header("X-Request-Timestamp", freshTimestamp())
+                        .header("X-Request-Nonce", "nonce-006")
+                        .header("X-Api-Version", "v1")
+                        .contentType("application/json")
+                        .content(payload))
+                .andReturn();
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(403);
+
+        JsonNode body = objectMapper.readTree(result.getResponse().getContentAsString());
+        assertThat(body.get("code").asText()).isEqualTo("JOB_ACCEPT_FORBIDDEN");
+        assertThat(body.get("message").asText()).isEqualTo("Only the assigned field operator can accept this job");
+        assertThat(inspectionRepository.count()).isZero();
+        assertThat(inspectionSubmissionRepository.count()).isZero();
+        assertThat(jobRepository.findById(jobId)).isPresent();
+        assertThat(jobRepository.findById(jobId).orElseThrow().getStatus()).isEqualTo(JobStatus.ACCEPTED);
+    }
+
+    @Test
+    void shouldRejectInspectionSubmissionWhenAssignedOperatorLosesApproval() throws Exception {
+        User operator = userRepository.findById(operatorUserId).orElseThrow();
+        operator.setStatus(UserStatus.AWAITING_APPROVAL);
+        userRepository.save(operator);
+
+        String payload = payloadFor(jobId);
+
+        var result = mockMvc.perform(post("/api/mobile/inspections/finalized")
+                        .header("X-Tenant-Id", TENANT_ID)
+                        .header("X-Correlation-Id", CORRELATION_ID)
+                        .header("X-Actor-Id", String.valueOf(operatorUserId))
+                        .header("X-Idempotency-Key", "idem-007")
+                        .header("X-Request-Timestamp", freshTimestamp())
+                        .header("X-Request-Nonce", "nonce-007")
+                        .header("X-Api-Version", "v1")
+                        .contentType("application/json")
+                        .content(payload))
+                .andReturn();
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(403);
+
+        JsonNode body = objectMapper.readTree(result.getResponse().getContentAsString());
+        assertThat(body.get("code").asText()).isEqualTo("JOB_ACTOR_NOT_APPROVED");
+        assertThat(body.get("message").asText()).isEqualTo("Assigned actor is not approved for field work");
+        assertThat(inspectionRepository.count()).isZero();
+        assertThat(inspectionSubmissionRepository.count()).isZero();
+        assertThat(jobRepository.findById(jobId)).isPresent();
+        assertThat(jobRepository.findById(jobId).orElseThrow().getStatus()).isEqualTo(JobStatus.ACCEPTED);
     }
 
     private String payloadFor(Long jobId) {

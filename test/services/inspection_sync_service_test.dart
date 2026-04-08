@@ -66,7 +66,7 @@ void main() {
       request.response.statusCode = 200;
       request.response.headers.contentType = ContentType.json;
       request.response.write(
-        '{"protocol":"INS-2026-00123","status":"SUBMITTED","message":"Recebido com sucesso"}',
+        '{"protocolId":"INS-2026-00123","processId":"781","processNumber":"INS-2026-00123","jobId":321,"status":"SUBMITTED","receivedAt":"2026-04-05T10:00:00Z","message":"Recebido com sucesso"}',
       );
       await request.response.close();
     });
@@ -83,7 +83,10 @@ void main() {
 
     expect(result.success, isTrue);
     expect(result.protocolId, 'INS-2026-00123');
+    expect(result.processId, '781');
+    expect(result.processNumber, 'INS-2026-00123');
     expect(result.backendStatus, 'SUBMITTED');
+    expect(result.receivedAtIso, '2026-04-05T10:00:00Z');
     expect(result.message, 'Recebido com sucesso');
   });
 
@@ -170,6 +173,8 @@ void main() {
       expect(request.headers.value('X-Actor-Id'), 'actor-99');
       expect(request.headers.value('X-Api-Version'), 'v1');
       expect(request.headers.value('X-Idempotency-Key'), expectedIdempotencyKey);
+      expect(request.headers.value('X-Request-Timestamp'), isNotEmpty);
+      expect(request.headers.value('X-Request-Nonce'), startsWith('nonce-'));
       expect(request.headers.value(HttpHeaders.authorizationHeader), 'Bearer token-qa');
 
       final correlationId = request.headers.value('X-Correlation-Id') ?? '';

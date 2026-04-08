@@ -117,21 +117,15 @@ public class MobileApiController {
             @RequestHeader("X-Correlation-Id") String correlationId,
             @RequestHeader("X-Actor-Id") String actorId,
             @RequestHeader("X-Idempotency-Key") String idempotencyKey,
+            @RequestHeader("X-Request-Timestamp") String requestTimestamp,
+            @RequestHeader("X-Request-Nonce") String requestNonce,
             @RequestHeader("X-Api-Version") String apiVersion,
             @Valid @RequestBody InspectionFinalizedRequest request
     ) {
         RequestContextValidator.requireApiVersion(apiVersion);
         RequestContextValidator.requireFullContext(tenantId, correlationId, actorId);
-        if (!org.springframework.util.StringUtils.hasText(idempotencyKey)) {
-            throw new ApiContractException(
-                    HttpStatus.BAD_REQUEST,
-                    "IDEMPOTENCY_KEY_REQUIRED",
-                    "X-Idempotency-Key e obrigatorio",
-                    ErrorSeverity.ERROR,
-                    "Informe X-Idempotency-Key para garantir processamento seguro em retries.",
-                    "header: X-Idempotency-Key"
-            );
-        }
+        RequestContextValidator.requireIdempotencyKey(idempotencyKey);
+        RequestContextValidator.requireProtectedWriteHeaders(requestTimestamp, requestNonce);
 
         Long userId = parseUserId(actorId);
         InspectionFinalizedResponse created = inspectionSubmissionService.receive(

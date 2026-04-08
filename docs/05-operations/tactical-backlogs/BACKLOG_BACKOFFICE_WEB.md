@@ -927,3 +927,35 @@ KPIs por tenant/região/vistoriador. Score de qualidade. Control tower para gest
 
 
 
+
+## ADENDO 2026-04-08 - Agrupamento operacional em 2 macro-pacotes
+
+### Macro-pacote A - Go-Live Core Web-Mobile
+Itens deste backlog incluidos no caminho critico:
+1. BOW-121
+2. BOW-122
+3. BOW-130
+4. BOW-131
+5. BOW-150
+6. BOW-151
+
+Papel do pacote:
+1. fechar a API real de configuracao dinamica e sync mobile;
+2. consolidar rollback, protocolo, contrato e observabilidade minima;
+3. retirar dependencia estrutural de fallback como caminho principal de operacao.
+
+### Macro-pacote B - Backoffice Operational Closure
+Itens deste backlog incluidos no fechamento operacional posterior:
+1. BOW-100
+2. BOW-120
+3. BOW-140
+4. BOW-141
+
+Papel do pacote:
+1. estabilizar o backbone tenant/case/job;
+2. fechar o ciclo tecnico de intake e laudo no dominio inspection;
+3. sustentar a operacao humana do backoffice apos o fluxo core estar estavel.
+
+### Regra de sequenciamento
+1. Nao promover Onda 2 como prioridade principal antes de concluir o Macro-pacote A.
+2. O Macro-pacote B deve iniciar com BOW-100/BOW-120 estabilizados antes de expandir intake/laudo.

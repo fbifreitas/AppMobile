@@ -68,8 +68,18 @@ class OpenApiContractIntegrationTest {
         JsonNode postResponses = document.at("/paths/~1api~1mobile~1inspections~1finalized/post/responses");
         assertThat(postResponses.at("/400/content/application~1json/schema/$ref").asText())
                 .isEqualTo("#/components/schemas/CanonicalErrorResponse");
+        assertThat(postResponses.at("/409/content/application~1json/schema/$ref").asText())
+                .isEqualTo("#/components/schemas/CanonicalErrorResponse");
         assertThat(requiredHeaderNames(document, "/api/mobile/inspections/finalized", "post"))
-                .containsExactlyInAnyOrder("X-Tenant-Id", "X-Correlation-Id", "X-Actor-Id", "X-Idempotency-Key", "X-Api-Version");
+                .containsExactlyInAnyOrder(
+                        "X-Tenant-Id",
+                        "X-Correlation-Id",
+                        "X-Actor-Id",
+                        "X-Idempotency-Key",
+                        "X-Request-Timestamp",
+                        "X-Request-Nonce",
+                        "X-Api-Version"
+                );
 
         assertThat(requiredHeaderNames(document, "/api/backoffice/config/packages", "get"))
             .containsExactlyInAnyOrder("X-Correlation-Id");

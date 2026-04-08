@@ -215,14 +215,25 @@ class CheckinDynamicConfigService {
     required TipoImovel tipo,
     required CheckinStep2Config fallback,
   }) async {
-    final cacheKey = 'checkin_dynamic_step2_${tipo.name}_v1';
+    final cacheKey = _step2CacheKey(tipo);
+    final versionKey = _step2VersionKey(tipo);
     Map<String, dynamic>? document = await _readDeveloperMockDocument();
 
     if (document == null) {
       if (_resolvedBaseUrl.isNotEmpty) {
-        document = await _fetchDocument(tipo: tipo.name);
-        if (document != null) {
+        final fetched = await _fetchDocument(tipo: tipo.name);
+        if (fetched != null) {
+          final fetchedVersion = _resolveDocumentVersion(fetched);
+          final currentVersion = await _readCachedVersion(versionKey);
+          if (fetchedVersion != null &&
+              currentVersion != null &&
+              fetchedVersion == currentVersion) {
+            document = await _readCache(cacheKey) ?? fetched;
+          } else {
+            document = fetched;
+          }
           await _writeCache(cacheKey, document);
+          await _writeCachedVersion(versionKey, fetchedVersion);
         }
       }
 
@@ -529,6 +540,14 @@ class CheckinDynamicConfigService {
     } catch (_) {
       return null;
     }
+  }
+
+  String _step2CacheKey(TipoImovel tipo) {
+    return 'checkin_dynamic_step2_${tipo.name}_v1';
+  }
+
+  String _step2VersionKey(TipoImovel tipo) {
+    return 'checkin_dynamic_step2_${tipo.name}_version_v1';
   }
 
   String? _resolveDocumentVersion(Map<String, dynamic> document) {

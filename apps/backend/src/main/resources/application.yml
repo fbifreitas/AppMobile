@@ -54,3 +54,4 @@ auth:
 integration:
   config-signing:
     hmac-key: ${INTEGRATION_CONFIG_SIGNING_HMAC_KEY:}
+    require-secret: ${INTEGRATION_CONFIG_SIGNING_REQUIRE_SECRET:false}
