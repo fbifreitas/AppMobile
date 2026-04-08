@@ -29,7 +29,7 @@ import '../services/inspection_review_requirement_service.dart';
 import '../services/inspection_semantic_field_service.dart';
 import '../services/inspection_sync_queue_service.dart';
 import '../services/inspection_sync_service.dart';
-import '../services/inspection_taxonomy_service.dart';
+import '../services/inspection_domain_adapter.dart';
 import '../services/voice_input_service.dart';
 import '../widgets/voice_text_field.dart';
 import '../models/inspection_technical_summary.dart';
@@ -83,8 +83,8 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       InspectionReviewRequirementService.instance;
   final InspectionSemanticFieldService _semanticFieldService =
       InspectionSemanticFieldService.instance;
-  final InspectionTaxonomyService _taxonomyService =
-      InspectionTaxonomyService.instance;
+  static const InspectionDomainAdapter _domainAdapter =
+      InspectionDomainAdapter.instance;
 
   final GlobalKey _checkinPendingSectionKey = GlobalKey();
   final GlobalKey _capturedPhotosSectionKey = GlobalKey();
@@ -1394,10 +1394,10 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         String? material = itemSelection.attributeText('inspection.material');
         String? estado = itemSelection.targetCondition;
         String? ambiente = itemSelection.targetItem;
-        final ambientes = _taxonomyService.environmentOptions();
-        final elementos = _taxonomyService.elementOptions();
-        final materiais = _taxonomyService.materialOptions();
-        final estados = _taxonomyService.stateOptions();
+        final ambientes = _domainAdapter.environmentOptions();
+        final elementos = _domainAdapter.elementOptions();
+        final materiais = _domainAdapter.materialOptions();
+        final estados = _domainAdapter.stateOptions();
 
         return StatefulBuilder(
           builder: (context, setSheetState) {
