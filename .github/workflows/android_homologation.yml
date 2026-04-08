@@ -3,6 +3,7 @@ name: Android Homologation
 on:
   push:
     branches:
+      - main
       - 'release/**'
       - 'homolog/**'
   pull_request:
