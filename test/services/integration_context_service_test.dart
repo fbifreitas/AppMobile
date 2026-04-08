@@ -56,4 +56,25 @@ void main() {
       isNot(service.buildIdempotencyKey(payloadB)),
     );
   });
+
+  test('buildRequestNonce returns prefixed unique tokens', () {
+    const service = IntegrationContextService();
+
+    final first = service.buildRequestNonce();
+    final second = service.buildRequestNonce();
+
+    expect(first, startsWith('nonce-'));
+    expect(second, startsWith('nonce-'));
+    expect(first, isNot(second));
+  });
+
+  test('buildRequestTimestamp returns UTC ISO-8601 string', () {
+    const service = IntegrationContextService();
+
+    final timestamp = service.buildRequestTimestamp(
+      now: DateTime.utc(2026, 4, 8, 17, 45, 30),
+    );
+
+    expect(timestamp, '2026-04-08T17:45:30.000Z');
+  });
 }

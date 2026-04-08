@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'integration_context_service.dart';
 import 'inspection_sync_service.dart';
 
 class InspectionSyncQueueFlushResult {
@@ -42,6 +43,8 @@ class InspectionSyncQueueService {
   const InspectionSyncQueueService();
 
   static const String _queueKey = 'inspection_sync_queue_payloads_v1';
+  static const IntegrationContextService _integrationContextService =
+      IntegrationContextService();
 
   Future<int> enqueue(
     Map<String, dynamic> payload, {
@@ -188,9 +191,7 @@ class InspectionSyncQueueService {
   }
 
   String _buildEntryId(Map<String, dynamic> payload) {
-    final jobId = '${payload['job']?['id'] ?? 'sem_job'}';
-    final exportedAt = '${payload['exportedAt'] ?? ''}';
-    return '$jobId|$exportedAt';
+    return _integrationContextService.buildIdempotencyKey(payload);
   }
 }
 

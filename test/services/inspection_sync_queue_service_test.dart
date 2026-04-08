@@ -1,3 +1,4 @@
+import 'package:appmobile/services/integration_context_service.dart';
 import 'package:appmobile/services/inspection_sync_queue_service.dart';
 import 'package:appmobile/services/inspection_sync_service.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -49,7 +50,7 @@ void main() {
     expect(await service.pendingCount(), 1);
   });
 
-  test('enqueue deduplicates by job id + exportedAt', () async {
+  test('enqueue deduplicates by canonical idempotency key', () async {
     const service = InspectionSyncQueueService();
     final payload = _payload(jobId: 'job-1', exportedAt: '2026-03-29T10:00:00.000Z');
 
@@ -58,6 +59,63 @@ void main() {
 
     expect(size, 1);
     expect(await service.pendingCount(), 1);
+  });
+
+  test('enqueue deduplicates equivalent payloads with different map order', () async {
+    const service = InspectionSyncQueueService();
+
+    final firstPayload = <String, dynamic>{
+      'job': {'id': 'job-1'},
+      'exportedAt': '2026-03-29T10:00:00.000Z',
+      'review': {
+        'capturas': [],
+        'status': 'done',
+      },
+    };
+    final secondPayload = <String, dynamic>{
+      'review': {
+        'status': 'done',
+        'capturas': [],
+      },
+      'exportedAt': '2026-03-29T10:00:00.000Z',
+      'job': {'id': 'job-1'},
+    };
+
+    await service.enqueue(firstPayload);
+    final size = await service.enqueue(secondPayload);
+
+    expect(size, 1);
+    expect(await service.pendingCount(), 1);
+  });
+
+  test('enqueue keeps distinct entries when payload changes under same job and exportedAt', () async {
+    const service = InspectionSyncQueueService();
+
+    final firstPayload = <String, dynamic>{
+      'job': {'id': 'job-1'},
+      'exportedAt': '2026-03-29T10:00:00.000Z',
+      'review': {
+        'capturas': ['front-door'],
+      },
+    };
+    final secondPayload = <String, dynamic>{
+      'job': {'id': 'job-1'},
+      'exportedAt': '2026-03-29T10:00:00.000Z',
+      'review': {
+        'capturas': ['front-door', 'kitchen'],
+      },
+    };
+
+    final firstKey = const IntegrationContextService().buildIdempotencyKey(firstPayload);
+    final secondKey = const IntegrationContextService().buildIdempotencyKey(secondPayload);
+
+    expect(firstKey, isNot(secondKey));
+
+    await service.enqueue(firstPayload);
+    final size = await service.enqueue(secondPayload);
+
+    expect(size, 2);
+    expect(await service.pendingCount(), 2);
   });
 
   test('flush does nothing when sync is not configured', () async {

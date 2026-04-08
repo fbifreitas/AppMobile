@@ -143,6 +143,15 @@ strong {
   box-shadow: 0 12px 30px rgba(7, 11, 18, 0.15);
 }
 
+.ops-card .targeting-panel {
+  margin-top: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .targeting-header h2 {
   margin: 0;
   font-size: 1.2rem;
@@ -460,6 +469,10 @@ strong {
   border-top: 4px solid #4a6fa5;
 }
 
+.panel-config {
+  border-top: 4px solid #2d936c;
+}
+
 .ops-shell {
   max-width: 1240px;
   margin: 0 auto;
@@ -547,6 +560,10 @@ strong {
   display: grid;
   gap: 14px;
   grid-template-columns: 1.2fr 1fr;
+}
+
+.config-grid {
+  align-items: start;
 }
 
 .ops-card {

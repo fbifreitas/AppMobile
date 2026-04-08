@@ -15,6 +15,7 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  INTEGRATION_CONFIG_SIGNING_REQUIRE_SECRET: false
 
 jobs:
   build-and-test:

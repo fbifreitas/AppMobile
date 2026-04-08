@@ -54,3 +54,23 @@ Controlar o backlog de experiencia web (UI, navegacao, telas operacionais e usab
   - `npm test` verde;
   - `npm run lint` verde;
   - `npm run build` verde.
+
+## Adendo 2026-04-08 - Agrupamento operacional em 2 macro-pacotes
+
+### Macro-pacote A - Go-Live Core Web-Mobile
+- FW-004 permanece como item web critico desta rodada.
+- Papel do item no pacote: permitir publicacao, edicao e rollback de configuracao operacional por tenant sem depender de fallback estrutural no app.
+- Dependencias cruzadas principais: BOW-121, INT-003, INT-004 e BOW-130.
+- Criterio de saida do item no pacote: publicacao real no backoffice refletindo no mobile por versao e rollback.
+
+### Macro-pacote B - Backoffice Operational Closure
+- FW-005, FW-006 e FW-007 passam a compor o fechamento operacional do backoffice.
+- Papel dos itens no pacote:
+  1. FW-005: observabilidade de integracao para operacao;
+  2. FW-006: intake/valuation via UI;
+  3. FW-007: ciclo basico de laudo via UI.
+- Dependencias cruzadas principais: BOW-140 e BOW-141.
+
+### Ordem de execucao web
+1. Concluir FW-004 dentro do Macro-pacote A.
+2. Somente depois abrir FW-005/FW-006/FW-007 como frente principal.

@@ -98,3 +98,66 @@ Toda mudanca de status de onda deve refletir em:
 1. backlog estrategico (`docs/BACKLOG_V2_PRIORIDADES.md`)
 2. backlog tatico correspondente (backoffice, front/web, mobile, integracao)
 3. evidencia em codigo/testes e registro de release
+
+## Adendo 2026-04-08 - Agrupamento de execucao em 2 macro-pacotes
+
+### Macro-pacote A - Go-Live Core Web-Mobile
+Objetivo: fechar o MVP interno da Onda 1 com fluxo ponta a ponta real entre web, backend, integracao e mobile.
+
+Escopo prioritario:
+1. Configuracao operacional ponta a ponta:
+   - FW-004
+   - BOW-121
+   - INT-003
+   - INT-004
+   - BOW-130
+2. Sync real de vistoria:
+   - BOW-122
+   - INT-006
+   - INT-007
+   - BOW-131
+3. Seguranca, contrato e governanca do canal:
+   - INT-001
+   - INT-002
+   - INT-011
+   - INT-012
+   - INT-016
+   - INT-026
+   - INT-027
+   - INT-028
+   - INT-030
+   - BOW-150
+   - BOW-151
+
+Criterio executivo de pronto:
+1. Web publica configuracao real por tenant sem depender de fallback estrutural.
+2. Mobile consome configuracao versionada, com rollback efetivo e validacao de integridade.
+3. Mobile envia vistoria ao backend real com idempotencia, protocolo e reconciliacao.
+4. CI bloqueia quebra de contrato entre canais.
+5. Segredo de assinatura por ambiente e contexto minimo obrigatorio estao fechados para homologacao.
+
+### Macro-pacote B - Backoffice Operational Closure
+Objetivo: fechar o backbone operacional do backend e a capacidade minima de operacao humana no backoffice apos o Go-Live Core.
+
+Escopo prioritario:
+1. Backbone backend/plataforma:
+   - BOW-100
+   - BOW-120
+2. Operacao web minima do ciclo tecnico:
+   - FW-005
+   - FW-006
+   - FW-007
+3. Fechamento do ciclo tecnico ate intake/laudo:
+   - BOW-140
+   - BOW-141
+
+Criterio executivo de pronto:
+1. Base tenant/case/job estabilizada como backbone operacional.
+2. Operacao enxerga saude da integracao sem depender de logs brutos.
+3. Intake e valuation podem ser executados por UI web.
+4. Ciclo minimo de laudo e revisao fica operacional no backoffice.
+
+### Ordem de execucao recomendada
+1. Executar Macro-pacote A integralmente.
+2. Nao abrir frente de Onda 2 como prioridade principal antes de fechar o Macro-pacote A.
+3. Executar Macro-pacote B na sequencia para fechar a operacao humana do dominio inspection.

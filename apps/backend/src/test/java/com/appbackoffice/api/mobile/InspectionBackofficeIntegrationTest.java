@@ -15,6 +15,7 @@ import com.appbackoffice.api.job.service.JobService;
 import com.appbackoffice.api.mobile.repository.InspectionRepository;
 import com.appbackoffice.api.mobile.repository.InspectionSubmissionRepository;
 import com.appbackoffice.api.user.entity.User;
+import com.appbackoffice.api.user.entity.UserStatus;
 import com.appbackoffice.api.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,6 +27,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -69,6 +72,8 @@ class InspectionBackofficeIntegrationTest {
 
         tenantRepository.save(new Tenant(TENANT_ID, TENANT_ID, "Tenant Web Inspections", TenantStatus.ACTIVE));
         User operator = userRepository.save(new User(TENANT_ID, "inspection@tenant.com", "Operador Vistoria", "PJ"));
+        operator.setStatus(UserStatus.APPROVED);
+        operator = userRepository.save(operator);
         operatorUserId = operator.getId();
 
         firstJobId = createAcceptedJob("CASE-WEB-001", "Job Web 1");
@@ -143,6 +148,8 @@ class InspectionBackofficeIntegrationTest {
                         .header("X-Correlation-Id", CORRELATION_ID)
                         .header("X-Actor-Id", String.valueOf(operatorUserId))
                         .header("X-Idempotency-Key", idempotencyKey)
+                        .header("X-Request-Timestamp", Instant.now().toString())
+                        .header("X-Request-Nonce", "nonce-" + idempotencyKey)
                         .header("X-Api-Version", "v1")
                         .contentType("application/json")
                         .content("""

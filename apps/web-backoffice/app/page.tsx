@@ -1,5 +1,4 @@
 import OperationalStatusPanel from "./components/operational_status_panel";
-import ConfigTargetingPanel from "./components/config_targeting_panel";
 
 export default function HomePage() {
   return (
@@ -36,11 +35,20 @@ export default function HomePage() {
           <a className="ghost" href="/backoffice/inspections">
             Operar vistorias recebidas
           </a>
+          <a className="ghost" href="/backoffice/config">
+            Configuracao operacional
+          </a>
           <a className="ghost" href="/backoffice/jobs">
             Operar jobs
           </a>
           <a className="ghost" href="/backoffice/cases">
             Criar cases
+          </a>
+          <a className="ghost" href="/backoffice/valuation">
+            Operar valuation
+          </a>
+          <a className="ghost" href="/backoffice/reports">
+            Operar reports
           </a>
         </div>
       </section>
@@ -61,7 +69,18 @@ export default function HomePage() {
       </section>
 
       <OperationalStatusPanel />
-      <ConfigTargetingPanel />
+      <section className="panel panel-config">
+        <h2>Configuracao operacional</h2>
+        <p>
+          Publicacao, aprovacao e rollback de pacotes de check-in agora seguem como frente
+          dedicada do backoffice para fechar o FW-004 sem depender da home como tela de operacao.
+        </p>
+        <div className="hero-actions">
+          <a className="cta" href="/backoffice/config">
+            Abrir central de configuracao
+          </a>
+        </div>
+      </section>
     </main>
   );
 }

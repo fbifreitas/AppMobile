@@ -67,6 +67,12 @@ public class ApiExceptionHandler {
         if ("X-Idempotency-Key".equalsIgnoreCase(headerName)) {
             code = "IDEMPOTENCY_KEY_REQUIRED";
             guidance = "Informe X-Idempotency-Key para garantir processamento seguro em retries.";
+        } else if ("X-Request-Timestamp".equalsIgnoreCase(headerName)) {
+            code = "REQUEST_TIMESTAMP_REQUIRED";
+            guidance = "Send X-Request-Timestamp in UTC ISO-8601 format for protected mobile write operations.";
+        } else if ("X-Request-Nonce".equalsIgnoreCase(headerName)) {
+            code = "REQUEST_NONCE_REQUIRED";
+            guidance = "Send a unique X-Request-Nonce for each protected mobile write operation.";
         } else if ("X-Api-Version".equalsIgnoreCase(headerName)) {
             code = "CONTRACT_VERSION_REQUIRED";
             guidance = "Informe X-Api-Version com o contrato suportado pelo backend.";

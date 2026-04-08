@@ -425,3 +425,206 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
 - Estado operacional:
   - pacote corretivo fechado localmente e pronto para publicação em homologação/Firebase;
   - próximo passo: criar branch `release/v1.2.37+57`, publicar, acompanhar `Android Homologation` e `Internal Docs CI`.
+
+## Checkpoint 2026-04-08 - Reagrupamento operacional em 2 macro-pacotes
+- Decisao de execucao vigente: consolidar a entrega em 2 macro-pacotes grandes, com rastreabilidade cruzada entre web, backend e integracao.
+- Regra operacional: priorizar fechamento do fluxo ponta a ponta antes de abrir novas frentes de robustez/Onda 2.
+
+### Macro-pacote A - Go-Live Core Web-Mobile
+- Objetivo: fechar o fluxo real de configuracao e sync entre web, backend, integracao e mobile.
+- Escopo:
+  - web/front: FW-004;
+  - backend/plataforma: BOW-121, BOW-122, BOW-130, BOW-131, BOW-150, BOW-151;
+  - integracao: INT-001, INT-002, INT-003, INT-004, INT-006, INT-007, INT-011, INT-012, INT-016, INT-026, INT-027, INT-028, INT-030.
+- Gate de saida:
+  1. configuracao real publicada por tenant e aplicada no app com rollback;
+  2. vistoria sincronizada com protocolo e sem duplicidade em retry;
+  3. headers/contexto/assinatura/contrato protegidos em testes e CI;
+  4. segredo de assinatura provisionado por ambiente com evidencia operacional.
+
+### Macro-pacote B - Backoffice Operational Closure
+- Objetivo: fechar o backbone operacional do backend e a operacao minima do backoffice apos o fluxo core estar estavel.
+- Escopo:
+  - backend/plataforma: BOW-100, BOW-120, BOW-140, BOW-141;
+  - web/front: FW-005, FW-006, FW-007.
+- Gate de saida:
+  1. backbone tenant/case/job estabilizado;
+  2. observabilidade minima operavel no web;
+  3. intake/valuation/laudo basico operando por UI com trilha.
+
+### Itens explicitamente fora desta rodada
+1. Onda 2 como frente principal (BOW-200+, INT-008/009/010/018/019/020).
+2. Onda 3 e Onda 4.
+3. Expansoes de marketplace e multi-tenant comercial.
+
+## Checkpoint 2026-04-08 - Macro-pacote A (Passo 2, hardening de versionamento mobile)
+- Objetivo: reforcar INT-003/INT-004/BOW-130 no mobile com cache versionado do `step2`, preservando assinatura HMAC, rollout e rollback efetivo.
+- Escopo implementado:
+  - mobile: `CheckinDynamicConfigService` passou a versionar tambem o cache remoto de `step2` por `TipoImovel`, espelhando a estrategia ja usada no `step1`;
+  - mobile: quando o backend publica o mesmo `version`, o app reutiliza o documento cacheado em vez de aceitar mutacao silenciosa sem bump;
+  - mobile: quando o backend muda o `version`, o app aplica o novo pacote e atualiza o cache versionado.
+- Validacao executada:
+  - `flutter test --no-pub test/services/checkin_dynamic_config_service_test.dart test/screens/checkin_flow_navigation_test.dart` verde (`27` testes).
+- Leitura operacional:
+  - o consumo mobile continua aceitando payload assinado valido, rejeitando assinatura invalida e refletindo rollback na proxima leitura;
+  - o versionamento de `step2` agora fica coerente com a politica de pacote remoto do `step1`, reduzindo risco de drift entre web/backoffice e app.
+
+## Checkpoint 2026-04-08 - Macro-pacote A (Passo 3, reconciliacao explicita do sync)
+- Objetivo: reforcar BOW-122/INT-006/INT-007/BOW-131 com retorno de sync mais rico para reconciliacao e retries idempotentes.
+- Escopo implementado:
+  - mobile: `InspectionSyncQueueService` passou a deduplicar a fila pelo `idempotency key` canonico gerado por `IntegrationContextService`, em vez de depender apenas de `jobId + exportedAt`;
+  - mobile: testes cobrem equivalencia por ordem de mapa e diferenciam payloads realmente distintos no mesmo job;
+  - backend: `InspectionFinalizedResponse` passou a devolver `processId`, `processNumber` e `jobId` junto de `protocolId`, `receivedAt`, `status` e `duplicate`;
+  - backend: `InspectionSubmissionService` agora preenche esses metadados tanto na submissao inicial quanto em repeticao idempotente.
+- Validacao executada:
+  - `flutter test --no-pub test/services/inspection_sync_queue_service_test.dart test/services/inspection_sync_service_test.dart test/state/app_state_inspection_recovery_test.dart` verde (`21` testes);
+  - validacao local de backend bloqueada no ambiente atual por ausencia de binario Maven/maven wrapper, sem evidencia local de falha de compilacao no codigo alterado.
+- Leitura operacional:
+  - o app passa a receber referencias estaveis para reconciliacao (`processId` e `processNumber`) sem quebrar o contrato atual;
+  - retries equivalentes deixam de gerar duplicidades locais na fila antes mesmo da chamada HTTP;
+  - proximo gate necessario: rodar a suite de integracao Java em ambiente com Maven provisionado.
+
+## Checkpoint 2026-04-08 - Macro-pacote A (Passo 4, semantica canonica de idempotencia e erro)
+- Objetivo: consolidar INT-002/INT-027/INT-028 na borda mobile-backend, eliminando ambiguidade entre retry idempotente e reuso invalido da mesma chave.
+- Escopo implementado:
+  - backend: `InspectionSubmissionService` passou a distinguir `same key + same payload` (retorno idempotente com `202`) de `same key + different payload` (conflito canonico com `409`);
+  - backend: o conflito usa codigo canonico `IDEMPOTENCY_KEY_PAYLOAD_MISMATCH` com guidance operacional explicita;
+  - testes: `InspectionSubmissionIntegrationTest` cobre o caso real de reuso incorreto da key;
+  - testes: `MobileApiControllerContractErrorTest` cobre a serializacao do erro canonico de conflito;
+  - testes: `OpenApiContractIntegrationTest` passou a exigir schema canonico tambem na resposta `409` do endpoint `/api/mobile/inspections/finalized`.
+- Validacao executada:
+  - revisao local dos diffs Java e alinhamento do contrato OpenAPI;
+  - validacao automatizada de backend ainda bloqueada no ambiente atual por ausencia de Maven/maven wrapper.
+- Leitura operacional:
+  - o contrato agora fica coerente com o que a documentacao ja declarava sobre `409`;
+  - retries seguros continuam transparentes para o app;
+  - reuso incorreto de `X-Idempotency-Key` passa a falhar de forma auditavel e consistente.
+
+## Checkpoint 2026-04-08 - Macro-pacote A (Passo 5, anti-replay e validacao de contrato)
+- Objetivo: fechar INT-011/INT-012/INT-016 no uplink critico mobile com protecao anti-replay efetiva e cobertura automatizada ponta a ponta.
+- Escopo implementado:
+  - mobile: `IntegrationContextService` passou a gerar `X-Request-Timestamp` e `X-Request-Nonce`;
+  - mobile: `InspectionSyncService` agora envia `X-Request-Timestamp` e `X-Request-Nonce` em toda submissao final protegida;
+  - backend: `MobileGatewayPolicyFilter` passou a aplicar replay protection no `POST /api/mobile/inspections/finalized` com janela curta, validacao de timestamp ISO-8601 e bloqueio de nonce repetido por tenant/actor;
+  - backend: erros de filtro passaram a usar o mesmo envelope canonico via `HandlerExceptionResolver`;
+  - backend: `MobileApiController` e `OpenAPI` passaram a declarar `X-Request-Timestamp` e `X-Request-Nonce` como headers obrigatorios do contrato;
+  - testes: cobertura nova para nonce/timestamp no mobile, replay detectado em integracao backend e contrato OpenAPI atualizado.
+- Validacao executada:
+  - `flutter test --no-pub test/services/integration_context_service_test.dart test/services/inspection_sync_service_test.dart test/services/inspection_sync_queue_service_test.dart test/state/app_state_inspection_recovery_test.dart` verde (`25` testes);
+  - `mvn -q "-Dmaven.repo.local=D:/DevCaches/maven-repository-codex" "-Dtest=MobileApiControllerContractErrorTest,InspectionSubmissionIntegrationTest,InspectionBackofficeIntegrationTest,MobileCheckinConfigIntegrationTest,OpenApiContractIntegrationTest" test` verde.
+- Leitura operacional:
+  - o endpoint critico de escrita deixa de aceitar retries sem prova minima de frescor (`timestamp`) e unicidade (`nonce`);
+  - replay agora falha com codigo canonico em vez de comportamento ambiguo;
+  - a suite de contrato mobile-backend cobre headers obrigatorios, erro canonico e reconciliacao do sync no caminho principal.
+
+## Checkpoint 2026-04-08 - Macro-pacote A (Passo 5, segredo de assinatura e correlation path)
+- Objetivo: fechar INT-030 e BOW-150 no baseline operacional, sem depender de infra externa adicional nesta rodada.
+- Escopo implementado:
+  - backend: criado `ConfigSigningSecretValidator` com fail-fast configuravel por `integration.config-signing.require-secret`;
+  - backend: `application.yml` passou a aceitar `INTEGRATION_CONFIG_SIGNING_REQUIRE_SECRET`;
+  - backend: `RequestTracingFilter` adiciona `X-Correlation-Id` e `X-Trace-Id` na resposta e popula `MDC` com `correlationId`/`traceId`;
+  - testes: `MobileCheckinConfigIntegrationTest` passou a verificar os headers de tracing;
+  - testes: `ConfigSigningSecretValidatorTest` cobre segredo obrigatorio/presente/ausente;
+  - CI: `backend_ci.yml` documenta o gate via env `INTEGRATION_CONFIG_SIGNING_REQUIRE_SECRET`.
+- Validacao executada:
+  - suite backend critica reexecutada com Maven valido (`C:\\tools\\apache-maven-3.9.14\\bin\\mvn.cmd`) e verde;
+  - observacao operacional: a variavel `MAVEN_HOME` desta sessao ainda aponta para `C:\\tools\\apache-maven-3.9.9`, entao a correcao global precisa refletir em nova sessao de shell para ficar visivel aqui.
+- Leitura operacional:
+  - homolog/producao podem passar a falhar cedo se o segredo exigido nao estiver provisionado;
+  - toda resposta backend passa a devolver `X-Correlation-Id` e `X-Trace-Id`, criando caminho minimo de rastreabilidade para incidente;
+  - o baseline de release fica mais proximo do criterio de pronto de INT-030 sem bloquear dev/test local por padrao.
+
+## Checkpoint 2026-04-08 - Macro-pacote B (BOW-120, integridade de ownership em Case/Job)
+- Objetivo: endurecer o backbone `Case -> Job` com regras minimas de ownership por tenant e por operador, reduzindo risco de atribuicao cruzada e submissao mobile por ator incorreto.
+- Escopo implementado:
+  - backend: `CaseService` rejeita `caseNumber` duplicado dentro do mesmo tenant com conflito canonico `CASE_NUMBER_ALREADY_EXISTS`;
+  - backend: `JobService.assignJob(...)` passou a validar que o usuario atribuido pertence ao mesmo tenant do job, retornando `JOB_ASSIGNEE_TENANT_MISMATCH` em caso de violacao;
+  - backend: `JobService.acceptJob(...)` passou a exigir que apenas o operador efetivamente atribuido possa aceitar o job, com erros canonicos `JOB_NOT_ASSIGNED`, `INVALID_ACTOR_ID` e `JOB_ACCEPT_FORBIDDEN`;
+  - backend: `JobService.submitInspectionFromMobile(...)` agora herda o mesmo gate de ownership do operador atribuido antes de avancar o job para `SUBMITTED`;
+  - testes: `CaseJobDomainIntegrationTest` cobre duplicidade por tenant, atribuicao cross-tenant, aceite por ator incorreto e isolamento de jobs mobile por tenant;
+  - testes: `InspectionSubmissionIntegrationTest` cobre rejeicao da submissao quando o `X-Actor-Id` nao corresponde ao operador atribuido.
+- Validacao executada:
+  - `mvn -q "-Dmaven.repo.local=D:/DevCaches/maven-repository-codex" "-Dtest=CaseJobDomainIntegrationTest,InspectionSubmissionIntegrationTest" test` verde.
+- Leitura operacional:
+  - jobs deixam de aceitar atribuicao silenciosa para usuarios de outro tenant;
+  - o caminho mobile passa a respeitar o mesmo ownership de operador ja exigido no aceite do job;
+  - a base do dominio `Case/Job` fica mais segura para seguir com backlog de intake, valuation e laudo sem mascarar erro de ownership.
+
+## Checkpoint 2026-04-08 - Macro-pacote B (BOW-100, guard de tenant ativo no dominio de jobs)
+- Objetivo: adicionar um gate estrutural de tenant ativo no dominio `Case/Job`, evitando operacao sobre tenant inexistente, suspenso ou arquivado.
+- Escopo implementado:
+  - backend: criado `TenantGuardService` para centralizar `TENANT_NOT_FOUND` e `TENANT_INACTIVE` como erros canonicos;
+  - backend: `CaseService.createCase(...)` agora exige tenant ativo antes de criar `Case -> Job`;
+  - backend: `JobService` passou a exigir tenant ativo em listagem, detalhe, timeline, atribuicao, aceite, cancelamento, submissao mobile e consulta de jobs mobile;
+  - testes: `CaseJobDomainIntegrationTest` cobre bloqueio de criacao para tenant suspenso e bloqueio de operacao/listagem para tenant inativo.
+- Validacao executada:
+  - `mvn -q "-Dmaven.repo.local=D:/DevCaches/maven-repository-codex" "-Dtest=CaseJobDomainIntegrationTest" test` verde.
+- Leitura operacional:
+  - o dominio deixa de operar silenciosamente sobre tenant invalido ou suspenso;
+  - a fundacao multi-tenant fica menos permissiva antes de avancar para intake, valuation e backoffice web;
+  - o guard central reduz duplicacao de regra e facilita reaproveitamento em outras fatias de `BOW-100`.
+
+## Checkpoint 2026-04-08 - Macro-pacote B (BOW-100/BOW-120, gate de aprovacao do operador)
+- Objetivo: impedir atribuicao, aceite e submissao mobile com operador ainda nao aprovado, alinhando o dominio operacional com o lifecycle de usuarios.
+- Escopo implementado:
+  - backend: `JobService.assignJob(...)` agora exige que o usuario atribuido esteja `APPROVED`, retornando `JOB_ASSIGNEE_NOT_APPROVED` quando o operador ainda esta em onboarding ou foi rebaixado;
+  - backend: `JobService.acceptJob(...)` e `JobService.submitInspectionFromMobile(...)` agora tambem exigem que o operador atribuido continue `APPROVED`, retornando `JOB_ACTOR_NOT_APPROVED` quando o actor perde aprovacao;
+  - testes: `CaseJobDomainIntegrationTest` cobre bloqueio de atribuicao para operador pendente e bloqueio de aceite quando o operador atribuido deixa de estar aprovado;
+  - testes: `InspectionSubmissionIntegrationTest` cobre bloqueio da submissao final quando o operador atribuido perde aprovacao antes do envio mobile;
+  - fixtures: operadores positivos nas suites focadas passaram a ser persistidos como `APPROVED`, deixando explicito o pre-requisito operacional.
+- Validacao executada:
+  - `mvn -q "-Dmaven.repo.local=D:/DevCaches/maven-repository-codex" "-Dtest=CaseJobDomainIntegrationTest,InspectionSubmissionIntegrationTest" test` verde.
+- Leitura operacional:
+  - o fluxo `assign -> accept -> submit` deixa de aceitar operadores ainda nao homologados pelo lifecycle;
+  - a fundacao de identidade e operacao fica mais coerente antes de abrir slices de intake, valuation e laudo no backoffice web;
+  - esse gate reduz risco de job operacional ser consumido por usuario pendente ou reprovado.
+
+## Checkpoint 2026-04-08 - Macro-pacote B (BOW-140/BOW-141/FW-006/FW-007, valuation and report operational closure)
+- Objective: close the first end-to-end valuation and report cycle over the real `Inspection -> ValuationProcess -> Report` backbone and expose it in the backoffice web without fallback tooling.
+- Implemented scope:
+  - backend: added migration `V013__valuation_and_reports.sql` with `valuation_processes`, `intake_validations` and `reports`, including cascading foreign keys for test and lifecycle cleanup;
+  - backend: created valuation/report domain entities, repositories, DTOs, services and controllers under `com.appbackoffice.api.valuation`;
+  - backend: `InspectionSubmissionService` now auto-creates or recovers a valuation process right after a successful inspection submission, keeping the cycle attached to the real mobile intake path;
+  - backend: intake validation now moves the process through `PENDING_INTAKE`, `INTAKE_VALIDATED`, `INTAKE_REJECTED`, `PROCESSING` and `READY_FOR_SIGN` with canonical conflicts for invalid transitions;
+  - backend: report generation now requires validated intake and produces a draft linked to the process, while review supports `APPROVE` and `RETURN_FOR_CHANGES`;
+  - web: added proxy routes for valuation processes and reports under `/api/valuation/processes` and `/api/reports` using the shared operations backend client;
+  - web: added `/backoffice/valuation` for intake validation and process tracking, plus `/backoffice/reports` for report generation and review;
+  - web: dashboard now links directly to the valuation and report workspaces;
+  - tests: added `ValuationReportBackofficeIntegrationTest`, `valuation_api_routes.test.ts` and `report_api_routes.test.ts`.
+- Validation executed:
+  - `mvn -q clean "-Dmaven.repo.local=D:/DevCaches/maven-repository-codex" "-Dtest=InspectionSubmissionIntegrationTest,InspectionBackofficeIntegrationTest,ValuationReportBackofficeIntegrationTest" test` green;
+  - `npm test` green (`31` tests) after rerunning outside sandbox because the local node runner needs child process spawn permissions;
+  - `npm run lint` green;
+  - `npm run build` green.
+- Operational reading:
+  - submitted inspections now enter a valuation queue automatically instead of stopping at raw intake persistence;
+  - backoffice can validate intake, generate the first draft report and review it to `READY_FOR_SIGN` using the real backend contract;
+  - package 2 now has a concrete operational path for valuation/report instead of only backbone hardening.
+- Residual note:
+  - `next build` still reports pre-existing `autoprefixer` warnings in `app/globals.css` (`start/end` mixed support). They do not block build, but they remain as frontend cleanup debt.
+
+## Checkpoint 2026-04-08 - Release candidate v1.2.40+60
+- Candidate branch: `release/v1.2.40+60`
+- Source work branch: `claude/onda-3-maturidade-arquitetural`
+- Objective: consolidate Macro-pacote A + Macro-pacote B baseline into a single release candidate with operational closure for integration, backbone hardening, valuation and report workspaces.
+- Versioning:
+  - `pubspec.yaml` incremented from `1.2.39+59` to `1.2.40+60` to satisfy the documented homologation/version bump gate.
+- Release gate snapshot before commit/push:
+  - backend focused validation green;
+  - web `test`, `lint` and `build` green;
+  - release candidate branch cut before promotion;
+  - next step is commit + push of `release/v1.2.40+60`, then CI/homologation monitoring and only after that PR to `main`.
+
+## Checkpoint 2026-04-08 - PR aberta para promocao da release v1.2.40+60
+- Branch de release: `release/v1.2.40+60`
+- PR para `main`: https://github.com/fbifreitas/AppMobile/pull/25
+- Estado da esteira antes da PR:
+  - `Android Homologation`: success
+  - `Internal Docs CI`: success
+- Procedimento seguido:
+  - branch de release criada antes da promocao;
+  - version bump aplicado em `pubspec.yaml`;
+  - push da branch candidata executado para disparar homologacao;
+  - PR aberta somente apos homologacao verde, sem push direto para `main`.
+- Proximo gate:
+  - validar checks da PR e aplicar o procedimento de excecao controlada apenas no instante do merge, se houver autorizacao explicita para promover em `main`.

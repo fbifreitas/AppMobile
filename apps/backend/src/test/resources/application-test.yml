@@ -30,3 +30,4 @@ auth:
 integration:
   config-signing:
     hmac-key: test-config-signing-key
+    require-secret: false

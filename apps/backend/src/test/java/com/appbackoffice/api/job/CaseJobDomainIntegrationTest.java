@@ -1,5 +1,6 @@
 package com.appbackoffice.api.job;
 
+import com.appbackoffice.api.contract.ApiContractException;
 import com.appbackoffice.api.identity.entity.Tenant;
 import com.appbackoffice.api.identity.entity.TenantStatus;
 import com.appbackoffice.api.identity.repository.TenantRepository;
@@ -17,6 +18,7 @@ import com.appbackoffice.api.job.repository.JobTimelineRepository;
 import com.appbackoffice.api.job.service.CaseService;
 import com.appbackoffice.api.job.service.JobService;
 import com.appbackoffice.api.user.entity.User;
+import com.appbackoffice.api.user.entity.UserStatus;
 import com.appbackoffice.api.user.repository.UserRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,6 +49,7 @@ class CaseJobDomainIntegrationTest {
     @Autowired private CaseRepository caseRepository;
 
     private Long operatorUserId;
+    private Long otherTenantUserId;
 
     private void cleanAll() {
         timelineRepository.deleteAll();
@@ -62,7 +65,14 @@ class CaseJobDomainIntegrationTest {
         cleanAll();
         tenantRepository.save(new Tenant(TENANT_ID, "tenant-job-slug", "Tenant Job Test", TenantStatus.ACTIVE));
         User operator = userRepository.save(new User(TENANT_ID, "vistoriador@teste.com", "Vistoriador Teste", "PJ"));
+        operator.setStatus(UserStatus.APPROVED);
+        operator = userRepository.save(operator);
         operatorUserId = operator.getId();
+        tenantRepository.save(new Tenant("tenant-job-external", "tenant-job-external", "Tenant External", TenantStatus.ACTIVE));
+        User externalUser = userRepository.save(new User("tenant-job-external", "external@teste.com", "External Operator", "PJ"));
+        externalUser.setStatus(UserStatus.APPROVED);
+        externalUser = userRepository.save(externalUser);
+        otherTenantUserId = externalUser.getId();
     }
 
     @AfterEach
@@ -146,14 +156,14 @@ class CaseJobDomainIntegrationTest {
         ));
         Long jobId = caseResp.jobId();
 
-        JobSummaryResponse cancelled = jobService.cancelJob(TENANT_ID, jobId, "Solicitação do cliente", "admin-1");
+        JobSummaryResponse cancelled = jobService.cancelJob(TENANT_ID, jobId, "SolicitaÃƒÂ§ÃƒÂ£o do cliente", "admin-1");
 
         assertThat(cancelled.status()).isEqualTo(JobStatus.CLOSED.name());
 
         JobTimelineResponse timeline = jobService.getTimeline(TENANT_ID, jobId);
         assertThat(timeline.entries()).hasSize(1);
         assertThat(timeline.entries().get(0).toStatus()).isEqualTo(JobStatus.CLOSED.name());
-        assertThat(timeline.entries().get(0).reason()).isEqualTo("Solicitação do cliente");
+        assertThat(timeline.entries().get(0).reason()).isEqualTo("SolicitaÃƒÂ§ÃƒÂ£o do cliente");
     }
 
     @Test
@@ -177,14 +187,14 @@ class CaseJobDomainIntegrationTest {
     void shouldRejectInvalidTransition() {
         CreateCaseResponse caseResp = caseService.createCase(TENANT_ID, "admin-1", new CreateCaseRequest(
                 "CASE-007", "Rua Invalida, 0", "RESIDENTIAL",
-                null, "Transição Inválida"
+                null, "TransiÃƒÂ§ÃƒÂ£o InvÃƒÂ¡lida"
         ));
         Long jobId = caseResp.jobId();
 
-        // Cannot accept before assigning (ELIGIBLE_FOR_DISPATCH → ACCEPTED is invalid)
+        // Accepting before assignment must fail with the canonical domain error.
         assertThatThrownBy(() -> jobService.acceptJob(TENANT_ID, jobId, "actor-1"))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Transição inválida");
+                .isInstanceOf(ApiContractException.class)
+                .hasMessageContaining("Job is not assigned to any field operator");
     }
 
     @Test
@@ -207,6 +217,14 @@ class CaseJobDomainIntegrationTest {
     void shouldIsolateMobileJobsByTenant() {
         String otherTenantId = "tenant-job-other";
         tenantRepository.save(new Tenant(otherTenantId, "tenant-job-other", "Tenant Other", TenantStatus.ACTIVE));
+        User otherTenantOperator = userRepository.save(new User(
+                otherTenantId,
+                "other-tenant-operator@teste.com",
+                "Other Tenant Operator",
+                "PJ"
+        ));
+        otherTenantOperator.setStatus(UserStatus.APPROVED);
+        otherTenantOperator = userRepository.save(otherTenantOperator);
 
         CreateCaseResponse tenantA = caseService.createCase(TENANT_ID, "admin-1", new CreateCaseRequest(
                 "CASE-009", "Rua Tenant A, 1", "RESIDENTIAL", null, "Job Tenant A"
@@ -218,12 +236,162 @@ class CaseJobDomainIntegrationTest {
         jobService.assignJob(TENANT_ID, tenantA.jobId(), new AssignJobRequest(operatorUserId), "admin-1");
         jobService.acceptJob(TENANT_ID, tenantA.jobId(), String.valueOf(operatorUserId));
 
-        jobService.assignJob(otherTenantId, tenantB.jobId(), new AssignJobRequest(operatorUserId), "admin-1");
-        jobService.acceptJob(otherTenantId, tenantB.jobId(), String.valueOf(operatorUserId));
+        jobService.assignJob(otherTenantId, tenantB.jobId(), new AssignJobRequest(otherTenantOperator.getId()), "admin-1");
+        jobService.acceptJob(otherTenantId, tenantB.jobId(), String.valueOf(otherTenantOperator.getId()));
 
         var tenantAJobs = jobService.getMobileJobsForUser(TENANT_ID, operatorUserId, "ACCEPTED");
 
         assertThat(tenantAJobs).hasSize(1);
         assertThat(tenantAJobs.get(0).tenantId()).isEqualTo(TENANT_ID);
+    }
+
+    @Test
+    void shouldRejectDuplicateCaseNumberInsideSameTenant() {
+        caseService.createCase(TENANT_ID, "admin-1", new CreateCaseRequest(
+                "CASE-DUP-001", "Rua A, 1", "RESIDENTIAL", null, "Job A"
+        ));
+
+        assertThatThrownBy(() -> caseService.createCase(TENANT_ID, "admin-1", new CreateCaseRequest(
+                "CASE-DUP-001", "Rua B, 2", "RESIDENTIAL", null, "Job B"
+        )))
+                .isInstanceOf(com.appbackoffice.api.contract.ApiContractException.class)
+                .hasMessageContaining("Case number already exists");
+    }
+
+    @Test
+    void shouldAllowSameCaseNumberAcrossDifferentTenants() {
+        String otherTenantId = "tenant-job-dup-other";
+        tenantRepository.save(new Tenant(otherTenantId, "tenant-job-dup-other", "Tenant Other Dup", TenantStatus.ACTIVE));
+
+        CreateCaseResponse tenantA = caseService.createCase(TENANT_ID, "admin-1", new CreateCaseRequest(
+                "CASE-SHARED-001", "Rua A, 1", "RESIDENTIAL", null, "Job Tenant A"
+        ));
+        CreateCaseResponse tenantB = caseService.createCase(otherTenantId, "admin-1", new CreateCaseRequest(
+                "CASE-SHARED-001", "Rua B, 2", "RESIDENTIAL", null, "Job Tenant B"
+        ));
+
+        assertThat(tenantA.caseId()).isNotEqualTo(tenantB.caseId());
+        assertThat(tenantA.caseNumber()).isEqualTo("CASE-SHARED-001");
+        assertThat(tenantB.caseNumber()).isEqualTo("CASE-SHARED-001");
+    }
+
+    @Test
+    void shouldRejectAssignmentToUserFromDifferentTenant() {
+        CreateCaseResponse caseResp = caseService.createCase(TENANT_ID, "admin-1", new CreateCaseRequest(
+                "CASE-CROSS-USER-001", "Rua Tenant, 10", "RESIDENTIAL", null, "Cross Tenant Assignment"
+        ));
+
+        assertThatThrownBy(() -> jobService.assignJob(
+                TENANT_ID,
+                caseResp.jobId(),
+                new AssignJobRequest(otherTenantUserId),
+                "admin-1"
+        ))
+                .isInstanceOf(com.appbackoffice.api.contract.ApiContractException.class)
+                .hasMessageContaining("Assigned user does not belong");
+    }
+
+    @Test
+    void shouldRejectAcceptWhenActorIsNotAssignedOperator() {
+        CreateCaseResponse caseResp = caseService.createCase(TENANT_ID, "admin-1", new CreateCaseRequest(
+                "CASE-WRONG-ACTOR-001", "Rua Actor, 20", "RESIDENTIAL", null, "Wrong Actor"
+        ));
+        jobService.assignJob(TENANT_ID, caseResp.jobId(), new AssignJobRequest(operatorUserId), "admin-1");
+
+        assertThatThrownBy(() -> jobService.acceptJob(TENANT_ID, caseResp.jobId(), String.valueOf(otherTenantUserId)))
+                .isInstanceOf(com.appbackoffice.api.contract.ApiContractException.class)
+                .hasMessageContaining("Only the assigned field operator can accept this job");
+    }
+
+    @Test
+    void shouldRejectCaseCreationForInactiveTenant() {
+        String suspendedTenantId = "tenant-job-suspended";
+        tenantRepository.save(new Tenant(suspendedTenantId, suspendedTenantId, "Tenant Suspended", TenantStatus.SUSPENDED));
+
+        assertThatThrownBy(() -> caseService.createCase(suspendedTenantId, "admin-1", new CreateCaseRequest(
+                "CASE-SUSPENDED-001", "Rua Suspended, 1", "RESIDENTIAL", null, "Suspended Tenant Job"
+        )))
+                .isInstanceOf(ApiContractException.class)
+                .hasMessageContaining("Tenant is not active");
+    }
+
+    @Test
+    void shouldRejectJobOperationsForInactiveTenant() {
+        String suspendedTenantId = "tenant-job-suspended-ops";
+        tenantRepository.save(new Tenant(suspendedTenantId, suspendedTenantId, "Tenant Suspended Ops", TenantStatus.ACTIVE));
+        User suspendedTenantOperator = userRepository.save(new User(
+                suspendedTenantId,
+                "suspended-operator@teste.com",
+                "Suspended Operator",
+                "PJ"
+        ));
+        CreateCaseResponse suspendedCase = caseService.createCase(suspendedTenantId, "admin-1", new CreateCaseRequest(
+                "CASE-SUSPENDED-OPS-001", "Rua Suspended, 2", "RESIDENTIAL", null, "Suspended Ops Job"
+        ));
+        tenantRepository.findById(suspendedTenantId).ifPresent(tenant -> {
+            tenant.setStatus(TenantStatus.SUSPENDED);
+            tenantRepository.save(tenant);
+        });
+
+        assertThatThrownBy(() -> jobService.assignJob(
+                suspendedTenantId,
+                suspendedCase.jobId(),
+                new AssignJobRequest(suspendedTenantOperator.getId()),
+                "admin-1"
+        ))
+                .isInstanceOf(ApiContractException.class)
+                .hasMessageContaining("Tenant is not active");
+
+        assertThatThrownBy(() -> jobService.listJobs(suspendedTenantId, null, org.springframework.data.domain.PageRequest.of(0, 10)))
+                .isInstanceOf(ApiContractException.class)
+                .hasMessageContaining("Tenant is not active");
+    }
+
+    @Test
+    void shouldRejectAssignmentToUserAwaitingApproval() {
+        User pendingOperator = userRepository.save(new User(
+                TENANT_ID,
+                "pending-operator@teste.com",
+                "Pending Operator",
+                "PJ"
+        ));
+
+        CreateCaseResponse caseResp = caseService.createCase(TENANT_ID, "admin-1", new CreateCaseRequest(
+                "CASE-PENDING-ASSIGNEE-001", "Rua Pending, 10", "RESIDENTIAL", null, "Pending Assignee"
+        ));
+
+        assertThatThrownBy(() -> jobService.assignJob(
+                TENANT_ID,
+                caseResp.jobId(),
+                new AssignJobRequest(pendingOperator.getId()),
+                "admin-1"
+        ))
+                .isInstanceOf(ApiContractException.class)
+                .hasMessageContaining("Assigned user is not approved for field work");
+    }
+
+    @Test
+    void shouldRejectAcceptWhenAssignedOperatorIsNotApproved() {
+        User pendingOperator = userRepository.save(new User(
+                TENANT_ID,
+                "pending-accept@teste.com",
+                "Pending Accept Operator",
+                "PJ"
+        ));
+        pendingOperator.setStatus(UserStatus.APPROVED);
+        pendingOperator = userRepository.save(pendingOperator);
+        Long pendingOperatorId = pendingOperator.getId();
+
+        CreateCaseResponse caseResp = caseService.createCase(TENANT_ID, "admin-1", new CreateCaseRequest(
+                "CASE-PENDING-ACTOR-001", "Rua Pending Actor, 20", "RESIDENTIAL", null, "Pending Actor"
+        ));
+        jobService.assignJob(TENANT_ID, caseResp.jobId(), new AssignJobRequest(pendingOperatorId), "admin-1");
+
+        pendingOperator.setStatus(UserStatus.AWAITING_APPROVAL);
+        userRepository.save(pendingOperator);
+
+        assertThatThrownBy(() -> jobService.acceptJob(TENANT_ID, caseResp.jobId(), String.valueOf(pendingOperatorId)))
+                .isInstanceOf(ApiContractException.class)
+                .hasMessageContaining("Assigned actor is not approved for field work");
     }
 }

@@ -70,4 +70,41 @@ public final class RequestContextValidator {
             );
         }
     }
+
+    public static void requireIdempotencyKey(String idempotencyKey) {
+        if (!StringUtils.hasText(idempotencyKey)) {
+            throw new ApiContractException(
+                    HttpStatus.BAD_REQUEST,
+                    "IDEMPOTENCY_KEY_REQUIRED",
+                    "X-Idempotency-Key e obrigatorio",
+                    ErrorSeverity.ERROR,
+                    "Informe X-Idempotency-Key para garantir processamento seguro em retries.",
+                    "header: X-Idempotency-Key"
+            );
+        }
+    }
+
+    public static void requireProtectedWriteHeaders(String requestTimestamp, String requestNonce) {
+        if (!StringUtils.hasText(requestTimestamp)) {
+            throw new ApiContractException(
+                    HttpStatus.BAD_REQUEST,
+                    "REQUEST_TIMESTAMP_REQUIRED",
+                    "X-Request-Timestamp is required",
+                    ErrorSeverity.ERROR,
+                    "Send X-Request-Timestamp in UTC ISO-8601 format for protected mobile write operations.",
+                    "header: X-Request-Timestamp"
+            );
+        }
+
+        if (!StringUtils.hasText(requestNonce)) {
+            throw new ApiContractException(
+                    HttpStatus.BAD_REQUEST,
+                    "REQUEST_NONCE_REQUIRED",
+                    "X-Request-Nonce is required",
+                    ErrorSeverity.ERROR,
+                    "Send a unique X-Request-Nonce for each protected mobile write operation.",
+                    "header: X-Request-Nonce"
+            );
+        }
+    }
 }

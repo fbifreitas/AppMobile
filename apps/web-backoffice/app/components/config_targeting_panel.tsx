@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { useEffect, useMemo, useState } from "react";
 import type { ActorRole } from "../lib/config_policy";
 

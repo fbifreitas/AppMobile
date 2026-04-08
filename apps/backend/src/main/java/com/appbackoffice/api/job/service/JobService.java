@@ -1,5 +1,8 @@
 package com.appbackoffice.api.job.service;
 
+import com.appbackoffice.api.contract.ApiContractException;
+import com.appbackoffice.api.contract.ErrorSeverity;
+import com.appbackoffice.api.identity.service.TenantGuardService;
 import com.appbackoffice.api.job.dto.AssignJobRequest;
 import com.appbackoffice.api.job.dto.JobDetailResponse;
 import com.appbackoffice.api.job.dto.JobSummaryResponse;
@@ -12,6 +15,9 @@ import com.appbackoffice.api.job.entity.JobTimelineEntry;
 import com.appbackoffice.api.job.repository.AssignmentRepository;
 import com.appbackoffice.api.job.repository.JobRepository;
 import com.appbackoffice.api.job.repository.JobTimelineRepository;
+import com.appbackoffice.api.user.repository.UserRepository;
+import com.appbackoffice.api.user.entity.User;
+import com.appbackoffice.api.user.entity.UserStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -28,18 +34,25 @@ public class JobService {
     private final AssignmentRepository assignmentRepository;
     private final JobTimelineRepository timelineRepository;
     private final JobStateMachine stateMachine;
+    private final UserRepository userRepository;
+    private final TenantGuardService tenantGuardService;
 
     public JobService(JobRepository jobRepository,
                       AssignmentRepository assignmentRepository,
                       JobTimelineRepository timelineRepository,
-                      JobStateMachine stateMachine) {
+                      JobStateMachine stateMachine,
+                      UserRepository userRepository,
+                      TenantGuardService tenantGuardService) {
         this.jobRepository = jobRepository;
         this.assignmentRepository = assignmentRepository;
         this.timelineRepository = timelineRepository;
         this.stateMachine = stateMachine;
+        this.userRepository = userRepository;
+        this.tenantGuardService = tenantGuardService;
     }
 
     public Page<JobSummaryResponse> listJobs(String tenantId, String status, Pageable pageable) {
+        tenantGuardService.requireActiveTenant(tenantId);
         Page<Job> page;
         if (status != null && !status.isBlank()) {
             JobStatus jobStatus = parseStatus(status);
@@ -51,12 +64,14 @@ public class JobService {
     }
 
     public JobDetailResponse getJobDetail(String tenantId, Long jobId) {
+        tenantGuardService.requireActiveTenant(tenantId);
         Job job = requireJobInTenant(tenantId, jobId);
         List<Assignment> assignments = assignmentRepository.findByJobId(jobId);
         return toDetail(job, assignments);
     }
 
     public JobTimelineResponse getTimeline(String tenantId, Long jobId) {
+        tenantGuardService.requireActiveTenant(tenantId);
         requireJobInTenant(tenantId, jobId);
         List<JobTimelineEntry> entries = timelineRepository.findByJobIdOrderByOccurredAtAsc(jobId);
         List<JobTimelineResponse.TimelineEntry> mapped = entries.stream()
@@ -68,7 +83,9 @@ public class JobService {
 
     @Transactional
     public JobSummaryResponse assignJob(String tenantId, Long jobId, AssignJobRequest request, String actorId) {
+        tenantGuardService.requireActiveTenant(tenantId);
         Job job = requireJobInTenant(tenantId, jobId);
+        requireAssignableUserInTenant(tenantId, request.userId());
         JobStatus from = job.getStatus();
         stateMachine.validateTransition(from, JobStatus.OFFERED);
 
@@ -85,7 +102,9 @@ public class JobService {
 
     @Transactional
     public JobSummaryResponse acceptJob(String tenantId, Long jobId, String actorId) {
+        tenantGuardService.requireActiveTenant(tenantId);
         Job job = requireJobInTenant(tenantId, jobId);
+        requireAssignedActor(job, actorId);
         JobStatus from = job.getStatus();
         stateMachine.validateTransition(from, JobStatus.ACCEPTED);
 
@@ -101,6 +120,7 @@ public class JobService {
 
     @Transactional
     public JobSummaryResponse cancelJob(String tenantId, Long jobId, String reason, String actorId) {
+        tenantGuardService.requireActiveTenant(tenantId);
         Job job = requireJobInTenant(tenantId, jobId);
         JobStatus from = job.getStatus();
         stateMachine.validateTransition(from, JobStatus.CLOSED);
@@ -114,29 +134,39 @@ public class JobService {
 
     @Transactional
     public void submitInspectionFromMobile(String tenantId, Long jobId, String actorId) {
+        tenantGuardService.requireActiveTenant(tenantId);
         Job job = requireJobInTenant(tenantId, jobId);
+        requireAssignedActor(job, actorId);
 
         if (job.getStatus() == JobStatus.SUBMITTED || job.getStatus() == JobStatus.CLOSED) {
             return;
         }
 
         if (job.getStatus() == JobStatus.ACCEPTED) {
-            transition(job, JobStatus.IN_EXECUTION, actorId, "Execucao iniciada pelo envio mobile");
+            transition(job, JobStatus.IN_EXECUTION, actorId, "Execution started by mobile submission");
         }
         if (job.getStatus() == JobStatus.IN_EXECUTION) {
-            transition(job, JobStatus.FIELD_COMPLETED, actorId, "Campo concluido pelo envio mobile");
+            transition(job, JobStatus.FIELD_COMPLETED, actorId, "Field work completed by mobile submission");
         }
         if (job.getStatus() == JobStatus.FIELD_COMPLETED) {
-            transition(job, JobStatus.SUBMITTED, actorId, "Inspecao submetida pelo mobile");
+            transition(job, JobStatus.SUBMITTED, actorId, "Inspection submitted by mobile");
             return;
         }
 
         if (job.getStatus() != JobStatus.SUBMITTED) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Job não pode ser submetido a partir do estado atual: " + job.getStatus());
+            throw new ApiContractException(
+                    HttpStatus.CONFLICT,
+                    "JOB_SUBMISSION_STATE_INVALID",
+                    "Job cannot be submitted from the current state",
+                    ErrorSeverity.ERROR,
+                    "Submit the inspection only after the job is accepted and assigned to the same field operator.",
+                    "jobId=" + job.getId() + ", status=" + job.getStatus()
+            );
         }
     }
 
     public List<JobSummaryResponse> getMobileJobsForUser(String tenantId, Long userId, String statusFilter) {
+        tenantGuardService.requireActiveTenant(tenantId);
         List<Job> jobs;
         if (statusFilter != null && !statusFilter.isBlank()) {
             JobStatus status = parseStatus(statusFilter);
@@ -151,9 +181,9 @@ public class JobService {
 
     private Job requireJobInTenant(String tenantId, Long jobId) {
         Job job = jobRepository.findById(jobId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Job não encontrado: " + jobId));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Job nÃ£o encontrado: " + jobId));
         if (!tenantId.equals(job.getTenantId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Job não pertence ao tenant informado");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Job nÃ£o pertence ao tenant informado");
         }
         return job;
     }
@@ -168,6 +198,92 @@ public class JobService {
         job.setStatus(to);
         jobRepository.save(job);
         recordTimeline(job, from, to, actorId, reason);
+    }
+
+    private void requireAssignableUserInTenant(String tenantId, Long userId) {
+        User user = userRepository.findByTenantIdAndId(tenantId, userId)
+                .orElseThrow(() -> new ApiContractException(
+                        HttpStatus.FORBIDDEN,
+                        "JOB_ASSIGNEE_TENANT_MISMATCH",
+                        "Assigned user does not belong to the requested tenant",
+                        ErrorSeverity.ERROR,
+                        "Assign the job only to a user that belongs to the same tenant.",
+                        "tenantId=" + tenantId + ", userId=" + userId
+                ));
+
+        if (user.getStatus() == UserStatus.APPROVED) {
+            return;
+        }
+
+        throw new ApiContractException(
+                HttpStatus.FORBIDDEN,
+                "JOB_ASSIGNEE_NOT_APPROVED",
+                "Assigned user is not approved for field work",
+                ErrorSeverity.ERROR,
+                "Approve the user before assigning operational jobs.",
+                "tenantId=" + tenantId + ", userId=" + userId + ", status=" + user.getStatus()
+        );
+    }
+
+    private void requireAssignedActor(Job job, String actorId) {
+        if (job.getAssignedTo() == null) {
+            throw new ApiContractException(
+                    HttpStatus.CONFLICT,
+                    "JOB_NOT_ASSIGNED",
+                    "Job is not assigned to any field operator",
+                    ErrorSeverity.ERROR,
+                    "Assign the job before attempting to accept it.",
+                    "jobId=" + job.getId()
+            );
+        }
+
+        Long actorUserId;
+        try {
+            actorUserId = Long.parseLong(actorId);
+        } catch (NumberFormatException exception) {
+            throw new ApiContractException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_ACTOR_ID",
+                    "Actor id must be numeric for job acceptance",
+                    ErrorSeverity.ERROR,
+                    "Send the assigned internal user id when accepting the job.",
+                    "actorId=" + actorId
+            );
+        }
+
+        if (job.getAssignedTo().equals(actorUserId)) {
+            User actor = userRepository.findByTenantIdAndId(job.getTenantId(), actorUserId)
+                    .orElseThrow(() -> new ApiContractException(
+                            HttpStatus.FORBIDDEN,
+                            "JOB_ACTOR_TENANT_MISMATCH",
+                            "Assigned actor does not belong to the requested tenant",
+                            ErrorSeverity.ERROR,
+                            "Use an operator identity from the same tenant as the job.",
+                            "jobId=" + job.getId() + ", actorId=" + actorUserId
+                    ));
+
+            if (actor.getStatus() == UserStatus.APPROVED) {
+                return;
+            }
+
+            throw new ApiContractException(
+                    HttpStatus.FORBIDDEN,
+                    "JOB_ACTOR_NOT_APPROVED",
+                    "Assigned actor is not approved for field work",
+                    ErrorSeverity.ERROR,
+                    "Approve the assigned operator before accepting or submitting the job.",
+                    "jobId=" + job.getId() + ", actorId=" + actorUserId + ", status=" + actor.getStatus()
+            );
+        }
+
+        throw new ApiContractException(
+                HttpStatus.FORBIDDEN,
+                "JOB_ACCEPT_FORBIDDEN",
+                "Only the assigned field operator can accept this job",
+                ErrorSeverity.ERROR,
+                "Use the same assigned operator identity when accepting the job.",
+                "jobId=" + job.getId() + ", assignedTo=" + job.getAssignedTo() + ", actorId=" + actorUserId
+        );
     }
 
     private JobStatus parseStatus(String rawStatus) {

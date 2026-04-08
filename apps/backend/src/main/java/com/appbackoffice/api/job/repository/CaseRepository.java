@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface CaseRepository extends JpaRepository<InspectionCase, Long> {
     List<InspectionCase> findByTenantId(String tenantId);
+    boolean existsByTenantIdAndNumber(String tenantId, String number);
 }
