@@ -153,6 +153,8 @@ class InspectionCaptureRecoveryAdapter {
     required String subtipoImovel,
     bool singleCaptureMode = false,
     bool cameFromCheckinStep1 = false,
+    FlowSelection? initialSelection,
+    // Backward-compat: prefer initialSelection in new code.
     InspectionCaptureContext? initialContext,
     required List<OverlayCameraCaptureResult> currentCaptures,
     required Map<String, dynamic> inspectionRecoveryPayload,
@@ -163,8 +165,9 @@ class InspectionCaptureRecoveryAdapter {
       subtipoImovel: subtipoImovel,
       singleCaptureMode: singleCaptureMode,
       cameFromCheckinStep1: cameFromCheckinStep1,
+      initialSelection: initialSelection,
       initialContext: initialContext,
-      resumeContext: resolveResumeContext(
+      resumeSelection: resolveResumeSelection(
         currentCaptures: currentCaptures,
         inspectionRecoveryPayload: inspectionRecoveryPayload,
       ),

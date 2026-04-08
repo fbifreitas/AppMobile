@@ -30,23 +30,32 @@ class InspectionCameraFlowRequest {
     required String subtipoImovel,
     bool singleCaptureMode = false,
     bool cameFromCheckinStep1 = false,
+    FlowSelection? initialSelection,
+    FlowSelection? resumeSelection,
+    // Backward-compat: prefer initialSelection / resumeSelection in new code.
     InspectionCaptureContext? initialContext,
     InspectionCaptureContext? resumeContext,
   }) {
-    final suggested = initialContext ?? InspectionCaptureContext.empty;
+    final suggested =
+        initialSelection ??
+        initialContext?.selection ??
+        FlowSelection.empty;
+    final resume =
+        resumeSelection ??
+        (resumeContext?.hasAnyValue == true ? resumeContext!.selection : null);
     final current =
-        resumeContext?.hasAnyValue == true ? resumeContext! : suggested;
+        (resume != null && resume.hasAnyValue) ? resume : suggested;
     return InspectionCameraFlowRequest(
       title: title,
       tipoImovel: tipoImovel,
       subtipoImovel: subtipoImovel,
       singleCaptureMode: singleCaptureMode,
       cameFromCheckinStep1: cameFromCheckinStep1,
-      selectionState: InspectionCaptureFlowState(
-        initialSuggested: suggested,
-        current: current,
-        resume: resumeContext?.hasAnyValue == true ? resumeContext : null,
-      ).canonical,
+      selectionState: FlowSelectionState(
+        initialSuggestedSelection: suggested,
+        currentSelection: current,
+        resumeSelection: (resume != null && resume.hasAnyValue) ? resume : null,
+      ),
     );
   }
 }

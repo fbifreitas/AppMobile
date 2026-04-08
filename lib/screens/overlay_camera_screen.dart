@@ -95,10 +95,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   final InspectionCameraSelectorSectionService _selectorSectionService =
       InspectionCameraSelectorSectionService.instance;
   late final InspectionCameraMenuResolver _cameraMenuResolver =
-      InspectionCameraMenuResolver(
-        menuService: _menuService,
-        environmentInstanceService: _environmentInstanceService,
-      );
+      InspectionCameraMenuResolver(menuService: _menuService);
   late final InspectionCaptureFlowTransitionService _flowTransitionService =
       InspectionCaptureFlowTransitionService(
         menuService: _menuService,
@@ -185,17 +182,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
         domainAttributes: _flowState.currentSelection.domainAttributes,
       );
 
-  InspectionCaptureContext get _suggestedInspectionContext =>
-      InspectionCaptureContext.canonical(
-        subjectContext: _flowState.initialSuggestedSelection.subjectContext,
-        targetItem: _flowState.initialSuggestedSelection.targetItem,
-        targetItemBase: _flowState.initialSuggestedSelection.targetItemBase,
-        targetItemInstanceIndex:
-            _flowState.initialSuggestedSelection.targetItemInstanceIndex,
-        targetQualifier: _flowState.initialSuggestedSelection.targetQualifier,
-        targetCondition: _flowState.initialSuggestedSelection.targetCondition,
-        domainAttributes: _flowState.initialSuggestedSelection.domainAttributes,
-      );
+
 
   @override
   void initState() {
@@ -311,8 +298,8 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       propertyType: widget.tipoImovel,
       showMacroLocalSelector: _showMacroLocalSelector,
       initialLoad: initialLoad,
-      initialSuggestedContext: _suggestedInspectionContext,
-      currentContext: _currentInspectionContext,
+      initialSuggestedSelection: _flowState.initialSuggestedSelection,
+      currentSelection: _flowState.currentSelection,
     );
 
     if (!mounted) return;
@@ -332,9 +319,8 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     _recentElementos = viewState.recentElementos;
     _predictedSelection = viewState.prediction;
     _contextSuggestionSummary = viewState.contextSuggestionSummary;
-    // Translate resolved inspection context back to canonical FlowSelection
     _flowState = _flowState.copyWith(
-      currentSelection: viewState.currentContext.selection,
+      currentSelection: viewState.currentSelection,
     );
     _selectorSections = _selectorSectionService.buildSections(
       levelOrder: _cameraLevelOrder,
@@ -393,7 +379,6 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     final result = await _flowTransitionService.selectAmbiente(
       propertyType: widget.tipoImovel,
       selectionState: _flowState,
-      macroLocal: _subjectContext,
       value: value,
     );
     setState(() {
@@ -407,7 +392,6 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     final result = await _flowTransitionService.duplicateAmbiente(
       propertyType: widget.tipoImovel,
       selectionState: _flowState,
-      macroLocal: _subjectContext,
       selectedAmbiente: _targetItem,
       existingAmbientes: _ambientesAtuais,
       useTestMenuData: widget.useTestMenuData,
@@ -429,8 +413,6 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     final result = await _flowTransitionService.selectElemento(
       propertyType: widget.tipoImovel,
       selectionState: _flowState,
-      macroLocal: _subjectContext,
-      ambiente: _targetItem,
       value: value,
     );
     setState(() {

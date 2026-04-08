@@ -2,68 +2,27 @@ import '../models/flow_selection.dart';
 import '../models/inspection_capture_context.dart';
 import '../models/overlay_camera_capture_result.dart';
 import 'contextual_item_instance_service.dart';
+import 'inspection_taxonomy_service.dart';
 
 class InspectionDomainAdapter {
   const InspectionDomainAdapter({
     ContextualItemInstanceService instanceService =
         ContextualItemInstanceService.instance,
-  }) : _instanceService = instanceService;
+    InspectionTaxonomyService taxonomyService =
+        InspectionTaxonomyService.instance,
+  }) : _instanceService = instanceService,
+       _taxonomyService = taxonomyService;
 
   static const InspectionDomainAdapter instance = InspectionDomainAdapter();
   static const String materialAttributeKey = 'inspection.material';
 
-  static const List<String> _environmentOptions = <String>[
-    'Fachada',
-    'Logradouro',
-    'Acesso ao imóvel',
-    'Entorno',
-    'Sala de Estar',
-    'Sala',
-    'Dormitório',
-    'Cozinha',
-    'Banheiro',
-    'Área de serviço',
-    'Áreas Comuns',
-    'Garagem',
-    'Outro ambiente',
-  ];
-
-  static const List<String> _elementOptions = <String>[
-    'Visão geral',
-    'Número',
-    'Porta',
-    'Portão',
-    'Janela',
-    'Piso',
-    'Parede',
-    'Teto',
-    'Outro',
-  ];
-
-  static const List<String> _materialOptions = <String>[
-    'Alvenaria',
-    'Metal',
-    'Madeira',
-    'Vidro',
-    'Cerâmica',
-    'Concreto',
-    'Outro',
-  ];
-
-  static const List<String> _stateOptions = <String>[
-    'Bom',
-    'Regular',
-    'Ruim',
-    'Necessita reparo',
-    'Não se aplica',
-  ];
-
   final ContextualItemInstanceService _instanceService;
+  final InspectionTaxonomyService _taxonomyService;
 
-  List<String> environmentOptions() => _environmentOptions;
-  List<String> elementOptions() => _elementOptions;
-  List<String> materialOptions() => _materialOptions;
-  List<String> stateOptions() => _stateOptions;
+  List<String> environmentOptions() => _taxonomyService.environmentOptions();
+  List<String> elementOptions() => _taxonomyService.elementOptions();
+  List<String> materialOptions() => _taxonomyService.materialOptions();
+  List<String> stateOptions() => _taxonomyService.stateOptions();
 
   String? inspectionMaterialOf(FlowSelection selection) =>
       selection.attributeText(materialAttributeKey);

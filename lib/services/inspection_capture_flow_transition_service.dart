@@ -52,13 +52,13 @@ class InspectionCaptureFlowTransitionService {
     required String propertyType,
     InspectionCaptureFlowState? flowState,
     FlowSelectionState? selectionState,
-    required String? macroLocal,
     required String value,
   }) async {
     final state = _resolveSelectionState(
       flowState: flowState,
       selectionState: selectionState,
     );
+    final macroLocal = state.currentSelection.subjectContext;
     await _menuService.registerUsage(
       scope: 'camera.${propertyType.toLowerCase()}.$macroLocal.ambiente',
       value: value,
@@ -83,7 +83,6 @@ class InspectionCaptureFlowTransitionService {
     required String propertyType,
     InspectionCaptureFlowState? flowState,
     FlowSelectionState? selectionState,
-    required String? macroLocal,
     required String? selectedAmbiente,
     required List<String> existingAmbientes,
     required bool useTestMenuData,
@@ -122,6 +121,7 @@ class InspectionCaptureFlowTransitionService {
     );
 
     if (!useTestMenuData) {
+      final macroLocal = state.currentSelection.subjectContext;
       await _menuService.registerUsage(
         scope: 'camera.${propertyType.toLowerCase()}.$macroLocal.ambiente',
         value: nextLabel,
@@ -138,14 +138,14 @@ class InspectionCaptureFlowTransitionService {
     required String propertyType,
     InspectionCaptureFlowState? flowState,
     FlowSelectionState? selectionState,
-    required String? macroLocal,
-    required String? ambiente,
     required String value,
   }) async {
     final state = _resolveSelectionState(
       flowState: flowState,
       selectionState: selectionState,
     );
+    final macroLocal = state.currentSelection.subjectContext;
+    final ambiente = state.currentSelection.targetItem;
     await _menuService.registerUsage(
       scope:
           'camera.${propertyType.toLowerCase()}.$macroLocal.$ambiente.elemento',

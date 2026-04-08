@@ -44,7 +44,6 @@ void main() {
         macroLocal: 'Área interna',
         ambiente: 'Sala',
       ),
-      macroLocal: 'Área interna',
       selectedAmbiente: 'Sala',
       existingAmbientes: const <String>['Sala', 'Quarto', 'Sala 2'],
       useTestMenuData: true,

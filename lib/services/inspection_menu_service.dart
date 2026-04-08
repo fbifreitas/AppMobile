@@ -6,71 +6,7 @@ import 'inspection_menu_catalog_service.dart';
 import 'inspection_menu_document_loader.dart';
 import 'inspection_menu_document_merge_resolver.dart';
 import 'inspection_menu_intelligence_service.dart';
-import 'inspection_menu_preferences_store.dart';
-
-class _UsageEntry {
-  int count;
-  DateTime? lastUsedAt;
-
-  _UsageEntry({required this.count, required this.lastUsedAt});
-
-  factory _UsageEntry.fromJson(Map<String, dynamic> json) {
-    return _UsageEntry(
-      count: json['count'] as int? ?? 0,
-      lastUsedAt:
-          json['lastUsedAt'] != null
-              ? DateTime.tryParse(json['lastUsedAt'] as String)
-              : null,
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-    'count': count,
-    'lastUsedAt': lastUsedAt?.toIso8601String(),
-  };
-}
-
-class _PredictionEntry {
-  int captures;
-  DateTime? lastUsedAt;
-  Map<String, int> elementos;
-  Map<String, int> materiais;
-  Map<String, int> estados;
-
-  _PredictionEntry({
-    required this.captures,
-    required this.lastUsedAt,
-    required this.elementos,
-    required this.materiais,
-    required this.estados,
-  });
-
-  factory _PredictionEntry.fromJson(Map<String, dynamic> json) {
-    Map<String, int> intMap(Object? value) {
-      final map = Map<String, dynamic>.from(value as Map? ?? const {});
-      return map.map((key, val) => MapEntry(key, (val as num).toInt()));
-    }
-
-    return _PredictionEntry(
-      captures: (json['captures'] as num?)?.toInt() ?? 0,
-      lastUsedAt:
-          json['lastUsedAt'] != null
-              ? DateTime.tryParse(json['lastUsedAt'] as String)
-              : null,
-      elementos: intMap(json['elementos']),
-      materiais: intMap(json['materiais']),
-      estados: intMap(json['estados']),
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-    'captures': captures,
-    'lastUsedAt': lastUsedAt?.toIso8601String(),
-    'elementos': elementos,
-    'materiais': materiais,
-    'estados': estados,
-  };
-}
+import 'inspection_menu_state_store.dart';
 
 class InspectionMenuService {
   InspectionMenuService._();
@@ -83,14 +19,11 @@ class InspectionMenuService {
 
   InspectionMenuPackage? _package;
   Future<void>? _loading;
-  Map<String, _UsageEntry> _usage = {};
-  Map<String, _PredictionEntry> _prediction = {};
   final InspectionMenuDocumentLoader _documentLoader =
       InspectionMenuDocumentLoader.instance;
   final InspectionMenuDocumentMergeResolver _mergeResolver =
       InspectionMenuDocumentMergeResolver.instance;
-  final InspectionMenuPreferencesStore _preferencesStore =
-      InspectionMenuPreferencesStore.instance;
+  final InspectionMenuStateStore _stateStore = InspectionMenuStateStore.instance;
   final InspectionMenuCatalogService _catalogService =
       InspectionMenuCatalogService.instance;
   final InspectionMenuIntelligenceService _intelligenceService =
@@ -103,8 +36,7 @@ class InspectionMenuService {
   Future<void> reload() async {
     _loading = null;
     _package = null;
-    _usage = {};
-    _prediction = {};
+    _stateStore.reset();
     await ensureLoaded();
   }
 
@@ -129,27 +61,10 @@ class InspectionMenuService {
       _package = InspectionMenuPackage.fallback();
     }
 
-    try {
-      final snapshot = await _preferencesStore.load(
-        usageKey: _usageKey,
-        predictionKey: _predictionKey,
-      );
-      _usage = snapshot.usage.map(
-        (key, value) => MapEntry(
-          key,
-          _UsageEntry.fromJson(Map<String, dynamic>.from(value as Map)),
-        ),
-      );
-      _prediction = snapshot.prediction.map(
-        (key, value) => MapEntry(
-          key,
-          _PredictionEntry.fromJson(Map<String, dynamic>.from(value as Map)),
-        ),
-      );
-    } catch (_) {
-      _usage = {};
-      _prediction = {};
-    }
+    await _stateStore.load(
+      usageKey: _usageKey,
+      predictionKey: _predictionKey,
+    );
   }
 
   Future<void> registerUsage({
@@ -157,14 +72,8 @@ class InspectionMenuService {
     required String value,
   }) async {
     await ensureLoaded();
-    final key = _usageCompoundKey(scope, value);
-    final entry = _usage.putIfAbsent(
-      key,
-      () => _UsageEntry(count: 0, lastUsedAt: null),
-    );
-    entry.count += 1;
-    entry.lastUsedAt = DateTime.now();
-    await _persistUsage();
+    _stateStore.registerUsage(key: _usageCompoundKey(scope, value));
+    await _stateStore.persistUsage(_usageKey);
   }
 
   Future<void> registerCaptureProfile({
@@ -191,31 +100,14 @@ class InspectionMenuService {
       ambiente: ambiente,
     );
 
-    final entry = _prediction.putIfAbsent(
-      key,
-      () => _PredictionEntry(
-        captures: 0,
-        lastUsedAt: null,
-        elementos: {},
-        materiais: {},
-        estados: {},
-      ),
+    _stateStore.registerPrediction(
+      key: key,
+      elemento: elemento,
+      material: material,
+      estado: estado,
     );
 
-    entry.captures += 1;
-    entry.lastUsedAt = DateTime.now();
-
-    if (elemento != null && elemento.trim().isNotEmpty) {
-      entry.elementos.update(elemento, (value) => value + 1, ifAbsent: () => 1);
-    }
-    if (material != null && material.trim().isNotEmpty) {
-      entry.materiais.update(material, (value) => value + 1, ifAbsent: () => 1);
-    }
-    if (estado != null && estado.trim().isNotEmpty) {
-      entry.estados.update(estado, (value) => value + 1, ifAbsent: () => 1);
-    }
-
-    final usageSnapshot = _usageSnapshot();
+    final usageSnapshot = _stateStore.usageSnapshot();
     _intelligenceService.registerConfirmedUsage(
       usage: usageSnapshot,
       propertyType: propertyType,
@@ -225,65 +117,10 @@ class InspectionMenuService {
       material: material,
       estado: estado,
     );
-    _replaceUsageFromSnapshot(usageSnapshot);
+    _stateStore.replaceUsageFromSnapshot(usageSnapshot);
 
-    await _persistPrediction();
-    await _persistUsage();
-  }
-
-  Future<String?> getSuggestedMacroLocal({
-    required String propertyType,
-    List<String> availableMacroLocals = const [],
-  }) async {
-    await ensureLoaded();
-
-    return _intelligenceService.getSuggestedMacroLocal(
-      featureFlags:
-          _package?.featureFlags ?? const FeatureFlagsConfig.fallback(),
-      predictionPolicy:
-          _package?.predictionPolicy ?? const PredictionPolicyConfig.fallback(),
-      usage: _usageSnapshot(),
-      propertyType: propertyType,
-      availableMacroLocals: availableMacroLocals,
-    );
-  }
-
-  Future<String?> getSuggestedAmbiente({
-    required String propertyType,
-    required String macroLocal,
-    List<String> availableAmbientes = const [],
-  }) async {
-    await ensureLoaded();
-
-    return _intelligenceService.getSuggestedAmbiente(
-      featureFlags:
-          _package?.featureFlags ?? const FeatureFlagsConfig.fallback(),
-      predictionPolicy:
-          _package?.predictionPolicy ?? const PredictionPolicyConfig.fallback(),
-      usage: _usageSnapshot(),
-      propertyType: propertyType,
-      macroLocal: macroLocal,
-      availableAmbientes: availableAmbientes,
-    );
-  }
-
-  Future<List<String>> getRecentAmbienteSuggestions({
-    required String propertyType,
-    required String macroLocal,
-    List<String> availableAmbientes = const [],
-  }) async {
-    await ensureLoaded();
-
-    return _intelligenceService.getRecentAmbienteSuggestions(
-      featureFlags:
-          _package?.featureFlags ?? const FeatureFlagsConfig.fallback(),
-      predictionPolicy:
-          _package?.predictionPolicy ?? const PredictionPolicyConfig.fallback(),
-      usage: _usageSnapshot(),
-      propertyType: propertyType,
-      macroLocal: macroLocal,
-      availableAmbientes: availableAmbientes,
-    );
+    await _stateStore.persistPrediction(_predictionKey);
+    await _stateStore.persistUsage(_usageKey);
   }
 
   Future<SuggestedCameraContext?> getSuggestedContext({
@@ -299,7 +136,7 @@ class InspectionMenuService {
           _package?.featureFlags ?? const FeatureFlagsConfig.fallback(),
       predictionPolicy:
           _package?.predictionPolicy ?? const PredictionPolicyConfig.fallback(),
-      usage: _usageSnapshot(),
+      usage: _stateStore.usageSnapshot(),
       propertyType: propertyType,
       availableMacroLocals: availableMacroLocals,
       macroLocal: macroLocal,
@@ -322,13 +159,32 @@ class InspectionMenuService {
           _package?.featureFlags ?? const FeatureFlagsConfig.fallback(),
       predictionPolicy:
           _package?.predictionPolicy ?? const PredictionPolicyConfig.fallback(),
-      prediction: _predictionSnapshot(),
+      prediction: _stateStore.predictionSnapshot(),
       propertyType: propertyType,
       macroLocal: macroLocal,
       ambiente: ambiente,
       availableElementos: availableElementos,
       availableMateriais: availableMateriais,
       availableEstados: availableEstados,
+    );
+  }
+
+  Future<List<String>> getRecentAmbienteSuggestions({
+    required String propertyType,
+    required String macroLocal,
+    List<String> availableAmbientes = const [],
+  }) async {
+    await ensureLoaded();
+
+    return _intelligenceService.getRecentAmbienteSuggestions(
+      featureFlags:
+          _package?.featureFlags ?? const FeatureFlagsConfig.fallback(),
+      predictionPolicy:
+          _package?.predictionPolicy ?? const PredictionPolicyConfig.fallback(),
+      usage: _stateStore.usageSnapshot(),
+      propertyType: propertyType,
+      macroLocal: macroLocal,
+      availableAmbientes: availableAmbientes,
     );
   }
 
@@ -345,7 +201,7 @@ class InspectionMenuService {
           _package?.featureFlags ?? const FeatureFlagsConfig.fallback(),
       predictionPolicy:
           _package?.predictionPolicy ?? const PredictionPolicyConfig.fallback(),
-      prediction: _predictionSnapshot(),
+      prediction: _stateStore.predictionSnapshot(),
       propertyType: propertyType,
       macroLocal: macroLocal,
       ambiente: ambiente,
@@ -385,7 +241,7 @@ class InspectionMenuService {
     await ensureLoaded();
     return _catalogService.macroLocals(
       package: _package,
-      usage: _usageSnapshot(),
+      usage: _stateStore.usageSnapshot(),
       propertyType: propertyType,
     );
   }
@@ -412,9 +268,7 @@ class InspectionMenuService {
     final result = <String>[];
     for (final level in levels) {
       final id = level.id.trim();
-      if (id.isEmpty) {
-        continue;
-      }
+      if (id.isEmpty) continue;
       result.add(id);
     }
 
@@ -451,7 +305,7 @@ class InspectionMenuService {
     await ensureLoaded();
     return _catalogService.ambientes(
       package: _package,
-      usage: _usageSnapshot(),
+      usage: _stateStore.usageSnapshot(),
       propertyType: propertyType,
       macroLocal: macroLocal,
     );
@@ -465,7 +319,7 @@ class InspectionMenuService {
     await ensureLoaded();
     return _catalogService.elementos(
       package: _package,
-      usage: _usageSnapshot(),
+      usage: _stateStore.usageSnapshot(),
       propertyType: propertyType,
       macroLocal: macroLocal,
       ambiente: ambiente,
@@ -481,7 +335,7 @@ class InspectionMenuService {
     await ensureLoaded();
     return _catalogService.materiais(
       package: _package,
-      usage: _usageSnapshot(),
+      usage: _stateStore.usageSnapshot(),
       propertyType: propertyType,
       macroLocal: macroLocal,
       ambiente: ambiente,
@@ -498,7 +352,7 @@ class InspectionMenuService {
     await ensureLoaded();
     return _catalogService.estados(
       package: _package,
-      usage: _usageSnapshot(),
+      usage: _stateStore.usageSnapshot(),
       propertyType: propertyType,
       macroLocal: macroLocal,
       ambiente: ambiente,
@@ -507,33 +361,4 @@ class InspectionMenuService {
   }
 
   String _usageCompoundKey(String scope, String value) => '$scope::$value';
-
-  Future<void> _persistUsage() async {
-    await _preferencesStore.persistUsage(
-      usageKey: _usageKey,
-      usage: _usage.map((key, value) => MapEntry(key, value.toJson())),
-    );
-  }
-
-  Future<void> _persistPrediction() async {
-    await _preferencesStore.persistPrediction(
-      predictionKey: _predictionKey,
-      prediction: _prediction.map((key, value) => MapEntry(key, value.toJson())),
-    );
-  }
-
-  Map<String, dynamic> _usageSnapshot() =>
-      _usage.map((key, value) => MapEntry(key, value.toJson()));
-
-  Map<String, dynamic> _predictionSnapshot() =>
-      _prediction.map((key, value) => MapEntry(key, value.toJson()));
-
-  void _replaceUsageFromSnapshot(Map<String, dynamic> snapshot) {
-    _usage = snapshot.map(
-      (key, value) => MapEntry(
-        key,
-        _UsageEntry.fromJson(Map<String, dynamic>.from(value as Map)),
-      ),
-    );
-  }
 }

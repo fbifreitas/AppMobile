@@ -1,197 +1,203 @@
+import '../models/flow_selection.dart';
 import '../models/inspection_camera_menu_view_state.dart';
-import '../models/inspection_capture_context.dart';
-import 'inspection_environment_instance_service.dart';
+import 'contextual_item_instance_service.dart';
 import 'inspection_menu_service.dart';
 
 class InspectionCameraMenuResolver {
   InspectionCameraMenuResolver({
     required InspectionMenuService menuService,
-    required InspectionEnvironmentInstanceService environmentInstanceService,
+    ContextualItemInstanceService instanceService =
+        ContextualItemInstanceService.instance,
   }) : _menuService = menuService,
-       _environmentInstanceService = environmentInstanceService;
+       _instanceService = instanceService;
 
   final InspectionMenuService _menuService;
-  final InspectionEnvironmentInstanceService _environmentInstanceService;
+  final ContextualItemInstanceService _instanceService;
 
   Future<InspectionCameraMenuViewState> resolve({
     required String propertyType,
     required bool showMacroLocalSelector,
     required bool initialLoad,
-    required InspectionCaptureContext initialSuggestedContext,
-    required InspectionCaptureContext currentContext,
+    required FlowSelection initialSuggestedSelection,
+    required FlowSelection currentSelection,
   }) async {
     final macroLocals = await _menuService.getMacroLocals(
       propertyType: propertyType,
     );
 
-    String? macroLocal = currentContext.macroLocal;
+    String? subjectContext = currentSelection.subjectContext;
     String? contextSuggestionSummary;
 
-    if (macroLocal == null && !showMacroLocalSelector) {
-      macroLocal = initialSuggestedContext.macroLocal;
+    if (subjectContext == null && !showMacroLocalSelector) {
+      subjectContext = initialSuggestedSelection.subjectContext;
     }
 
-    if ((macroLocal == null || macroLocal.trim().isEmpty) &&
+    if ((subjectContext == null || subjectContext.trim().isEmpty) &&
         showMacroLocalSelector) {
       final suggestedContext = await _menuService.getSuggestedContext(
         propertyType: propertyType,
         availableMacroLocals: macroLocals,
       );
       if (suggestedContext?.macroLocal != null) {
-        macroLocal = suggestedContext!.macroLocal!;
+        subjectContext = suggestedContext!.macroLocal!;
         contextSuggestionSummary =
-            'Área da foto sugerida com base no histórico: $macroLocal';
+            'Área da foto sugerida com base no histórico: $subjectContext';
       }
     }
 
-    if (macroLocal != null && !macroLocals.contains(macroLocal)) {
-      macroLocal = macroLocals.isNotEmpty ? macroLocals.first : null;
+    if (subjectContext != null && !macroLocals.contains(subjectContext)) {
+      subjectContext = macroLocals.isNotEmpty ? macroLocals.first : null;
     }
 
     final fetchedAmbientes =
-        macroLocal == null
+        subjectContext == null
             ? const <String>[]
             : await _menuService.getAmbientes(
               propertyType: propertyType,
-              macroLocal: macroLocal,
+              macroLocal: subjectContext,
             );
 
     final ambientes = List<String>.from(fetchedAmbientes);
-    final currentAmbiente = currentContext.ambiente;
-    if (currentAmbiente != null &&
-        currentAmbiente.trim().isNotEmpty &&
-        !ambientes.contains(currentAmbiente)) {
-      ambientes.add(currentAmbiente);
+    final currentTargetItem = currentSelection.targetItem;
+    if (currentTargetItem != null &&
+        currentTargetItem.trim().isNotEmpty &&
+        !ambientes.contains(currentTargetItem)) {
+      ambientes.add(currentTargetItem);
     }
 
     final recentAmbientes =
-        macroLocal == null
+        subjectContext == null
             ? const <String>[]
             : await _menuService.getRecentAmbienteSuggestions(
               propertyType: propertyType,
-              macroLocal: macroLocal,
+              macroLocal: subjectContext,
               availableAmbientes: fetchedAmbientes,
             );
 
-    String? ambiente = currentContext.ambiente;
-    if (ambiente != null && !ambientes.contains(ambiente)) {
-      ambiente = null;
+    String? targetItem = currentSelection.targetItem;
+    if (targetItem != null && !ambientes.contains(targetItem)) {
+      targetItem = null;
     }
 
-    if ((ambiente == null || ambiente.trim().isEmpty) && macroLocal != null) {
+    if ((targetItem == null || targetItem.trim().isEmpty) &&
+        subjectContext != null) {
       final suggestedContext = await _menuService.getSuggestedContext(
         propertyType: propertyType,
-        macroLocal: macroLocal,
+        macroLocal: subjectContext,
         availableAmbientes: fetchedAmbientes,
       );
-      if (initialSuggestedContext.ambiente == null &&
+      if (initialSuggestedSelection.targetItem == null &&
           suggestedContext?.ambiente != null) {
-        ambiente = suggestedContext!.ambiente!;
+        targetItem = suggestedContext!.ambiente!;
         contextSuggestionSummary =
-            'Contexto sugerido com base no histórico: $macroLocal • $ambiente';
+            'Contexto sugerido com base no histórico: $subjectContext • $targetItem';
       }
     }
 
     if (initialLoad &&
-        ambiente == null &&
+        targetItem == null &&
         ambientes.isNotEmpty &&
         !showMacroLocalSelector) {
-      ambiente = ambientes.first;
+      targetItem = ambientes.first;
     }
 
     final elementos =
-        (macroLocal == null || ambiente == null)
+        (subjectContext == null || targetItem == null)
             ? const <String>[]
             : await _menuService.getElementos(
               propertyType: propertyType,
-              macroLocal: macroLocal,
-              ambiente: ambiente,
+              macroLocal: subjectContext,
+              ambiente: targetItem,
             );
 
     final recentElementos =
-        (macroLocal == null || ambiente == null)
+        (subjectContext == null || targetItem == null)
             ? const <String>[]
             : await _menuService.getRecentElementSuggestions(
               propertyType: propertyType,
-              macroLocal: macroLocal,
-              ambiente: ambiente,
+              macroLocal: subjectContext,
+              ambiente: targetItem,
               availableElementos: elementos,
             );
 
-    String? elemento = currentContext.elemento;
-    if (elemento != null && !elementos.contains(elemento)) {
-      elemento = elementos.isNotEmpty ? elementos.first : null;
+    String? targetQualifier = currentSelection.targetQualifier;
+    if (targetQualifier != null && !elementos.contains(targetQualifier)) {
+      targetQualifier = elementos.isNotEmpty ? elementos.first : null;
     }
 
     var prediction =
-        (macroLocal == null || ambiente == null)
+        (subjectContext == null || targetItem == null)
             ? null
             : await _menuService.getPrediction(
               propertyType: propertyType,
-              macroLocal: macroLocal,
-              ambiente: ambiente,
+              macroLocal: subjectContext,
+              ambiente: targetItem,
               availableElementos: elementos,
             );
 
-    if (elemento == null &&
-        initialSuggestedContext.elemento == null &&
+    if (targetQualifier == null &&
+        initialSuggestedSelection.targetQualifier == null &&
         prediction?.elemento != null &&
         elementos.contains(prediction!.elemento)) {
-      elemento = prediction.elemento;
+      targetQualifier = prediction.elemento;
     }
 
     final materiais =
-        (macroLocal == null || ambiente == null || elemento == null)
+        (subjectContext == null || targetItem == null || targetQualifier == null)
             ? const <String>[]
             : await _menuService.getMateriais(
               propertyType: propertyType,
-              macroLocal: macroLocal,
-              ambiente: ambiente,
-              elemento: elemento,
+              macroLocal: subjectContext,
+              ambiente: targetItem,
+              elemento: targetQualifier,
             );
+
     final estados =
-        (macroLocal == null || ambiente == null || elemento == null)
+        (subjectContext == null || targetItem == null || targetQualifier == null)
             ? const <String>[]
             : await _menuService.getEstados(
               propertyType: propertyType,
-              macroLocal: macroLocal,
-              ambiente: ambiente,
-              elemento: elemento,
+              macroLocal: subjectContext,
+              ambiente: targetItem,
+              elemento: targetQualifier,
             );
 
     prediction =
-        (macroLocal == null || ambiente == null)
+        (subjectContext == null || targetItem == null)
             ? null
             : await _menuService.getPrediction(
               propertyType: propertyType,
-              macroLocal: macroLocal,
-              ambiente: ambiente,
+              macroLocal: subjectContext,
+              ambiente: targetItem,
               availableElementos: elementos,
               availableMateriais: materiais,
               availableEstados: estados,
             );
 
-    String? material = currentContext.material;
-    if (material != null && !materiais.contains(material)) {
-      material = null;
+    // material lives in domainAttributes — read and reconcile
+    final currentMaterial = currentSelection.attributeText('inspection.material');
+    String? resolvedMaterial = currentMaterial;
+    if (resolvedMaterial != null && !materiais.contains(resolvedMaterial)) {
+      resolvedMaterial = null;
     }
-    if (material == null &&
+    if (resolvedMaterial == null &&
         prediction?.material != null &&
         materiais.contains(prediction!.material)) {
-      material = prediction.material;
+      resolvedMaterial = prediction.material;
     }
 
-    String? estado = currentContext.estado;
-    if (estado != null && !estados.contains(estado)) {
-      estado = null;
+    String? targetCondition = currentSelection.targetCondition;
+    if (targetCondition != null && !estados.contains(targetCondition)) {
+      targetCondition = null;
     }
-    if (estado == null &&
+    if (targetCondition == null &&
         prediction?.estado != null &&
         estados.contains(prediction!.estado)) {
-      estado = prediction.estado;
+      targetCondition = prediction.estado;
     }
 
-    final parsed = _environmentInstanceService.parse(ambiente);
+    final parsed = _instanceService.parse(targetItem);
+
     return InspectionCameraMenuViewState(
       macroLocais: macroLocals,
       ambientes: ambientes,
@@ -202,14 +208,25 @@ class InspectionCameraMenuResolver {
       recentElementos: recentElementos,
       prediction: prediction,
       contextSuggestionSummary: contextSuggestionSummary,
-      currentContext: InspectionCaptureContext(
-        macroLocal: macroLocal,
-        ambiente: ambiente,
-        ambienteBase: parsed.baseLabel,
-        ambienteInstanceIndex: parsed.instanceIndex,
-        elemento: elemento,
-        material: material,
-        estado: estado,
+      currentSelection: FlowSelection(
+        subjectContext: subjectContext,
+        targetItem: targetItem,
+        targetItemBase: parsed.baseLabel.isNotEmpty ? parsed.baseLabel : null,
+        targetItemInstanceIndex:
+            parsed.instanceIndex > 0 ? parsed.instanceIndex : null,
+        targetQualifier: targetQualifier,
+        targetCondition: targetCondition,
+        domainAttributes: Map<String, dynamic>.unmodifiable(
+          resolvedMaterial != null
+              ? {
+                ...currentSelection.domainAttributes,
+                'inspection.material': resolvedMaterial,
+              }
+              : Map.fromEntries(
+                currentSelection.domainAttributes.entries
+                    .where((e) => e.key != 'inspection.material'),
+              ),
+        ),
       ),
     );
   }
