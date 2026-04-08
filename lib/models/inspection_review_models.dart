@@ -1,4 +1,5 @@
 import '../config/checkin_step2_config.dart';
+import '../models/flow_selection.dart';
 import '../models/overlay_camera_capture_result.dart';
 
 enum InspectionReviewPhotoStatus { pending, suggested, classified }
@@ -87,6 +88,31 @@ class InspectionReviewEditableCapture {
               ? InspectionReviewPhotoStatus.suggested
               : InspectionReviewPhotoStatus.pending,
     );
+  }
+
+  /// Canonical view of the capture's domain selection.
+  FlowSelection get selection => FlowSelection(
+    subjectContext: macroLocal,
+    targetItem: ambiente,
+    targetItemBase: ambienteBase,
+    targetItemInstanceIndex: ambienteInstanceIndex,
+    targetQualifier: elemento,
+    targetCondition: estado,
+    domainAttributes: <String, dynamic>{
+      if (material != null && material!.trim().isNotEmpty)
+        'inspection.material': material,
+    },
+  );
+
+  /// Applies a [FlowSelection] back to the mutable fields.
+  void applySelection(FlowSelection s) {
+    macroLocal = s.subjectContext;
+    ambiente = s.targetItem ?? ambiente;
+    ambienteBase = s.targetItemBase;
+    ambienteInstanceIndex = s.targetItemInstanceIndex;
+    elemento = s.targetQualifier;
+    material = s.attributeText('inspection.material');
+    estado = s.targetCondition;
   }
 
   bool get hasAnyClassification =>

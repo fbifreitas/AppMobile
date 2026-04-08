@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../config/checkin_step2_config.dart';
 import '../config/inspection_menu_package.dart';
-import '../models/inspection_capture_context.dart';
+import '../models/flow_selection.dart';
 import '../models/inspection_review_models.dart';
 import '../models/job_status.dart';
 import '../models/overlay_camera_capture_result.dart';
@@ -158,16 +158,20 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       final reviewed = reviewedByPath[item.filePath];
       if (reviewed == null) continue;
 
-      item.ambiente = _nonEmptyText(reviewed['ambiente']) ?? item.ambiente;
-      item.ambienteBase =
-          _nonEmptyText(reviewed['ambienteBase']) ?? item.ambienteBase;
-      item.ambienteInstanceIndex =
-          (reviewed['ambienteInstanceIndex'] as num?)?.toInt() ??
-          int.tryParse('${reviewed['ambienteInstanceIndex'] ?? ''}') ??
-          item.ambienteInstanceIndex;
-      item.elemento = _nonEmptyText(reviewed['elemento']);
-      item.material = _nonEmptyText(reviewed['material']);
-      item.estado = _nonEmptyText(reviewed['estado']);
+      final restored = FlowSelection.fromMap(reviewed);
+      item.applySelection(
+        item.selection.copyWith(
+          subjectContext: restored.subjectContext,
+          targetItem: restored.targetItem,
+          targetItemBase: restored.targetItemBase,
+          targetItemInstanceIndex: restored.targetItemInstanceIndex,
+          targetQualifier: restored.targetQualifier,
+          targetCondition: restored.targetCondition,
+          domainAttributes: restored.domainAttributes.isEmpty
+              ? null
+              : restored.domainAttributes,
+        ),
+      );
 
       final isComplete = reviewed['isComplete'] == true;
       item.recalculateStatus(forceClassified: isComplete);
@@ -208,12 +212,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         .map(
           (item) => {
             'filePath': item.filePath,
-            'ambiente': item.ambiente,
-            'ambienteBase': item.ambienteBase,
-            'ambienteInstanceIndex': item.ambienteInstanceIndex,
-            'elemento': item.elemento,
-            'material': item.material,
-            'estado': item.estado,
+            ...item.selection.toMap(includeCanonical: true, includeLegacy: true),
             'isComplete':
                 item.status == InspectionReviewPhotoStatus.classified,
           },
@@ -1320,10 +1319,10 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
             _resolvedSubtipoImovel(appState) ?? _resolvedTipoImovel().label,
         singleCaptureMode: true,
         cameFromCheckinStep1: false,
-        initialContext: InspectionCaptureContext(
-          macroLocal: status.field.cameraMacroLocal,
-          ambiente: status.field.cameraAmbiente,
-          elemento: status.field.cameraElementoInicial,
+        initialSelection: FlowSelection(
+          subjectContext: status.field.cameraMacroLocal,
+          targetItem: status.field.cameraAmbiente,
+          targetQualifier: status.field.cameraElementoInicial,
         ),
         currentCaptures: _capturesCurrent,
         inspectionRecoveryPayload: appState.inspectionRecoveryPayload,
@@ -1390,10 +1389,11 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         maxHeight: MediaQuery.of(context).size.height * 0.88,
       ),
       builder: (sheetContext) {
-        String? elemento = item.elemento;
-        String? material = item.material;
-        String? estado = item.estado;
-        String? ambiente = item.ambiente;
+        final itemSelection = item.selection;
+        String? elemento = itemSelection.targetQualifier;
+        String? material = itemSelection.attributeText('inspection.material');
+        String? estado = itemSelection.targetCondition;
+        String? ambiente = itemSelection.targetItem;
         final ambientes = _taxonomyService.environmentOptions();
         final elementos = _taxonomyService.elementOptions();
         final materiais = _taxonomyService.materialOptions();
@@ -1465,10 +1465,24 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                         width: double.infinity,
                         child: FilledButton(
                           onPressed: () {
-                            item.ambiente = ambiente ?? item.ambiente;
-                            item.elemento = elemento;
-                            item.material = material;
-                            item.estado = estado;
+                            item.applySelection(
+                              item.selection.copyWith(
+                                targetItem: ambiente,
+                                targetQualifier: elemento,
+                                targetCondition: estado,
+                                domainAttributes: <String, dynamic>{
+                                  ...item.selection.domainAttributes,
+                                  if (material != null)
+                                    'inspection.material': material,
+                                  if (material == null)
+                                    ...Map.fromEntries(
+                                      item.selection.domainAttributes.entries
+                                          .where((e) =>
+                                              e.key != 'inspection.material'),
+                                    ),
+                                },
+                              ),
+                            );
                             item.recalculateStatus();
                             Navigator.of(sheetContext).pop(true);
                           },
@@ -1605,13 +1619,6 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     final text = input.trim();
     if (text.length <= 120) return text;
     return '${text.substring(0, 120)}...';
-  }
-
-  String? _nonEmptyText(Object? value) {
-    if (value == null) return null;
-    final text = '$value'.trim();
-    if (text.isEmpty) return null;
-    return text;
   }
 
   Map<String, dynamic> _buildInspectionExportPayload(AppState appState) {

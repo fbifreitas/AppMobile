@@ -1,4 +1,4 @@
-import 'inspection_capture_context.dart';
+import 'flow_selection.dart';
 import 'inspection_menu_intelligence_models.dart';
 
 class InspectionCameraMenuViewState {
@@ -11,7 +11,9 @@ class InspectionCameraMenuViewState {
   final List<String> recentElementos;
   final PredictedSelection? prediction;
   final String? contextSuggestionSummary;
-  final InspectionCaptureContext currentContext;
+
+  /// Canonical resolved selection — single source of truth for current state.
+  final FlowSelection currentSelection;
 
   const InspectionCameraMenuViewState({
     required this.macroLocais,
@@ -23,6 +25,6 @@ class InspectionCameraMenuViewState {
     required this.recentElementos,
     required this.prediction,
     required this.contextSuggestionSummary,
-    required this.currentContext,
+    required this.currentSelection,
   });
 }

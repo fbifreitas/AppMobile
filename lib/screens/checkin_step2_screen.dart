@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../config/checkin_step2_config.dart';
+import '../models/flow_selection.dart';
 import '../models/inspection_camera_flow_request.dart';
-import '../models/inspection_capture_context.dart';
 import '../models/checkin_step2_model.dart';
 import '../services/checkin_dynamic_config_service.dart';
 import '../services/inspection_flow_coordinator.dart';
@@ -226,10 +226,10 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
           subtipoImovel: _defaultSubtype(),
           singleCaptureMode: true,
           cameFromCheckinStep1: false,
-          initialContext: InspectionCaptureContext(
-            macroLocal: field.cameraMacroLocal,
-            ambiente: field.cameraAmbiente,
-            elemento: field.cameraElementoInicial,
+          initialSelection: FlowSelection(
+            subjectContext: field.cameraMacroLocal,
+            targetItem: field.cameraAmbiente,
+            targetQualifier: field.cameraElementoInicial,
           ),
         ),
       );
