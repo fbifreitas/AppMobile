@@ -98,7 +98,7 @@ class DefaultInspectionFlowCoordinator implements InspectionFlowCoordinator {
               subtipoImovel: request.subtipoImovel,
               singleCaptureMode: request.singleCaptureMode,
               cameFromCheckinStep1: request.cameFromCheckinStep1,
-              initialFlowState: request.captureFlowState,
+              initialFlowState: request.selectionState,
             ),
       ),
     );

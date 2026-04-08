@@ -1,4 +1,5 @@
 import 'inspection_session_model.dart';
+import 'flow_selection.dart';
 
 class OverlayCameraCaptureResult {
   final String filePath;
@@ -36,6 +37,24 @@ class OverlayCameraCaptureResult {
     this.usedSuggestion = false,
     this.suggestionSummary,
   });
+
+  FlowSelection get selection => FlowSelection(
+    subjectContext: macroLocal,
+    targetItem: ambiente,
+    targetItemBase: ambienteBase,
+    targetItemInstanceIndex: ambienteInstanceIndex,
+    targetQualifier: elemento,
+    targetCondition: estado,
+    domainAttributes: <String, dynamic>{
+      if (material != null && material!.trim().isNotEmpty)
+        'inspection.material': material,
+    },
+  );
+
+  String? get subjectContext => selection.subjectContext;
+  String? get targetItem => selection.targetItem;
+  String? get targetQualifier => selection.targetQualifier;
+  String? get targetCondition => selection.targetCondition;
 
   OverlayCameraCaptureResult copyWith({
     String? filePath,
@@ -96,13 +115,7 @@ class OverlayCameraCaptureResult {
   Map<String, dynamic> toMap() {
     return {
       'filePath': filePath,
-      'macroLocal': macroLocal,
-      'ambiente': ambiente,
-      'ambienteBase': ambienteBase,
-      'ambienteInstanceIndex': ambienteInstanceIndex,
-      'elemento': elemento,
-      'material': material,
-      'estado': estado,
+      ...selection.toMap(includeCanonical: true, includeLegacy: true),
       'capturedAt': capturedAt.toIso8601String(),
       'latitude': latitude,
       'longitude': longitude,
@@ -133,15 +146,13 @@ class OverlayCameraCaptureResult {
 
     return OverlayCameraCaptureResult(
       filePath: map['filePath']?.toString() ?? '',
-      ambiente: map['ambiente']?.toString() ?? '',
-      macroLocal: map['macroLocal']?.toString(),
-      ambienteBase: map['ambienteBase']?.toString(),
-      ambienteInstanceIndex:
-          (map['ambienteInstanceIndex'] as num?)?.toInt() ??
-          int.tryParse('${map['ambienteInstanceIndex'] ?? ''}'),
-      elemento: map['elemento']?.toString(),
-      material: map['material']?.toString(),
-      estado: map['estado']?.toString(),
+      ambiente: FlowSelection.fromMap(map).targetItem ?? map['ambiente']?.toString() ?? '',
+      macroLocal: FlowSelection.fromMap(map).subjectContext,
+      ambienteBase: FlowSelection.fromMap(map).targetItemBase,
+      ambienteInstanceIndex: FlowSelection.fromMap(map).targetItemInstanceIndex,
+      elemento: FlowSelection.fromMap(map).targetQualifier,
+      material: FlowSelection.fromMap(map).attributeText('inspection.material'),
+      estado: FlowSelection.fromMap(map).targetCondition,
       capturedAt: capturedAt,
       latitude: parseDouble(map['latitude']),
       longitude: parseDouble(map['longitude']),

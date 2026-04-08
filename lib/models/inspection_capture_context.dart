@@ -1,3 +1,5 @@
+import 'flow_selection.dart';
+
 class InspectionCaptureContext {
   final String? macroLocal;
   final String? ambiente;
@@ -17,7 +19,37 @@ class InspectionCaptureContext {
     this.estado,
   });
 
+  factory InspectionCaptureContext.canonical({
+    String? subjectContext,
+    String? targetItem,
+    String? targetItemBase,
+    int? targetItemInstanceIndex,
+    String? targetQualifier,
+    String? targetCondition,
+    Map<String, dynamic> domainAttributes = const <String, dynamic>{},
+  }) {
+    return InspectionCaptureContext(
+      macroLocal: subjectContext,
+      ambiente: targetItem,
+      ambienteBase: targetItemBase,
+      ambienteInstanceIndex: targetItemInstanceIndex,
+      elemento: targetQualifier,
+      material: _attributeText(domainAttributes, 'inspection.material'),
+      estado: targetCondition,
+    );
+  }
+
   static const InspectionCaptureContext empty = InspectionCaptureContext();
+
+  String? get subjectContext => macroLocal;
+  String? get targetItem => ambiente;
+  String? get targetItemBase => ambienteBase;
+  int? get targetItemInstanceIndex => ambienteInstanceIndex;
+  String? get targetQualifier => elemento;
+  String? get targetCondition => estado;
+  Map<String, dynamic> get domainAttributes => <String, dynamic>{
+    if (_hasText(material)) 'inspection.material': material,
+  };
 
   bool get hasAnyValue =>
       _hasText(macroLocal) ||
@@ -25,6 +57,16 @@ class InspectionCaptureContext {
       _hasText(elemento) ||
       _hasText(material) ||
       _hasText(estado);
+
+  FlowSelection get selection => FlowSelection(
+    subjectContext: subjectContext,
+    targetItem: targetItem,
+    targetItemBase: targetItemBase,
+    targetItemInstanceIndex: targetItemInstanceIndex,
+    targetQualifier: targetQualifier,
+    targetCondition: targetCondition,
+    domainAttributes: domainAttributes,
+  );
 
   InspectionCaptureContext copyWith({
     String? macroLocal,
@@ -58,30 +100,25 @@ class InspectionCaptureContext {
   }
 
   Map<String, dynamic> toMap() {
-    return <String, dynamic>{
-      if (_hasText(macroLocal)) 'macroLocal': macroLocal,
-      if (_hasText(ambiente)) 'ambiente': ambiente,
-      if (_hasText(ambienteBase)) 'ambienteBase': ambienteBase,
-      if (ambienteInstanceIndex != null)
-        'ambienteInstanceIndex': ambienteInstanceIndex,
-      if (_hasText(elemento)) 'elemento': elemento,
-      if (_hasText(material)) 'material': material,
-      if (_hasText(estado)) 'estado': estado,
-    };
+    return selection.toMap(includeCanonical: true, includeLegacy: true);
   }
 
   factory InspectionCaptureContext.fromMap(Map<String, dynamic> map) {
-    return InspectionCaptureContext(
-      macroLocal: _readText(map['macroLocal']),
-      ambiente: _readText(map['ambiente']),
-      ambienteBase: _readText(map['ambienteBase']),
-      ambienteInstanceIndex:
-          (map['ambienteInstanceIndex'] as num?)?.toInt() ??
-          int.tryParse('${map['ambienteInstanceIndex'] ?? ''}'),
-      elemento: _readText(map['elemento']),
-      material: _readText(map['material']),
-      estado: _readText(map['estado']),
+    final selection = FlowSelection.fromMap(map);
+    return InspectionCaptureContext.canonical(
+      subjectContext: selection.subjectContext,
+      targetItem: selection.targetItem,
+      targetItemBase: selection.targetItemBase,
+      targetItemInstanceIndex: selection.targetItemInstanceIndex,
+      targetQualifier: selection.targetQualifier,
+      targetCondition: selection.targetCondition,
+      domainAttributes: selection.domainAttributes,
     );
+  }
+
+  static String? _attributeText(Map<String, dynamic> attributes, String key) {
+    final value = attributes[key];
+    return _readText(value);
   }
 
   static String? _readText(Object? value) {
@@ -127,6 +164,12 @@ class InspectionCaptureFlowState {
     );
   }
 
+  FlowSelectionState get canonical => FlowSelectionState(
+    initialSuggestedSelection: initialSuggested.selection,
+    currentSelection: current.selection,
+    resumeSelection: resume?.selection,
+  );
+
   InspectionCaptureFlowState copyWith({
     InspectionCaptureContext? initialSuggested,
     InspectionCaptureContext? current,
@@ -137,6 +180,43 @@ class InspectionCaptureFlowState {
       initialSuggested: initialSuggested ?? this.initialSuggested,
       current: current ?? this.current,
       resume: clearResume ? null : (resume ?? this.resume),
+    );
+  }
+
+  factory InspectionCaptureFlowState.fromCanonical(FlowSelectionState state) {
+    return InspectionCaptureFlowState(
+      initialSuggested: InspectionCaptureContext.canonical(
+        subjectContext: state.initialSuggestedSelection.subjectContext,
+        targetItem: state.initialSuggestedSelection.targetItem,
+        targetItemBase: state.initialSuggestedSelection.targetItemBase,
+        targetItemInstanceIndex:
+            state.initialSuggestedSelection.targetItemInstanceIndex,
+        targetQualifier: state.initialSuggestedSelection.targetQualifier,
+        targetCondition: state.initialSuggestedSelection.targetCondition,
+        domainAttributes: state.initialSuggestedSelection.domainAttributes,
+      ),
+      current: InspectionCaptureContext.canonical(
+        subjectContext: state.currentSelection.subjectContext,
+        targetItem: state.currentSelection.targetItem,
+        targetItemBase: state.currentSelection.targetItemBase,
+        targetItemInstanceIndex: state.currentSelection.targetItemInstanceIndex,
+        targetQualifier: state.currentSelection.targetQualifier,
+        targetCondition: state.currentSelection.targetCondition,
+        domainAttributes: state.currentSelection.domainAttributes,
+      ),
+      resume:
+          state.resumeSelection == null
+              ? null
+              : InspectionCaptureContext.canonical(
+                subjectContext: state.resumeSelection!.subjectContext,
+                targetItem: state.resumeSelection!.targetItem,
+                targetItemBase: state.resumeSelection!.targetItemBase,
+                targetItemInstanceIndex:
+                    state.resumeSelection!.targetItemInstanceIndex,
+                targetQualifier: state.resumeSelection!.targetQualifier,
+                targetCondition: state.resumeSelection!.targetCondition,
+                domainAttributes: state.resumeSelection!.domainAttributes,
+              ),
     );
   }
 }

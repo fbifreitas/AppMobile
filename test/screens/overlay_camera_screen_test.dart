@@ -1,4 +1,5 @@
-﻿import 'package:appmobile/models/inspection_capture_context.dart';
+﻿import 'package:appmobile/models/flow_selection.dart';
+import 'package:appmobile/models/inspection_capture_context.dart';
 import 'package:appmobile/screens/overlay_camera_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,7 +17,7 @@ Future<void> _pumpUntilFound(
   }
 }
 
-InspectionCaptureFlowState _flowState({
+FlowSelectionState _flowState({
   String? macroLocal,
   String? ambiente,
   String? elemento,
@@ -29,7 +30,7 @@ InspectionCaptureFlowState _flowState({
     elemento: elemento,
     material: material,
     estado: estado,
-  );
+  ).canonical;
 }
 
 void main() {

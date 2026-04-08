@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../config/inspection_menu_package.dart';
 import '../models/checkin_step2_model.dart';
+import '../models/flow_selection.dart';
 import '../models/inspection_camera_menu_view_state.dart';
 import '../models/inspection_camera_selector_section.dart';
 import '../models/inspection_capture_context.dart';
@@ -14,6 +15,7 @@ import '../services/inspection_camera_batch_service.dart';
 import '../services/inspection_capture_flow_transition_service.dart';
 import '../services/inspection_capture_recovery_adapter.dart';
 import '../services/inspection_camera_menu_resolver.dart';
+import '../services/inspection_domain_adapter.dart';
 import '../services/inspection_camera_level_presentation_service.dart';
 import '../services/inspection_camera_presentation_service.dart';
 import '../services/inspection_camera_selector_section_service.dart';
@@ -35,7 +37,11 @@ class OverlayCameraScreen extends StatefulWidget {
   final String tipoImovel;
   final String subtipoImovel;
   final bool singleCaptureMode;
-  final InspectionCaptureFlowState? initialFlowState;
+
+  /// Canonical initial flow state — domain-agnostic contract.
+  /// Inspection domain values are derived internally via [InspectionDomainAdapter].
+  final FlowSelectionState? initialFlowState;
+
   final bool cameFromCheckinStep1;
   final bool skipDeviceInitialization;
   final bool showVoiceActions;
@@ -119,8 +125,8 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   bool _loadingMenus = true;
   String? _error;
 
-  InspectionCaptureFlowState _captureFlowState =
-      InspectionCaptureFlowState.bootstrap();
+  /// Canonical flow state — single source of truth for the capture flow.
+  FlowSelectionState _flowState = FlowSelectionState.bootstrap();
 
   List<String> _macroLocais = const [];
   List<String> _ambientesAtuais = const [];
@@ -152,25 +158,49 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
         '${parts.join(' â€¢ ')}';
   }
 
-  bool get _showMacroLocalSelector =>
-      _captureFlowState.initialSuggested.macroLocal == null;
+  // ── canonical accessors ────────────────────────────────────────────────────
 
-  InspectionCaptureContext get _initialSuggestedContext =>
-      _captureFlowState.initialSuggested;
+  bool get _showMacroLocalSelector =>
+      _flowState.initialSuggestedSelection.subjectContext == null;
 
   bool get _hasAnyCaptures => _captures.isNotEmpty || _hasPreviousPhotos;
 
-  String? get _macroLocal => _captureFlowState.current.macroLocal;
-  String? get _ambiente => _captureFlowState.current.ambiente;
-  String? get _elemento => _captureFlowState.current.elemento;
-  String? get _material => _captureFlowState.current.material;
-  String? get _estado => _captureFlowState.current.estado;
+  String? get _subjectContext => _flowState.currentSelection.subjectContext;
+  String? get _targetItem => _flowState.currentSelection.targetItem;
+  String? get _targetQualifier => _flowState.currentSelection.targetQualifier;
+
+  // ── inspection domain context (derived) ───────────────────────────────────
+
+  /// Derives the full [InspectionCaptureContext] from the canonical flow state.
+  /// Used when inspection-specific services need domain field values.
+  InspectionCaptureContext get _currentInspectionContext =>
+      InspectionCaptureContext.canonical(
+        subjectContext: _flowState.currentSelection.subjectContext,
+        targetItem: _flowState.currentSelection.targetItem,
+        targetItemBase: _flowState.currentSelection.targetItemBase,
+        targetItemInstanceIndex:
+            _flowState.currentSelection.targetItemInstanceIndex,
+        targetQualifier: _flowState.currentSelection.targetQualifier,
+        targetCondition: _flowState.currentSelection.targetCondition,
+        domainAttributes: _flowState.currentSelection.domainAttributes,
+      );
+
+  InspectionCaptureContext get _suggestedInspectionContext =>
+      InspectionCaptureContext.canonical(
+        subjectContext: _flowState.initialSuggestedSelection.subjectContext,
+        targetItem: _flowState.initialSuggestedSelection.targetItem,
+        targetItemBase: _flowState.initialSuggestedSelection.targetItemBase,
+        targetItemInstanceIndex:
+            _flowState.initialSuggestedSelection.targetItemInstanceIndex,
+        targetQualifier: _flowState.initialSuggestedSelection.targetQualifier,
+        targetCondition: _flowState.initialSuggestedSelection.targetCondition,
+        domainAttributes: _flowState.initialSuggestedSelection.domainAttributes,
+      );
 
   @override
   void initState() {
     super.initState();
-    _captureFlowState =
-        widget.initialFlowState ?? InspectionCaptureFlowState.bootstrap();
+    _flowState = widget.initialFlowState ?? FlowSelectionState.bootstrap();
     _setup();
     if (widget.cameFromCheckinStep1) {
       WidgetsBinding.instance.addPostFrameCallback(
@@ -183,8 +213,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     try {
       if (widget.useTestMenuData) {
         if (!mounted) return;
-        final flowState =
-            widget.initialFlowState ?? InspectionCaptureFlowState.bootstrap();
+        final flowState = widget.initialFlowState ?? FlowSelectionState.bootstrap();
         final levelOrder = _normalizeCameraLevels(
           widget.testCameraLevelOrder ?? const <String>[],
         );
@@ -195,7 +224,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
         final materiais = List<String>.from(widget.testMateriais);
         final estados = List<String>.from(widget.testEstados);
         setState(() {
-          _captureFlowState = flowState;
+          _flowState = flowState;
           _cameraLevelOrder = levelOrder;
           _cameraLevelLabels = labels;
           _macroLocais = macroLocais;
@@ -206,7 +235,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
           _selectorSections = _selectorSectionService.buildSections(
             levelOrder: _cameraLevelOrder,
             labelsByLevel: _cameraLevelLabels,
-            flowState: _captureFlowState,
+            selectionState: _flowState,
             macroLocais: _macroLocais,
             ambientes: _ambientesAtuais,
             elementos: _elementosAtuais,
@@ -282,8 +311,8 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       propertyType: widget.tipoImovel,
       showMacroLocalSelector: _showMacroLocalSelector,
       initialLoad: initialLoad,
-      initialSuggestedContext: _initialSuggestedContext,
-      currentContext: _captureFlowState.current,
+      initialSuggestedContext: _suggestedInspectionContext,
+      currentContext: _currentInspectionContext,
     );
 
     if (!mounted) return;
@@ -303,11 +332,14 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     _recentElementos = viewState.recentElementos;
     _predictedSelection = viewState.prediction;
     _contextSuggestionSummary = viewState.contextSuggestionSummary;
-    _captureFlowState = _captureFlowState.copyWith(current: viewState.currentContext);
+    // Translate resolved inspection context back to canonical FlowSelection
+    _flowState = _flowState.copyWith(
+      currentSelection: viewState.currentContext.selection,
+    );
     _selectorSections = _selectorSectionService.buildSections(
       levelOrder: _cameraLevelOrder,
       labelsByLevel: _cameraLevelLabels,
-      flowState: _captureFlowState,
+      selectionState: _flowState,
       macroLocais: _macroLocais,
       ambientes: _ambientesAtuais,
       elementos: _elementosAtuais,
@@ -320,7 +352,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     _selectorSections = _selectorSectionService.buildSections(
       levelOrder: _cameraLevelOrder,
       labelsByLevel: _cameraLevelLabels,
-      flowState: _captureFlowState,
+      selectionState: _flowState,
       macroLocais: _macroLocais,
       ambientes: _ambientesAtuais,
       elementos: _elementosAtuais,
@@ -347,11 +379,11 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   Future<void> _selectMacroLocal(String value) async {
     final result = await _flowTransitionService.selectMacroLocal(
       propertyType: widget.tipoImovel,
-      flowState: _captureFlowState,
+      selectionState: _flowState,
       value: value,
     );
     setState(() {
-      _captureFlowState = result.flowState;
+      _flowState = result.selectionState;
       _rebuildSelectorSections();
     });
     await _reloadMenus();
@@ -360,12 +392,12 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   Future<void> _selectAmbiente(String value) async {
     final result = await _flowTransitionService.selectAmbiente(
       propertyType: widget.tipoImovel,
-      flowState: _captureFlowState,
-      macroLocal: _macroLocal,
+      selectionState: _flowState,
+      macroLocal: _subjectContext,
       value: value,
     );
     setState(() {
-      _captureFlowState = result.flowState;
+      _flowState = result.selectionState;
       _rebuildSelectorSections();
     });
     await _reloadMenus();
@@ -374,25 +406,21 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   Future<void> _duplicateCurrentAmbiente() async {
     final result = await _flowTransitionService.duplicateAmbiente(
       propertyType: widget.tipoImovel,
-      flowState: _captureFlowState,
-      macroLocal: _macroLocal,
-      selectedAmbiente: _ambiente,
+      selectionState: _flowState,
+      macroLocal: _subjectContext,
+      selectedAmbiente: _targetItem,
       existingAmbientes: _ambientesAtuais,
       useTestMenuData: widget.useTestMenuData,
     );
-    if (result == null) {
-      return;
-    }
+    if (result == null) return;
 
     setState(() {
       _ambientesAtuais = result.ambientes ?? _ambientesAtuais;
-      _captureFlowState = result.flowState;
+      _flowState = result.selectionState;
       _rebuildSelectorSections();
     });
 
-    if (widget.useTestMenuData) {
-      return;
-    }
+    if (widget.useTestMenuData) return;
 
     await _reloadMenus();
   }
@@ -400,13 +428,13 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   Future<void> _selectElemento(String value) async {
     final result = await _flowTransitionService.selectElemento(
       propertyType: widget.tipoImovel,
-      flowState: _captureFlowState,
-      macroLocal: _macroLocal,
-      ambiente: _ambiente,
+      selectionState: _flowState,
+      macroLocal: _subjectContext,
+      ambiente: _targetItem,
       value: value,
     );
     setState(() {
-      _captureFlowState = result.flowState;
+      _flowState = result.selectionState;
       _rebuildSelectorSections();
     });
     await _reloadMenus();
@@ -414,22 +442,22 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
 
   Future<void> _selectMaterial(String value) async {
     final result = _flowTransitionService.selectMaterial(
-      flowState: _captureFlowState,
+      selectionState: _flowState,
       value: value,
     );
     setState(() {
-      _captureFlowState = result.flowState;
+      _flowState = result.selectionState;
       _rebuildSelectorSections();
     });
   }
 
   Future<void> _selectEstado(String value) async {
     final result = _flowTransitionService.selectEstado(
-      flowState: _captureFlowState,
+      selectionState: _flowState,
       value: value,
     );
     setState(() {
-      _captureFlowState = result.flowState;
+      _flowState = result.selectionState;
       _rebuildSelectorSections();
     });
   }
@@ -437,7 +465,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   Future<void> _capture() async {
     if (_controller == null || !_controller!.value.isInitialized) return;
 
-    if (_ambiente == null || _ambiente!.trim().isEmpty) {
+    if (_targetItem == null || _targetItem!.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Selecione o local da foto antes de capturar.'),
@@ -459,13 +487,14 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
 
       final navigator = Navigator.of(context);
       final messenger = ScaffoldMessenger.of(context);
+      final ctx = _currentInspectionContext;
       final result = _batchService.buildCaptureResult(
         filePath: file.path,
-        macroLocal: _macroLocal,
-        ambiente: _ambiente!,
-        elemento: _elemento,
-        material: _material,
-        estado: _estado,
+        macroLocal: ctx.macroLocal,
+        ambiente: ctx.ambiente!,
+        elemento: ctx.elemento,
+        material: ctx.material,
+        estado: ctx.estado,
         capturedAt: DateTime.now(),
         position: position,
         predictionSummary: _predictionSummary,
@@ -783,20 +812,21 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       );
     }
 
+    final ctx = _currentInspectionContext;
     final resumo = [
-      if (_macroLocal != null) _macroLocal!,
-      if (_ambiente != null) _ambiente!,
-      if (_elemento != null) _elemento!,
-      if (_material != null) _material!,
-      if (_estado != null) _estado!,
+      if (ctx.macroLocal != null) ctx.macroLocal!,
+      if (ctx.ambiente != null) ctx.ambiente!,
+      if (ctx.elemento != null) ctx.elemento!,
+      if (ctx.material != null) ctx.material!,
+      if (ctx.estado != null) ctx.estado!,
     ].join(' > ');
     final presentation = _presentationService.build(
       capturesCount: _captures.length,
       hasPreviousPhotos: _hasPreviousPhotos,
       hasSelectorAmbiente: _hasSelectorSection('ambiente'),
       hasSelectorElemento: _hasSelectorSection('elemento'),
-      hasMacroLocal: _macroLocal != null,
-      hasAmbiente: _ambiente != null,
+      hasMacroLocal: _subjectContext != null,
+      hasAmbiente: _targetItem != null,
       singleCaptureMode: widget.singleCaptureMode,
       resumo: resumo,
       contextSuggestionSummary: _contextSuggestionSummary,
@@ -911,7 +941,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                                   _quickSuggestionCard(
                                     title: 'Locais mais usados nesta Ã¡rea',
                                     values: _recentAmbientes,
-                                    selected: _ambiente,
+                                    selected: _targetItem,
                                     onSelect: _selectAmbiente,
                                   ),
                                 ],
@@ -924,7 +954,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                                   _quickSuggestionCard(
                                     title: 'Mais usados neste contexto',
                                     values: _recentElementos,
-                                    selected: _elemento,
+                                    selected: _targetQualifier,
                                     onSelect: _selectElemento,
                                   ),
                                 ],
