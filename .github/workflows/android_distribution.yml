@@ -2,7 +2,7 @@ name: Android Distribution
 
 on:
   workflow_run:
-    workflows: ["Android CI"]
+    workflows: ["Android Homologation"]
     types:
       - completed
   workflow_dispatch:
