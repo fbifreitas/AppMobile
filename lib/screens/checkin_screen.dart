@@ -1067,7 +1067,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
       }
     }
 
-    final initialContext = _captureContextResolver.resolveFromStep1(
+    final initialSelection = _captureContextResolver.resolveFromStep1(
       levels: _resolveActiveStep1Levels(),
       selectedLevels: _niveisSelecionados,
     );
@@ -1079,7 +1079,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
         title: 'COLETA',
         tipoImovel: tipoImovel!,
         subtipoImovel: subtipoImovel!,
-        initialContext: initialContext,
+        initialSelection: initialSelection,
         cameFromCheckinStep1: true,
       ),
     );

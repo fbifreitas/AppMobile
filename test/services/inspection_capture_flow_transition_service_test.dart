@@ -1,11 +1,10 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-import 'package:appmobile/models/inspection_capture_context.dart';
+import 'package:appmobile/models/flow_selection.dart';
 import 'package:appmobile/services/inspection_capture_flow_transition_service.dart';
 import 'package:appmobile/services/inspection_context_actions_service.dart';
 import 'package:appmobile/services/inspection_environment_instance_service.dart';
 import 'package:appmobile/services/inspection_menu_service.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -18,64 +17,90 @@ void main() {
   );
 
   test('selectMacroLocal clears downstream capture state', () async {
+    final state = FlowSelectionState(
+      initialSuggestedSelection: FlowSelection.empty,
+      currentSelection: const FlowSelection(
+        subjectContext: 'Área interna',
+        targetItem: 'Sala',
+        targetQualifier: 'Parede',
+        targetCondition: 'Bom',
+        domainAttributes: <String, dynamic>{'inspection.material': 'Alvenaria'},
+      ),
+    );
+
     final result = await service.selectMacroLocal(
       propertyType: 'urbano',
-      flowState: InspectionCaptureFlowState.bootstrap(
-        macroLocal: 'Área interna',
-        ambiente: 'Sala',
-        elemento: 'Parede',
-        material: 'Alvenaria',
-        estado: 'Bom',
-      ),
+      selectionState: state,
       value: 'Rua',
     );
 
-    expect(result.flowState.current.macroLocal, 'Rua');
-    expect(result.flowState.current.ambiente, isNull);
-    expect(result.flowState.current.elemento, isNull);
-    expect(result.flowState.current.material, isNull);
-    expect(result.flowState.current.estado, isNull);
+    expect(result.selectionState.currentSelection.subjectContext, 'Rua');
+    expect(result.selectionState.currentSelection.targetItem, isNull);
+    expect(result.selectionState.currentSelection.targetQualifier, isNull);
+    expect(result.selectionState.currentSelection.targetCondition, isNull);
+    expect(result.selectionState.currentSelection.domainAttributes, isEmpty);
   });
 
   test('duplicateAmbiente returns next instance and keeps list updated', () async {
+    final state = FlowSelectionState(
+      initialSuggestedSelection: FlowSelection.empty,
+      currentSelection: const FlowSelection(
+        subjectContext: 'Área interna',
+        targetItem: 'Sala',
+        targetItemBase: 'Sala',
+      ),
+    );
+
     final result = await service.duplicateAmbiente(
       propertyType: 'urbano',
-      flowState: InspectionCaptureFlowState.bootstrap(
-        macroLocal: 'Área interna',
-        ambiente: 'Sala',
-      ),
+      selectionState: state,
       selectedAmbiente: 'Sala',
       existingAmbientes: const <String>['Sala', 'Quarto', 'Sala 2'],
       useTestMenuData: true,
     );
 
     expect(result, isNotNull);
-    expect(result!.flowState.current.ambiente, 'Sala 3');
-    expect(result.flowState.current.ambienteBase, 'Sala');
+    expect(result!.selectionState.currentSelection.targetItem, 'Sala 3');
+    expect(result.selectionState.currentSelection.targetItemBase, 'Sala');
     expect(result.ambientes, contains('Sala 3'));
   });
 
   test('selectMaterial clears estado and selectEstado stores final state', () {
-    final materialResult = service.selectMaterial(
-      flowState: InspectionCaptureFlowState.bootstrap(
-        macroLocal: 'Área interna',
-        ambiente: 'Sala',
-        elemento: 'Parede',
-        material: 'Alvenaria',
-        estado: 'Bom',
+    final state = FlowSelectionState(
+      initialSuggestedSelection: FlowSelection.empty,
+      currentSelection: const FlowSelection(
+        subjectContext: 'Área interna',
+        targetItem: 'Sala',
+        targetQualifier: 'Parede',
+        targetCondition: 'Bom',
+        domainAttributes: <String, dynamic>{'inspection.material': 'Alvenaria'},
       ),
+    );
+
+    final materialResult = service.selectMaterial(
+      selectionState: state,
       value: 'Pintura',
     );
 
-    expect(materialResult.flowState.current.material, 'Pintura');
-    expect(materialResult.flowState.current.estado, isNull);
+    expect(
+      materialResult.selectionState.currentSelection.attributeText(
+        'inspection.material',
+      ),
+      'Pintura',
+    );
+    expect(materialResult.selectionState.currentSelection.targetCondition, isNull);
 
     final estadoResult = service.selectEstado(
-      flowState: materialResult.flowState,
+      selectionState: materialResult.selectionState,
       value: 'Regular',
     );
 
-    expect(estadoResult.flowState.current.material, 'Pintura');
-    expect(estadoResult.flowState.current.estado, 'Regular');
+    expect(
+      estadoResult.selectionState.currentSelection.attributeText(
+        'inspection.material',
+      ),
+      'Pintura',
+    );
+    expect(estadoResult.selectionState.currentSelection.targetCondition, 'Regular');
   });
 }

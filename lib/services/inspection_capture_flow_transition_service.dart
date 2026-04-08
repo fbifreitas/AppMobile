@@ -1,5 +1,4 @@
 import '../models/flow_selection.dart';
-import '../models/inspection_capture_context.dart';
 import '../models/inspection_capture_transition_result.dart';
 import 'inspection_context_actions_service.dart';
 import 'inspection_environment_instance_service.dart';
@@ -20,22 +19,17 @@ class InspectionCaptureFlowTransitionService {
 
   Future<InspectionCaptureTransitionResult> selectMacroLocal({
     required String propertyType,
-    InspectionCaptureFlowState? flowState,
-    FlowSelectionState? selectionState,
+    required FlowSelectionState selectionState,
     required String value,
   }) async {
-    final state = _resolveSelectionState(
-      flowState: flowState,
-      selectionState: selectionState,
-    );
     await _menuService.registerUsage(
       scope: 'camera.${propertyType.toLowerCase()}.macro',
       value: value,
     );
 
     return InspectionCaptureTransitionResult(
-      selectionState: state.copyWith(
-        currentSelection: state.currentSelection.copyWith(
+      selectionState: selectionState.copyWith(
+        currentSelection: selectionState.currentSelection.copyWith(
           subjectContext: value,
           clearTargetItem: true,
           clearTargetItemBase: true,
@@ -50,15 +44,10 @@ class InspectionCaptureFlowTransitionService {
 
   Future<InspectionCaptureTransitionResult> selectAmbiente({
     required String propertyType,
-    InspectionCaptureFlowState? flowState,
-    FlowSelectionState? selectionState,
+    required FlowSelectionState selectionState,
     required String value,
   }) async {
-    final state = _resolveSelectionState(
-      flowState: flowState,
-      selectionState: selectionState,
-    );
-    final macroLocal = state.currentSelection.subjectContext;
+    final macroLocal = selectionState.currentSelection.subjectContext;
     await _menuService.registerUsage(
       scope: 'camera.${propertyType.toLowerCase()}.$macroLocal.ambiente',
       value: value,
@@ -66,8 +55,8 @@ class InspectionCaptureFlowTransitionService {
 
     final parsed = _environmentInstanceService.parse(value);
     return InspectionCaptureTransitionResult(
-      selectionState: state.copyWith(
-        currentSelection: state.currentSelection.copyWith(
+      selectionState: selectionState.copyWith(
+        currentSelection: selectionState.currentSelection.copyWith(
           targetItem: value,
           targetItemBase: parsed.baseLabel,
           targetItemInstanceIndex: parsed.instanceIndex,
@@ -81,16 +70,11 @@ class InspectionCaptureFlowTransitionService {
 
   Future<InspectionCaptureTransitionResult?> duplicateAmbiente({
     required String propertyType,
-    InspectionCaptureFlowState? flowState,
-    FlowSelectionState? selectionState,
+    required FlowSelectionState selectionState,
     required String? selectedAmbiente,
     required List<String> existingAmbientes,
     required bool useTestMenuData,
   }) async {
-    final state = _resolveSelectionState(
-      flowState: flowState,
-      selectionState: selectionState,
-    );
     if (selectedAmbiente == null || selectedAmbiente.trim().isEmpty) {
       return null;
     }
@@ -109,8 +93,8 @@ class InspectionCaptureFlowTransitionService {
     }
 
     final parsed = _environmentInstanceService.parse(nextLabel);
-    final updatedSelectionState = state.copyWith(
-      currentSelection: state.currentSelection.copyWith(
+    final updatedSelectionState = selectionState.copyWith(
+      currentSelection: selectionState.currentSelection.copyWith(
         targetItem: nextLabel,
         targetItemBase: parsed.baseLabel,
         targetItemInstanceIndex: parsed.instanceIndex,
@@ -121,7 +105,7 @@ class InspectionCaptureFlowTransitionService {
     );
 
     if (!useTestMenuData) {
-      final macroLocal = state.currentSelection.subjectContext;
+      final macroLocal = selectionState.currentSelection.subjectContext;
       await _menuService.registerUsage(
         scope: 'camera.${propertyType.toLowerCase()}.$macroLocal.ambiente',
         value: nextLabel,
@@ -136,16 +120,11 @@ class InspectionCaptureFlowTransitionService {
 
   Future<InspectionCaptureTransitionResult> selectElemento({
     required String propertyType,
-    InspectionCaptureFlowState? flowState,
-    FlowSelectionState? selectionState,
+    required FlowSelectionState selectionState,
     required String value,
   }) async {
-    final state = _resolveSelectionState(
-      flowState: flowState,
-      selectionState: selectionState,
-    );
-    final macroLocal = state.currentSelection.subjectContext;
-    final ambiente = state.currentSelection.targetItem;
+    final macroLocal = selectionState.currentSelection.subjectContext;
+    final ambiente = selectionState.currentSelection.targetItem;
     await _menuService.registerUsage(
       scope:
           'camera.${propertyType.toLowerCase()}.$macroLocal.$ambiente.elemento',
@@ -153,8 +132,8 @@ class InspectionCaptureFlowTransitionService {
     );
 
     return InspectionCaptureTransitionResult(
-      selectionState: state.copyWith(
-        currentSelection: state.currentSelection.copyWith(
+      selectionState: selectionState.copyWith(
+        currentSelection: selectionState.currentSelection.copyWith(
           targetQualifier: value,
           clearTargetCondition: true,
           clearDomainAttributes: true,
@@ -164,21 +143,16 @@ class InspectionCaptureFlowTransitionService {
   }
 
   InspectionCaptureTransitionResult selectMaterial({
-    InspectionCaptureFlowState? flowState,
-    FlowSelectionState? selectionState,
+    required FlowSelectionState selectionState,
     required String value,
   }) {
-    final state = _resolveSelectionState(
-      flowState: flowState,
-      selectionState: selectionState,
-    );
     final domainAttributes = <String, dynamic>{
-      ...state.currentSelection.domainAttributes,
+      ...selectionState.currentSelection.domainAttributes,
       'inspection.material': value,
     };
     return InspectionCaptureTransitionResult(
-      selectionState: state.copyWith(
-        currentSelection: state.currentSelection.copyWith(
+      selectionState: selectionState.copyWith(
+        currentSelection: selectionState.currentSelection.copyWith(
           domainAttributes: domainAttributes,
           clearTargetCondition: true,
         ),
@@ -187,35 +161,15 @@ class InspectionCaptureFlowTransitionService {
   }
 
   InspectionCaptureTransitionResult selectEstado({
-    InspectionCaptureFlowState? flowState,
-    FlowSelectionState? selectionState,
+    required FlowSelectionState selectionState,
     required String value,
   }) {
-    final state = _resolveSelectionState(
-      flowState: flowState,
-      selectionState: selectionState,
-    );
     return InspectionCaptureTransitionResult(
-      selectionState: state.copyWith(
-        currentSelection: state.currentSelection.copyWith(
+      selectionState: selectionState.copyWith(
+        currentSelection: selectionState.currentSelection.copyWith(
           targetCondition: value,
         ),
       ),
-    );
-  }
-
-  FlowSelectionState _resolveSelectionState({
-    InspectionCaptureFlowState? flowState,
-    FlowSelectionState? selectionState,
-  }) {
-    if (selectionState != null) {
-      return selectionState;
-    }
-    if (flowState != null) {
-      return flowState.canonical;
-    }
-    throw ArgumentError(
-      'Either flowState or selectionState must be provided.',
     );
   }
 }

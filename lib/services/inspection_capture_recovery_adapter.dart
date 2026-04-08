@@ -1,7 +1,6 @@
-import '../models/inspection_camera_flow_request.dart';
-import '../models/inspection_capture_context.dart';
-import '../models/overlay_camera_capture_result.dart';
 import '../models/flow_selection.dart';
+import '../models/inspection_camera_flow_request.dart';
+import '../models/overlay_camera_capture_result.dart';
 
 class InspectionCaptureRecoveryAdapter {
   const InspectionCaptureRecoveryAdapter._();
@@ -9,48 +8,28 @@ class InspectionCaptureRecoveryAdapter {
   static const InspectionCaptureRecoveryAdapter instance =
       InspectionCaptureRecoveryAdapter._();
 
-  InspectionCaptureContext? resolveResumeContext({
+  FlowSelection? resolveResumeSelection({
     required List<OverlayCameraCaptureResult> currentCaptures,
     required Map<String, dynamic> inspectionRecoveryPayload,
   }) {
     if (currentCaptures.isNotEmpty) {
-      return contextFromCapture(currentCaptures.last);
+      return currentCaptures.last.selection;
     }
 
     final reviewPayload = inspectionRecoveryPayload['review'];
     if (reviewPayload is! Map) return null;
 
     final rawContext = reviewPayload['cameraContext'];
+    Map<String, dynamic>? map;
     if (rawContext is Map<String, dynamic>) {
-      final context = InspectionCaptureContext.fromMap(rawContext);
-      return context.hasAnyValue ? context : null;
+      map = rawContext;
+    } else if (rawContext is Map) {
+      map = rawContext.map((key, value) => MapEntry('$key', value));
     }
-    if (rawContext is Map) {
-      final context = InspectionCaptureContext.fromMap(
-        rawContext.map((key, value) => MapEntry('$key', value)),
-      );
-      return context.hasAnyValue ? context : null;
-    }
+    if (map == null) return null;
 
-    return null;
-  }
-
-  /// Canonical version of [resolveResumeContext].
-  FlowSelection? resolveResumeSelection({
-    required List<OverlayCameraCaptureResult> currentCaptures,
-    required Map<String, dynamic> inspectionRecoveryPayload,
-  }) {
-    return resolveResumeContext(
-      currentCaptures: currentCaptures,
-      inspectionRecoveryPayload: inspectionRecoveryPayload,
-    )?.selection;
-  }
-
-  Map<String, dynamic> serializeContext(InspectionCaptureContext? context) {
-    if (context == null || !context.hasAnyValue) {
-      return const <String, dynamic>{};
-    }
-    return context.toMap();
+    final selection = FlowSelection.fromMap(map);
+    return selection.hasAnyValue ? selection : null;
   }
 
   Map<String, dynamic> serializeSelection(FlowSelection? selection) {
@@ -58,20 +37,6 @@ class InspectionCaptureRecoveryAdapter {
       return const <String, dynamic>{};
     }
     return selection.toMap(includeCanonical: true, includeLegacy: true);
-  }
-
-  InspectionCaptureContext contextFromCapture(
-    OverlayCameraCaptureResult capture,
-  ) {
-    return InspectionCaptureContext(
-      macroLocal: capture.subjectContext,
-      ambiente: capture.targetItem,
-      ambienteBase: capture.ambienteBase,
-      ambienteInstanceIndex: capture.ambienteInstanceIndex,
-      elemento: capture.targetQualifier,
-      material: capture.material,
-      estado: capture.targetCondition,
-    );
   }
 
   List<OverlayCameraCaptureResult> readPersistedReviewCaptures(
@@ -154,8 +119,6 @@ class InspectionCaptureRecoveryAdapter {
     bool singleCaptureMode = false,
     bool cameFromCheckinStep1 = false,
     FlowSelection? initialSelection,
-    // Backward-compat: prefer initialSelection in new code.
-    InspectionCaptureContext? initialContext,
     required List<OverlayCameraCaptureResult> currentCaptures,
     required Map<String, dynamic> inspectionRecoveryPayload,
   }) {
@@ -166,7 +129,6 @@ class InspectionCaptureRecoveryAdapter {
       singleCaptureMode: singleCaptureMode,
       cameFromCheckinStep1: cameFromCheckinStep1,
       initialSelection: initialSelection,
-      initialContext: initialContext,
       resumeSelection: resolveResumeSelection(
         currentCaptures: currentCaptures,
         inspectionRecoveryPayload: inspectionRecoveryPayload,

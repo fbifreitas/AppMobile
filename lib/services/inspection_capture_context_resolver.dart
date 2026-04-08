@@ -1,5 +1,5 @@
 import '../config/inspection_menu_package.dart';
-import '../models/inspection_capture_context.dart';
+import '../models/flow_selection.dart';
 import 'inspection_semantic_field_service.dart';
 
 class InspectionCaptureContextResolver {
@@ -8,38 +8,44 @@ class InspectionCaptureContextResolver {
   static const InspectionCaptureContextResolver instance =
       InspectionCaptureContextResolver._();
 
-  InspectionCaptureContext resolveFromStep1({
+  /// Resolves canonical [FlowSelection] from the step-1 checkin level selections.
+  FlowSelection resolveFromStep1({
     required List<ConfigLevelDefinition> levels,
     required Map<String, String> selectedLevels,
   }) {
     final semanticFieldService = InspectionSemanticFieldService.instance;
 
-    return InspectionCaptureContext(
-      macroLocal: semanticFieldService.resolveSelectedValueForSemantic(
+    final material = semanticFieldService.resolveSelectedValueForSemantic(
+      levels: levels,
+      semanticKey: InspectionSemanticFieldKeys.photoMaterial,
+      selectedLevels: selectedLevels,
+    );
+
+    return FlowSelection(
+      subjectContext: semanticFieldService.resolveSelectedValueForSemantic(
         levels: levels,
         semanticKey: InspectionSemanticFieldKeys.captureContext,
         selectedLevels: selectedLevels,
       ),
-      ambiente: semanticFieldService.resolveSelectedValueForSemantic(
+      targetItem: semanticFieldService.resolveSelectedValueForSemantic(
         levels: levels,
         semanticKey: InspectionSemanticFieldKeys.photoLocation,
         selectedLevels: selectedLevels,
       ),
-      elemento: semanticFieldService.resolveSelectedValueForSemantic(
+      targetQualifier: semanticFieldService.resolveSelectedValueForSemantic(
         levels: levels,
         semanticKey: InspectionSemanticFieldKeys.photoElement,
         selectedLevels: selectedLevels,
       ),
-      material: semanticFieldService.resolveSelectedValueForSemantic(
-        levels: levels,
-        semanticKey: InspectionSemanticFieldKeys.photoMaterial,
-        selectedLevels: selectedLevels,
-      ),
-      estado: semanticFieldService.resolveSelectedValueForSemantic(
+      targetCondition: semanticFieldService.resolveSelectedValueForSemantic(
         levels: levels,
         semanticKey: InspectionSemanticFieldKeys.photoState,
         selectedLevels: selectedLevels,
       ),
+      domainAttributes: <String, dynamic>{
+        if (material != null && material.trim().isNotEmpty)
+          'inspection.material': material,
+      },
     );
   }
 }

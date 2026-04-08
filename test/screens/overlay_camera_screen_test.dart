@@ -1,5 +1,4 @@
 ﻿import 'package:appmobile/models/flow_selection.dart';
-import 'package:appmobile/models/inspection_capture_context.dart';
 import 'package:appmobile/screens/overlay_camera_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -24,13 +23,20 @@ FlowSelectionState _flowState({
   String? material,
   String? estado,
 }) {
-  return InspectionCaptureFlowState.bootstrap(
-    macroLocal: macroLocal,
-    ambiente: ambiente,
-    elemento: elemento,
-    material: material,
-    estado: estado,
-  ).canonical;
+  final sel = FlowSelection(
+    subjectContext: macroLocal,
+    targetItem: ambiente,
+    targetQualifier: elemento,
+    targetCondition: estado,
+    domainAttributes: <String, dynamic>{
+      if (material != null && material.trim().isNotEmpty)
+        'inspection.material': material,
+    },
+  );
+  return FlowSelectionState(
+    initialSuggestedSelection: sel,
+    currentSelection: sel,
+  );
 }
 
 void main() {

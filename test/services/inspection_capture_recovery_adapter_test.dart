@@ -1,4 +1,4 @@
-import 'package:appmobile/models/inspection_capture_context.dart';
+import 'package:appmobile/models/flow_selection.dart';
 import 'package:appmobile/models/overlay_camera_capture_result.dart';
 import 'package:appmobile/services/inspection_capture_recovery_adapter.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -26,8 +26,8 @@ void main() {
     );
   }
 
-  test('prefers latest current capture for resume context', () {
-    final context = adapter.resolveResumeContext(
+  test('prefers latest current capture for resume selection', () {
+    final selection = adapter.resolveResumeSelection(
       currentCaptures: <OverlayCameraCaptureResult>[
         capture(filePath: '/tmp/1.jpg', ambiente: 'Quarto'),
         capture(filePath: '/tmp/2.jpg', ambiente: 'Quarto 2'),
@@ -35,14 +35,14 @@ void main() {
       inspectionRecoveryPayload: const <String, dynamic>{},
     );
 
-    expect(context?.macroLocal, 'Interna');
-    expect(context?.ambiente, 'Quarto 2');
-    expect(context?.ambienteBase, 'Quarto');
-    expect(context?.ambienteInstanceIndex, 2);
+    expect(selection?.subjectContext, 'Interna');
+    expect(selection?.targetItem, 'Quarto 2');
+    expect(selection?.targetItemBase, 'Quarto');
+    expect(selection?.targetItemInstanceIndex, 2);
   });
 
   test('falls back to persisted review cameraContext payload', () {
-    final context = adapter.resolveResumeContext(
+    final selection = adapter.resolveResumeSelection(
       currentCaptures: const <OverlayCameraCaptureResult>[],
       inspectionRecoveryPayload: <String, dynamic>{
         'review': <String, dynamic>{
@@ -55,26 +55,19 @@ void main() {
       },
     );
 
-    expect(context?.macroLocal, 'Externa');
-    expect(context?.ambiente, 'Fachada');
-    expect(context?.elemento, 'Portão');
+    expect(selection?.subjectContext, 'Externa');
+    expect(selection?.targetItem, 'Fachada');
+    expect(selection?.targetQualifier, 'Portão');
   });
 
-  test('serializes empty context as empty map', () {
-    expect(
-      adapter.serializeContext(InspectionCaptureContext.empty),
-      isEmpty,
-    );
-  });
-
-  test('builds camera flow request with latest resume context', () {
+  test('builds camera flow request with resume from latest capture', () {
     final request = adapter.buildCameraFlowRequest(
       title: 'Fotos Obrigatorias do Check-In',
       tipoImovel: 'Urbano',
       subtipoImovel: 'Casa',
-      initialContext: const InspectionCaptureContext(
-        macroLocal: 'Interna',
-        ambiente: 'Quarto',
+      initialSelection: const FlowSelection(
+        subjectContext: 'Interna',
+        targetItem: 'Quarto',
       ),
       currentCaptures: <OverlayCameraCaptureResult>[
         capture(filePath: '/tmp/2.jpg', ambiente: 'Quarto 2'),
@@ -82,9 +75,12 @@ void main() {
       inspectionRecoveryPayload: const <String, dynamic>{},
     );
 
-    expect(request.captureFlowState.initialSuggested.ambiente, 'Quarto');
-    expect(request.captureFlowState.current.ambiente, 'Quarto 2');
-    expect(request.captureFlowState.resume?.ambiente, 'Quarto 2');
+    expect(
+      request.selectionState.initialSuggestedSelection.targetItem,
+      'Quarto',
+    );
+    expect(request.selectionState.currentSelection.targetItem, 'Quarto 2');
+    expect(request.selectionState.resumeSelection?.targetItem, 'Quarto 2');
   });
 
   test('builds review payload with legacy cameraContext compatibility', () {
@@ -104,7 +100,10 @@ void main() {
 
     expect(payload['legacyField'], 'keep');
     expect(payload['cameraContext'], isA<Map<String, dynamic>>());
-    expect((payload['cameraContext'] as Map<String, dynamic>)['ambiente'], 'Quarto 2');
+    expect(
+      (payload['cameraContext'] as Map<String, dynamic>)['ambiente'],
+      'Quarto 2',
+    );
   });
 
   test('merges persisted review captures with current batch without duplicating filePath', () {
@@ -123,7 +122,7 @@ void main() {
       },
     );
 
-    expect(merged.map((capture) => capture.filePath), <String>[
+    expect(merged.map((c) => c.filePath), <String>[
       '/tmp/1.jpg',
       '/tmp/2.jpg',
       '/tmp/3.jpg',

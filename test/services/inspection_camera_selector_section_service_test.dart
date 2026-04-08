@@ -1,4 +1,4 @@
-import 'package:appmobile/models/inspection_capture_context.dart';
+import 'package:appmobile/models/flow_selection.dart';
 import 'package:appmobile/services/inspection_camera_selector_section_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -12,15 +12,13 @@ void main() {
         'ambiente': 'Local da foto',
         'elemento': 'Elemento fotografado',
       },
-      selectionState: InspectionCaptureFlowState(
-        initialSuggested: const InspectionCaptureContext(
-          macroLocal: 'Area interna',
+      selectionState: FlowSelectionState(
+        initialSuggestedSelection: const FlowSelection(subjectContext: 'Area interna'),
+        currentSelection: const FlowSelection(
+          subjectContext: 'Area interna',
+          targetItem: 'Sala',
         ),
-        current: const InspectionCaptureContext(
-          macroLocal: 'Area interna',
-          ambiente: 'Sala',
-        ),
-      ).canonical,
+      ),
       macroLocais: const <String>['Area interna'],
       ambientes: const <String>['Sala', 'Quarto'],
       elementos: const <String>['Janela'],
@@ -40,14 +38,10 @@ void main() {
     final sections = service.buildSections(
       levelOrder: const <String>['macroLocal', 'ambiente'],
       labelsByLevel: const <String, String>{},
-      selectionState: InspectionCaptureFlowState(
-        initialSuggested: const InspectionCaptureContext(
-          macroLocal: 'Rua',
-        ),
-        current: const InspectionCaptureContext(
-          macroLocal: 'Rua',
-        ),
-      ).canonical,
+      selectionState: FlowSelectionState(
+        initialSuggestedSelection: const FlowSelection(subjectContext: 'Rua'),
+        currentSelection: const FlowSelection(subjectContext: 'Rua'),
+      ),
       macroLocais: const <String>['Rua'],
       ambientes: const <String>['Fachada'],
       elementos: const <String>[],

@@ -1,4 +1,3 @@
-import 'inspection_capture_context.dart';
 import 'flow_selection.dart';
 
 class InspectionCameraFlowRequest {
@@ -20,10 +19,6 @@ class InspectionCameraFlowRequest {
     this.cameFromCheckinStep1 = false,
   });
 
-  /// Backward-compatible accessor for callers that still use [InspectionCaptureFlowState].
-  InspectionCaptureFlowState get captureFlowState =>
-      InspectionCaptureFlowState.fromCanonical(selectionState);
-
   factory InspectionCameraFlowRequest.bootstrap({
     required String title,
     required String tipoImovel,
@@ -32,17 +27,9 @@ class InspectionCameraFlowRequest {
     bool cameFromCheckinStep1 = false,
     FlowSelection? initialSelection,
     FlowSelection? resumeSelection,
-    // Backward-compat: prefer initialSelection / resumeSelection in new code.
-    InspectionCaptureContext? initialContext,
-    InspectionCaptureContext? resumeContext,
   }) {
-    final suggested =
-        initialSelection ??
-        initialContext?.selection ??
-        FlowSelection.empty;
-    final resume =
-        resumeSelection ??
-        (resumeContext?.hasAnyValue == true ? resumeContext!.selection : null);
+    final suggested = initialSelection ?? FlowSelection.empty;
+    final resume = resumeSelection;
     final current =
         (resume != null && resume.hasAnyValue) ? resume : suggested;
     return InspectionCameraFlowRequest(

@@ -392,11 +392,12 @@ void main() {
 
     final request = flowCoordinator.lastOverlayRequest;
     expect(request, isNotNull);
-    expect(request!.captureFlowState.initialSuggested.macroLocal, 'Rua');
-    expect(request.captureFlowState.initialSuggested.ambiente, 'Fachada');
-    expect(request.captureFlowState.initialSuggested.elemento, 'Portão');
-    expect(request.captureFlowState.initialSuggested.material, 'Metal');
-    expect(request.captureFlowState.initialSuggested.estado, 'Bom');
+    final initial = request!.selectionState.initialSuggestedSelection;
+    expect(initial.subjectContext, 'Rua');
+    expect(initial.targetItem, 'Fachada');
+    expect(initial.targetQualifier, 'Portão');
+    expect(initial.attributeText('inspection.material'), 'Metal');
+    expect(initial.targetCondition, 'Bom');
   });
 
   testWidgets('check-in etapa 1 hides step2 action when backend marks it invisible', (

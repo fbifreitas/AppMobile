@@ -514,11 +514,12 @@ void main() {
       expect(flowCoordinator.overlayOpenCount, 1);
       final request = flowCoordinator.lastOverlayRequest;
       expect(request, isNotNull);
-      expect(request!.captureFlowState.current.macroLocal, 'Interna');
-      expect(request.captureFlowState.current.ambiente, 'Quarto 2');
-      expect(request.captureFlowState.current.elemento, 'Janela');
-      expect(request.captureFlowState.current.material, 'Madeira');
-      expect(request.captureFlowState.current.estado, 'Bom');
+      final current = request!.selectionState.currentSelection;
+      expect(current.subjectContext, 'Interna');
+      expect(current.targetItem, 'Quarto 2');
+      expect(current.targetQualifier, 'Janela');
+      expect(current.attributeText('inspection.material'), 'Madeira');
+      expect(current.targetCondition, 'Bom');
     },
   );
 

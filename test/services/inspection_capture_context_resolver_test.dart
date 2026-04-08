@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   const resolver = InspectionCaptureContextResolver.instance;
 
-  test('resolves capture context from semantic step1 levels', () {
+  test('resolves canonical FlowSelection from semantic step1 levels', () {
     final levels = <ConfigLevelDefinition>[
       ConfigLevelDefinition(
         id: 'contexto',
@@ -34,7 +34,7 @@ void main() {
       ),
     ];
 
-    final context = resolver.resolveFromStep1(
+    final selection = resolver.resolveFromStep1(
       levels: levels,
       selectedLevels: const <String, String>{
         'contexto': 'Interna',
@@ -43,22 +43,22 @@ void main() {
       },
     );
 
-    expect(context.macroLocal, 'Interna');
-    expect(context.ambiente, 'Quarto');
-    expect(context.elemento, 'Janela');
+    expect(selection.subjectContext, 'Interna');
+    expect(selection.targetItem, 'Quarto');
+    expect(selection.targetQualifier, 'Janela');
   });
 
-  test('returns empty context when selections are missing', () {
-    final context = resolver.resolveFromStep1(
+  test('returns empty FlowSelection when selections are missing', () {
+    final selection = resolver.resolveFromStep1(
       levels: const <ConfigLevelDefinition>[],
       selectedLevels: const <String, String>{},
     );
 
-    expect(context.hasAnyValue, isFalse);
-    expect(context.macroLocal, isNull);
-    expect(context.ambiente, isNull);
-    expect(context.elemento, isNull);
-    expect(context.material, isNull);
-    expect(context.estado, isNull);
+    expect(selection.hasAnyValue, isFalse);
+    expect(selection.subjectContext, isNull);
+    expect(selection.targetItem, isNull);
+    expect(selection.targetQualifier, isNull);
+    expect(selection.attributeText('inspection.material'), isNull);
+    expect(selection.targetCondition, isNull);
   });
 }

@@ -8,7 +8,6 @@ import '../models/checkin_step2_model.dart';
 import '../models/flow_selection.dart';
 import '../models/inspection_camera_menu_view_state.dart';
 import '../models/inspection_camera_selector_section.dart';
-import '../models/inspection_capture_context.dart';
 import '../models/inspection_menu_intelligence_models.dart';
 import '../models/overlay_camera_capture_result.dart';
 import '../services/inspection_camera_batch_service.dart';
@@ -104,6 +103,8 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       );
   final InspectionCaptureRecoveryAdapter _captureRecoveryAdapter =
       InspectionCaptureRecoveryAdapter.instance;
+  static const InspectionDomainAdapter _domainAdapter =
+      InspectionDomainAdapter.instance;
   final InspectionCameraBatchService _batchService =
       InspectionCameraBatchService.instance;
   final InspectionCameraPresentationService _presentationService =
@@ -166,21 +167,6 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   String? get _targetItem => _flowState.currentSelection.targetItem;
   String? get _targetQualifier => _flowState.currentSelection.targetQualifier;
 
-  // ── inspection domain context (derived) ───────────────────────────────────
-
-  /// Derives the full [InspectionCaptureContext] from the canonical flow state.
-  /// Used when inspection-specific services need domain field values.
-  InspectionCaptureContext get _currentInspectionContext =>
-      InspectionCaptureContext.canonical(
-        subjectContext: _flowState.currentSelection.subjectContext,
-        targetItem: _flowState.currentSelection.targetItem,
-        targetItemBase: _flowState.currentSelection.targetItemBase,
-        targetItemInstanceIndex:
-            _flowState.currentSelection.targetItemInstanceIndex,
-        targetQualifier: _flowState.currentSelection.targetQualifier,
-        targetCondition: _flowState.currentSelection.targetCondition,
-        domainAttributes: _flowState.currentSelection.domainAttributes,
-      );
 
 
 
@@ -469,14 +455,14 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
 
       final navigator = Navigator.of(context);
       final messenger = ScaffoldMessenger.of(context);
-      final ctx = _currentInspectionContext;
+      final sel = _flowState.currentSelection;
       final result = _batchService.buildCaptureResult(
         filePath: file.path,
-        macroLocal: ctx.macroLocal,
-        ambiente: ctx.ambiente!,
-        elemento: ctx.elemento,
-        material: ctx.material,
-        estado: ctx.estado,
+        macroLocal: sel.subjectContext,
+        ambiente: sel.targetItem!,
+        elemento: sel.targetQualifier,
+        material: _domainAdapter.inspectionMaterialOf(sel),
+        estado: sel.targetCondition,
         capturedAt: DateTime.now(),
         position: position,
         predictionSummary: _predictionSummary,
@@ -794,13 +780,14 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       );
     }
 
-    final ctx = _currentInspectionContext;
+    final sel = _flowState.currentSelection;
+    final material = _domainAdapter.inspectionMaterialOf(sel);
     final resumo = [
-      if (ctx.macroLocal != null) ctx.macroLocal!,
-      if (ctx.ambiente != null) ctx.ambiente!,
-      if (ctx.elemento != null) ctx.elemento!,
-      if (ctx.material != null) ctx.material!,
-      if (ctx.estado != null) ctx.estado!,
+      if (sel.subjectContext != null) sel.subjectContext!,
+      if (sel.targetItem != null) sel.targetItem!,
+      if (sel.targetQualifier != null) sel.targetQualifier!,
+      if (material != null) material,
+      if (sel.targetCondition != null) sel.targetCondition!,
     ].join(' > ');
     final presentation = _presentationService.build(
       capturesCount: _captures.length,
