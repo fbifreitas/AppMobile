@@ -4,7 +4,7 @@
 
 # Backlog Front/Web (Experiencia e Operacao)
 
-Atualizado em: 2026-04-05
+Atualizado em: 2026-04-08
 
 ## Objetivo
 Controlar o backlog de experiencia web (UI, navegacao, telas operacionais e usabilidade) sem misturar com backlog de dominio backend.
@@ -33,10 +33,10 @@ Controlar o backlog de experiencia web (UI, navegacao, telas operacionais e usab
 | 1 | FW-001 | Tela Jobs (lista + filtro + paginacao) | Entregue | Critica | Operador lista jobs por tenant/status e acessa detalhe |
 | 2 | FW-002 | Tela Job detalhe + timeline + acoes (assign/cancel) | Entregue | Critica | Acao operacional completa sem chamada manual de API |
 | 3 | FW-003 | Tela Cases (criacao/consulta minima) | Entregue | Alta | Case e job inicial criados pelo fluxo web com rastreabilidade |
-| 4 | FW-004 | Tela de configuracao dinamica check-in (sections publish/edit/rollback) | Em andamento | Critica | Publicacao e rollback por tenant sem fallback estrutural |
-| 5 | FW-005 | Painel de observabilidade de integracao (p95, erro, retry, backlog) | Pendente | Alta | Operacao diagnostica falha sem abrir logs brutos |
-| 6 | FW-006 | Workspace web de intake/valuation (validar/rejeitar) | Pendente | Alta | Analista fecha intake por UI e gera trilha de decisao |
-| 7 | FW-007 | Workspace web de laudo basico (gerar/revisar/aprovar) | Pendente | Alta | Revisor opera ciclo Draft -> ReadyForSign por UI |
+| 4 | FW-004 | Tela de configuracao dinamica check-in (sections publish/edit/rollback) | Em andamento (baseline operacional entregue em 2026-04-08) | Critica | Publicacao e rollback por tenant sem fallback estrutural |
+| 5 | FW-005 | Painel de observabilidade de integracao (p95, erro, retry, backlog) | Em andamento (control tower operacional entregue em 2026-04-08) | Alta | Operacao diagnostica falha sem abrir logs brutos |
+| 6 | FW-006 | Workspace web de intake/valuation (validar/rejeitar) | Em andamento (baseline operacional entregue em 2026-04-08) | Alta | Analista fecha intake por UI e gera trilha de decisao |
+| 7 | FW-007 | Workspace web de laudo basico (gerar/revisar/aprovar) | Em andamento (baseline operacional entregue em 2026-04-08) | Alta | Revisor opera ciclo Draft -> ReadyForSign por UI |
 | 8 | FW-008 | Hardening UX mobile-first e acessibilidade base | Pendente | Media | Fluxos principais AA basico e sem regressao de navegacao |
 
 ## Vinculos obrigatorios
@@ -74,3 +74,15 @@ Controlar o backlog de experiencia web (UI, navegacao, telas operacionais e usab
 ### Ordem de execucao web
 1. Concluir FW-004 dentro do Macro-pacote A.
 2. Somente depois abrir FW-005/FW-006/FW-007 como frente principal.
+
+## Adendo 2026-04-08 - Pos-release v1.2.40+60
+
+- FW-004 permanece em andamento, mas saiu do estado de painel solto e passou a ter operacao dedicada em `/backoffice/config`, com teste de rota/pagina e reaproveitamento do backend operacional ja existente.
+- FW-006 avancou para baseline operacional real com `/backoffice/valuation`, proxies Next.js para valuation e intake validation ligados ao backend e build/test/lint verdes no release `v1.2.40+60`.
+- FW-007 avancou para baseline operacional real com `/backoffice/reports`, proxies Next.js para generate/review/detail ligados ao backend e validacao automatizada verde no mesmo release.
+- FW-005 avancou para baseline operacional real com `/backoffice/operations`, proxy Next.js dedicado e consumo de agregados reais de control tower do backend.
+
+## Adendo 2026-04-08 - Control tower operacional entregue
+
+- FW-005 deixou de ser somente proposta de backlog e passou a expor cards de requests/erros/retries/backlog, tabela de metricas por endpoint, alertas ativos, retention manual e drill-down recente por `correlationId`/`protocolId`/`jobId`/`processId`/`reportId`.
+- A home do backoffice agora aponta para `/backoffice/operations`, consolidando o papel do web como superficie principal de operacao do fluxo integrado.

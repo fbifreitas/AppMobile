@@ -5,6 +5,8 @@ import com.appbackoffice.api.contract.ErrorSeverity;
 import com.appbackoffice.api.identity.service.TenantGuardService;
 import com.appbackoffice.api.mobile.entity.InspectionEntity;
 import com.appbackoffice.api.mobile.repository.InspectionRepository;
+import com.appbackoffice.api.observability.OperationalEventRecorder;
+import com.appbackoffice.api.observability.RequestTracingFilter;
 import com.appbackoffice.api.valuation.dto.CreateValuationProcessRequest;
 import com.appbackoffice.api.valuation.dto.ValidateIntakeRequest;
 import com.appbackoffice.api.valuation.dto.ValuationProcessDetailResponse;
@@ -21,8 +23,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.MDC;
 
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Service
 public class ValuationBackofficeService {
@@ -33,19 +38,22 @@ public class ValuationBackofficeService {
     private final InspectionRepository inspectionRepository;
     private final TenantGuardService tenantGuardService;
     private final ObjectMapper objectMapper;
+    private final OperationalEventRecorder operationalEventRecorder;
 
     public ValuationBackofficeService(ValuationProcessRepository valuationProcessRepository,
                                       IntakeValidationRepository intakeValidationRepository,
                                       ReportRepository reportRepository,
                                       InspectionRepository inspectionRepository,
                                       TenantGuardService tenantGuardService,
-                                      ObjectMapper objectMapper) {
+                                      ObjectMapper objectMapper,
+                                      OperationalEventRecorder operationalEventRecorder) {
         this.valuationProcessRepository = valuationProcessRepository;
         this.intakeValidationRepository = intakeValidationRepository;
         this.reportRepository = reportRepository;
         this.inspectionRepository = inspectionRepository;
         this.tenantGuardService = tenantGuardService;
         this.objectMapper = objectMapper;
+        this.operationalEventRecorder = operationalEventRecorder;
     }
 
     @Transactional
@@ -122,7 +130,29 @@ public class ValuationBackofficeService {
                 ? ValuationProcessStatus.INTAKE_VALIDATED
                 : ValuationProcessStatus.INTAKE_REJECTED);
         process.setAssignedAnalystId(resolveAnalystId(process.getAssignedAnalystId(), actorId));
-        return toDetail(valuationProcessRepository.save(process));
+        ValuationProcessEntity saved = valuationProcessRepository.save(process);
+        Map<String, Object> details = new LinkedHashMap<>();
+        details.put("result", result.name());
+        details.put("valuationProcessId", saved.getId());
+        details.put("assignedAnalystId", saved.getAssignedAnalystId());
+        operationalEventRecorder.recordDomainEvent(
+                tenantId,
+                "BACKOFFICE",
+                result == IntakeValidationResult.VALIDATED ? "INTAKE_VALIDATED" : "INTAKE_REJECTED",
+                "backoffice.valuation.validate-intake",
+                result == IntakeValidationResult.VALIDATED ? "SUCCESS" : "WARNING",
+                actorId,
+                MDC.get(RequestTracingFilter.CORRELATION_ID_MDC_KEY),
+                MDC.get(RequestTracingFilter.TRACE_ID_MDC_KEY),
+                null,
+                null,
+                saved.getId(),
+                null,
+                false,
+                "Valuation intake reviewed",
+                details
+        );
+        return toDetail(saved);
     }
 
     private ValuationProcessEntity findOrCreateProcess(String tenantId, InspectionEntity inspection) {

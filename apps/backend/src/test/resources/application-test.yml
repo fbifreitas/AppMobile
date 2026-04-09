@@ -31,3 +31,8 @@ integration:
   config-signing:
     hmac-key: test-config-signing-key
     require-secret: false
+
+operations:
+  control-tower:
+    retention-days: 30
+    retention-cron: 0 15 3 * * *

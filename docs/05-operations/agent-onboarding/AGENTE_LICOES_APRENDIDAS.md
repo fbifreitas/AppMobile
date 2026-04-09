@@ -2,6 +2,7 @@
 > Este e um documento operacional ativo.
 > Este documento nao substitui a direcao arquitetural V2 corporativa do repositorio.
 > Deve ser lido em conjunto com README.md, GEMINI.md, .github/copilot-instructions.md e os documentos ativos da V2 em docs/.
+> Para release, publicacao, PR e versionamento, usar como referencia primaria `docs/05-operations/runbooks/FLUXO_OFICIAL_DE_RELEASE.md`.
 
 # Lições Aprendidas e Procedimento Operacional do Agente (Copilot)
 

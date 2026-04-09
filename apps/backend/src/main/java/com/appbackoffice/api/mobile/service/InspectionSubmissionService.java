@@ -9,16 +9,20 @@ import com.appbackoffice.api.mobile.entity.InspectionEntity;
 import com.appbackoffice.api.mobile.entity.InspectionSubmissionEntity;
 import com.appbackoffice.api.mobile.repository.InspectionRepository;
 import com.appbackoffice.api.mobile.repository.InspectionSubmissionRepository;
+import com.appbackoffice.api.observability.OperationalEventRecorder;
+import com.appbackoffice.api.observability.RequestTracingFilter;
 import com.appbackoffice.api.valuation.service.ValuationBackofficeService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -31,17 +35,20 @@ public class InspectionSubmissionService {
     private final JobService jobService;
     private final ObjectMapper objectMapper;
     private final ValuationBackofficeService valuationBackofficeService;
+    private final OperationalEventRecorder operationalEventRecorder;
 
     public InspectionSubmissionService(InspectionSubmissionRepository inspectionSubmissionRepository,
                                        InspectionRepository inspectionRepository,
                                        JobService jobService,
                                        ObjectMapper objectMapper,
-                                       ValuationBackofficeService valuationBackofficeService) {
+                                       ValuationBackofficeService valuationBackofficeService,
+                                       OperationalEventRecorder operationalEventRecorder) {
         this.inspectionSubmissionRepository = inspectionSubmissionRepository;
         this.inspectionRepository = inspectionRepository;
         this.jobService = jobService;
         this.objectMapper = objectMapper;
         this.valuationBackofficeService = valuationBackofficeService;
+        this.operationalEventRecorder = operationalEventRecorder;
     }
 
     @Transactional
@@ -63,6 +70,26 @@ public class InspectionSubmissionService {
                     .orElse(null);
 
             if (existingInspection != null) {
+                operationalEventRecorder.recordDomainEvent(
+                        tenantId,
+                        "MOBILE",
+                        "RETRY",
+                        "mobile.inspections.finalized",
+                        "SUCCESS",
+                        actorId,
+                        MDC.get(RequestTracingFilter.CORRELATION_ID_MDC_KEY),
+                        MDC.get(RequestTracingFilter.TRACE_ID_MDC_KEY),
+                        existingInspection.getProtocolId(),
+                        existingInspection.getJobId(),
+                        existingInspection.getId(),
+                        null,
+                        true,
+                        "Duplicate inspection submission resolved idempotently",
+                        Map.of(
+                                "idempotencyKey", normalizedIdempotencyKey,
+                                "duplicate", true
+                        )
+                );
                 return buildResponse(
                         existingInspection.getProtocolId(),
                         String.valueOf(existingInspection.getId()),
@@ -108,9 +135,32 @@ public class InspectionSubmissionService {
         inspection.setPayloadJson(payloadJson);
         inspection.setSubmittedAt(entity.getSubmittedAt());
         inspection = inspectionRepository.save(inspection);
-        valuationBackofficeService.ensureProcessForInspection(tenantId, inspection.getId());
+        var process = valuationBackofficeService.ensureProcessForInspection(tenantId, inspection.getId());
 
         jobService.submitInspectionFromMobile(tenantId, jobId, actorId);
+
+        operationalEventRecorder.recordDomainEvent(
+                tenantId,
+                "MOBILE",
+                "INSPECTION_SUBMITTED",
+                "mobile.inspections.finalized",
+                "SUCCESS",
+                actorId,
+                MDC.get(RequestTracingFilter.CORRELATION_ID_MDC_KEY),
+                MDC.get(RequestTracingFilter.TRACE_ID_MDC_KEY),
+                entity.getProtocolId(),
+                inspection.getJobId(),
+                process.id(),
+                null,
+                false,
+                "Inspection finalized and linked to valuation process",
+                Map.of(
+                        "inspectionId", inspection.getId(),
+                        "submissionId", entity.getId(),
+                        "jobId", inspection.getJobId(),
+                        "processId", process.id()
+                )
+        );
 
         LOGGER.info("InspectionSubmitted event simulated: jobId={}, tenantId={}, protocolId={}", jobId, tenantId, entity.getProtocolId());
 

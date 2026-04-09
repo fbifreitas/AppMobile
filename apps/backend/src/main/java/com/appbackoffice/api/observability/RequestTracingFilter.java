@@ -12,16 +12,25 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.UUID;
 
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class RequestTracingFilter extends OncePerRequestFilter {
 
-    static final String CORRELATION_ID_HEADER = "X-Correlation-Id";
-    static final String TRACE_ID_HEADER = "X-Trace-Id";
-    static final String CORRELATION_ID_MDC_KEY = "correlationId";
-    static final String TRACE_ID_MDC_KEY = "traceId";
+    public static final String CORRELATION_ID_HEADER = "X-Correlation-Id";
+    public static final String TRACE_ID_HEADER = "X-Trace-Id";
+    public static final String CORRELATION_ID_MDC_KEY = "correlationId";
+    public static final String TRACE_ID_MDC_KEY = "traceId";
+    public static final String CORRELATION_ID_REQUEST_ATTRIBUTE = RequestTracingFilter.class.getName() + ".correlationId";
+    public static final String TRACE_ID_REQUEST_ATTRIBUTE = RequestTracingFilter.class.getName() + ".traceId";
+
+    private final Optional<OperationalEventRecorder> operationalEventRecorder;
+
+    public RequestTracingFilter(Optional<OperationalEventRecorder> operationalEventRecorder) {
+        this.operationalEventRecorder = operationalEventRecorder;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -29,15 +38,20 @@ public class RequestTracingFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         String correlationId = resolveCorrelationId(request);
         String traceId = generateTraceId();
+        long startedAt = System.currentTimeMillis();
 
         response.setHeader(CORRELATION_ID_HEADER, correlationId);
         response.setHeader(TRACE_ID_HEADER, traceId);
+        request.setAttribute(CORRELATION_ID_REQUEST_ATTRIBUTE, correlationId);
+        request.setAttribute(TRACE_ID_REQUEST_ATTRIBUTE, traceId);
 
         MDC.put(CORRELATION_ID_MDC_KEY, correlationId);
         MDC.put(TRACE_ID_MDC_KEY, traceId);
         try {
             filterChain.doFilter(request, response);
         } finally {
+            operationalEventRecorder.ifPresent(recorder ->
+                    recorder.recordHttpInteraction(request, response, System.currentTimeMillis() - startedAt));
             MDC.remove(CORRELATION_ID_MDC_KEY);
             MDC.remove(TRACE_ID_MDC_KEY);
         }
