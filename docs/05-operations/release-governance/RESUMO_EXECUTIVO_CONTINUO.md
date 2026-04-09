@@ -735,3 +735,16 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
 - Gate de versao: `pubspec.yaml` incrementado para `1.2.45+65` (1.2.43+63 e 1.2.44+64 ja ocupadas por outros pacotes).
 - Processo: worktree isolado → branch candidata `release/v1.2.45+65` → homologacao → PR para `main`.
 - Status: **EM ANDAMENTO — aguardando Android Homologation na branch candidata**.
+
+## Encerramento do ciclo 2026-04-09 - release v1.2.45+65 (Onda 3 - BL-073)
+- Branch candidata: `release/v1.2.45+65`
+- PR: https://github.com/fbifreitas/AppMobile/pull/31
+- Commit de merge em `main`: `65664b4`
+- Autorizacao do usuario: concedida na sessao
+- Excecao controlada: `required_approving_review_count` reduzido para 0, merge executado, restaurado para 1 imediatamente.
+- Estado final do ciclo:
+  - `Android CI` sucesso
+  - `Android Homologation` sucesso
+  - `Android Distribution` sucesso
+  - `Internal Docs CI` sucesso
+- Status final: **ENCERRADO**.
