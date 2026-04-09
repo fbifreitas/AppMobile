@@ -12,6 +12,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.UUID;
 
 @Component
@@ -25,9 +26,9 @@ public class RequestTracingFilter extends OncePerRequestFilter {
     public static final String CORRELATION_ID_REQUEST_ATTRIBUTE = RequestTracingFilter.class.getName() + ".correlationId";
     public static final String TRACE_ID_REQUEST_ATTRIBUTE = RequestTracingFilter.class.getName() + ".traceId";
 
-    private final OperationalEventRecorder operationalEventRecorder;
+    private final Optional<OperationalEventRecorder> operationalEventRecorder;
 
-    public RequestTracingFilter(OperationalEventRecorder operationalEventRecorder) {
+    public RequestTracingFilter(Optional<OperationalEventRecorder> operationalEventRecorder) {
         this.operationalEventRecorder = operationalEventRecorder;
     }
 
@@ -49,7 +50,8 @@ public class RequestTracingFilter extends OncePerRequestFilter {
         try {
             filterChain.doFilter(request, response);
         } finally {
-            operationalEventRecorder.recordHttpInteraction(request, response, System.currentTimeMillis() - startedAt);
+            operationalEventRecorder.ifPresent(recorder ->
+                    recorder.recordHttpInteraction(request, response, System.currentTimeMillis() - startedAt));
             MDC.remove(CORRELATION_ID_MDC_KEY);
             MDC.remove(TRACE_ID_MDC_KEY);
         }
