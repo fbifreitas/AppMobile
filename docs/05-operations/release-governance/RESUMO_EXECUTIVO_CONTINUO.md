@@ -717,3 +717,23 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
   - esteiras pos-push validadas (`Android CI` sucesso, `Android Homologation` sucesso, `Android Distribution` sucesso);
   - worktree `fervent-brown` removido apos conclusao.
 - Status final: **ENCERRADO**.
+
+## Checkpoint 2026-04-08 - release v1.2.43+63 (Onda 3 - BL-073)
+- Branch tecnica: `worktree-onda3-bl073-fechamento`
+- Worktree ativo: `onda3-bl073-fechamento`
+- Objetivo: fechamento tecnico — padronizacao estrutural em ingles (metodos canonicos do fluxo de captura).
+- Escopo implementado:
+  - BL-073: renomear metodos estruturais legados de portugues para ingles canonico em `InspectionCaptureFlowTransitionService`:
+    - `selectMacroLocal` → `selectSubjectContext`
+    - `selectAmbiente` → `selectTargetItem`
+    - `duplicateAmbiente` → `duplicateTargetItem`
+    - `selectElemento` → `selectTargetQualifier`
+    - `selectEstado` → `selectTargetCondition`
+  - Propagacao das renomeacoes para `overlay_camera_screen.dart` (metodos privados e todos os `onSelect:` call sites).
+  - Atualizacao dos testes: `inspection_capture_flow_transition_service_test.dart` e `inspection_critical_flow_integration_test.dart` com nomes canonicos.
+  - Auditoria SOLID de `checkin_screen.dart`: sem violacoes — tela delega corretamente para `InspectionRequirementPolicyService`, `InspectionSemanticFieldService` e `InspectionCaptureContextResolver`.
+- Validacoes executadas:
+  - 11 testes passando (service unit + critical flow integration) apos rename.
+- Gate de versao: `pubspec.yaml` incrementado para `1.2.43+63`.
+- Processo: worktree isolado + PR formal (sem push direto em `main`).
+- Status: **EM ANDAMENTO — aguardando merge do PR**.
