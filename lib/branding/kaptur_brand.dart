@@ -23,10 +23,7 @@ const BrandManifest kapturManifest = BrandManifest(
     'proposals_section_title': 'NOVAS PROPOSTAS',
     'home_subtitle': 'Seu painel operacional de hoje',
     'login_welcome': 'Bem-vindo ao Kaptur',
-    'proposal_accept_label': 'ACEITAR PROPOSTA',
-    'proposal_swipe_label': 'DESLIZE PARA ACEITAR',
-    'job_start_label': 'Iniciar vistoria',
-    'job_resume_label': 'Retomar vistoria',
-    'job_start_blocked_label': 'Fora do raio',
+    // Botões: sem override — widgets usam fallback hardcoded canônico.
+    // Compass pode sobrescrever com linguagem corporativa via copyOverrides.
   },
 );

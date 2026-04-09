@@ -40,4 +40,11 @@ class ResolvedBrandConfig {
   /// Retorna texto de copy por chave semântica com fallback para [defaultValue].
   String copyText(String key, {String defaultValue = ''}) =>
       resolvedCopy[key] ?? defaultValue;
+
+  /// Retorna o texto de copy por chave, ou [null] se a chave não estiver
+  /// presente no mapa resolvido.
+  ///
+  /// Use este helper quando o widget tem um fallback próprio e deve usá-lo
+  /// quando não houver override de copy definido.
+  String? copyTextOrNull(String key) => resolvedCopy[key];
 }

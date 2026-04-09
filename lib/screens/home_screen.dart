@@ -311,9 +311,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 defaultValue: 'MEUS JOBS DE HOJE',
               ),
               geofenceRequired: flags.geofenceRequired,
-              startLabel: config.copyText('job_start_label'),
-              resumeLabel: config.copyText('job_resume_label'),
-              startBlockedLabel: config.copyText('job_start_blocked_label'),
+              startLabel: config.copyTextOrNull('job_start_label'),
+              resumeLabel: config.copyTextOrNull('job_resume_label'),
+              startBlockedLabel: config.copyTextOrNull('job_start_blocked_label'),
               onNavigateToJob: ({
                 required double? latitude,
                 required double? longitude,
