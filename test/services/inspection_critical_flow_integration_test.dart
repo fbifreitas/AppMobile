@@ -31,11 +31,11 @@ void main() {
   });
 
   group('Fluxo crítico — seleção sequencial de contexto', () {
-    test('selectMacroLocal → selectAmbiente → selectElemento → selectMaterial → selectEstado', () async {
+    test('selectSubjectContext → selectTargetItem → selectTargetQualifier → selectMaterial → selectTargetCondition', () async {
       FlowSelectionState state = FlowSelectionState.bootstrap();
 
       // 1. Seleciona macroLocal
-      final r1 = await transitionService.selectMacroLocal(
+      final r1 = await transitionService.selectSubjectContext(
         propertyType: 'urbano',
         selectionState: state,
         value: 'Área interna',
@@ -45,7 +45,7 @@ void main() {
       expect(state.currentSelection.targetItem, isNull);
 
       // 2. Seleciona ambiente
-      final r2 = await transitionService.selectAmbiente(
+      final r2 = await transitionService.selectTargetItem(
         propertyType: 'urbano',
         selectionState: state,
         value: 'Sala',
@@ -55,7 +55,7 @@ void main() {
       expect(state.currentSelection.targetQualifier, isNull);
 
       // 3. Seleciona elemento
-      final r3 = await transitionService.selectElemento(
+      final r3 = await transitionService.selectTargetQualifier(
         propertyType: 'urbano',
         selectionState: state,
         value: 'Piso',
@@ -74,11 +74,11 @@ void main() {
         state.currentSelection.attributeText('inspection.material'),
         'Cerâmico',
       );
-      // selectMaterial limpa estado
+      // selectMaterial clears targetCondition
       expect(state.currentSelection.targetCondition, isNull);
 
-      // 5. Seleciona estado
-      final r5 = transitionService.selectEstado(
+      // 5. Seleciona targetCondition
+      final r5 = transitionService.selectTargetCondition(
         selectionState: state,
         value: 'Bom',
       );
@@ -89,7 +89,7 @@ void main() {
       expect(state.currentSelection.subjectContext, 'Área interna');
     });
 
-    test('selectMacroLocal limpa toda a cadeia downstream', () async {
+    test('selectSubjectContext clears entire downstream chain', () async {
       // Estado com seleção completa
       var state = FlowSelectionState(
         initialSuggestedSelection: FlowSelection.empty,
@@ -104,7 +104,7 @@ void main() {
         ),
       );
 
-      final result = await transitionService.selectMacroLocal(
+      final result = await transitionService.selectSubjectContext(
         propertyType: 'urbano',
         selectionState: state,
         value: 'Rua',
@@ -120,7 +120,7 @@ void main() {
   });
 
   group('Fluxo crítico — duplicação de ambiente (instâncias)', () {
-    test('duplicateAmbiente cria próxima instância e atualiza estado', () async {
+    test('duplicateTargetItem creates next instance and updates state', () async {
       final state = FlowSelectionState(
         initialSuggestedSelection: FlowSelection.empty,
         currentSelection: const FlowSelection(
@@ -130,7 +130,7 @@ void main() {
         ),
       );
 
-      final result = await transitionService.duplicateAmbiente(
+      final result = await transitionService.duplicateTargetItem(
         propertyType: 'urbano',
         selectionState: state,
         selectedAmbiente: 'Quarto',
@@ -147,9 +147,9 @@ void main() {
       expect(result.selectionState.currentSelection.targetQualifier, isNull);
     });
 
-    test('duplicar ambiente inexistente retorna null', () async {
+    test('duplicate null target item returns null', () async {
       final state = FlowSelectionState.bootstrap();
-      final result = await transitionService.duplicateAmbiente(
+      final result = await transitionService.duplicateTargetItem(
         propertyType: 'urbano',
         selectionState: state,
         selectedAmbiente: null,
@@ -273,7 +273,7 @@ void main() {
       );
 
       // Usuário muda para outro ambiente
-      final result = await transitionService.selectAmbiente(
+      final result = await transitionService.selectTargetItem(
         propertyType: 'urbano',
         selectionState: state,
         value: 'Quarto',

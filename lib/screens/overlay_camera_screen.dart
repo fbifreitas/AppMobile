@@ -348,8 +348,8 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     }
   }
 
-  Future<void> _selectMacroLocal(String value) async {
-    final result = await _flowTransitionService.selectMacroLocal(
+  Future<void> _selectSubjectContext(String value) async {
+    final result = await _flowTransitionService.selectSubjectContext(
       propertyType: widget.tipoImovel,
       selectionState: _flowState,
       value: value,
@@ -361,8 +361,8 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     await _reloadMenus();
   }
 
-  Future<void> _selectAmbiente(String value) async {
-    final result = await _flowTransitionService.selectAmbiente(
+  Future<void> _selectTargetItem(String value) async {
+    final result = await _flowTransitionService.selectTargetItem(
       propertyType: widget.tipoImovel,
       selectionState: _flowState,
       value: value,
@@ -374,8 +374,8 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     await _reloadMenus();
   }
 
-  Future<void> _duplicateCurrentAmbiente() async {
-    final result = await _flowTransitionService.duplicateAmbiente(
+  Future<void> _duplicateTargetItem() async {
+    final result = await _flowTransitionService.duplicateTargetItem(
       propertyType: widget.tipoImovel,
       selectionState: _flowState,
       selectedAmbiente: _targetItem,
@@ -395,8 +395,8 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     await _reloadMenus();
   }
 
-  Future<void> _selectElemento(String value) async {
-    final result = await _flowTransitionService.selectElemento(
+  Future<void> _selectTargetQualifier(String value) async {
+    final result = await _flowTransitionService.selectTargetQualifier(
       propertyType: widget.tipoImovel,
       selectionState: _flowState,
       value: value,
@@ -419,8 +419,8 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     });
   }
 
-  Future<void> _selectEstado(String value) async {
-    final result = _flowTransitionService.selectEstado(
+  Future<void> _selectTargetCondition(String value) async {
+    final result = _flowTransitionService.selectTargetCondition(
       selectionState: _flowState,
       value: value,
     );
@@ -622,7 +622,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
           title: section.title,
           values: section.values,
           selected: section.selected,
-          onSelect: _selectMacroLocal,
+          onSelect: _selectSubjectContext,
         );
         return;
       case 'ambiente':
@@ -630,7 +630,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
           title: section.title,
           values: section.values,
           selected: section.selected,
-          onSelect: _selectAmbiente,
+          onSelect: _selectTargetItem,
         );
         return;
       case 'elemento':
@@ -638,7 +638,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
           title: section.title,
           values: section.values,
           selected: section.selected,
-          onSelect: _selectElemento,
+          onSelect: _selectTargetQualifier,
         );
         return;
       case 'material':
@@ -654,7 +654,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
           title: section.title,
           values: section.values,
           selected: section.selected,
-          onSelect: _selectEstado,
+          onSelect: _selectTargetCondition,
         );
         return;
     }
@@ -696,7 +696,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
               title: section.title,
               values: section.values,
               selected: section.selected,
-              onSelect: _selectMacroLocal,
+              onSelect: _selectSubjectContext,
             ),
           );
           break;
@@ -707,7 +707,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
               title: section.title,
               values: section.values,
               selected: section.selected,
-              onSelect: _selectAmbiente,
+              onSelect: _selectTargetItem,
               onChange:
                   !section.allowVoiceSelection
                       ? null
@@ -715,10 +715,10 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                         title: section.title,
                         values: section.values,
                         selected: section.selected,
-                        onSelect: _selectAmbiente,
+                        onSelect: _selectTargetItem,
                       ),
               onDuplicate:
-                  !section.allowDuplicate ? null : _duplicateCurrentAmbiente,
+                  !section.allowDuplicate ? null : _duplicateTargetItem,
               duplicateLabel: section.duplicateLabel ?? 'Novo ambiente',
             ),
           );
@@ -730,7 +730,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
               title: section.title,
               values: section.values,
               selected: section.selected,
-              onSelect: _selectElemento,
+              onSelect: _selectTargetQualifier,
             ),
           );
           break;
@@ -752,7 +752,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
               title: section.title,
               values: section.values,
               selected: section.selected,
-              onSelect: _selectEstado,
+              onSelect: _selectTargetCondition,
             ),
           );
           break;
@@ -911,7 +911,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                                     title: 'Locais mais usados nesta Ã¡rea',
                                     values: _recentAmbientes,
                                     selected: _targetItem,
-                                    onSelect: _selectAmbiente,
+                                    onSelect: _selectTargetItem,
                                   ),
                                 ],
                                 if (presentation.showPredictionSuggestion) ...[
@@ -924,7 +924,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                                     title: 'Mais usados neste contexto',
                                     values: _recentElementos,
                                     selected: _targetQualifier,
-                                    onSelect: _selectElemento,
+                                    onSelect: _selectTargetQualifier,
                                   ),
                                 ],
                               ],

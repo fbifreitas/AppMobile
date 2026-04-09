@@ -17,7 +17,7 @@ class InspectionCaptureFlowTransitionService {
   final InspectionEnvironmentInstanceService _environmentInstanceService;
   final InspectionContextActionsService _contextActionsService;
 
-  Future<InspectionCaptureTransitionResult> selectMacroLocal({
+  Future<InspectionCaptureTransitionResult> selectSubjectContext({
     required String propertyType,
     required FlowSelectionState selectionState,
     required String value,
@@ -42,7 +42,7 @@ class InspectionCaptureFlowTransitionService {
     );
   }
 
-  Future<InspectionCaptureTransitionResult> selectAmbiente({
+  Future<InspectionCaptureTransitionResult> selectTargetItem({
     required String propertyType,
     required FlowSelectionState selectionState,
     required String value,
@@ -68,7 +68,7 @@ class InspectionCaptureFlowTransitionService {
     );
   }
 
-  Future<InspectionCaptureTransitionResult?> duplicateAmbiente({
+  Future<InspectionCaptureTransitionResult?> duplicateTargetItem({
     required String propertyType,
     required FlowSelectionState selectionState,
     required String? selectedAmbiente,
@@ -118,7 +118,7 @@ class InspectionCaptureFlowTransitionService {
     );
   }
 
-  Future<InspectionCaptureTransitionResult> selectElemento({
+  Future<InspectionCaptureTransitionResult> selectTargetQualifier({
     required String propertyType,
     required FlowSelectionState selectionState,
     required String value,
@@ -160,7 +160,7 @@ class InspectionCaptureFlowTransitionService {
     );
   }
 
-  InspectionCaptureTransitionResult selectEstado({
+  InspectionCaptureTransitionResult selectTargetCondition({
     required FlowSelectionState selectionState,
     required String value,
   }) {

@@ -16,7 +16,7 @@ void main() {
     contextActionsService: InspectionContextActionsService.instance,
   );
 
-  test('selectMacroLocal clears downstream capture state', () async {
+  test('selectSubjectContext clears downstream capture state', () async {
     final state = FlowSelectionState(
       initialSuggestedSelection: FlowSelection.empty,
       currentSelection: const FlowSelection(
@@ -28,7 +28,7 @@ void main() {
       ),
     );
 
-    final result = await service.selectMacroLocal(
+    final result = await service.selectSubjectContext(
       propertyType: 'urbano',
       selectionState: state,
       value: 'Rua',
@@ -41,7 +41,7 @@ void main() {
     expect(result.selectionState.currentSelection.domainAttributes, isEmpty);
   });
 
-  test('duplicateAmbiente returns next instance and keeps list updated', () async {
+  test('duplicateTargetItem returns next instance and keeps list updated', () async {
     final state = FlowSelectionState(
       initialSuggestedSelection: FlowSelection.empty,
       currentSelection: const FlowSelection(
@@ -51,7 +51,7 @@ void main() {
       ),
     );
 
-    final result = await service.duplicateAmbiente(
+    final result = await service.duplicateTargetItem(
       propertyType: 'urbano',
       selectionState: state,
       selectedAmbiente: 'Sala',
@@ -65,7 +65,7 @@ void main() {
     expect(result.ambientes, contains('Sala 3'));
   });
 
-  test('selectMaterial clears estado and selectEstado stores final state', () {
+  test('selectMaterial clears targetCondition and selectTargetCondition stores final state', () {
     final state = FlowSelectionState(
       initialSuggestedSelection: FlowSelection.empty,
       currentSelection: const FlowSelection(
@@ -90,7 +90,7 @@ void main() {
     );
     expect(materialResult.selectionState.currentSelection.targetCondition, isNull);
 
-    final estadoResult = service.selectEstado(
+    final estadoResult = service.selectTargetCondition(
       selectionState: materialResult.selectionState,
       value: 'Regular',
     );
