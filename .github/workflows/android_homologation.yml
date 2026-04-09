@@ -95,6 +95,10 @@ jobs:
         run: npm install -g firebase-tools
 
       - name: Distribute homolog APK to Firebase App Distribution (QA)
+        # continue-on-error: o app 'com.kaptur.field' precisa ser registrado no console Firebase
+        # e o secret FIREBASE_APP_ID_ANDROID atualizado com o novo App ID antes de remover esse flag.
+        # O gate de qualidade é o build + artifact upload acima; distribuição Firebase é best-effort.
+        continue-on-error: true
         run: |
           APP_VERSION=$(awk '/^version:/{print $2; exit}' pubspec.yaml)
           SHORT_SHA="${GITHUB_SHA:0:7}"
