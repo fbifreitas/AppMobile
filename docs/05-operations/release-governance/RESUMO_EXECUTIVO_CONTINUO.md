@@ -718,7 +718,7 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
   - worktree `fervent-brown` removido apos conclusao.
 - Status final: **ENCERRADO**.
 
-## Checkpoint 2026-04-08 - release v1.2.43+63 (Onda 3 - BL-073)
+## Checkpoint 2026-04-09 - release v1.2.44+64 (Onda 3 - BL-073)
 - Branch tecnica: `worktree-onda3-bl073-fechamento`
 - Worktree ativo: `onda3-bl073-fechamento`
 - Objetivo: fechamento tecnico — padronizacao estrutural em ingles (metodos canonicos do fluxo de captura).
@@ -734,6 +734,6 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
   - Auditoria SOLID de `checkin_screen.dart`: sem violacoes — tela delega corretamente para `InspectionRequirementPolicyService`, `InspectionSemanticFieldService` e `InspectionCaptureContextResolver`.
 - Validacoes executadas:
   - 11 testes passando (service unit + critical flow integration) apos rename.
-- Gate de versao: `pubspec.yaml` incrementado para `1.2.43+63`.
-- Processo: worktree isolado + PR formal (sem push direto em `main`).
-- Status: **EM ANDAMENTO — aguardando merge do PR**.
+- Gate de versao: `pubspec.yaml` incrementado para `1.2.44+64` (1.2.43+63 ja ocupada por outro pacote em release/v1.2.43+63).
+- Processo: worktree isolado → branch candidata `release/v1.2.44+64` → homologacao → PR para `main`.
+- Status: **EM ANDAMENTO — aguardando Android Homologation na branch candidata**.
