@@ -6,6 +6,8 @@ import 'package:appmobile/widgets/home/jobs_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers/brand_test_helper.dart';
+
 class _ImmediateJobRepository implements JobRepository {
   @override
   Future<List<Job>> getJobs() async => <Job>[];
@@ -31,162 +33,170 @@ void main() {
     );
   }
 
-  testWidgets('disables iniciar vistoria outside radius when developer mode is off',
-      (tester) async {
-    final appState = AppState(_ImmediateJobRepository());
-    appState.developerModeEnabled = false;
-    appState.permitirIniciarLonge = false;
-    appState.jobs = [
-      buildJob(
-        tipo: 'Urbano',
-        subtipo: 'Casa',
-        latitude: -23.0100,
-        longitude: -46.0100,
-      ),
-    ];
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: JobsSection(
-            appState: appState,
-            currentLatitude: -23.0000,
-            currentLongitude: -46.0000,
-            useDistanceMetrics: true,
-            onNavigateToJob: ({
-              required double? latitude,
-              required double? longitude,
-              required String address,
-            }) async {},
-            onStartInspection: (_) async {},
-          ),
+  testWidgets(
+    'disables iniciar vistoria outside radius when developer mode is off',
+    (tester) async {
+      final appState = AppState(_ImmediateJobRepository());
+      appState.developerModeEnabled = false;
+      appState.permitirIniciarLonge = false;
+      appState.jobs = [
+        buildJob(
+          tipo: 'Urbano',
+          subtipo: 'Casa',
+          latitude: -23.0100,
+          longitude: -46.0100,
         ),
-      ),
-    );
+      ];
 
-    expect(find.text('INICIAR VISTORIA'), findsOneWidget);
-    final button = tester.widget<ElevatedButton>(
-      find.widgetWithText(ElevatedButton, 'INICIAR VISTORIA'),
-    );
-    expect(button.onPressed, isNull);
-  });
-
-  testWidgets('shows iniciar dev outside radius when developer mode is on',
-      (tester) async {
-    final appState = AppState(_ImmediateJobRepository());
-    appState.developerModeEnabled = true;
-    appState.permitirIniciarLonge = true;
-    appState.jobs = [
-      buildJob(
-        tipo: 'Urbano',
-        subtipo: 'Casa',
-        latitude: -23.0100,
-        longitude: -46.0100,
-      ),
-    ];
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: JobsSection(
-            appState: appState,
-            currentLatitude: -23.0000,
-            currentLongitude: -46.0000,
-            useDistanceMetrics: true,
-            onNavigateToJob: ({
-              required double? latitude,
-              required double? longitude,
-              required String address,
-            }) async {},
-            onStartInspection: (_) async {},
+      await tester.pumpWidget(
+        withBrand(MaterialApp(
+          home: Scaffold(
+            body: JobsSection(
+              appState: appState,
+              currentLatitude: -23.0000,
+              currentLongitude: -46.0000,
+              useDistanceMetrics: true,
+              onNavigateToJob: ({
+                required double? latitude,
+                required double? longitude,
+                required String address,
+              }) async {},
+              onStartInspection: (_) async {},
+            ),
           ),
+        )),
+      );
+
+      expect(find.text('INICIAR VISTORIA'), findsOneWidget);
+      final button = tester.widget<ElevatedButton>(
+        find.widgetWithText(ElevatedButton, 'INICIAR VISTORIA'),
+      );
+      expect(button.onPressed, isNull);
+    },
+  );
+
+  testWidgets(
+    'shows iniciar dev outside radius when developer mode is on',
+    (tester) async {
+      final appState = AppState(_ImmediateJobRepository());
+      appState.developerModeEnabled = true;
+      appState.permitirIniciarLonge = true;
+      appState.jobs = [
+        buildJob(
+          tipo: 'Urbano',
+          subtipo: 'Casa',
+          latitude: -23.0100,
+          longitude: -46.0100,
         ),
-      ),
-    );
+      ];
 
-    expect(find.text('INICIAR (DEV)'), findsOneWidget);
-    final button = tester.widget<ElevatedButton>(
-      find.widgetWithText(ElevatedButton, 'INICIAR (DEV)'),
-    );
-    expect(button.onPressed, isNotNull);
-  });
-
-  testWidgets('enables iniciar vistoria when user is inside the configured radius',
-      (tester) async {
-    final appState = AppState(_ImmediateJobRepository());
-    appState.developerModeEnabled = false;
-    appState.permitirIniciarLonge = false;
-    appState.jobs = [
-      buildJob(
-        tipo: 'Urbano',
-        subtipo: 'Casa',
-        latitude: -23.0003,
-        longitude: -46.0003,
-      ),
-    ];
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: JobsSection(
-            appState: appState,
-            currentLatitude: -23.0000,
-            currentLongitude: -46.0000,
-            useDistanceMetrics: true,
-            onNavigateToJob: ({
-              required double? latitude,
-              required double? longitude,
-              required String address,
-            }) async {},
-            onStartInspection: (_) async {},
+      await tester.pumpWidget(
+        withBrand(MaterialApp(
+          home: Scaffold(
+            body: JobsSection(
+              appState: appState,
+              currentLatitude: -23.0000,
+              currentLongitude: -46.0000,
+              useDistanceMetrics: true,
+              onNavigateToJob: ({
+                required double? latitude,
+                required double? longitude,
+                required String address,
+              }) async {},
+              onStartInspection: (_) async {},
+            ),
           ),
+        )),
+      );
+
+      expect(find.text('INICIAR (DEV)'), findsOneWidget);
+      final button = tester.widget<ElevatedButton>(
+        find.widgetWithText(ElevatedButton, 'INICIAR (DEV)'),
+      );
+      expect(button.onPressed, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'enables iniciar vistoria when user is inside the configured radius',
+    (tester) async {
+      final appState = AppState(_ImmediateJobRepository());
+      appState.developerModeEnabled = false;
+      appState.permitirIniciarLonge = false;
+      appState.jobs = [
+        buildJob(
+          tipo: 'Urbano',
+          subtipo: 'Casa',
+          latitude: -23.0003,
+          longitude: -46.0003,
         ),
-      ),
-    );
+      ];
 
-    final button = tester.widget<ElevatedButton>(
-      find.widgetWithText(ElevatedButton, 'INICIAR VISTORIA'),
-    );
-    expect(button.onPressed, isNotNull);
-  });
-
-  testWidgets('uses apartment radius when job subtype is apartamento',
-      (tester) async {
-    final appState = AppState(_ImmediateJobRepository());
-    appState.developerModeEnabled = false;
-    appState.permitirIniciarLonge = false;
-    appState.jobs = [
-      buildJob(
-        tipo: 'Urbano',
-        subtipo: 'Apartamento',
-        latitude: -23.0009,
-        longitude: -46.0000,
-      ),
-    ];
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: JobsSection(
-            appState: appState,
-            currentLatitude: -23.0000,
-            currentLongitude: -46.0000,
-            useDistanceMetrics: true,
-            onNavigateToJob: ({
-              required double? latitude,
-              required double? longitude,
-              required String address,
-            }) async {},
-            onStartInspection: (_) async {},
+      await tester.pumpWidget(
+        withBrand(MaterialApp(
+          home: Scaffold(
+            body: JobsSection(
+              appState: appState,
+              currentLatitude: -23.0000,
+              currentLongitude: -46.0000,
+              useDistanceMetrics: true,
+              onNavigateToJob: ({
+                required double? latitude,
+                required double? longitude,
+                required String address,
+              }) async {},
+              onStartInspection: (_) async {},
+            ),
           ),
-        ),
-      ),
-    );
+        )),
+      );
 
-    expect(find.text('Raio: 150m'), findsOneWidget);
-    final button = tester.widget<ElevatedButton>(
-      find.widgetWithText(ElevatedButton, 'INICIAR VISTORIA'),
-    );
-    expect(button.onPressed, isNotNull);
-  });
+      final button = tester.widget<ElevatedButton>(
+        find.widgetWithText(ElevatedButton, 'INICIAR VISTORIA'),
+      );
+      expect(button.onPressed, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'uses apartment radius when job subtype is apartamento',
+    (tester) async {
+      final appState = AppState(_ImmediateJobRepository());
+      appState.developerModeEnabled = false;
+      appState.permitirIniciarLonge = false;
+      appState.jobs = [
+        buildJob(
+          tipo: 'Urbano',
+          subtipo: 'Apartamento',
+          latitude: -23.0009,
+          longitude: -46.0000,
+        ),
+      ];
+
+      await tester.pumpWidget(
+        withBrand(MaterialApp(
+          home: Scaffold(
+            body: JobsSection(
+              appState: appState,
+              currentLatitude: -23.0000,
+              currentLongitude: -46.0000,
+              useDistanceMetrics: true,
+              onNavigateToJob: ({
+                required double? latitude,
+                required double? longitude,
+                required String address,
+              }) async {},
+              onStartInspection: (_) async {},
+            ),
+          ),
+        )),
+      );
+
+      expect(find.text('Raio: 150m'), findsOneWidget);
+      final button = tester.widget<ElevatedButton>(
+        find.widgetWithText(ElevatedButton, 'INICIAR VISTORIA'),
+      );
+      expect(button.onPressed, isNotNull);
+    },
+  );
 }
