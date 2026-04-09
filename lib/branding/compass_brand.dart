@@ -19,14 +19,21 @@ const BrandManifest compassManifest = BrandManifest(
   productMode: ProductMode.corporate,
   featureFlags: BrandFeatureFlags.compass,
   copyOverrides: {
+    // Seções
     'jobs_section_title': 'ORDENS DO DIA',
     'proposals_section_title': 'DEMANDAS DISPONÍVEIS',
-    'home_subtitle': 'Seu painel de avaliações',
+    // Home
+    'home_header_subtitle': 'Seu painel de avaliações',
+    // Login
     'login_welcome': 'Bem-vindo à Compass Avaliações',
-    'proposal_accept_label': 'ACEITAR DEMANDA',
+    // Jobs
+    'job_start_label': 'INICIAR AVALIAÇÃO',
+    'job_resume_label': 'RETOMAR AVALIAÇÃO',
+    'job_start_blocked_label': 'Fora da área de atendimento.',
+    // Propostas
     'proposal_swipe_label': 'CONFIRMAR ACEITE',
-    'job_start_label': 'Iniciar avaliação',
-    'job_resume_label': 'Retomar avaliação',
-    'job_start_blocked_label': 'Fora da área',
+    'proposal_accept_label': 'ACEITAR DEMANDA',
+    'proposal_snackbar_accept_success': 'Demanda aceita! Adicionada ao seu painel.',
+    'proposal_empty_title': 'Nenhuma demanda disponível no momento.',
   },
 );

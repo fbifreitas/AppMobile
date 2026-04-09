@@ -1,0 +1,24 @@
+// =============================================================================
+// Kaptur — iOS build configuration
+// =============================================================================
+// Inclua este arquivo no scheme Xcode "Kaptur" via build configuration.
+//
+// Uso no scheme:
+//   Product > Scheme > Edit Scheme > Run > Arguments > Environment Variables
+//   Ou via xcconfig na build configuration "Debug-Kaptur" / "Release-Kaptur".
+//
+// Referência: docs/04-engineering/iOS_FLAVOR_SETUP_GUIDE.md
+// =============================================================================
+
+#include "Generated.xcconfig"
+
+// Bundle identifier da marca Kaptur.
+// Deve corresponder ao applicationId do flavor Android: com.kaptur.field
+PRODUCT_BUNDLE_IDENTIFIER = com.kaptur.field
+
+// Nome exibido pelo sistema operacional (tela inicial, gerenciador de apps).
+DISPLAY_NAME = Kaptur
+
+// Alvo do entrypoint Flutter para este flavor.
+// Passado ao engine via --dart-define ou configurado no scheme.
+FLUTTER_TARGET = lib/main_kaptur.dart

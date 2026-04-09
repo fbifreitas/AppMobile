@@ -58,7 +58,9 @@ class JobsSection extends StatelessWidget {
     final config = BrandProvider.configOf(context);
     final tokens = config.tokens;
     final resolvedTitle =
-        sectionTitle?.isNotEmpty == true ? sectionTitle! : 'MEUS JOBS DE HOJE';
+        sectionTitle?.isNotEmpty == true
+            ? sectionTitle!
+            : config.copyText('jobs_section_title', defaultValue: 'MEUS JOBS DE HOJE');
 
     final activeJobs =
         appState.jobs
@@ -447,10 +449,10 @@ class _RichJobCard extends StatelessWidget {
                           : null,
                   child: Text(
                     isRecoverable
-                        ? (resumeLabel ?? 'RETOMAR VISTORIA')
+                        ? (resumeLabel ?? 'RETOMAR')
                         : showDevStart
                         ? 'INICIAR (DEV)'
-                        : (startLabel ?? 'INICIAR VISTORIA'),
+                        : (startLabel ?? 'INICIAR'),
                     style: const TextStyle(fontSize: 11),
                   ),
                 ),

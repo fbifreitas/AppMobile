@@ -1,0 +1,54 @@
+---
+title: Arquitetura Multi-Brand — Resolução de Config
+---
+flowchart TD
+    subgraph CompileTime["Compile-time (flavor)"]
+        M_K["BrandManifest\nkapturManifest"]
+        M_C["BrandManifest\ncompassManifest"]
+        ENTRY_K["main_kaptur.dart"]
+        ENTRY_C["main_compass.dart"]
+    end
+
+    subgraph Runtime["Runtime (opcional)"]
+        RO["RemoteBrandOverrides\n(labels / flags leves)"]
+    end
+
+    subgraph Resolver["BrandConfigResolver"]
+        BCR["resolve(manifest, overrides?)"]
+    end
+
+    subgraph Config["ResolvedBrandConfig"]
+        RBC["tokens\nfeatureFlags\nresolvedCopy\nappName"]
+    end
+
+    subgraph Provider["BrandProvider"]
+        BP["configOf(context)"]
+    end
+
+    subgraph UI["UI — widgets"]
+        HOME["HomeScreen"]
+        JOBS["JobsSection"]
+        PROP["ProposalsSection"]
+        HEADER["HomeHeader"]
+        LOGIN["LoginScreen"]
+    end
+
+    ENTRY_K --> M_K
+    ENTRY_C --> M_C
+    M_K --> BCR
+    M_C --> BCR
+    RO -.->|override opcional| BCR
+    BCR --> RBC
+    RBC --> BP
+    BP --> HOME
+    BP --> JOBS
+    BP --> PROP
+    BP --> HEADER
+    BP --> LOGIN
+
+    style CompileTime fill:#e8f0ff,stroke:#0D3B92
+    style Runtime fill:#fff4e5,stroke:#F39C12
+    style Resolver fill:#e6f5ee,stroke:#1B8A5A
+    style Config fill:#fdecec,stroke:#D64545
+    style Provider fill:#f4f7fa,stroke:#6B7280
+    style UI fill:#ffffff,stroke:#E5E7EB

@@ -27,9 +27,9 @@ class HomeHeader extends StatelessWidget {
   final VoidCallback onHubTap;
   final bool showHubButton;
 
-  /// Subtitle shown below the greeting. When null, falls back to the
-  /// brand-agnostic default 'Seu painel operacional de hoje'.
-  /// Callers should pass: config.copyText('home_subtitle', defaultValue: 'Seu painel operacional de hoje')
+  /// Subtitle shown below the greeting.
+  /// When provided, uses this value directly.
+  /// When null, reads 'home_header_subtitle' from [BrandProvider].
   final String? subtitle;
 
   @override
@@ -39,7 +39,10 @@ class HomeHeader extends StatelessWidget {
     final resolvedSubtitle =
         subtitle?.isNotEmpty == true
             ? subtitle!
-            : 'Seu painel operacional de hoje';
+            : config.copyText(
+                'home_header_subtitle',
+                defaultValue: 'Seu painel operacional de hoje',
+              );
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,

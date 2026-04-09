@@ -35,8 +35,12 @@ Se houver conflito entre documentos antigos e a V2, a V2 é a direção ativa.
 	- docs/BACKLOG_V2_PRIORIDADES.md
 2. Operacional corrente ativo:
 	- docs/05-operations/
-3. Legado histórico:
+3. Engenharia multi-brand (ativo):
+	- docs/04-engineering/BRAND_SETUP_AND_RELEASE_FLOW.md
+	- docs/04-engineering/iOS_FLAVOR_SETUP_GUIDE.md
+4. Legado histórico:
 	- docs/legacy/
+	- docs/99-legacy/
 	- classificação e mapa em docs/99-legacy/LEGACY_MIGRATION_MAP.md
 
 ## Trilhas por objetivo

@@ -40,12 +40,13 @@ Esta documentação descreve a V2 do repositório, agora orientado a uma platafo
 - `01-executive`: posicionamento corporativo
 - `02-product`: portfólio e roadmap
 - `03-architecture`: blueprint corporativo e domínios
-- `04-engineering`: guardrails, estrutura-alvo e plano curto de transição
+- `04-engineering`: guardrails, estrutura-alvo, plano de transição e brand setup
+  - `BRAND_SETUP_AND_RELEASE_FLOW.md` — arquitetura multi-brand, flavors, scripts, limites de override
+  - `iOS_FLAVOR_SETUP_GUIDE.md` — setup iOS por marca
 - `05-operations`: operação corrente ativa (runbooks, setup, onboarding, governança de backlog e backlogs táticos)
-- `05-operations`: operação corrente ativa + sistema operacional do agente
-- `06-analysis-design`: decisões arquiteturais V2
+- `06-analysis-design`: decisões arquiteturais (log ativo em `01_DECISION_LOG.md`)
 - `07-diagrams`: índice de diagramas e imagens
-- `99-legacy`: mapa de documentos legados
+- `99-legacy`: mapa de documentos legados e arquivos históricos
 
 ## Daily usage shortcut
 

@@ -1,0 +1,24 @@
+// =============================================================================
+// Compass Avaliações — iOS build configuration
+// =============================================================================
+// Inclua este arquivo no scheme Xcode "Compass" via build configuration.
+//
+// Uso no scheme:
+//   Product > Scheme > Edit Scheme > Run > Arguments > Environment Variables
+//   Ou via xcconfig na build configuration "Debug-Compass" / "Release-Compass".
+//
+// Referência: docs/04-engineering/iOS_FLAVOR_SETUP_GUIDE.md
+// =============================================================================
+
+#include "Generated.xcconfig"
+
+// Bundle identifier da marca Compass.
+// Deve corresponder ao applicationId do flavor Android: com.compass.avaliacoes
+PRODUCT_BUNDLE_IDENTIFIER = com.compass.avaliacoes
+
+// Nome exibido pelo sistema operacional (tela inicial, gerenciador de apps).
+DISPLAY_NAME = Compass Avaliações
+
+// Alvo do entrypoint Flutter para este flavor.
+// Passado ao engine via --dart-define ou configurado no scheme.
+FLUTTER_TARGET = lib/main_compass.dart
