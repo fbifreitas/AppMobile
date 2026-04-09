@@ -5,7 +5,6 @@ import 'branding/brand_provider.dart';
 import 'branding/kaptur_brand.dart';
 import 'branding/remote/brand_config_resolver.dart';
 import 'branding/remote/remote_brand_overrides.dart';
-import 'branding/resolved_brand_config.dart';
 import 'repositories/fake_job_repository.dart';
 import 'repositories/preferences_repository.dart';
 import 'screens/awaiting_approval_screen.dart';
@@ -18,16 +17,26 @@ import 'state/auth_state.dart';
 import 'state/inspection_state.dart';
 import 'theme/app_theme.dart';
 
-/// Entrypoint padrão — usa flavor Kaptur.
-/// Para outros flavors, use main_kaptur.dart ou main_compass.dart.
-void main() => _runWithBrand(
-      config: BrandConfigResolver.resolve(
-        kapturManifest,
-        overrides: RemoteBrandOverrides.empty,
-      ),
-    );
+/// Entrypoint do flavor **Kaptur**.
+///
+/// ## Android
+/// Referenciado em android/app/build.gradle.kts via:
+///   flavorDimensions "brand"
+///   productFlavors { kaptur { ... } }
+/// e apontado pelo flutter tool com --flavor kaptur --target lib/main_kaptur.dart
+///
+/// ## iOS
+/// Referenciado no scheme Xcode "kaptur" com argumento:
+///   --dart-define=FLUTTER_TARGET=lib/main_kaptur.dart
+/// Ver docs/04-engineering/iOS_FLAVOR_SETUP_GUIDE.md para procedimento completo.
+void main() {
+  // TODO: Substituir RemoteBrandOverrides.empty por fetch real de config remota
+  // quando o backend de configuração estiver disponível.
+  final config = BrandConfigResolver.resolve(
+    kapturManifest,
+    overrides: RemoteBrandOverrides.empty,
+  );
 
-void _runWithBrand({required ResolvedBrandConfig config}) {
   runApp(
     BrandProvider(
       config: config,
@@ -44,14 +53,14 @@ void _runWithBrand({required ResolvedBrandConfig config}) {
             create: (_) => AuthState(const SharedPreferencesRepository()),
           ),
         ],
-        child: const MyApp(),
+        child: const _KapturApp(),
       ),
     ),
   );
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class _KapturApp extends StatelessWidget {
+  const _KapturApp();
 
   @override
   Widget build(BuildContext context) {
@@ -74,11 +83,9 @@ class _AppEntryPoint extends StatelessWidget {
     if (auth.loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-
     if (auth.requiresPermissionsOnboarding) {
       return const PermissionsOnboardingScreen();
     }
-
     switch (auth.status) {
       case AppAuthStatus.unauthenticated:
         return const LoginScreen();

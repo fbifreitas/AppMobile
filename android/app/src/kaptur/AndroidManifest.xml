@@ -1,0 +1,7 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Source set do flavor Kaptur.
+         Aqui ficam recursos específicos da marca Kaptur:
+         - res/mipmap-*/ic_launcher.png (launcher icon Kaptur)
+         - res/values/strings.xml (strings específicas, se necessário)
+         Este arquivo pode ficar vazio enquanto os recursos não existirem. -->
+</manifest>

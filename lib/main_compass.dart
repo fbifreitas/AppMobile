@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'branding/brand_provider.dart';
-import 'branding/kaptur_brand.dart';
+import 'branding/compass_brand.dart';
 import 'branding/remote/brand_config_resolver.dart';
 import 'branding/remote/remote_brand_overrides.dart';
-import 'branding/resolved_brand_config.dart';
 import 'repositories/fake_job_repository.dart';
 import 'repositories/preferences_repository.dart';
 import 'screens/awaiting_approval_screen.dart';
@@ -18,16 +17,23 @@ import 'state/auth_state.dart';
 import 'state/inspection_state.dart';
 import 'theme/app_theme.dart';
 
-/// Entrypoint padrão — usa flavor Kaptur.
-/// Para outros flavors, use main_kaptur.dart ou main_compass.dart.
-void main() => _runWithBrand(
-      config: BrandConfigResolver.resolve(
-        kapturManifest,
-        overrides: RemoteBrandOverrides.empty,
-      ),
-    );
+/// Entrypoint do flavor **Compass Avaliações**.
+///
+/// ## Android
+/// Referenciado em android/app/build.gradle.kts via:
+///   productFlavors { compass { ... } }
+/// e apontado pelo flutter tool com --flavor compass --target lib/main_compass.dart
+///
+/// ## iOS
+/// Referenciado no scheme Xcode "compass" com argumento:
+///   --dart-define=FLUTTER_TARGET=lib/main_compass.dart
+/// Ver docs/04-engineering/iOS_FLAVOR_SETUP_GUIDE.md para procedimento completo.
+void main() {
+  final config = BrandConfigResolver.resolve(
+    compassManifest,
+    overrides: RemoteBrandOverrides.empty,
+  );
 
-void _runWithBrand({required ResolvedBrandConfig config}) {
   runApp(
     BrandProvider(
       config: config,
@@ -44,14 +50,14 @@ void _runWithBrand({required ResolvedBrandConfig config}) {
             create: (_) => AuthState(const SharedPreferencesRepository()),
           ),
         ],
-        child: const MyApp(),
+        child: const _CompassApp(),
       ),
     ),
   );
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class _CompassApp extends StatelessWidget {
+  const _CompassApp();
 
   @override
   Widget build(BuildContext context) {
@@ -74,11 +80,9 @@ class _AppEntryPoint extends StatelessWidget {
     if (auth.loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-
     if (auth.requiresPermissionsOnboarding) {
       return const PermissionsOnboardingScreen();
     }
-
     switch (auth.status) {
       case AppAuthStatus.unauthenticated:
         return const LoginScreen();
