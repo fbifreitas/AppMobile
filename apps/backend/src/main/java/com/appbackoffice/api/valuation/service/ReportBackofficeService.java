@@ -5,6 +5,8 @@ import com.appbackoffice.api.contract.ErrorSeverity;
 import com.appbackoffice.api.identity.service.TenantGuardService;
 import com.appbackoffice.api.mobile.entity.InspectionEntity;
 import com.appbackoffice.api.mobile.repository.InspectionRepository;
+import com.appbackoffice.api.observability.OperationalEventRecorder;
+import com.appbackoffice.api.observability.RequestTracingFilter;
 import com.appbackoffice.api.valuation.dto.ReportDetailResponse;
 import com.appbackoffice.api.valuation.dto.ReportListResponse;
 import com.appbackoffice.api.valuation.dto.ReviewReportRequest;
@@ -21,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.MDC;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -35,19 +38,22 @@ public class ReportBackofficeService {
     private final IntakeValidationRepository intakeValidationRepository;
     private final TenantGuardService tenantGuardService;
     private final ObjectMapper objectMapper;
+    private final OperationalEventRecorder operationalEventRecorder;
 
     public ReportBackofficeService(ReportRepository reportRepository,
                                    ValuationProcessRepository valuationProcessRepository,
                                    InspectionRepository inspectionRepository,
                                    IntakeValidationRepository intakeValidationRepository,
                                    TenantGuardService tenantGuardService,
-                                   ObjectMapper objectMapper) {
+                                   ObjectMapper objectMapper,
+                                   OperationalEventRecorder operationalEventRecorder) {
         this.reportRepository = reportRepository;
         this.valuationProcessRepository = valuationProcessRepository;
         this.inspectionRepository = inspectionRepository;
         this.intakeValidationRepository = intakeValidationRepository;
         this.tenantGuardService = tenantGuardService;
         this.objectMapper = objectMapper;
+        this.operationalEventRecorder = operationalEventRecorder;
     }
 
     @Transactional(readOnly = true)
@@ -127,6 +133,27 @@ public class ReportBackofficeService {
 
         process.setStatus(ValuationProcessStatus.PROCESSING);
         valuationProcessRepository.save(process);
+        operationalEventRecorder.recordDomainEvent(
+                tenantId,
+                "BACKOFFICE",
+                "REPORT_GENERATED",
+                "backoffice.reports.generate",
+                "SUCCESS",
+                actorId,
+                MDC.get(RequestTracingFilter.CORRELATION_ID_MDC_KEY),
+                MDC.get(RequestTracingFilter.TRACE_ID_MDC_KEY),
+                inspection.getProtocolId(),
+                inspection.getJobId(),
+                process.getId(),
+                report.getId(),
+                false,
+                "Report draft generated from validated intake",
+                Map.of(
+                        "valuationProcessId", process.getId(),
+                        "reportId", report.getId(),
+                        "inspectionId", inspection.getId()
+                )
+        );
 
         return toDetail(report);
     }
@@ -167,7 +194,29 @@ public class ReportBackofficeService {
         }
 
         valuationProcessRepository.save(process);
-        return toDetail(reportRepository.save(report));
+        ReportEntity saved = reportRepository.save(report);
+        operationalEventRecorder.recordDomainEvent(
+                tenantId,
+                "BACKOFFICE",
+                "REPORT_REVIEWED",
+                "backoffice.reports.review",
+                "APPROVE".equals(action) ? "SUCCESS" : "WARNING",
+                actorId,
+                MDC.get(RequestTracingFilter.CORRELATION_ID_MDC_KEY),
+                MDC.get(RequestTracingFilter.TRACE_ID_MDC_KEY),
+                null,
+                null,
+                process.getId(),
+                saved.getId(),
+                false,
+                "Report review action executed",
+                Map.of(
+                        "action", action,
+                        "valuationProcessId", process.getId(),
+                        "reportId", saved.getId()
+                )
+        );
+        return toDetail(saved);
     }
 
     private ValuationProcessEntity requireProcessInTenant(String tenantId, Long processId) {

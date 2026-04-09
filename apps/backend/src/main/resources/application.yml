@@ -55,3 +55,8 @@ integration:
   config-signing:
     hmac-key: ${INTEGRATION_CONFIG_SIGNING_HMAC_KEY:}
     require-secret: ${INTEGRATION_CONFIG_SIGNING_REQUIRE_SECRET:false}
+
+operations:
+  control-tower:
+    retention-days: ${OPERATIONS_CONTROL_TOWER_RETENTION_DAYS:30}
+    retention-cron: ${OPERATIONS_CONTROL_TOWER_RETENTION_CRON:0 15 3 * * *}

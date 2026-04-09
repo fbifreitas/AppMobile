@@ -50,6 +50,9 @@ export default function HomePage() {
           <a className="ghost" href="/backoffice/reports">
             Operar reports
           </a>
+          <a className="ghost" href="/backoffice/operations">
+            Control tower operacional
+          </a>
         </div>
       </section>
 

@@ -1,11 +1,11 @@
-> [NOTA DE ESCOPO - OPERACIONAL ATIVO]
+﻿> [NOTA DE ESCOPO - OPERACIONAL ATIVO]
 > Este e um documento operacional ativo.
 > Este documento nao substitui a direcao arquitetural V2 corporativa do repositorio.
 > Deve ser lido em conjunto com README.md, GEMINI.md, .github/copilot-instructions.md e os documentos ativos da V2 em docs/.
 
 # Backlog de Integracao Web-Mobile (Seguranca e Comunicacao Bidirecional)
 
-Atualizado em: 2026-04-05
+Atualizado em: 2026-04-08
 
 ## Objetivo
 Planejar e executar a camada de integracao entre backoffice web e AppMobile com:
@@ -108,36 +108,36 @@ Motivo:
 
 | Seq | ID | Modulo | Prioridade | Status | Criterio de pronto |
 |---|---|---|---|---|---|
-| 1 | INT-001 | API Gateway de Integracao | Critica | Em andamento (filtro de gateway mobile com valida��o de vers�o e rate-limit base em 2026-04-04) | Gateway dedicado para canais mobile com politicas de auth, rate limit, idempotencia e auditoria |
-| 2 | INT-002 | Contratos versionados Web-Mobile | Critica | Em andamento (header obrigat�rio X-Api-Version v1 aplicado em 2026-04-04) | OpenAPI versionada + politica de compatibilidade retroativa + deprecation policy |
-| 3 | INT-003 | Canal seguro de configuracao remota | Critica | Em andamento (parcial em 2026-04-05: assinatura HMAC no response de /api/mobile/checkin-config, pendente validacao da assinatura no mobile) | Pacotes assinados, versionados e auditaveis para menus dinamicos/config operacional |
-| 4 | INT-004 | Rollout e rollback de pacotes | Critica | Pendente | Publicacao por tenant, por grupo de apps e rollback em 1 clique com trilha |
+| 1 | INT-001 | API Gateway de Integracao | Critica | Em andamento (filtro de gateway mobile com validaï¿½ï¿½o de versï¿½o e rate-limit base em 2026-04-04) | Gateway dedicado para canais mobile com politicas de auth, rate limit, idempotencia e auditoria |
+| 2 | INT-002 | Contratos versionados Web-Mobile | Critica | Em andamento (header obrigatï¿½rio X-Api-Version v1 aplicado em 2026-04-04) | OpenAPI versionada + politica de compatibilidade retroativa + deprecation policy |
+| 3 | INT-003 | Canal seguro de configuracao remota | Critica | Em andamento (baseline funcional entregue em 2026-04-08 com assinatura HMAC emitida/validada e consumo mobile real) | Pacotes assinados, versionados e auditaveis para menus dinamicos/config operacional |
+| 4 | INT-004 | Rollout e rollback de pacotes | Critica | Em andamento (baseline operacional entregue em 2026-04-08 com versionamento de pacote e rollback refletindo no mobile) | Publicacao por tenant, por grupo de apps e rollback em 1 clique com trilha |
 | 5 | INT-005 | ACK/NACK de pacote no mobile | Alta | Pendente | Backoffice enxerga status de aplicacao por dispositivo/app version |
-| 6 | INT-006 | Uplink de vistoria com idempotencia | Critica | Pendente | Recebimento resiliente de vistoria final sem duplicidade por retry offline |
-| 7 | INT-007 | Protocolo de entrega e reconciliacao | Alta | Pendente | Protocolo unico por vistoria com consulta de status fim a fim |
+| 6 | INT-006 | Uplink de vistoria com idempotencia | Critica | Em andamento (baseline operacional entregue em 2026-04-08 com API idempotente, dedupe local e sync real) | Recebimento resiliente de vistoria final sem duplicidade por retry offline |
+| 7 | INT-007 | Protocolo de entrega e reconciliacao | Alta | Em andamento (metadata de processo/protocolo devolvida no sync ate 2026-04-08) | Protocolo unico por vistoria com consulta de status fim a fim |
 | 8 | INT-008 | Fila de reprocessamento no backoffice | Alta | Pendente | Mensagens/payloads com erro podem ser reprocessados com controle e auditoria |
-| 9 | INT-009 | Telemetria de integracao | Alta | Pendente | p95/p99, taxa de falha, timeout, retries, throughput por endpoint e tenant |
-| 10 | INT-010 | Alertas operacionais de integracao | Alta | Pendente | Alertas por erro anomalo, backlog de fila, quebra de contrato e falha de pacote |
-| 11 | INT-011 | Seguranca de pacote (assinatura) | Critica | Pendente | Assinatura e verificacao de pacote com rotacao de chave e validade temporal |
-| 12 | INT-012 | Anti-replay e anti-tamper | Critica | Pendente | Nonce + timestamp + hash com bloqueio de repeticao e adulteracao |
+| 9 | INT-009 | Telemetria de integracao | Alta | Em andamento (control tower operacional entregue em 2026-04-08) | p95/p99, taxa de falha, timeout, retries, throughput por endpoint e tenant |
+| 10 | INT-010 | Alertas operacionais de integracao | Alta | Em andamento (baseline de alertas entregue em 2026-04-08) | Alertas por erro anomalo, backlog de fila, quebra de contrato e falha de pacote |
+| 11 | INT-011 | Seguranca de pacote (assinatura) | Critica | Em andamento (assinatura e verificacao ativas no baseline entregue em 2026-04-08) | Assinatura e verificacao de pacote com rotacao de chave e validade temporal |
+| 12 | INT-012 | Anti-replay e anti-tamper | Critica | Em andamento (nonce/timestamp obrigatorios no uplink critico ate 2026-04-08) | Nonce + timestamp + hash com bloqueio de repeticao e adulteracao |
 | 13 | INT-013 | Gestao de credenciais por tenant | Critica | Pendente | Segredos/chaves segregados por tenant e ambiente com rotacao assistida |
 | 14 | INT-014 | Matriz de compatibilidade app x pacote | Alta | Pendente | Pacote define versao minima/maxima de app suportada |
 | 15 | INT-015 | Feature flags de integracao | Media | Pendente | Habilitacao gradual de canais e recursos por tenant/ambiente |
-| 16 | INT-016 | Testes de contrato automatizados | Critica | Em andamento (suite de contrato mobile ajustada para v1 e headers obrigat�rios em 2026-04-04) | CI bloqueia merge em caso de quebra de contrato mobile-web |
+| 16 | INT-016 | Testes de contrato automatizados | Critica | Em andamento (suite de contrato mobile ajustada para v1 e headers obrigatï¿½rios em 2026-04-04) | CI bloqueia merge em caso de quebra de contrato mobile-web |
 | 17 | INT-017 | Testes E2E de resiliencia | Alta | Pendente | Cenarios de offline, retry, timeout, rollback e recuperacao automatizada |
-| 18 | INT-018 | Painel de operacao de integracao | Alta | Pendente | Backoffice visualiza saude bidirecional em tempo real |
-| 19 | INT-019 | Politica de retention de eventos | Media | Pendente | Eventos de integracao com retention, mascaramento e trilha probatoria |
-| 20 | INT-020 | DR e continuidade da integracao | Media | Pendente | Plano de recuperacao para indisponibilidade parcial/total do canal |
+| 18 | INT-018 | Painel de operacao de integracao | Alta | Em andamento (control tower operacional entregue em 2026-04-08) | Backoffice visualiza saude bidirecional em tempo real |
+| 19 | INT-019 | Politica de retention de eventos | Media | Em andamento (retention baseline entregue em 2026-04-08) | Eventos de integracao com retention, mascaramento e trilha probatoria |
+| 20 | INT-020 | DR e continuidade da integracao | Media | Em andamento (checklist operacional entregue em 2026-04-08) | Plano de recuperacao para indisponibilidade parcial/total do canal |
 | 21 | INT-021 | Contrato financeira->backoffice (ingestao de job) | Critica | Pendente | Contrato versionado para payload de entrada da financeira com validacao de schema, autenticidade e idempotencia |
 | 22 | INT-022 | Normalizacao canonica de processo/job | Critica | Pendente | Payload externo convertido para modelo canonico (processo, cliente, endereco, agenda, status) sem perda de rastreabilidade |
 | 23 | INT-023 | Callback/status para origem financeira | Alta | Pendente | Resposta padronizada com `success`, `message`, `process_id`, `process_number`, estado e trilha de auditoria |
 | 24 | INT-024 | Matriz de visibilidade de dados (LGPD) | Alta | Pendente | Definicao de quais campos da origem externa sao expostos no web e no mobile, com mascaramento por perfil |
-| 25 | INT-025 | Política de versionamento de APIs e eventos | Critica | Concluido (gate estrutural + semantico no CI, suite de 8 testes do validador, hardening de readiness/fallback de endpoint OpenAPI e tolerancia a baseline ausente no ciclo de promocao para main em 2026-04-02) | Regras formais de compatibilidade retroativa e depreciação com gate em CI para breaking changes |
-| 26 | INT-026 | Context envelope obrigatório (tenant + correlation + actor) | Critica | Em andamento (config module enforcement + web client auto-propagation complete; RequestContextValidator utility reusable; pendente: expansion to INT-026 integration routers para inbound calls from external apis following same pattern) | Toda chamada síncrona e evento assíncrono deve carregar contexto mínimo validado no gateway |
-| 27 | INT-027 | Padrão de idempotency-key por operação | Critica | Pendente | Chaves idempotentes normalizadas por domínio, TTL definido e reprocessamento seguro sem duplicidade |
-| 28 | INT-028 | Contrato de erro canônico entre canais | Alta | Em andamento (fundação v1 + cobertura TDD ampliada nos endpoints mobile críticos) | Catálogo único de erros com códigos, severidade e orientação operacional consistente para web/mobile |
+| 25 | INT-025 | PolÃ­tica de versionamento de APIs e eventos | Critica | Concluido (gate estrutural + semantico no CI, suite de 8 testes do validador, hardening de readiness/fallback de endpoint OpenAPI e tolerancia a baseline ausente no ciclo de promocao para main em 2026-04-02) | Regras formais de compatibilidade retroativa e depreciaÃ§Ã£o com gate em CI para breaking changes |
+| 26 | INT-026 | Context envelope obrigatÃ³rio (tenant + correlation + actor) | Critica | Em andamento (config module enforcement + web client auto-propagation complete; RequestContextValidator utility reusable; pendente: expansion to INT-026 integration routers para inbound calls from external apis following same pattern) | Toda chamada sÃ­ncrona e evento assÃ­ncrono deve carregar contexto mÃ­nimo validado no gateway |
+| 27 | INT-027 | PadrÃ£o de idempotency-key por operaÃ§Ã£o | Critica | Pendente | Chaves idempotentes normalizadas por domÃ­nio, TTL definido e reprocessamento seguro sem duplicidade |
+| 28 | INT-028 | Contrato de erro canÃ´nico entre canais | Alta | Em andamento (fundaÃ§Ã£o v1 + cobertura TDD ampliada nos endpoints mobile crÃ­ticos) | CatÃ¡logo Ãºnico de erros com cÃ³digos, severidade e orientaÃ§Ã£o operacional consistente para web/mobile |
 
-| 30 | INT-030 | Configuracao de segredo de assinatura por ambiente (homolog/producao) | Critica | Pendente | integration.config-signing.hmac-key provisionado por ambiente via secret manager/Actions secrets, com checklist de release e evidencias de validacao |
+| 30 | INT-030 | Configuracao de segredo de assinatura por ambiente (homolog/producao) | Critica | Em andamento (validator e gate operacional entregues em 2026-04-08; pendente provisionamento definitivo por ambiente) | integration.config-signing.hmac-key provisionado por ambiente via secret manager/Actions secrets, com checklist de release e evidencias de validacao |
 
 ---
 
@@ -203,9 +203,9 @@ Motivo:
 
 
 ## Adendo 2026-04-04 (execucao pacote)
-- INT-001: filtro MobileGatewayPolicyFilter adicionado no backend para rotas /api/mobile/* com valida��o de vers�o e rate-limit base por tenant/actor.
-- INT-002: contratos mobile passaram a exigir X-Api-Version (1) em endpoint e valida��o de contexto.
-- INT-016: testes de contrato/integra��o mobile atualizados para novo header obrigat�rio e pol�tica de vers�o.
+- INT-001: filtro MobileGatewayPolicyFilter adicionado no backend para rotas /api/mobile/* com validaï¿½ï¿½o de versï¿½o e rate-limit base por tenant/actor.
+- INT-002: contratos mobile passaram a exigir X-Api-Version (1) em endpoint e validaï¿½ï¿½o de contexto.
+- INT-016: testes de contrato/integraï¿½ï¿½o mobile atualizados para novo header obrigatï¿½rio e polï¿½tica de versï¿½o.
 
 ## Adendo 2026-04-05 (governanca da esteira automatica)
 - INT-025: pacote `v1.2.28+48` incluiu ajuste de resiliencia no `openapi-compatibility-gate` da `backend_ci.yml`, evitando quebra hard quando o OpenAPI current nao sobe no run de PR.
@@ -244,3 +244,14 @@ Gate de saida do pacote:
 ### Macro-pacote B - Backoffice Operational Closure
 - Nao ha item de integracao entrando como prioridade principal nesta rodada.
 - Itens como INT-008, INT-009, INT-010, INT-018, INT-019 e INT-020 ficam explicitamente fora do caminho critico imediato e so devem subir apos fechamento do Macro-pacote A.
+## Adendo 2026-04-08 - Pos-release v1.2.40+60
+
+- INT-001/002/003/004/006/007/011/012/016/026/027/028/030 avancaram de forma real no codigo promovido para `main`, com esteira verde na PR #25.
+- O backlog de integracao deixa de tratar rollout, assinatura, uplink idempotente e anti-replay como apenas aspiracionais; o estado correto agora e baseline operacional entregue com hardening residual pendente.
+- A lacuna mais visivel apos o release deixou de ser contrato basico e passou a ser operacao/observabilidade de integracao (`INT-009`, `INT-010`, `INT-018`).
+
+## Adendo 2026-04-08 - Control tower operacional entregue
+
+- INT-009, INT-010 e INT-018 passaram a ter baseline real com eventos persistidos, agregados por endpoint/tenant e painel unico no backoffice.
+- INT-019 e INT-020 tambem deixaram de ser apenas intencao: existe cleanup manual de retention no backend e checklist operacional de continuidade exposto na control tower.
+- O backlog de integracao agora sai de observabilidade zero para observabilidade basica entregue, ficando o restante como evolucao de profundidade e refinamento de alertas.

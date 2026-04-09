@@ -3,8 +3,11 @@ package com.appbackoffice.api.config;
 import com.appbackoffice.api.config.dto.*;
 import com.appbackoffice.api.contract.ApiContractException;
 import com.appbackoffice.api.contract.ErrorSeverity;
+import com.appbackoffice.api.observability.OperationalEventRecorder;
+import com.appbackoffice.api.observability.RequestTracingFilter;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,17 +26,20 @@ public class ConfigPackageService {
     private final ConfigAuditEntryRepository configAuditEntryRepository;
     private final ConfigPolicyService configPolicyService;
     private final ObjectMapper objectMapper;
+    private final OperationalEventRecorder operationalEventRecorder;
 
     public ConfigPackageService(
             ConfigPackageRepository configPackageRepository,
             ConfigAuditEntryRepository configAuditEntryRepository,
             ConfigPolicyService configPolicyService,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            OperationalEventRecorder operationalEventRecorder
     ) {
         this.configPackageRepository = configPackageRepository;
         this.configAuditEntryRepository = configAuditEntryRepository;
         this.configPolicyService = configPolicyService;
         this.objectMapper = objectMapper;
+        this.operationalEventRecorder = operationalEventRecorder;
     }
 
     @Transactional(readOnly = true)
@@ -72,6 +78,7 @@ public class ConfigPackageService {
 
         ConfigPackageEntity created = configPackageRepository.save(entity);
         saveAudit(created, request.actorId(), actorRole, ConfigAuditAction.PUBLISH);
+        recordMutationEvent("CONFIG_PACKAGE_PUBLISHED", "backoffice.config.packages", "SUCCESS", created, request.actorId());
 
         return new ConfigMutationResponse(
                 "Pacote publicado com sucesso",
@@ -92,6 +99,7 @@ public class ConfigPackageService {
 
         ConfigPackageEntity updated = configPackageRepository.save(entity);
         saveAudit(updated, request.actorId(), actorRole, ConfigAuditAction.APPROVE);
+        recordMutationEvent("CONFIG_PACKAGE_APPROVED", "backoffice.config.approve", "SUCCESS", updated, request.actorId());
         return new ConfigMutationResponse(
                 "Pacote aprovado com sucesso",
                 new ConfigMutationResultResponse(null, toResponse(updated))
@@ -108,6 +116,7 @@ public class ConfigPackageService {
 
         ConfigPackageEntity updated = configPackageRepository.save(entity);
         saveAudit(updated, request.actorId(), actorRole, ConfigAuditAction.ROLLBACK);
+        recordMutationEvent("CONFIG_PACKAGE_ROLLED_BACK", "backoffice.config.rollback", "WARNING", updated, request.actorId());
         return new ConfigMutationResponse(
                 "Pacote revertido com sucesso",
                 new ConfigMutationResultResponse(null, toResponse(updated))
@@ -213,6 +222,34 @@ public class ConfigPackageService {
         audit.setScope(entity.getScope());
         audit.setCreatedAt(Instant.now());
         configAuditEntryRepository.save(audit);
+    }
+
+    private void recordMutationEvent(String eventType,
+                                     String endpointKey,
+                                     String outcome,
+                                     ConfigPackageEntity entity,
+                                     String actorId) {
+        operationalEventRecorder.recordDomainEvent(
+                entity.getTenantId(),
+                "BACKOFFICE",
+                eventType,
+                endpointKey,
+                outcome,
+                actorId,
+                MDC.get(RequestTracingFilter.CORRELATION_ID_MDC_KEY),
+                MDC.get(RequestTracingFilter.TRACE_ID_MDC_KEY),
+                null,
+                null,
+                null,
+                null,
+                false,
+                "Config package mutation recorded",
+                java.util.Map.of(
+                        "packageId", entity.getId(),
+                        "status", entity.getStatus().name(),
+                        "scope", entity.getScope().name()
+                )
+        );
     }
 
     private ConfigPackageResponse toResponse(ConfigPackageEntity entity) {
