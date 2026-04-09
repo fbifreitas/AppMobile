@@ -748,3 +748,34 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
   - `Android Distribution` sucesso
   - `Internal Docs CI` sucesso
 - Status final: **ENCERRADO**.
+
+## Encerramento do ciclo 2026-04-09 - release v1.2.46+66 (Onda 4 - BL-074)
+- Branch candidata: `release/v1.2.46+66`
+- PR: https://github.com/fbifreitas/AppMobile/pull/32
+- Commit de merge em `main`: `46a4ff0`
+- Autorizacao do usuario: concedida na sessao
+- Escopo entregue (BL-074 — arquitetura multi-brand):
+  - `lib/branding/` — BrandManifest, BrandTokens, BrandProvider, ResolvedBrandConfig, kaptur_brand, compass_brand
+  - `lib/branding/remote/` — RemoteBrandOverrides, BrandConfigResolver
+  - `lib/config/` — ProductMode, BrandFeatureFlags
+  - `lib/theme/app_theme.dart` — ThemeData factory por marca
+  - `lib/main_kaptur.dart`, `lib/main_compass.dart` — entrypoints por marca
+  - Android flavors: `kaptur` (com.kaptur.field) e `compass` (com.compass.avaliacoes)
+  - AndroidManifest: `@string/app_name` via flavor
+  - Home desacoplada: HomeScreen, JobsSection, ProposalsSection, HomeHeader
+  - Screens limpas: LoginScreen, OperationalSnapshotExportScreen, ReleaseIdentityAuditService
+  - test/helpers/brand_test_helper.dart — helper `withBrand()` para testes
+  - Docs v3 importados (pacote zip): diagramas multi-brand (DOT + SVG + PNG), BACKLOG_PRIORIDADES, DECISION_LOG
+  - 06_TENANT_AND_WHITE_LABEL_MODEL.md movido para docs/99-legacy/
+  - Governanca: FLUXO_OFICIAL_DE_RELEASE.md, GOVERNANCA_MULTIAGENTE_REPOSITORIO.md
+  - CI: android_ci.yml e android_homologation.yml corrigidos para --flavor kaptur
+- Validacoes executadas:
+  - `flutter analyze` — No issues
+  - `flutter test` — 258 testes, zero falhas
+  - `Android CI` verde (run 24211706874)
+  - `Android Homologation` verde (run 24205889967)
+- Pendencias pos-merge (nao bloqueantes):
+  - Registrar com.kaptur.field no Firebase App Distribution e atualizar secret FIREBASE_APP_ID_ANDROID
+  - iOS Xcode targets/schemes — guia em docs/04-engineering/iOS_FLAVOR_SETUP_GUIDE.md
+  - Script create_brand automatizado (proximo ciclo)
+- Status final: **ENCERRADO**.
