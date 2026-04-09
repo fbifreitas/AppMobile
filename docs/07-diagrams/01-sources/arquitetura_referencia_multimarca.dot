@@ -1,0 +1,17 @@
+digraph G {
+  rankdir=TB;
+  graph [pad="0.4", nodesep="0.35", ranksep="0.55", bgcolor="white"];
+  node [shape=box, style="rounded,filled", color="#1f3c88", fillcolor="#f5f8ff", fontname="Helvetica", fontsize=11, margin="0.12,0.08"];
+  edge [color="#415a77", arrowsize=0.8];
+  platform [label="Plataforma Corporativa\nCore unico + experience multimarca", fillcolor="#e9f0ff"];
+  exp [label="Experience Layer\nApps por marca\nKaptur\nClientes white-label"];
+  domain [label="Domain Packs\nInspection (ativo)\nOutros dominios sob demanda"];
+  foundations [label="Shared Foundations\nDispatch\nSwipe seguro\nGeofence\nRetomada\nAuditoria"];
+  core [label="Platform Core\nAuth\nSync\nStorage\nObservabilidade\nConfig base"];
+  data [label="Data, Integrations and Intelligence\nEventos\nAnalytics\nBindings por app\nBI/IA"];
+  platform -> exp;
+  platform -> domain;
+  platform -> foundations;
+  platform -> core;
+  platform -> data;
+}

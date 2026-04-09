@@ -1,15 +1,12 @@
-# README_IMAGENS — V2
+# README_IMAGENS
 
-Esta galeria segue a mesma organização estrutural do repositório atual:
+As imagens ativas desta pasta sao derivadas das fontes em `07-diagrams/01-sources/`.
 
-- architecture
-- business
-- uml
+## Regra
 
-As imagens V2 foram regeneradas no mesmo espírito visual da base atual:
-fundo cinza claro, títulos azul-escuro, caixas arredondadas e cabeçalhos coloridos.
+Sempre que um diagrama estrutural mudar:
 
-Objetivo:
-- permitir a substituição gradual das imagens antigas
-- preservar coerência visual durante a migração documental
-- separar claramente visão corporativa e visões por domínio
+1. atualizar a fonte `.dot`
+2. renderizar `.svg`
+3. renderizar `.png`
+4. atualizar o indice de diagramas
