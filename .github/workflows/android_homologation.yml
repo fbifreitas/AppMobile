@@ -82,13 +82,13 @@ jobs:
         run: flutter test
 
       - name: Build debug APK (homologation candidate)
-        run: flutter build apk --debug
+        run: flutter build apk --debug --flavor kaptur
 
       - name: Upload homologation APK artifact
         uses: actions/upload-artifact@v6
         with:
           name: app-homolog-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          path: build/app/outputs/flutter-apk/app-kaptur-debug.apk
           if-no-files-found: error
 
       - name: Install Firebase CLI
@@ -98,7 +98,7 @@ jobs:
         run: |
           APP_VERSION=$(awk '/^version:/{print $2; exit}' pubspec.yaml)
           SHORT_SHA="${GITHUB_SHA:0:7}"
-          firebase appdistribution:distribute build/app/outputs/flutter-apk/app-debug.apk \
+          firebase appdistribution:distribute build/app/outputs/flutter-apk/app-kaptur-debug.apk \
             --app "${{ secrets.FIREBASE_APP_ID_ANDROID }}" \
             --groups "testers-internos" \
             --release-notes "Build de homologacao ${APP_VERSION} (${SHORT_SHA}) via CI/CD."
