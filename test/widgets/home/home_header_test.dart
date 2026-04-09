@@ -2,10 +2,12 @@ import 'package:appmobile/widgets/home/home_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers/brand_test_helper.dart';
+
 void main() {
   testWidgets('HomeHeader renders greeting and action icons', (tester) async {
     await tester.pumpWidget(
-      MaterialApp(
+      withBrand(MaterialApp(
         home: Scaffold(
           body: HomeHeader(
             firstName: 'Felipe',
@@ -17,7 +19,7 @@ void main() {
             showHubButton: true,
           ),
         ),
-      ),
+      )),
     );
 
     expect(find.text('Olá, Felipe!'), findsOneWidget);
@@ -31,7 +33,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
+      withBrand(MaterialApp(
         home: Scaffold(
           body: HomeHeader(
             firstName: 'Felipe',
@@ -43,7 +45,7 @@ void main() {
             showHubButton: false,
           ),
         ),
-      ),
+      )),
     );
 
     expect(find.byIcon(Icons.notifications_none), findsOneWidget);

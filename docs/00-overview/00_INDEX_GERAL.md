@@ -12,7 +12,7 @@
 8. docs/03-architecture/03_DOMAIN_PACK_INSPECTION.md
 9. docs/03-architecture/04_DOMAIN_PACK_WELLNESS.md
 10. docs/03-architecture/05_DOMAIN_PACK_CHURCH.md
-11. docs/03-architecture/06_TENANT_AND_WHITE_LABEL_MODEL.md
+11. docs/03-architecture/08_BRAND_AND_DISTRIBUTION_MODEL.md
 12. docs/03-architecture/07_CORPORATE_CANONICAL_MODEL.md
 13. docs/04-engineering/01_ENGINEERING_GUARDRAILS.md
 14. docs/04-engineering/02_REPO_TARGET_STRUCTURE.md

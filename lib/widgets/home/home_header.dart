@@ -3,7 +3,8 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
-import '../../theme/app_colors.dart';
+import '../../branding/brand_provider.dart';
+import '../../branding/brand_tokens.dart';
 
 class HomeHeader extends StatelessWidget {
   const HomeHeader({
@@ -15,6 +16,7 @@ class HomeHeader extends StatelessWidget {
     required this.onSettingsTap,
     required this.onHubTap,
     required this.showHubButton,
+    this.subtitle,
   });
 
   final String firstName;
@@ -25,12 +27,24 @@ class HomeHeader extends StatelessWidget {
   final VoidCallback onHubTap;
   final bool showHubButton;
 
+  /// Subtitle shown below the greeting. When null, falls back to the
+  /// brand-agnostic default 'Seu painel operacional de hoje'.
+  /// Callers should pass: config.copyText('home_subtitle', defaultValue: 'Seu painel operacional de hoje')
+  final String? subtitle;
+
   @override
   Widget build(BuildContext context) {
+    final config = BrandProvider.configOf(context);
+    final tokens = config.tokens;
+    final resolvedSubtitle =
+        subtitle?.isNotEmpty == true
+            ? subtitle!
+            : 'Seu painel operacional de hoje';
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _HeaderAvatar(photoPath: photoPath),
+        _HeaderAvatar(photoPath: photoPath, tokens: tokens),
         const SizedBox(width: 10),
         Expanded(
           child: Column(
@@ -40,18 +54,21 @@ class HomeHeader extends StatelessWidget {
                 'Olá, $firstName!',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: BrandTokens.textPrimary,
                 ),
               ),
               const SizedBox(height: 1),
-              const Text(
-                'Seu painel operacional de hoje',
+              Text(
+                resolvedSubtitle,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                style: const TextStyle(
+                  color: BrandTokens.textSecondary,
+                  fontSize: 11,
+                ),
               ),
             ],
           ),
@@ -66,6 +83,7 @@ class HomeHeader extends StatelessWidget {
               badge: unreadMessages > 0 ? '$unreadMessages' : null,
               semanticLabel: 'Abrir notificacoes',
               automationKey: 'home_header_notifications_button',
+              tokens: tokens,
             ),
             const SizedBox(width: 8),
             _HeaderIconButton(
@@ -73,6 +91,7 @@ class HomeHeader extends StatelessWidget {
               onTap: onSettingsTap,
               semanticLabel: 'Abrir configuracoes',
               automationKey: 'home_header_settings_button',
+              tokens: tokens,
             ),
             if (showHubButton) ...[
               const SizedBox(width: 8),
@@ -81,6 +100,7 @@ class HomeHeader extends StatelessWidget {
                 onTap: onHubTap,
                 semanticLabel: 'Abrir hub operacional',
                 automationKey: 'home_header_hub_button',
+                tokens: tokens,
               ),
             ],
           ],
@@ -91,10 +111,11 @@ class HomeHeader extends StatelessWidget {
 }
 
 class _HeaderAvatar extends StatelessWidget {
-  const _HeaderAvatar({this.photoPath});
+  const _HeaderAvatar({this.photoPath, required this.tokens});
 
   static const _avatarUrl = 'https://i.pravatar.cc/150?img=3';
   final String? photoPath;
+  final BrandTokens tokens;
 
   @override
   Widget build(BuildContext context) {
@@ -117,7 +138,7 @@ class _HeaderAvatar extends StatelessWidget {
                   loadingBuilder: (context, child, progress) {
                     if (progress == null) return child;
                     return Container(
-                      color: AppColors.primaryLight,
+                      color: tokens.primaryLight,
                       alignment: Alignment.center,
                       child: const SizedBox(
                         width: 16,
@@ -133,9 +154,9 @@ class _HeaderAvatar extends StatelessWidget {
 
   Widget _fallbackAvatar() {
     return Container(
-      color: AppColors.primaryLight,
+      color: tokens.primaryLight,
       alignment: Alignment.center,
-      child: const Icon(Icons.person, color: AppColors.primary, size: 22),
+      child: Icon(Icons.person, color: tokens.primary, size: 22),
     );
   }
 }
@@ -146,6 +167,7 @@ class _HeaderIconButton extends StatelessWidget {
     required this.onTap,
     required this.semanticLabel,
     required this.automationKey,
+    required this.tokens,
     this.badge,
   });
 
@@ -153,6 +175,7 @@ class _HeaderIconButton extends StatelessWidget {
   final VoidCallback onTap;
   final String semanticLabel;
   final String automationKey;
+  final BrandTokens tokens;
   final String? badge;
 
   @override
@@ -170,11 +193,11 @@ class _HeaderIconButton extends StatelessWidget {
               width: 38,
               height: 38,
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: BrandTokens.surface,
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: BrandTokens.border),
               ),
-              child: Icon(icon, color: AppColors.primary, size: 18),
+              child: Icon(icon, color: tokens.primary, size: 18),
             ),
             if (badge != null)
               Positioned(
@@ -183,7 +206,7 @@ class _HeaderIconButton extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                   decoration: BoxDecoration(
-                    color: AppColors.danger,
+                    color: BrandTokens.danger,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(

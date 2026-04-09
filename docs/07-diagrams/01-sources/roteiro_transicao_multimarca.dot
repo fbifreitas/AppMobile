@@ -1,0 +1,11 @@
+digraph G {
+  rankdir=LR;
+  graph [pad="0.3", nodesep="0.35", ranksep="0.55", bgcolor="white"];
+  node [shape=box, style="rounded,filled", color="#8a5a00", fillcolor="#fffaf0", fontname="Helvetica", fontsize=10, margin="0.12,0.08"];
+  edge [color="#b08900", arrowsize=0.7];
+  f1 [label="Fase 1\nBrandManifest\nProductConfig\nFlavors"];
+  f2 [label="Fase 2\nDocs + Diagramas\nLinguagem ativa"];
+  f3 [label="Fase 3\nKaptur UX\nHome redesenhada\nSwipe/geofence"];
+  f4 [label="Fase 4\nFactory de cliente\nCI/CD\nRelease por app"];
+  f1 -> f2 -> f3 -> f4;
+}

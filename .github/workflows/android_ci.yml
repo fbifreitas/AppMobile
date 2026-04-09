@@ -73,11 +73,11 @@ jobs:
         run: flutter test
 
       - name: Build debug APK
-        run: flutter build apk --debug --verbose
+        run: flutter build apk --debug --flavor kaptur --verbose
 
       - name: Upload debug APK artifact
         uses: actions/upload-artifact@v6
         with:
           name: app-debug-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          path: build/app/outputs/flutter-apk/app-kaptur-debug.apk
           if-no-files-found: error

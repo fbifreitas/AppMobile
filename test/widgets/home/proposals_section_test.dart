@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
+import '../../helpers/brand_test_helper.dart';
+
 class _FakeJobRepository implements JobRepository {
   @override
   Future<List<Job>> getJobs() async => [];
@@ -34,13 +36,13 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
+      withBrand(MaterialApp(
         home: Scaffold(
           body: ProposalsSection(
             propostas: [proposta],
           ),
         ),
-      ),
+      )),
     );
 
     await tester.pumpAndSettle();
@@ -49,11 +51,15 @@ void main() {
     expect(find.text('R\$ 180,00'), findsOneWidget);
     expect(find.text('Expira em 00:50'), findsOneWidget);
     expect(find.text('3.2 km de distância'), findsOneWidget);
-    expect(findRichTextContaining('Endereço: Rua Teste, 100 - São Paulo/SP'),
-        findsOneWidget);
+    expect(
+      findRichTextContaining('Endereço: Rua Teste, 100 - São Paulo/SP'),
+      findsOneWidget,
+    );
     expect(findRichTextContaining('Proprietário: João Silva'), findsOneWidget);
-    expect(findRichTextContaining('Agendamento: 28/03/2026 às 15:45'),
-        findsOneWidget);
+    expect(
+      findRichTextContaining('Agendamento: 28/03/2026 às 15:45'),
+      findsOneWidget,
+    );
     expect(find.text('DESLIZE PARA ACEITAR'), findsOneWidget);
     expect(find.text('ID: 1'), findsOneWidget);
   });
@@ -72,7 +78,7 @@ void main() {
     ProposalOffer? accepted;
 
     await tester.pumpWidget(
-      ChangeNotifierProvider<AppState>(
+      withBrand(ChangeNotifierProvider<AppState>(
         create: (_) => AppState(_FakeJobRepository()),
         child: MaterialApp(
           home: Scaffold(
@@ -82,7 +88,7 @@ void main() {
             ),
           ),
         ),
-      ),
+      )),
     );
 
     await tester.pumpAndSettle();

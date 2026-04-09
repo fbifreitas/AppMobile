@@ -1,0 +1,6 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Source set do flavor Compass.
+         Aqui ficam recursos específicos da marca Compass Avaliações:
+         - res/mipmap-*/ic_launcher.png (launcher icon Compass)
+         - res/values/strings.xml (strings específicas, se necessário) -->
+</manifest>

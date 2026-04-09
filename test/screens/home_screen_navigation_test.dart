@@ -13,6 +13,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../helpers/brand_test_helper.dart';
+
 class _ImmediateJobRepository implements JobRepository {
   @override
   Future<List<Job>> getJobs() async => <Job>[];
@@ -72,12 +74,12 @@ void main() {
       ];
 
       await tester.pumpWidget(
-        ChangeNotifierProvider<AppState>.value(
+        withBrand(ChangeNotifierProvider<AppState>.value(
           value: appState,
           child: MaterialApp(
             home: HomeScreen(appNavigationCoordinator: navigationCoordinator),
           ),
-        ),
+        )),
       );
 
       await tester.pump();

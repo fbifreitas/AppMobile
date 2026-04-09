@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../branding/brand_provider.dart';
+import '../branding/brand_tokens.dart';
 import '../state/auth_state.dart';
-import '../theme/app_colors.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -38,8 +39,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final config = BrandProvider.configOf(context);
+    final tokens = config.tokens;
+    final welcomeText = config.copyText(
+      'login_welcome',
+      defaultValue: 'Bem-vindo ao App de Vistorias',
+    );
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: BrandTokens.background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -49,19 +57,19 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.home_work_outlined,
                     size: 64,
-                    color: AppColors.primary,
+                    color: tokens.primary,
                   ),
                   const SizedBox(height: 20),
-                  const Text(
-                    'Bem-vindo ao App de Vistorias',
+                  Text(
+                    welcomeText,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                      color: BrandTokens.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -70,7 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 13,
-                      color: AppColors.textSecondary,
+                      color: BrandTokens.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 36),

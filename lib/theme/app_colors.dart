@@ -1,7 +1,22 @@
 import 'package:flutter/material.dart';
 
+/// ## Transição controlada
+/// [AppColors] está em transição para a arquitetura multi-brand.
+/// As cores primary/primaryLight aqui são os valores do flavor Kaptur
+/// (baseline) e serão removidas em ciclo subsequente.
+///
+/// **Nas áreas refatoradas neste ciclo** (Home, tema, entrypoints), use
+/// exclusivamente [BrandTokens] via [ResolvedBrandConfig].
+/// Demais telas continuam usando [AppColors] temporariamente até migração.
+///
+/// Cores neutras (success, warning, danger, surface, background, texto, borda)
+/// são brand-independentes e permanecem em [BrandTokens] como constantes.
+// ignore_for_file: deprecated_member_use_from_same_package
 class AppColors {
+  // ignore: deprecated_member_use
+  @Deprecated('Use BrandTokens.fromManifest(manifest).primary via ResolvedBrandConfig')
   static const Color primary = Color(0xFF0D3B92);
+  @Deprecated('Use BrandTokens.fromManifest(manifest).primaryLight via ResolvedBrandConfig')
   static const Color primaryLight = Color(0xFFE8F0FF);
 
   static const Color success = Color(0xFF1B8A5A);

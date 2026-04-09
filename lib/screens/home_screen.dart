@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../branding/brand_provider.dart';
 import '../models/home_location_snapshot.dart';
 import '../models/job.dart';
 import '../models/overlay_camera_capture_result.dart';
@@ -275,6 +276,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
+    final config = BrandProvider.configOf(context);
+    final flags = config.featureFlags;
+
     final tabBodies = <Widget>[
       RefreshIndicator(
         onRefresh: _manualRefresh,
@@ -289,6 +293,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               onSettingsTap: _openSettings,
               onHubTap: _openOperationalHub,
               showHubButton: appState.developerModeEnabled,
+              subtitle: config.copyText(
+                'home_subtitle',
+                defaultValue: 'Seu painel operacional de hoje',
+              ),
             ),
             const SizedBox(height: 16),
             JobsSection(
@@ -298,6 +306,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               currentLongitude:
                   appState.ultimaLongitude ?? _locationSnapshot.longitude,
               useDistanceMetrics: true,
+              sectionTitle: config.copyText(
+                'jobs_section_title',
+                defaultValue: 'MEUS JOBS DE HOJE',
+              ),
+              geofenceRequired: flags.geofenceRequired,
+              startLabel: config.copyTextOrNull('job_start_label'),
+              resumeLabel: config.copyTextOrNull('job_resume_label'),
+              startBlockedLabel: config.copyTextOrNull('job_start_blocked_label'),
               onNavigateToJob: ({
                 required double? latitude,
                 required double? longitude,
@@ -313,8 +329,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 await _handleStartInspection(appState: appState, job: job);
               },
             ),
-            const SizedBox(height: 14),
-            const ProposalsSection(),
+            if (flags.proposalsBlockEnabled) ...[
+              const SizedBox(height: 14),
+              ProposalsSection(
+                sectionTitle: config.copyText(
+                  'proposals_section_title',
+                  defaultValue: 'NOVAS PROPOSTAS',
+                ),
+                swipeRequired: flags.swipeRequired,
+                financialSummaryEnabled: flags.financialSummaryEnabled,
+                marketplaceCopyEnabled: flags.marketplaceCopyEnabled,
+              ),
+            ],
           ],
         ),
       ),

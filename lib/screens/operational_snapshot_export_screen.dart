@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../branding/brand_provider.dart';
 import '../services/operational_snapshot_export_service.dart';
 import '../widgets/operational_snapshot_card.dart';
 
@@ -9,6 +10,7 @@ class OperationalSnapshotExportScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final config = BrandProvider.configOf(context);
     final items = const OperationalSnapshotExportService().build(
       checkinReady: true,
       fieldOpsReady: true,
@@ -20,7 +22,7 @@ class OperationalSnapshotExportScreen extends StatelessWidget {
       adminReady: true,
     );
     final snapshotText = const OperationalSnapshotExportService().buildPlainText(
-      appName: 'App Mobile',
+      appName: config.manifest.appName,
       items: items,
     );
 
