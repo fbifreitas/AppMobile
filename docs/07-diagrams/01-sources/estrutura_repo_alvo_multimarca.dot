@@ -1,0 +1,17 @@
+digraph G {
+  rankdir=LR;
+  graph [pad="0.3", nodesep="0.35", ranksep="0.6", bgcolor="white"];
+  node [shape=box, style="rounded,filled", color="#17406d", fillcolor="#f8fbff", fontname="Helvetica", fontsize=10, margin="0.12,0.08"];
+  edge [color="#577590", arrowsize=0.7];
+  repo [label="repo-root/"];
+  apps [label="apps/"];
+  mobile [label="mobile/\napp/\nbranding/\nconfig/\ncore/\ndomains/\nfeatures/\nshared/\nflavors/"];
+  web [label="web-backoffice/"];
+  backend [label="backend/"];
+  platform [label="platform/\nfoundations/\nintegrations/\nobservability/\ntooling/"];
+  docs [label="docs/"];
+  infra [label="infra/"];
+  assets [label="assets/brands/\nkaptur/\ncliente-a/"];
+  repo -> apps; repo -> platform; repo -> docs; repo -> infra;
+  apps -> mobile; apps -> web; apps -> backend; mobile -> assets;
+}

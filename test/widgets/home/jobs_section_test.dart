@@ -6,6 +6,8 @@ import 'package:appmobile/widgets/home/jobs_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers/brand_test_helper.dart';
+
 class _FakeJobRepository implements JobRepository {
   @override
   Future<List<Job>> getJobs() async => [];
@@ -33,7 +35,7 @@ void main() {
     ];
 
     await tester.pumpWidget(
-      MaterialApp(
+      withBrand(MaterialApp(
         home: Scaffold(
           body: JobsSection(
             appState: appState,
@@ -49,7 +51,7 @@ void main() {
             onStartInspection: (_) async {},
           ),
         ),
-      ),
+      )),
     );
 
     expect(find.text('Você está no local'), findsOneWidget);

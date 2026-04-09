@@ -1,21 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../branding/brand_provider.dart';
+import '../../branding/brand_tokens.dart';
 import '../../models/job.dart';
 import '../../models/job_status.dart';
 import '../../models/proposal_offer.dart';
 import '../../state/app_state.dart';
-import '../../theme/app_colors.dart';
 
 class ProposalsSection extends StatefulWidget {
   const ProposalsSection({
     super.key,
     this.propostas,
     this.onAcceptProposal,
+    this.sectionTitle,
+    this.swipeRequired = true,
+    this.financialSummaryEnabled = true,
+    this.marketplaceCopyEnabled = true,
   });
 
   final List<ProposalOffer>? propostas;
   final ValueChanged<ProposalOffer>? onAcceptProposal;
+
+  /// Section heading. Falls back to 'NOVAS PROPOSTAS' when null.
+  /// Callers pass: config.copyText('proposals_section_title', defaultValue: 'NOVAS PROPOSTAS')
+  final String? sectionTitle;
+
+  /// When false (Compass / corporate mode), swipe interaction is replaced
+  /// by a standard ElevatedButton to accept the proposal.
+  final bool swipeRequired;
+
+  /// When false, financial values (valor) are hidden from proposal cards.
+  final bool financialSummaryEnabled;
+
+  /// When true, marketplace-style copy is used ('DESLIZE PARA ACEITAR', etc.).
+  /// Corporate mode replaces with neutral action language.
+  final bool marketplaceCopyEnabled;
 
   static final List<ProposalOffer> _mockPropostas = [
     ProposalOffer(
@@ -60,7 +80,8 @@ class _ProposalsSectionState extends State<ProposalsSection> {
 
     final newJob = Job(
       id: proposta.id,
-      titulo: 'Vistoria ${proposta.subtipoImovel ?? proposta.tipoImovel ?? 'Imóvel'}',
+      titulo:
+          'Vistoria ${proposta.subtipoImovel ?? proposta.tipoImovel ?? 'Imóvel'}',
       endereco: proposta.endereco,
       status: JobStatus.novo,
       nomeCliente: proposta.proprietario,
@@ -78,20 +99,29 @@ class _ProposalsSectionState extends State<ProposalsSection> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Proposta ${proposta.id} aceita! Job adicionado aos seus jobs de hoje.'),
+        content: Text(
+          'Proposta ${proposta.id} aceita! Job adicionado aos seus jobs de hoje.',
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final config = BrandProvider.configOf(context);
+    final tokens = config.tokens;
+    final resolvedTitle =
+        widget.sectionTitle?.isNotEmpty == true
+            ? widget.sectionTitle!
+            : 'NOVAS PROPOSTAS';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'NOVAS PROPOSTAS',
-          style: TextStyle(
-            color: AppColors.textSecondary,
+        Text(
+          resolvedTitle,
+          style: const TextStyle(
+            color: BrandTokens.textSecondary,
             fontWeight: FontWeight.w800,
             letterSpacing: 0.8,
             fontSize: 12,
@@ -102,16 +132,13 @@ class _ProposalsSectionState extends State<ProposalsSection> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: BrandTokens.surface,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: BrandTokens.border),
             ),
             child: const Text(
               'Nenhuma proposta disponível no momento.',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: BrandTokens.textSecondary, fontSize: 12),
             ),
           )
         else
@@ -119,6 +146,10 @@ class _ProposalsSectionState extends State<ProposalsSection> {
             (item) => _ProposalCard(
               key: ValueKey(item.id),
               proposta: item,
+              tokens: tokens,
+              swipeRequired: widget.swipeRequired,
+              financialSummaryEnabled: widget.financialSummaryEnabled,
+              marketplaceCopyEnabled: widget.marketplaceCopyEnabled,
               onAccept: () => _acceptProposal(item),
             ),
           ),
@@ -131,20 +162,28 @@ class _ProposalCard extends StatelessWidget {
   const _ProposalCard({
     super.key,
     required this.proposta,
+    required this.tokens,
     required this.onAccept,
+    required this.swipeRequired,
+    required this.financialSummaryEnabled,
+    required this.marketplaceCopyEnabled,
   });
 
   final ProposalOffer proposta;
+  final BrandTokens tokens;
   final VoidCallback onAccept;
+  final bool swipeRequired;
+  final bool financialSummaryEnabled;
+  final bool marketplaceCopyEnabled;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: BrandTokens.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: BrandTokens.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -153,29 +192,32 @@ class _ProposalCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
             child: Row(
               children: [
-                Expanded(
-                  child: Text(
-                    proposta.valor,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
+                if (financialSummaryEnabled)
+                  Expanded(
+                    child: Text(
+                      proposta.valor,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: BrandTokens.textPrimary,
+                      ),
                     ),
-                  ),
-                ),
+                  )
+                else
+                  const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.warningLight,
+                    color: BrandTokens.warningLight,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
                     'Expira em ${_formatDuration(proposta.expiraEm)}',
                     style: const TextStyle(
-                      color: AppColors.warning,
+                      color: BrandTokens.warning,
                       fontWeight: FontWeight.w800,
                       fontSize: 10.5,
                     ),
@@ -190,13 +232,19 @@ class _ProposalCard extends StatelessWidget {
               spacing: 6,
               runSpacing: 6,
               children: [
-                _InfoTag(text: 'ID: ${proposta.id}'),
-                _InfoTag(text: '${proposta.distanciaKm.toStringAsFixed(1)} km de distância'),
+                _InfoTag(text: 'ID: ${proposta.id}', tokens: tokens),
+                _InfoTag(
+                  text:
+                      '${proposta.distanciaKm.toStringAsFixed(1)} km de distância',
+                  tokens: tokens,
+                ),
                 if (proposta.tipoImovel != null)
                   _InfoTag(
-                    text: proposta.subtipoImovel == null
-                        ? proposta.tipoImovel!
-                        : '${proposta.tipoImovel} • ${proposta.subtipoImovel}',
+                    text:
+                        proposta.subtipoImovel == null
+                            ? proposta.tipoImovel!
+                            : '${proposta.tipoImovel} • ${proposta.subtipoImovel}',
+                    tokens: tokens,
                   ),
               ],
             ),
@@ -206,15 +254,9 @@ class _ProposalCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _InfoRow(
-                  label: 'Endereço',
-                  value: proposta.endereco,
-                ),
+                _InfoRow(label: 'Endereço', value: proposta.endereco),
                 const SizedBox(height: 6),
-                _InfoRow(
-                  label: 'Proprietário',
-                  value: proposta.proprietario,
-                ),
+                _InfoRow(label: 'Proprietário', value: proposta.proprietario),
                 const SizedBox(height: 6),
                 _InfoRow(
                   label: 'Agendamento',
@@ -224,9 +266,18 @@ class _ProposalCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          _SwipeToAccept(
-            onAccept: onAccept,
-          ),
+          if (swipeRequired)
+            _SwipeToAccept(
+              onAccept: onAccept,
+              tokens: tokens,
+              marketplaceCopyEnabled: marketplaceCopyEnabled,
+            )
+          else
+            _AcceptButton(
+              onAccept: onAccept,
+              tokens: tokens,
+              marketplaceCopyEnabled: marketplaceCopyEnabled,
+            ),
         ],
       ),
     );
@@ -251,22 +302,23 @@ class _ProposalCard extends StatelessWidget {
 }
 
 class _InfoTag extends StatelessWidget {
-  const _InfoTag({required this.text});
+  const _InfoTag({required this.text, required this.tokens});
 
   final String text;
+  final BrandTokens tokens;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.primaryLight,
+        color: tokens.primaryLight,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Text(
         text,
-        style: const TextStyle(
-          color: AppColors.primary,
+        style: TextStyle(
+          color: tokens.primary,
           fontWeight: FontWeight.w700,
           fontSize: 10.5,
         ),
@@ -276,10 +328,7 @@ class _InfoTag extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.label,
-    required this.value,
-  });
+  const _InfoRow({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -288,16 +337,13 @@ class _InfoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return RichText(
       text: TextSpan(
-        style: const TextStyle(
-          color: AppColors.textSecondary,
-          fontSize: 11.5,
-        ),
+        style: const TextStyle(color: BrandTokens.textSecondary, fontSize: 11.5),
         children: [
           TextSpan(
             text: '$label: ',
             style: const TextStyle(
               fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+              color: BrandTokens.textPrimary,
             ),
           ),
           TextSpan(text: value),
@@ -307,15 +353,25 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
+/// Swipe-to-accept interaction — used in marketplace (Kaptur) mode.
 class _SwipeToAccept extends StatelessWidget {
   const _SwipeToAccept({
     required this.onAccept,
+    required this.tokens,
+    required this.marketplaceCopyEnabled,
   });
 
   final VoidCallback onAccept;
+  final BrandTokens tokens;
+  final bool marketplaceCopyEnabled;
 
   @override
   Widget build(BuildContext context) {
+    final actionLabel =
+        marketplaceCopyEnabled ? 'DESLIZE PARA ACEITAR' : 'ACEITAR';
+    final backgroundLabel =
+        marketplaceCopyEnabled ? 'ACEITAR PROPOSTA' : 'ACEITAR';
+
     return Dismissible(
       key: UniqueKey(),
       direction: DismissDirection.startToEnd,
@@ -324,18 +380,18 @@ class _SwipeToAccept extends StatelessWidget {
       background: Container(
         margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
         decoration: BoxDecoration(
-          color: AppColors.primary,
+          color: tokens.primary,
           borderRadius: BorderRadius.circular(14),
         ),
         alignment: Alignment.centerLeft,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: const Row(
+        child: Row(
           children: [
-            Icon(Icons.swipe_right_alt, color: Colors.white),
-            SizedBox(width: 8),
+            const Icon(Icons.swipe_right_alt, color: Colors.white),
+            const SizedBox(width: 8),
             Text(
-              'ACEITAR PROPOSTA',
-              style: TextStyle(
+              backgroundLabel,
+              style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w800,
                 fontSize: 11,
@@ -348,28 +404,56 @@ class _SwipeToAccept extends StatelessWidget {
         margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: BrandTokens.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: BrandTokens.border),
         ),
-        child: const Row(
+        child: Row(
           children: [
-            Icon(
-              Icons.swipe_right_alt,
-              color: AppColors.primary,
-            ),
-            SizedBox(width: 10),
+            Icon(Icons.swipe_right_alt, color: tokens.primary),
+            const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'DESLIZE PARA ACEITAR',
+                actionLabel,
                 style: TextStyle(
-                  color: AppColors.primary,
+                  color: tokens.primary,
                   fontWeight: FontWeight.w800,
                   fontSize: 11.5,
                 ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Button-based accept interaction — used in corporate (Compass) mode
+/// when swipe interaction is not appropriate.
+class _AcceptButton extends StatelessWidget {
+  const _AcceptButton({
+    required this.onAccept,
+    required this.tokens,
+    required this.marketplaceCopyEnabled,
+  });
+
+  final VoidCallback onAccept;
+  final BrandTokens tokens;
+  final bool marketplaceCopyEnabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: onAccept,
+          child: Text(
+            marketplaceCopyEnabled ? 'ACEITAR PROPOSTA' : 'ACEITAR',
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+          ),
         ),
       ),
     );

@@ -1,12 +1,13 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
 android {
-    namespace = "com.example.myapp"
+    // Namespace compartilhado — identifica o R class e código Kotlin.
+    // Não varia por flavor. applicationId varia (definido nos flavors abaixo).
+    namespace = "com.appfieldops.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -20,20 +21,38 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.myapp"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        // applicationId é sobrescrito pelos flavors abaixo.
+        // Mantido aqui como fallback para runs sem flavor especificado.
+        applicationId = "com.appfieldops.app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
+    // Multi-brand: um flavor por marca.
+    // Cada flavor gera um APK/AAB independente com seu próprio applicationId,
+    // app_name e assets de launcher. Esses valores são build-time e NÃO podem
+    // ser alterados por configuração remota em runtime.
+    flavorDimensions += "brand"
+
+    productFlavors {
+        create("kaptur") {
+            dimension = "brand"
+            applicationId = "com.kaptur.field"
+            // app_name fornecido aqui — AndroidManifest usa @string/app_name
+            resValue("string", "app_name", "Kaptur")
+        }
+
+        create("compass") {
+            dimension = "brand"
+            applicationId = "com.compass.avaliacoes"
+            resValue("string", "app_name", "Compass Avaliações")
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
         }
     }

@@ -12,6 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
+import 'helpers/brand_test_helper.dart';
+
 void main() {
   testWidgets('app starts', (tester) async {
     final previousOverrides = HttpOverrides.current;
@@ -22,7 +24,7 @@ void main() {
     });
 
     await tester.pumpWidget(
-      MultiProvider(
+      withBrand(MultiProvider(
         providers: [
           ChangeNotifierProvider(
             create: (_) => AppState(_ImmediateJobRepository()),
@@ -34,7 +36,7 @@ void main() {
         child: const MaterialApp(
           home: HomeScreen(),
         ),
-      ),
+      )),
     );
 
     await tester.pump();

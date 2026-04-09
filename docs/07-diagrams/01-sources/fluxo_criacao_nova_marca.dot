@@ -1,0 +1,12 @@
+digraph G {
+  rankdir=LR;
+  graph [pad="0.3", nodesep="0.35", ranksep="0.55", bgcolor="white"];
+  node [shape=box, style="rounded,filled", color="#2d6a4f", fillcolor="#f3fff9", fontname="Helvetica", fontsize=10, margin="0.12,0.08"];
+  edge [color="#40916c", arrowsize=0.7];
+  a [label="Fechamento comercial\nNome da marca\nModo de produto\nConta da loja"];
+  b [label="Cadastro no Brand Admin\ncores\nlogos\ncopy\nflags"];
+  c [label="Script create_brand\nflavor\nids nativos\nassets\n.env"];
+  d [label="CI gera build\nAAB / IPA\nQA\nchecklist"];
+  e [label="Publicacao\nconta propria ou do cliente"];
+  a -> b -> c -> d -> e;
+}

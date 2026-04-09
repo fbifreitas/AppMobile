@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../helpers/brand_test_helper.dart';
+
 class _ImmediateJobRepository implements JobRepository {
   @override
   Future<List<Job>> getJobs() async => <Job>[];
@@ -33,7 +35,7 @@ void main() {
     await appState.beginInspectionRecovery(job);
 
     await tester.pumpWidget(
-      MaterialApp(
+      withBrand(MaterialApp(
         home: Scaffold(
           body: JobsSection(
             appState: appState,
@@ -48,7 +50,7 @@ void main() {
             onStartInspection: (_) async {},
           ),
         ),
-      ),
+      )),
     );
 
     await tester.pumpAndSettle();
