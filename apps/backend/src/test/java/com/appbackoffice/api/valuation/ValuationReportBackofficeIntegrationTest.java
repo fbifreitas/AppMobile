@@ -1,5 +1,8 @@
 package com.appbackoffice.api.valuation;
 
+import com.appbackoffice.api.auth.repository.IdentityBindingRepository;
+import com.appbackoffice.api.auth.repository.SessionRepository;
+import com.appbackoffice.api.auth.repository.UserCredentialRepository;
 import com.appbackoffice.api.identity.entity.Tenant;
 import com.appbackoffice.api.identity.entity.TenantStatus;
 import com.appbackoffice.api.identity.repository.MembershipRepository;
@@ -53,6 +56,9 @@ class ValuationReportBackofficeIntegrationTest {
     @Autowired private CaseRepository caseRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private MembershipRepository membershipRepository;
+    @Autowired private UserCredentialRepository userCredentialRepository;
+    @Autowired private IdentityBindingRepository identityBindingRepository;
+    @Autowired private SessionRepository sessionRepository;
     @Autowired private TenantRepository tenantRepository;
     @Autowired private CaseService caseService;
     @Autowired private JobService jobService;
@@ -68,6 +74,9 @@ class ValuationReportBackofficeIntegrationTest {
         assignmentRepository.deleteAll();
         jobRepository.deleteAll();
         caseRepository.deleteAll();
+        sessionRepository.deleteAll();
+        identityBindingRepository.deleteAll();
+        userCredentialRepository.deleteAll();
         membershipRepository.deleteAll();
         userRepository.deleteAll();
         tenantRepository.deleteAll();
@@ -96,6 +105,9 @@ class ValuationReportBackofficeIntegrationTest {
         assignmentRepository.deleteAll();
         jobRepository.deleteAll();
         caseRepository.deleteAll();
+        sessionRepository.deleteAll();
+        identityBindingRepository.deleteAll();
+        userCredentialRepository.deleteAll();
         membershipRepository.deleteAll();
         userRepository.deleteAll();
         tenantRepository.deleteAll();
