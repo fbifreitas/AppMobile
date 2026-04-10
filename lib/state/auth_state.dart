@@ -40,7 +40,7 @@ class AuthState extends ChangeNotifier {
   bool get isAuthenticated => _status != AppAuthStatus.unauthenticated;
   bool get permissionsOnboardingCompleted => _permissionsOnboardingCompleted;
   bool get requiresPermissionsOnboarding =>
-      !_permissionsOnboardingCompleted && _status != AppAuthStatus.awaitingApproval;
+      !_permissionsOnboardingCompleted && _status == AppAuthStatus.active;
 
   Future<void> _load() async {
     final statusStr = await _preferencesRepository.getString(_statusKey);
@@ -56,7 +56,9 @@ class AuthState extends ChangeNotifier {
     _userCpf = await _preferencesRepository.getString(_userCpfKey);
     _userCnpj = await _preferencesRepository.getString(_userCnpjKey);
     _permissionsOnboardingCompleted =
-        await _preferencesRepository.getBool(_permissionsOnboardingCompletedKey) ??
+        await _preferencesRepository.getBool(
+          _permissionsOnboardingCompletedKey,
+        ) ??
         false;
     _loading = false;
     notifyListeners();

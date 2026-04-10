@@ -367,6 +367,8 @@ Detalhamento:
 2. Bloquear acesso ao fluxo principal até concluir a etapa de permissões mínimas obrigatórias.
 3. Implementar verificação de estado no login para redirecionar usuários sem onboarding/permissões concluídas para a nova tela.
 
+Observacao 2026-04-10 (PARCIAL - Compass Pacote B): regra de roteamento ajustada para nao exibir onboarding de permissoes antes do login. A etapa passa a bloquear somente usuario autenticado/ativo sem permissao concluida, cobrindo o primeiro acesso de usuario provisionado via backoffice.
+
 ### BL-017
 Adicionar contract tests entre mobile e backend para validar schemas e evitar quebra silenciosa de integrações críticas.
 

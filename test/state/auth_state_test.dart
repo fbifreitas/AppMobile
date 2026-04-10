@@ -101,30 +101,51 @@ void main() {
     expect(authState.permissionsOnboardingCompleted, isTrue);
   });
 
-  test('requires permissions onboarding for unauthenticated user when not completed', () async {
+  test('does not require permissions onboarding before login', () async {
     final repo = _MemoryPreferencesRepository();
     final authState = AuthState(repo);
     await waitAuthReady(authState);
 
     expect(authState.status, AppAuthStatus.unauthenticated);
     expect(authState.permissionsOnboardingCompleted, isFalse);
-    expect(authState.requiresPermissionsOnboarding, isTrue);
-  });
-
-  test('does not require permissions onboarding while awaiting approval', () async {
-    final repo = _MemoryPreferencesRepository();
-    final authState = AuthState(repo);
-    await waitAuthReady(authState);
-
-    await authState.login('qa@empresa.com');
-    await authState.completeOnboarding(
-      nome: 'Usuario QA',
-      tipo: 'PJ',
-      cnpj: '11222333000181',
-    );
-
-    expect(authState.status, AppAuthStatus.awaitingApproval);
-    expect(authState.permissionsOnboardingCompleted, isFalse);
     expect(authState.requiresPermissionsOnboarding, isFalse);
   });
+
+  test(
+    'does not require permissions onboarding while awaiting approval',
+    () async {
+      final repo = _MemoryPreferencesRepository();
+      final authState = AuthState(repo);
+      await waitAuthReady(authState);
+
+      await authState.login('qa@empresa.com');
+      await authState.completeOnboarding(
+        nome: 'Usuario QA',
+        tipo: 'PJ',
+        cnpj: '11222333000181',
+      );
+
+      expect(authState.status, AppAuthStatus.awaitingApproval);
+      expect(authState.permissionsOnboardingCompleted, isFalse);
+      expect(authState.requiresPermissionsOnboarding, isFalse);
+    },
+  );
+
+  test(
+    'requires permissions onboarding after provisioned user login',
+    () async {
+      final repo = _MemoryPreferencesRepository();
+      await repo.setString('auth_user_nome', 'Usuario Provisionado');
+      await repo.setString('auth_user_tipo', 'CLT');
+
+      final authState = AuthState(repo);
+      await waitAuthReady(authState);
+
+      await authState.login('provisionado@compass.com');
+
+      expect(authState.status, AppAuthStatus.active);
+      expect(authState.permissionsOnboardingCompleted, isFalse);
+      expect(authState.requiresPermissionsOnboarding, isTrue);
+    },
+  );
 }
