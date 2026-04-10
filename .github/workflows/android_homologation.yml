@@ -66,15 +66,9 @@ jobs:
           if git show HEAD~1:pubspec.yaml >/dev/null 2>&1; then
             PREVIOUS_VERSION=$(git show HEAD~1:pubspec.yaml | awk '/^version:/{print $2; exit}')
             if [ -n "$PREVIOUS_VERSION" ] && [ "$CURRENT_VERSION" = "$PREVIOUS_VERSION" ]; then
-              # Versão igual — só é erro se pubspec.yaml foi alterado neste commit
-              if git diff --name-only HEAD~1 HEAD | grep -q "^pubspec.yaml$"; then
-                echo "pubspec.yaml foi alterado mas a versao nao foi incrementada: $CURRENT_VERSION"
-                echo "Atualize o campo version no pubspec.yaml antes de distribuir no Firebase."
-                exit 1
-              else
-                echo "pubspec.yaml nao alterado neste commit; validacao de versao ignorada."
-                exit 0
-              fi
+              echo "Versao nao incrementada para homologacao: $CURRENT_VERSION"
+              echo "Atualize o campo version no pubspec.yaml antes de distribuir no Firebase."
+              exit 1
             fi
             echo "Versao validada para homologacao: atual=$CURRENT_VERSION anterior=$PREVIOUS_VERSION"
           else
@@ -87,14 +81,27 @@ jobs:
       - name: Test
         run: flutter test
 
-      - name: Build debug APK (homologation candidate)
-        run: flutter build apk --debug --flavor kaptur
+      - name: Build debug APK (Kaptur homologation candidate)
+        run: flutter build apk --debug --flavor kaptur --target lib/main_kaptur.dart
 
-      - name: Upload homologation APK artifact
+      - name: Build debug APK (Compass homologation candidate)
+        run: >
+          flutter build apk --debug --flavor compass --target lib/main_compass.dart
+          --dart-define=APP_TENANT_ID=tenant-compass
+          --dart-define=APP_API_BASE_URL=${{ vars.COMPASS_APP_API_BASE_URL }}
+
+      - name: Upload homologation APK artifact (Kaptur)
         uses: actions/upload-artifact@v6
         with:
-          name: app-homolog-apk
+          name: app-kaptur-homolog-apk
           path: build/app/outputs/flutter-apk/app-kaptur-debug.apk
+          if-no-files-found: error
+
+      - name: Upload homologation APK artifact (Compass)
+        uses: actions/upload-artifact@v6
+        with:
+          name: app-compass-homolog-apk
+          path: build/app/outputs/flutter-apk/app-compass-debug.apk
           if-no-files-found: error
 
       - name: Install Firebase CLI
@@ -113,3 +120,20 @@ jobs:
             --release-notes "Build de homologacao ${APP_VERSION} (${SHORT_SHA}) via CI/CD."
         env:
           GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcloud-key.json
+
+      - name: Distribute Compass homolog APK to Firebase App Distribution (QA)
+        run: |
+          APP_VERSION=$(awk '/^version:/{print $2; exit}' pubspec.yaml)
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          if [ -z "$FIREBASE_APP_ID_ANDROID_COMPASS" ]; then
+            echo "Secret FIREBASE_APP_ID_ANDROID_COMPASS nao configurado; distribuicao Compass ignorada."
+            exit 0
+          fi
+
+          firebase appdistribution:distribute build/app/outputs/flutter-apk/app-compass-debug.apk \
+            --app "$FIREBASE_APP_ID_ANDROID_COMPASS" \
+            --groups "testers-internos" \
+            --release-notes "Build Compass homologacao ${APP_VERSION} (${SHORT_SHA}) via CI/CD."
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcloud-key.json
+          FIREBASE_APP_ID_ANDROID_COMPASS: ${{ secrets.FIREBASE_APP_ID_ANDROID_COMPASS }}

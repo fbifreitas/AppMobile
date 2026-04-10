@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDate;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
@@ -22,4 +23,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByTenantIdAndEmail(String tenantId, String email);
 
     Optional<User> findByTenantIdAndExternalId(String tenantId, String externalId);
+
+    Optional<User> findByTenantIdAndCpfAndBirthDateAndExternalId(
+            String tenantId,
+            String cpf,
+            LocalDate birthDate,
+            String externalId
+    );
 }

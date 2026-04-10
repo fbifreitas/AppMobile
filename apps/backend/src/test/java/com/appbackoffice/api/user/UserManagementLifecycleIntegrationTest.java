@@ -10,6 +10,8 @@ import com.appbackoffice.api.auth.repository.SessionRepository;
 import com.appbackoffice.api.auth.repository.UserCredentialRepository;
 import com.appbackoffice.api.identity.repository.MembershipRepository;
 import com.appbackoffice.api.identity.repository.TenantRepository;
+import com.appbackoffice.api.platform.repository.TenantApplicationRepository;
+import com.appbackoffice.api.platform.repository.TenantLicenseRepository;
 import com.appbackoffice.api.user.audit.UserAuditEntryRepository;
 import com.appbackoffice.api.user.entity.User;
 import com.appbackoffice.api.user.entity.UserRole;
@@ -60,6 +62,12 @@ class UserManagementLifecycleIntegrationTest {
         @Autowired
         private IdentityBindingRepository identityBindingRepository;
 
+        @Autowired
+        private TenantApplicationRepository tenantApplicationRepository;
+
+        @Autowired
+        private TenantLicenseRepository tenantLicenseRepository;
+
     private static final String CORRELATION_ID = "user-lifecycle-corr-001";
         private static final String TENANT_ID = "tenant-lifecycle-test";
         private static final String ACTOR_ID = "backoffice-admin";
@@ -72,6 +80,8 @@ class UserManagementLifecycleIntegrationTest {
                 membershipRepository.deleteAll();
                 userAuditEntryRepository.deleteAll();
         userRepository.deleteAll();
+                tenantApplicationRepository.deleteAll();
+                tenantLicenseRepository.deleteAll();
                 tenantRepository.deleteAll();
         tenantRepository.save(new Tenant(TENANT_ID, "tenant-lifecycle-test", "Tenant Lifecycle Test", TenantStatus.ACTIVE));
     }

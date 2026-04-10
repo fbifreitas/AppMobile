@@ -25,6 +25,7 @@ public class ConfigPackageService {
     private final ConfigPackageRepository configPackageRepository;
     private final ConfigAuditEntryRepository configAuditEntryRepository;
     private final ConfigPolicyService configPolicyService;
+    private final ConfigPackageApplicationStatusRepository applicationStatusRepository;
     private final ObjectMapper objectMapper;
     private final OperationalEventRecorder operationalEventRecorder;
 
@@ -32,12 +33,14 @@ public class ConfigPackageService {
             ConfigPackageRepository configPackageRepository,
             ConfigAuditEntryRepository configAuditEntryRepository,
             ConfigPolicyService configPolicyService,
+            ConfigPackageApplicationStatusRepository applicationStatusRepository,
             ObjectMapper objectMapper,
             OperationalEventRecorder operationalEventRecorder
     ) {
         this.configPackageRepository = configPackageRepository;
         this.configAuditEntryRepository = configAuditEntryRepository;
         this.configPolicyService = configPolicyService;
+        this.applicationStatusRepository = applicationStatusRepository;
         this.objectMapper = objectMapper;
         this.operationalEventRecorder = operationalEventRecorder;
     }
@@ -196,6 +199,47 @@ public class ConfigPackageService {
         return new ConfigAuditResponse(items, items.size(), Instant.now().toString());
     }
 
+    public ConfigPackageApplicationStatusResponse recordApplicationStatus(
+            String tenantId,
+            String actorId,
+            ConfigPackageApplicationStatusRequest request
+    ) {
+        ConfigPackageApplicationStatusEntity entity = new ConfigPackageApplicationStatusEntity();
+        entity.setTenantId(tenantId);
+        entity.setActorId(actorId);
+        entity.setPackageId(trimToNull(request.packageId()));
+        entity.setPackageVersion(trimRequired(request.packageVersion()));
+        entity.setDeviceId(trimToNull(request.deviceId()));
+        entity.setAppVersion(trimToNull(request.appVersion()));
+        entity.setPlatform(trimToNull(request.platform()));
+        entity.setStatus(parseApplicationStatus(request.status()));
+        entity.setMessage(trimToNull(request.message()));
+        entity.setAppliedAt(Instant.now());
+
+        ConfigPackageApplicationStatusEntity saved = applicationStatusRepository.save(entity);
+        recordApplicationStatusEvent(saved);
+        return toApplicationStatusResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public ConfigPackageApplicationStatusesResponse listApplicationStatuses(
+            String tenantId,
+            String packageVersion,
+            ActorRole actorRole
+    ) {
+        configPolicyService.assertAllowed(actorRole, ConfigAction.READ);
+        List<ConfigPackageApplicationStatusEntity> statuses = trimToNull(packageVersion) == null
+                ? applicationStatusRepository.findTop100ByTenantIdOrderByUpdatedAtDescIdDesc(tenantId)
+                : applicationStatusRepository.findTop100ByTenantIdAndPackageVersionOrderByUpdatedAtDescIdDesc(
+                        tenantId,
+                        packageVersion.trim()
+                );
+        List<ConfigPackageApplicationStatusResponse> items = statuses.stream()
+                .map(this::toApplicationStatusResponse)
+                .toList();
+        return new ConfigPackageApplicationStatusesResponse(items, items.size(), Instant.now().toString());
+    }
+
     private ConfigPackageEntity findPackage(String packageId, String tenantId) {
         return configPackageRepository.findByIdAndTenantId(packageId, tenantId).orElseThrow(this::notFoundOrInvalid);
     }
@@ -252,6 +296,33 @@ public class ConfigPackageService {
         );
     }
 
+    private void recordApplicationStatusEvent(ConfigPackageApplicationStatusEntity entity) {
+        operationalEventRecorder.recordDomainEvent(
+                entity.getTenantId(),
+                "MOBILE",
+                "CONFIG_PACKAGE_" + entity.getStatus().name(),
+                "mobile.config-package-status",
+                entity.getStatus() == ConfigPackageApplicationStatus.APPLIED ? "SUCCESS" : "WARNING",
+                entity.getActorId(),
+                MDC.get(RequestTracingFilter.CORRELATION_ID_MDC_KEY),
+                MDC.get(RequestTracingFilter.TRACE_ID_MDC_KEY),
+                null,
+                null,
+                null,
+                null,
+                false,
+                "Mobile config package application status recorded",
+                java.util.Map.of(
+                        "packageId", entity.getPackageId() != null ? entity.getPackageId() : "",
+                        "packageVersion", entity.getPackageVersion(),
+                        "deviceId", entity.getDeviceId() != null ? entity.getDeviceId() : "",
+                        "appVersion", entity.getAppVersion() != null ? entity.getAppVersion() : "",
+                        "platform", entity.getPlatform() != null ? entity.getPlatform() : "",
+                        "status", entity.getStatus().name()
+                )
+        );
+    }
+
     private ConfigPackageResponse toResponse(ConfigPackageEntity entity) {
         return new ConfigPackageResponse(
                 entity.getId(),
@@ -278,6 +349,23 @@ public class ConfigPackageService {
         );
     }
 
+    private ConfigPackageApplicationStatusResponse toApplicationStatusResponse(ConfigPackageApplicationStatusEntity entity) {
+        return new ConfigPackageApplicationStatusResponse(
+                entity.getId(),
+                entity.getTenantId(),
+                entity.getPackageId(),
+                entity.getPackageVersion(),
+                entity.getActorId(),
+                entity.getDeviceId(),
+                entity.getAppVersion(),
+                entity.getPlatform(),
+                entity.getStatus().name().toLowerCase(),
+                entity.getMessage(),
+                entity.getAppliedAt().toString(),
+                entity.getUpdatedAt().toString()
+        );
+    }
+
     private void applyRules(ConfigPackageEntity entity, ConfigRulesDto rules) {
         entity.setRequireBiometric(rules.requireBiometric());
         entity.setCameraMinPhotos(rules.cameraMinPhotos());
@@ -290,6 +378,43 @@ public class ConfigPackageService {
 
     private ActorRole parseActorRole(String raw) {
         return ActorRole.valueOf(raw.trim().toUpperCase());
+    }
+
+    private ConfigPackageApplicationStatus parseApplicationStatus(String raw) {
+        try {
+            return ConfigPackageApplicationStatus.valueOf(raw.trim().toUpperCase());
+        } catch (Exception exception) {
+            throw new ApiContractException(
+                    HttpStatus.BAD_REQUEST,
+                    "CONFIG_APPLICATION_STATUS_INVALID",
+                    "Status de aplicacao de pacote invalido",
+                    ErrorSeverity.ERROR,
+                    "Informe status APPLIED ou REJECTED.",
+                    "status=" + raw
+            );
+        }
+    }
+
+    private String trimRequired(String value) {
+        String normalized = trimToNull(value);
+        if (normalized == null) {
+            throw new ApiContractException(
+                    HttpStatus.BAD_REQUEST,
+                    "CONFIG_APPLICATION_VERSION_REQUIRED",
+                    "Versao do pacote aplicada e obrigatoria",
+                    ErrorSeverity.ERROR,
+                    "Envie packageVersion no ACK/NACK do pacote.",
+                    "field=packageVersion"
+            );
+        }
+        return normalized;
+    }
+
+    private String trimToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 
     private ConfigScope parseScope(String raw) {

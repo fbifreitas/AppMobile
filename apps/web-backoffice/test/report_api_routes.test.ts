@@ -16,6 +16,21 @@ function makeJsonResponse(status: number, body: unknown): Response {
   });
 }
 
+function sessionCookie(tenantId = "tenant-alpha"): string {
+  return `backoffice_auth_session=${Buffer.from(JSON.stringify({
+    accessToken: "access-token",
+    refreshToken: "refresh-token",
+    tokenType: "Bearer",
+    tenantId,
+    userId: 77,
+    email: "reviewer@compass.com",
+    userStatus: "APPROVED",
+    membershipRole: "TENANT_ADMIN",
+    membershipStatus: "ACTIVE",
+    permissions: ["reports:*"]
+  }), "utf8").toString("base64url")}`;
+}
+
 test("report list route forwards filters to backend", async () => {
   const originalFetch = globalThis.fetch;
   let capturedUrl = "";
@@ -29,7 +44,11 @@ test("report list route forwards filters to backend", async () => {
   };
 
   try {
-    const request = new NextRequest("http://localhost/api/reports?tenantId=tenant-alpha&status=GENERATED");
+    const request = new NextRequest("http://localhost/api/reports?tenantId=ignored&status=GENERATED", {
+      headers: {
+        cookie: sessionCookie()
+      }
+    });
     const response = await reportsGet(request);
     const payload = (await response.json()) as { total: number };
 
@@ -37,6 +56,28 @@ test("report list route forwards filters to backend", async () => {
     assert.equal(payload.total, 1);
     assert.match(capturedUrl, /tenantId=tenant-alpha/);
     assert.match(capturedUrl, /status=GENERATED/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("report list route exige sessao autenticada", async () => {
+  const originalFetch = globalThis.fetch;
+  let called = false;
+
+  globalThis.fetch = async () => {
+    called = true;
+    return makeJsonResponse(200, {});
+  };
+
+  try {
+    const request = new NextRequest("http://localhost/api/reports?tenantId=tenant-alpha");
+    const response = await reportsGet(request);
+    const payload = (await response.json()) as { error: string };
+
+    assert.equal(response.status, 401);
+    assert.equal(payload.error, "Authentication required");
+    assert.equal(called, false);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -54,11 +95,12 @@ test("report generate route proxies process id and body", async () => {
   };
 
   try {
-    const request = new NextRequest("http://localhost/api/reports/generate/77?tenantId=tenant-alpha", {
+    const request = new NextRequest("http://localhost/api/reports/generate/77?tenantId=ignored", {
       method: "POST",
       body: JSON.stringify({}),
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        cookie: sessionCookie()
       }
     });
     const response = await generateReportPost(request, {
@@ -85,7 +127,11 @@ test("report detail route proxies the report id", async () => {
   };
 
   try {
-    const request = new NextRequest("http://localhost/api/reports/91?tenantId=tenant-alpha");
+    const request = new NextRequest("http://localhost/api/reports/91?tenantId=ignored", {
+      headers: {
+        cookie: sessionCookie()
+      }
+    });
     const response = await reportDetailGet(request, {
       params: Promise.resolve({ reportId: "91" })
     });
@@ -109,11 +155,12 @@ test("report review route proxies body to backend", async () => {
   };
 
   try {
-    const request = new NextRequest("http://localhost/api/reports/91/review?tenantId=tenant-alpha", {
+    const request = new NextRequest("http://localhost/api/reports/91/review?tenantId=ignored", {
       method: "POST",
       body: JSON.stringify({ action: "APPROVE", notes: "ship it" }),
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        cookie: sessionCookie()
       }
     });
     const response = await reviewReportPost(request, {

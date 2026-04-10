@@ -1,4 +1,5 @@
 import 'package:appmobile/repositories/preferences_repository.dart';
+import 'package:appmobile/services/mobile_auth_service.dart';
 import 'package:appmobile/state/auth_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -24,6 +25,70 @@ class _MemoryPreferencesRepository implements PreferencesRepository {
   @override
   Future<void> setString(String key, String value) async {
     _store[key] = value;
+  }
+}
+
+class _FakeMobileAuthGateway implements MobileAuthGateway {
+  const _FakeMobileAuthGateway(this.session);
+
+  final MobileAuthSession session;
+
+  @override
+  bool get isConfigured => true;
+
+  @override
+  Future<MobileAuthSession> login({
+    required String tenantId,
+    required String email,
+    required String password,
+    required String deviceInfo,
+  }) async => session;
+
+  @override
+  Future<MobileAuthTokens> refresh({required String refreshToken}) async {
+    return const MobileAuthTokens(
+      accessToken: 'refreshed-access-token',
+      refreshToken: 'refreshed-refresh-token',
+      tokenType: 'Bearer',
+      expiresInSeconds: 900,
+    );
+  }
+
+  @override
+  Future<void> logout({required String refreshToken}) async {}
+}
+
+class _RefreshMobileAuthGateway implements MobileAuthGateway {
+  bool refreshCalled = false;
+  String? logoutRefreshToken;
+
+  @override
+  bool get isConfigured => true;
+
+  @override
+  Future<MobileAuthSession> login({
+    required String tenantId,
+    required String email,
+    required String password,
+    required String deviceInfo,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<MobileAuthTokens> refresh({required String refreshToken}) async {
+    refreshCalled = true;
+    return const MobileAuthTokens(
+      accessToken: 'new-access-token',
+      refreshToken: 'new-refresh-token',
+      tokenType: 'Bearer',
+      expiresInSeconds: 900,
+    );
+  }
+
+  @override
+  Future<void> logout({required String refreshToken}) async {
+    logoutRefreshToken = refreshToken;
   }
 }
 
@@ -101,30 +166,134 @@ void main() {
     expect(authState.permissionsOnboardingCompleted, isTrue);
   });
 
-  test('requires permissions onboarding for unauthenticated user when not completed', () async {
+  test('does not require permissions onboarding before login', () async {
     final repo = _MemoryPreferencesRepository();
     final authState = AuthState(repo);
     await waitAuthReady(authState);
 
     expect(authState.status, AppAuthStatus.unauthenticated);
     expect(authState.permissionsOnboardingCompleted, isFalse);
+    expect(authState.requiresPermissionsOnboarding, isFalse);
+  });
+
+  test(
+    'does not require permissions onboarding while awaiting approval',
+    () async {
+      final repo = _MemoryPreferencesRepository();
+      final authState = AuthState(repo);
+      await waitAuthReady(authState);
+
+      await authState.login('qa@empresa.com');
+      await authState.completeOnboarding(
+        nome: 'Usuario QA',
+        tipo: 'PJ',
+        cnpj: '11222333000181',
+      );
+
+      expect(authState.status, AppAuthStatus.awaitingApproval);
+      expect(authState.permissionsOnboardingCompleted, isFalse);
+      expect(authState.requiresPermissionsOnboarding, isFalse);
+    },
+  );
+
+  test(
+    'requires permissions onboarding after provisioned user login',
+    () async {
+      final repo = _MemoryPreferencesRepository();
+      await repo.setString('auth_user_nome', 'Usuario Provisionado');
+      await repo.setString('auth_user_tipo', 'CLT');
+
+      final authState = AuthState(repo);
+      await waitAuthReady(authState);
+
+      await authState.login('provisionado@compass.com');
+
+      expect(authState.status, AppAuthStatus.active);
+      expect(authState.permissionsOnboardingCompleted, isFalse);
+      expect(authState.requiresPermissionsOnboarding, isTrue);
+    },
+  );
+
+  test('backend login stores tenant context and tokens', () async {
+    final repo = _MemoryPreferencesRepository();
+    final authState = AuthState(
+      repo,
+      const _FakeMobileAuthGateway(
+        MobileAuthSession(
+          accessToken: 'access-token',
+          refreshToken: 'refresh-token',
+          tokenType: 'Bearer',
+          expiresInSeconds: 900,
+          userId: 77,
+          tenantId: 'tenant-compass',
+          email: 'operador@compass.com',
+          userStatus: 'APPROVED',
+          membershipRole: 'OPERATOR',
+          membershipStatus: 'ACTIVE',
+          permissions: ['jobs:read'],
+        ),
+      ),
+      'tenant-compass',
+    );
+    await waitAuthReady(authState);
+
+    await authState.login('operador@compass.com', password: 'Compass@123');
+
+    expect(authState.status, AppAuthStatus.active);
+    expect(authState.tenantId, 'tenant-compass');
+    expect(authState.userId, '77');
+    expect(authState.accessToken, 'access-token');
+    expect(authState.refreshToken, 'refresh-token');
+    expect(authState.membershipRole, 'OPERATOR');
+    expect(authState.accessTokenExpiresAt, isNotNull);
     expect(authState.requiresPermissionsOnboarding, isTrue);
   });
 
-  test('does not require permissions onboarding while awaiting approval', () async {
+  test('refreshes expired backend session on load', () async {
     final repo = _MemoryPreferencesRepository();
-    final authState = AuthState(repo);
-    await waitAuthReady(authState);
-
-    await authState.login('qa@empresa.com');
-    await authState.completeOnboarding(
-      nome: 'Usuario QA',
-      tipo: 'PJ',
-      cnpj: '11222333000181',
+    await repo.setString('auth_status', AppAuthStatus.active.name);
+    await repo.setString('auth_user_email', 'operador@compass.com');
+    await repo.setString('auth_tenant_id', 'tenant-compass');
+    await repo.setString('auth_user_id', '77');
+    await repo.setString('auth_access_token', 'old-access-token');
+    await repo.setString('auth_refresh_token', 'old-refresh-token');
+    await repo.setString(
+      'auth_access_token_expires_at',
+      DateTime.now()
+          .toUtc()
+          .subtract(const Duration(minutes: 1))
+          .toIso8601String(),
     );
 
-    expect(authState.status, AppAuthStatus.awaitingApproval);
-    expect(authState.permissionsOnboardingCompleted, isFalse);
-    expect(authState.requiresPermissionsOnboarding, isFalse);
+    final gateway = _RefreshMobileAuthGateway();
+    final authState = AuthState(repo, gateway, 'tenant-compass');
+    await waitAuthReady(authState);
+
+    expect(gateway.refreshCalled, isTrue);
+    expect(authState.accessToken, 'new-access-token');
+    expect(authState.refreshToken, 'new-refresh-token');
+    expect(authState.status, AppAuthStatus.active);
+  });
+
+  test('revokes backend refresh token on logout', () async {
+    final repo = _MemoryPreferencesRepository();
+    final gateway = _RefreshMobileAuthGateway();
+    final authState = AuthState(repo, gateway, 'tenant-compass');
+    await waitAuthReady(authState);
+
+    await repo.setString('auth_status', AppAuthStatus.active.name);
+    await repo.setString('auth_refresh_token', 'refresh-to-revoke');
+    await repo.setString(
+      'auth_access_token_expires_at',
+      DateTime.now().toUtc().add(const Duration(minutes: 10)).toIso8601String(),
+    );
+    final reloaded = AuthState(repo, gateway, 'tenant-compass');
+    await waitAuthReady(reloaded);
+
+    await reloaded.logout();
+
+    expect(gateway.logoutRefreshToken, 'refresh-to-revoke');
+    expect(reloaded.status, AppAuthStatus.unauthenticated);
+    expect(reloaded.refreshToken, isNull);
   });
 }

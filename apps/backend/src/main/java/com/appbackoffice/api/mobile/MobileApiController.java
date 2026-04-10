@@ -1,6 +1,9 @@
 package com.appbackoffice.api.mobile;
 
+import com.appbackoffice.api.auth.dto.AuthMeResponse;
+import com.appbackoffice.api.auth.service.AuthService;
 import com.appbackoffice.api.config.ConfigPayloadSignatureService;
+import com.appbackoffice.api.config.ConfigPackageService;
 import com.appbackoffice.api.contract.ApiContractException;
 import com.appbackoffice.api.contract.CanonicalErrorResponse;
 import com.appbackoffice.api.contract.ErrorSeverity;
@@ -10,6 +13,8 @@ import com.appbackoffice.api.job.service.JobService;
 import com.appbackoffice.api.mobile.dto.CheckinConfigResponse;
 import com.appbackoffice.api.mobile.dto.InspectionFinalizedRequest;
 import com.appbackoffice.api.mobile.dto.InspectionFinalizedResponse;
+import com.appbackoffice.api.config.dto.ConfigPackageApplicationStatusRequest;
+import com.appbackoffice.api.config.dto.ConfigPackageApplicationStatusResponse;
 import com.appbackoffice.api.mobile.service.InspectionSubmissionService;
 import com.appbackoffice.api.mobile.service.MobileCheckinConfigService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -39,21 +44,27 @@ import java.util.List;
 @Tag(name = "Mobile v1", description = "Contratos criticos do AppMobile (v1)")
 public class MobileApiController {
 
+    private final AuthService authService;
     private final JobService jobService;
     private final InspectionSubmissionService inspectionSubmissionService;
     private final MobileCheckinConfigService mobileCheckinConfigService;
     private final ConfigPayloadSignatureService configPayloadSignatureService;
+    private final ConfigPackageService configPackageService;
     private final ObjectMapper objectMapper;
 
-    public MobileApiController(JobService jobService,
+    public MobileApiController(AuthService authService,
+                               JobService jobService,
                                InspectionSubmissionService inspectionSubmissionService,
                                MobileCheckinConfigService mobileCheckinConfigService,
                                ConfigPayloadSignatureService configPayloadSignatureService,
+                               ConfigPackageService configPackageService,
                                ObjectMapper objectMapper) {
+        this.authService = authService;
         this.jobService = jobService;
         this.inspectionSubmissionService = inspectionSubmissionService;
         this.mobileCheckinConfigService = mobileCheckinConfigService;
         this.configPayloadSignatureService = configPayloadSignatureService;
+        this.configPackageService = configPackageService;
         this.objectMapper = objectMapper;
     }
 
@@ -76,10 +87,12 @@ public class MobileApiController {
             @RequestHeader("X-Tenant-Id") String tenantId,
             @RequestHeader("X-Correlation-Id") String correlationId,
             @RequestHeader("X-Actor-Id") String actorId,
-            @RequestHeader("X-Api-Version") String apiVersion
+            @RequestHeader("X-Api-Version") String apiVersion,
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader
     ) {
         RequestContextValidator.requireApiVersion(apiVersion);
         RequestContextValidator.requireFullContext(tenantId, correlationId, actorId);
+        validateMobileBearerIfPresent(authorizationHeader, tenantId, actorId);
 
         CheckinConfigResponse response = mobileCheckinConfigService.resolve(tenantId, actorId, tipoImovel);
         ResponseEntity.BodyBuilder builder = ResponseEntity.ok();
@@ -92,6 +105,39 @@ public class MobileApiController {
                 });
 
         return builder.body(response);
+    }
+
+    @PostMapping("/config-packages/application-status")
+    @Operation(
+            summary = "Registra ACK/NACK de aplicacao de pacote operacional (v1)",
+            description = "Permite ao backoffice acompanhar quais dispositivos aplicaram ou rejeitaram a configuracao remota.",
+            responses = {
+                    @ApiResponse(responseCode = "202", description = "Status registrado"),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Requisicao invalida",
+                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = CanonicalErrorResponse.class))
+                    )
+            }
+    )
+    public ResponseEntity<ConfigPackageApplicationStatusResponse> postConfigPackageApplicationStatus(
+            @RequestHeader("X-Tenant-Id") String tenantId,
+            @RequestHeader("X-Correlation-Id") String correlationId,
+            @RequestHeader("X-Actor-Id") String actorId,
+            @RequestHeader("X-Api-Version") String apiVersion,
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+            @Valid @RequestBody ConfigPackageApplicationStatusRequest request
+    ) {
+        RequestContextValidator.requireApiVersion(apiVersion);
+        RequestContextValidator.requireFullContext(tenantId, correlationId, actorId);
+        validateMobileBearerIfPresent(authorizationHeader, tenantId, actorId);
+
+        ConfigPackageApplicationStatusResponse response = configPackageService.recordApplicationStatus(
+                tenantId,
+                actorId,
+                request
+        );
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
     }
 
     @PostMapping("/inspections/finalized")
@@ -120,12 +166,14 @@ public class MobileApiController {
             @RequestHeader("X-Request-Timestamp") String requestTimestamp,
             @RequestHeader("X-Request-Nonce") String requestNonce,
             @RequestHeader("X-Api-Version") String apiVersion,
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
             @Valid @RequestBody InspectionFinalizedRequest request
     ) {
         RequestContextValidator.requireApiVersion(apiVersion);
         RequestContextValidator.requireFullContext(tenantId, correlationId, actorId);
         RequestContextValidator.requireIdempotencyKey(idempotencyKey);
         RequestContextValidator.requireProtectedWriteHeaders(requestTimestamp, requestNonce);
+        validateMobileBearerIfPresent(authorizationHeader, tenantId, actorId);
 
         Long userId = parseUserId(actorId);
         InspectionFinalizedResponse created = inspectionSubmissionService.receive(
@@ -156,13 +204,50 @@ public class MobileApiController {
             @RequestHeader("X-Correlation-Id") String correlationId,
             @RequestHeader("X-Actor-Id") String actorId,
             @RequestHeader("X-Api-Version") String apiVersion,
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
             @Parameter(description = "Filtro por status (ex: ACCEPTED, IN_EXECUTION). Padrao: ACCEPTED")
             @RequestParam(required = false) String status
     ) {
         RequestContextValidator.requireApiVersion(apiVersion);
         RequestContextValidator.requireFullContext(tenantId, correlationId, actorId);
         Long userId = parseUserId(actorId);
+        validateMobileBearer(authorizationHeader, tenantId, userId);
         return ResponseEntity.ok(jobService.getMobileJobsForUser(tenantId, userId, status));
+    }
+
+    private void validateMobileBearerIfPresent(String authorizationHeader, String tenantId, String actorId) {
+        if (authorizationHeader == null || authorizationHeader.isBlank()) {
+            return;
+        }
+        validateMobileBearer(authorizationHeader, tenantId, parseUserId(actorId));
+    }
+
+    private void validateMobileBearer(String authorizationHeader, String tenantId, Long userId) {
+        AuthMeResponse session = authService.me(extractBearer(authorizationHeader));
+        if (!tenantId.equals(session.tenantId()) || !userId.equals(session.userId())) {
+            throw new ApiContractException(
+                    HttpStatus.UNAUTHORIZED,
+                    "AUTH_CONTEXT_MISMATCH",
+                    "Token nao corresponde ao contexto mobile informado",
+                    ErrorSeverity.ERROR,
+                    "Refaca login e envie X-Tenant-Id e X-Actor-Id da sessao autenticada.",
+                    "tenantId=" + tenantId + ", actorId=" + userId
+            );
+        }
+    }
+
+    private String extractBearer(String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            throw new ApiContractException(
+                    HttpStatus.UNAUTHORIZED,
+                    "AUTH_INVALID_TOKEN",
+                    "Token invalido ou expirado",
+                    ErrorSeverity.ERROR,
+                    "Envie Authorization: Bearer <token>.",
+                    null
+            );
+        }
+        return authorizationHeader.substring("Bearer ".length());
     }
 
     private Long parseUserId(String actorId) {

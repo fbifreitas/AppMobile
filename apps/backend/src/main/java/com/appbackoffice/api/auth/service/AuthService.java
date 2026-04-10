@@ -16,8 +16,10 @@ import com.appbackoffice.api.contract.ErrorSeverity;
 import com.appbackoffice.api.identity.entity.Membership;
 import com.appbackoffice.api.identity.entity.MembershipStatus;
 import com.appbackoffice.api.identity.repository.MembershipRepository;
+import com.appbackoffice.api.user.dto.OnboardingPendingResponse;
 import com.appbackoffice.api.user.entity.User;
 import com.appbackoffice.api.user.repository.UserRepository;
+import com.appbackoffice.api.user.service.OnboardingStatusService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -42,6 +44,7 @@ public class AuthService {
     private final IdentityBindingRepository identityBindingRepository;
     private final JwtTokenService jwtTokenService;
     private final PermissionCatalog permissionCatalog;
+    private final OnboardingStatusService onboardingStatusService;
     private final LoginAttemptStore loginAttemptStore;
     private final TokenRevocationStore tokenRevocationStore;
     private final int lockoutMaxAttempts;
@@ -54,6 +57,7 @@ public class AuthService {
                        IdentityBindingRepository identityBindingRepository,
                        JwtTokenService jwtTokenService,
                        PermissionCatalog permissionCatalog,
+                       OnboardingStatusService onboardingStatusService,
                        LoginAttemptStore loginAttemptStore,
                        TokenRevocationStore tokenRevocationStore,
                        @Value("${auth.lockout.max-attempts:5}") int lockoutMaxAttempts,
@@ -65,6 +69,7 @@ public class AuthService {
         this.identityBindingRepository = identityBindingRepository;
         this.jwtTokenService = jwtTokenService;
         this.permissionCatalog = permissionCatalog;
+        this.onboardingStatusService = onboardingStatusService;
         this.loginAttemptStore = loginAttemptStore;
         this.tokenRevocationStore = tokenRevocationStore;
         this.lockoutMaxAttempts = lockoutMaxAttempts;
@@ -171,6 +176,20 @@ public class AuthService {
                 membership.getStatus().name(),
                 permissionCatalog.permissionsFor(membership.getRole())
         );
+    }
+
+    @Transactional(readOnly = true)
+    public OnboardingPendingResponse onboardingPending(String accessToken) {
+        JwtPrincipal principal = jwtTokenService.parseAndValidate(accessToken);
+
+        if (tokenRevocationStore.isRevoked(principal.tokenId())) {
+            throw invalidToken();
+        }
+
+        User user = userRepository.findByTenantIdAndId(principal.tenantId(), principal.userId())
+                .orElseThrow(this::invalidToken);
+
+        return onboardingStatusService.build(user);
     }
 
     private Membership activeMembership(Long userId, String tenantId) {

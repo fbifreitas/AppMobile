@@ -9,6 +9,7 @@ import com.appbackoffice.api.user.dto.ApprovalRequest;
 import com.appbackoffice.api.user.dto.CreateUserRequest;
 import com.appbackoffice.api.user.dto.ImportUsersRequest;
 import com.appbackoffice.api.user.dto.ImportUsersResponse;
+import com.appbackoffice.api.user.dto.OnboardingPendingResponse;
 import com.appbackoffice.api.user.dto.UserAuditResponse;
 import com.appbackoffice.api.user.dto.UserListResponse;
 import com.appbackoffice.api.user.dto.UserResponse;
@@ -90,6 +91,17 @@ public class UserManagementController {
 
         List<UserResponse> users = userService.findPendingUsers(tenantId).stream().map(UserResponse::from).toList();
         return ResponseEntity.ok(new UserListResponse(users.size(), users));
+    }
+
+    @GetMapping("/onboarding-statuses")
+    @RequiresTenantRole({MembershipRole.TENANT_ADMIN, MembershipRole.COORDINATOR, MembershipRole.AUDITOR, MembershipRole.PLATFORM_ADMIN})
+    @Operation(summary = "Listar pendencias de onboarding por usuario/app")
+    public ResponseEntity<List<OnboardingPendingResponse>> listOnboardingStatuses(
+            @RequestHeader("X-Tenant-Id") String tenantId,
+            @RequestHeader("X-Correlation-Id") String correlationId) {
+
+        RequestContextValidator.requireCorrelationId(correlationId);
+        return ResponseEntity.ok(userService.findOnboardingStatuses(tenantId));
     }
 
         @GetMapping("/audit")

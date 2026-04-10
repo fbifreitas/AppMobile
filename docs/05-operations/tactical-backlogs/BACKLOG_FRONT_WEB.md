@@ -86,3 +86,24 @@ Controlar o backlog de experiencia web (UI, navegacao, telas operacionais e usab
 
 - FW-005 deixou de ser somente proposta de backlog e passou a expor cards de requests/erros/retries/backlog, tabela de metricas por endpoint, alertas ativos, retention manual e drill-down recente por `correlationId`/`protocolId`/`jobId`/`processId`/`reportId`.
 - A home do backoffice agora aponta para `/backoffice/operations`, consolidando o papel do web como superficie principal de operacao do fluxo integrado.
+
+## Adendo 2026-04-10 - Compass FW-004 com sessao real
+
+- FW-004 deixou de aceitar `tenantId`, `actorId` e `actorRole` confiados do cliente nas rotas Next.js de `/api/config/*`.
+- As rotas de pacotes, approve, rollback, resolve e audit passam a exigir sessao web real e encaminham `Authorization`, `X-Tenant-Id`, `X-Actor-Id` e `X-Actor-Role` derivados do cookie de login.
+- O painel `/backoffice/config` inicializa o tenant a partir de `/api/auth/me`, preparando a publicacao de configuracao operacional do tenant Compass apos o handoff administrativo do Pacote A.
+
+## Adendo 2026-04-10 - Jobs e cases com sessao real
+
+- Os proxies Next.js de jobs e cases deixam de aceitar `tenantId`/`actorId` confiados via query/header e passam a exigir cookie de login web.
+- As chamadas ao backend operacional passam a encaminhar `Authorization`, `X-Tenant-Id`, `X-Actor-Id` e correlation id derivados da sessao, removendo o fallback operacional `tenant-default` neste recorte.
+
+## Adendo 2026-04-10 - Inspections com sessao real
+
+- Os proxies Next.js de inspections passam a exigir cookie de login web e resolvem `tenantId` pela sessao.
+- Os filtros operacionais (`status`, janela de data, `vistoriadorId`, paginacao) permanecem aceitos, mas o tenant deixa de ser confiado do cliente.
+
+## Adendo 2026-04-10 - Valuation e reports com sessao real
+
+- Os proxies Next.js de valuation e reports passam a exigir cookie de login web e derivam tenant/ator da sessao autenticada.
+- O fluxo operacional web ate laudo deixa de depender de `tenantId`/`actorId` confiados do cliente neste recorte.

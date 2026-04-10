@@ -13,6 +13,8 @@ import com.appbackoffice.api.auth.repository.UserCredentialRepository;
 import com.appbackoffice.api.identity.repository.MembershipRepository;
 import com.appbackoffice.api.identity.repository.OrganizationUnitRepository;
 import com.appbackoffice.api.identity.repository.TenantRepository;
+import com.appbackoffice.api.platform.repository.TenantApplicationRepository;
+import com.appbackoffice.api.platform.repository.TenantLicenseRepository;
 import com.appbackoffice.api.user.entity.User;
 import com.appbackoffice.api.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,6 +53,12 @@ class IdentityTenantMembershipIntegrationTest {
     @Autowired
     private IdentityBindingRepository identityBindingRepository;
 
+    @Autowired
+    private TenantApplicationRepository tenantApplicationRepository;
+
+    @Autowired
+    private TenantLicenseRepository tenantLicenseRepository;
+
     private void cleanAll() {
         sessionRepository.deleteAll();
         identityBindingRepository.deleteAll();
@@ -58,6 +66,8 @@ class IdentityTenantMembershipIntegrationTest {
         membershipRepository.deleteAll();
         organizationUnitRepository.deleteAll();
         userRepository.deleteAll();
+        tenantApplicationRepository.deleteAll();
+        tenantLicenseRepository.deleteAll();
         tenantRepository.deleteAll();
     }
 

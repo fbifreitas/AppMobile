@@ -6,6 +6,7 @@ import java.util.Map;
 public record CheckinConfigResponse(
         String version,
         String publishedAt,
+        List<String> appliedPackageIds,
         Map<String, Object> step1,
         Map<String, Object> step2,
         List<CheckinSectionDto> sections,

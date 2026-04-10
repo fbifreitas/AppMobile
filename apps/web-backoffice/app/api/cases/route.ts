@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { buildAuthenticatedHeaders, readAuthSession, unauthorizedJson } from "../../lib/auth_session";
 import { callBackendOperationsApi } from "../../lib/operations_backend_client";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
-  const tenantId = request.nextUrl.searchParams.get("tenantId") ?? request.headers.get("X-Tenant-Id") ?? "tenant-default";
-  const actorId = request.nextUrl.searchParams.get("actorId") ?? request.headers.get("X-Actor-Id") ?? "backoffice-operator";
+  const session = readAuthSession(request);
+  if (!session) {
+    return unauthorizedJson();
+  }
 
   try {
     const payload = await request.json();
@@ -13,12 +16,13 @@ export async function POST(request: NextRequest) {
       "cases",
       {
         method: "POST",
+        headers: buildAuthenticatedHeaders(session, "case-create"),
         body: JSON.stringify(payload)
       },
       undefined,
       {
-        tenantId,
-        actorId,
+        tenantId: session.tenantId,
+        actorId: String(session.userId),
         correlationPrefix: "case-create"
       }
     );

@@ -1,5 +1,7 @@
 package com.appbackoffice.api.mobile;
 
+import com.appbackoffice.api.auth.service.AuthService;
+import com.appbackoffice.api.config.ConfigPackageService;
 import com.appbackoffice.api.config.ConfigPayloadSignatureService;
 import com.appbackoffice.api.job.service.JobService;
 import com.appbackoffice.api.mobile.service.InspectionSubmissionService;
@@ -33,6 +35,9 @@ class MobileApiControllerContractErrorTest {
     private JobService jobService;
 
     @MockBean
+    private AuthService authService;
+
+    @MockBean
     private InspectionSubmissionService inspectionSubmissionService;
 
     @MockBean
@@ -40,6 +45,9 @@ class MobileApiControllerContractErrorTest {
 
     @MockBean
     private ConfigPayloadSignatureService configPayloadSignatureService;
+
+    @MockBean
+    private ConfigPackageService configPackageService;
 
     @Test
     void getCheckinConfig_withoutTenantHeader_returnsCanonicalContextError() throws Exception {
@@ -73,6 +81,17 @@ class MobileApiControllerContractErrorTest {
                         .header("X-Api-Version", "v0"))
                 .andExpect(status().isPreconditionFailed())
                 .andExpect(jsonPath("$.code").value("CONTRACT_VERSION_UNSUPPORTED"));
+    }
+
+    @Test
+    void getMobileJobs_withoutBearer_returnsAuthError() throws Exception {
+        mockMvc.perform(get("/api/mobile/jobs")
+                        .header("X-Tenant-Id", "tenant-a")
+                        .header("X-Correlation-Id", "corr-123")
+                        .header("X-Actor-Id", "1")
+                        .header("X-Api-Version", "v1"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTH_INVALID_TOKEN"));
     }
 
     @Test

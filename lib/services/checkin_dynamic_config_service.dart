@@ -56,7 +56,8 @@ class CheckinDynamicConfigService {
        _integrationContextService =
            integrationContextService ?? const IntegrationContextService();
 
-  static final CheckinDynamicConfigService instance = CheckinDynamicConfigService();
+  static final CheckinDynamicConfigService instance =
+      CheckinDynamicConfigService();
   static const InspectionRequirementPolicyService _requirementPolicy =
       InspectionRequirementPolicyService.instance;
 
@@ -65,6 +66,10 @@ class CheckinDynamicConfigService {
   static const String _checkinConfigEndpoint = String.fromEnvironment(
     'APP_CHECKIN_CONFIG_ENDPOINT',
     defaultValue: '/api/mobile/checkin-config',
+  );
+  static const String _configApplicationStatusEndpoint = String.fromEnvironment(
+    'APP_CONFIG_APPLICATION_STATUS_ENDPOINT',
+    defaultValue: '/api/mobile/config-packages/application-status',
   );
   static const String _configSigningHmacKey = String.fromEnvironment(
     'APP_CHECKIN_CONFIG_SIGNING_HMAC_KEY',
@@ -461,6 +466,10 @@ class CheckinDynamicConfigService {
           _resolvedCheckinConfigEndpoint.startsWith('/')
               ? _resolvedCheckinConfigEndpoint
               : '/$_resolvedCheckinConfigEndpoint';
+      final normalizedStatusPath =
+          _configApplicationStatusEndpoint.startsWith('/')
+              ? _configApplicationStatusEndpoint
+              : '/$_configApplicationStatusEndpoint';
       final uri = Uri.parse('$normalizedBase$normalizedPath').replace(
         queryParameters: {
           if (tipo != null && tipo.trim().isNotEmpty) 'tipoImovel': tipo,
@@ -475,7 +484,10 @@ class CheckinDynamicConfigService {
         request.headers.set('X-Correlation-Id', context.correlationId);
         request.headers.set('X-Actor-Id', context.actorId);
         request.headers.set('X-Api-Version', context.apiVersion);
-        final authToken = _resolvedAuthToken;
+        final authToken =
+            _resolvedAuthToken.isNotEmpty
+                ? _resolvedAuthToken
+                : context.authToken;
         if (authToken.isNotEmpty) {
           request.headers.set(
             HttpHeaders.authorizationHeader,
@@ -493,12 +505,73 @@ class CheckinDynamicConfigService {
           return null;
         }
         final decoded = jsonDecode(body);
-        return _extractMap(decoded);
+        final document = _extractMap(decoded);
+        if (document != null) {
+          await _sendApplicationStatus(
+            client: client,
+            uri: Uri.parse('$normalizedBase$normalizedStatusPath'),
+            context: context,
+            authToken:
+                _resolvedAuthToken.isNotEmpty
+                    ? _resolvedAuthToken
+                    : context.authToken,
+            document: document,
+          );
+        }
+        return document;
       } finally {
         client.close(force: true);
       }
     } catch (_) {
       return null;
+    }
+  }
+
+  Future<void> _sendApplicationStatus({
+    required HttpClient client,
+    required Uri uri,
+    required IntegrationContext context,
+    required String authToken,
+    required Map<String, dynamic> document,
+  }) async {
+    final packageId = _resolveAppliedPackageId(document);
+    if (packageId == null) {
+      return;
+    }
+
+    final packageVersion = _resolveDocumentVersion(document);
+    if (packageVersion == null || packageVersion.trim().isEmpty) {
+      return;
+    }
+
+    try {
+      final request = await client.postUrl(uri);
+      request.headers.set(HttpHeaders.acceptHeader, 'application/json');
+      request.headers.contentType = ContentType.json;
+      request.headers.set('X-Tenant-Id', context.tenantId);
+      request.headers.set('X-Correlation-Id', context.correlationId);
+      request.headers.set('X-Actor-Id', context.actorId);
+      request.headers.set('X-Api-Version', context.apiVersion);
+      if (authToken.isNotEmpty) {
+        request.headers.set(
+          HttpHeaders.authorizationHeader,
+          'Bearer $authToken',
+        );
+      }
+      request.write(
+        jsonEncode({
+          'packageId': packageId,
+          'packageVersion': packageVersion,
+          'deviceId': 'mobile-${context.actorId}',
+          'platform': Platform.operatingSystem,
+          'status': 'APPLIED',
+          'message': 'Config remota aplicada pelo app mobile.',
+        }),
+      );
+      final response = await request.close();
+      await response.drain<void>();
+    } catch (_) {
+      // ACK/NACK is observability; config consumption must not fail because of it.
     }
   }
 
@@ -556,6 +629,17 @@ class CheckinDynamicConfigService {
     final packageVersion = document['packageVersion'];
     if (packageVersion is int) return 'pkg-$packageVersion';
     return _versionFallback;
+  }
+
+  String? _resolveAppliedPackageId(Map<String, dynamic> document) {
+    final appliedPackageIds = document['appliedPackageIds'];
+    if (appliedPackageIds is List) {
+      for (final value in appliedPackageIds) {
+        final text = _optionalString(value);
+        if (text != null) return text;
+      }
+    }
+    return _optionalString(document['packageId']);
   }
 
   Future<Map<String, dynamic>?> _readDeveloperMockDocument() async {
@@ -631,7 +715,10 @@ class CheckinDynamicConfigService {
     final signatureHeader =
         response.headers.value('X-Config-Signature')?.trim() ?? '';
     final algorithmHeader =
-        response.headers.value('X-Config-Signature-Alg')?.trim().toLowerCase() ??
+        response.headers
+            .value('X-Config-Signature-Alg')
+            ?.trim()
+            .toLowerCase() ??
         '';
 
     if (signatureHeader.isEmpty || algorithmHeader != 'hmac-sha256') {

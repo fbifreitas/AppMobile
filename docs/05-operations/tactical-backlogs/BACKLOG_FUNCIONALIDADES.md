@@ -171,12 +171,17 @@ Step 8️⃣ (BACKEND BLOQUEADO — aguarda Onda 1 BOW) → BL-031 (depende de B
 | 5️⃣2️⃣ | BL-052 | Unificar pacote de parametrização operacional do HUB para Check-in e Câmera por níveis | Em andamento | 🔴 Crítica | Mesmo documento do modo desenvolvedor deve definir menus do check-in e níveis da câmera, incluindo material e estado, sem contratos paralelos |
 | 5️⃣3️⃣ | BL-054 | UX progressiva no Check-in etapa 1 e 2 com acordeões por pergunta e resumo inline da resposta | Em andamento | 🟠 Alta | Exibir apenas a próxima pergunta pendente, colapsar respostas já preenchidas com status visual OK/NOK e manter feedback de progresso x/y durante o preenchimento |
 | 5️⃣4️⃣ | BL-055 | Revisar hierarquia visual e regras de casing por nível no Menu de Vistoria e Check-in Etapa 2 | Concluído | 🟠 Alta | Nível 1 em Title Case, nível 2 em CAIXA ALTA, nível 3 em Title Case, com acordeões iniciando recolhidos conforme regra operacional |
-| 5️⃣5️⃣ | BL-056 | Tela dedicada de onboarding de permissões Android e iOS com reentrada obrigatória para usuários sem etapa de onboarding (ex.: CLTs criados via web) | Pendente | 🔴 Crítica | Usuário concede permissões essenciais no onboarding inicial e, quando autenticado sem onboarding concluído, é redirecionado para tela de permissões antes de usar fluxos operacionais |
+| 5️⃣5️⃣ | BL-056 | Tela dedicada de onboarding de permissões Android e iOS com reentrada obrigatória para usuários sem etapa de onboarding (ex.: CLTs criados via web) | Concluido | 🔴 Crítica | Usuário concede permissões essenciais no onboarding inicial e, quando autenticado sem onboarding concluído, é redirecionado para tela de permissões antes de usar fluxos operacionais |
 | 5️⃣6️⃣ | BL-057 | Alinhar semântica canônica do fluxo de captura à arquitetura V2 da plataforma | Planejado | 🔴 Crítica | Labels diferentes por tela continuam possíveis, mas Check-in, Câmera, Revisão e Menu passam a apontar para a mesma dimensão semântica canônica, sem inspection definir o core global |
 | 5️⃣7️⃣ | BL-058 | Separar estado inicial sugerido, estado atual e estado de retomada da captura | Planejado | 🔴 Crítica | O fluxo mantém bootstrap do check-in, operação corrente e retomada como estados distintos, com recovery compatível e sem travar a câmera no contexto inicial |
 | 5️⃣8️⃣ | BL-059 | Tratar duplicação de ambiente repetido como ação contextual do nível atual | Planejado | 🔴 Crítica | A câmera permite `Trocar` e `Novo <ambiente>` sem criar novo nível na árvore principal, preservando revisão/retomada e matching de obrigatórios |
 | 5️⃣9️⃣ | BL-060 | Quebrar o service concentrador de configuração em fatias coesas e compatíveis com V2 | Planejado | 🟠 Alta | Carregamento, merge, fallback, histórico e prediction deixam de ficar concentrados em um único service, mantendo a API pública estável na migração |
 | 6️⃣0️⃣ | BL-061 | Isolar especialização do domínio inspection sobre um core reutilizável de fluxo configurável | Planejado | 🟠 Alta | Taxonomia imobiliária, instâncias operacionais e labels de inspection permanecem no domain layer, desacopladas do core/plataforma e sem rename cego |
+| 6️⃣1️⃣ | BL-075 | Arquitetura modular de onboarding white label por marca/produto | Em andamento (slice Compass iniciado em 2026-04-10) | 🔴 Crítica | Substituir o onboarding único por resolver de fluxo por brand/productMode, reaproveitando core e separando jornadas Kaptur/Compass |
+| 6️⃣2️⃣ | BL-076 | Primeiro acesso Compass para usuário provisionado com OTP e criação de senha | Em andamento (baseline local entregue em 2026-04-10) | 🔴 Crítica | Compass deve localizar cadastro prévio, validar OTP em contato cadastrado, criar senha e seguir pendências mínimas sem auto-cadastro |
+| 6️⃣3️⃣ | BL-077 | Cadastro Kaptur marketplace PF/MEI/PJ com módulos fiscais, atuação e repasse | Planejado | 🔴 Crítica | Kaptur deve evoluir o cadastro atual PJ para jornada completa de prestador, com campos condicionais e aprovação |
+| 6️⃣4️⃣ | BL-078 | Permissões progressivas por recurso e por marca | Planejado | 🟠 Alta | Tela atual de permissões vira módulo explicativo; câmera/localização/microfone são solicitados no momento certo e microfone fica condicional |
+| 6️⃣5️⃣ | BL-079 | Pocket training e termos versionados por app | Planejado | 🟠 Alta | Tutorial, LGPD, confidencialidade e conduta passam a ser módulos reutilizáveis com conteúdo e obrigatoriedade por marca |
 
 ---
 
@@ -213,12 +218,16 @@ Tornar os menus de checkin etapa 1 e etapa 2 dinamicos via backend, permitindo a
 
 Observacao 2026-03-30 (Em andamento): adicionado fallback de configuracao dinamica por modo desenvolvedor, com documento JSON local configuravel no painel de dados mock. Fluxo de leitura agora prioriza mock local quando habilitado, depois API, depois cache, e por ultimo fallback hardcoded.
 
+Observacao 2026-04-10 (PARCIAL - Compass Pacote C): smoke E2E de homolog valida que pacote operacional Compass publicado/aprovado pelo backoffice chega ao mobile via `GET /api/mobile/checkin-config` autenticado, incluindo politica de fotos e feature flags.
+
 ### BL-001
 Enviar o JSON final da vistoria para a API web oficial com autenticacao, registro de sucesso/erro e rastreabilidade por job.
 
 Observacao 2026-03-30: payloads de origem financeira para criacao de processo devem ser tratados e normalizados no backoffice/integracao (docs/05-operations/tactical-backlogs/BACKLOG_BACKOFFICE_WEB.md e docs/05-operations/tactical-backlogs/BACKLOG_INTEGRACAO_WEB_MOBILE.md). O app mobile consome apenas campos operacionais expostos pelas APIs internas (jobs/config/sync), evitando acoplamento ao contrato externo bruto.
 
 Observacao 2026-03-30 (Em andamento): sincronizacao final passou a interpretar metadados de resposta da API (ex.: process_id/process_number/status) e a expor protocolo no feedback de conclusao. Adicionado tambem modo desenvolvedor para resposta mock de sync quando a integracao web definitiva ainda nao estiver disponivel.
+Observacao 2026-04-10 (PARCIAL - Compass Pacote B): entrypoint Compass passou a carregar jobs via `GET /api/mobile/jobs` com contexto autenticado (`X-Tenant-Id`, `X-Actor-Id`, bearer). Fallback mock permanece apenas quando `APP_API_BASE_URL` nao esta configurado.
+Observacao 2026-04-10 (PARCIAL - Compass Pacote C): smoke E2E de homolog cobre envio de vistoria finalizada Compass com bearer, idempotencia e correlacao, confirmando recebimento no backoffice e criacao do fluxo de valuation/report.
 
 ### BL-002
 Criar fila offline para armazenar vistorias finalizadas quando nao houver conectividade e sincronizar automaticamente quando a rede retornar.
@@ -319,6 +328,10 @@ Registrar telemetria minima do fluxo de vistoria (inicio, retomada, conclusao e 
 Estruturar flavors de distribuicao (prod, internal e dev) para separar pacotes e pipelines quando estiver proximo ao go-live.
 
 Observacao 2026-03-31: item mantido como pre-requisito tecnico para reduzir tamanho real do pacote removendo codigo/dev tools do artefato de producao.
+Observacao 2026-04-10 (PARCIAL - Compass Pacote B): CI/homologacao Android passam a buildar explicitamente `kaptur` com `lib/main_kaptur.dart` e `compass` com `lib/main_compass.dart`, publicando artefato Compass separado. Build Compass usa `APP_TENANT_ID=tenant-compass` e `COMPASS_APP_API_BASE_URL` como variavel de ambiente do GitHub Actions.
+Observacao 2026-04-10 (PARCIAL - Compass Pacote B): distribuicao Android manual passa a aceitar `brand=compass`/`all` e exige `FIREBASE_APP_ID_ANDROID_COMPASS` para publicar Compass em Firebase App Distribution separado da Kaptur.
+Observacao 2026-04-10 (PARCIAL - Compass Pacote B): Android ganhou recursos nativos por flavor para splash/adaptive icon. iOS ganhou xcconfigs por marca e Info.plist parametrizado; validacao final de scheme/target Compass permanece pendente em ambiente Xcode.
+Observacao 2026-04-10 (PARCIAL - Compass Pacote B): iOS ganhou schemes compartilhados `kaptur` e `compass` e configuracoes `Debug/Release/Profile` por flavor, apontando para xcconfigs de marca. Validacao local em Windows cobriu XML dos schemes e `flutter analyze --no-pub`; build iOS real segue pendente de macOS/Xcode.
 
 ### BL-053
 Remover modulo desenvolvedor do pacote final (empacotamento enxuto para producao).
@@ -366,6 +379,62 @@ Detalhamento:
 1. Listar permissões operacionais obrigatórias por plataforma (localização, câmera, microfone e notificações quando aplicável).
 2. Bloquear acesso ao fluxo principal até concluir a etapa de permissões mínimas obrigatórias.
 3. Implementar verificação de estado no login para redirecionar usuários sem onboarding/permissões concluídas para a nova tela.
+
+Observacao 2026-04-10 (CONCLUIDO - Compass Pacote B): regra de roteamento ajustada para nao exibir onboarding de permissoes antes do login. A etapa passa a bloquear somente usuario autenticado/ativo sem permissao concluida, cobrindo o primeiro acesso de usuario provisionado via backoffice.
+Observacao 2026-04-10 (CONCLUIDO - Compass Pacote B): adicionada auditoria automatizada entre catalogo de permissoes, `AndroidManifest.xml` e `Info.plist`, protegendo camera, localizacao, microfone e reconhecimento de fala usados pelo onboarding.
+
+### BL-075
+Criar arquitetura modular de onboarding white label por marca/produto, substituindo o fluxo unico atual por um `OnboardingFlowResolver` baseado em brand/productMode.
+
+- Fonte funcional: `docs/03-architecture/09_WHITE_LABEL_ONBOARDING_STRATEGY.md`
+- Area: mobile / arquitetura white label
+- Objetivo: Kaptur e Compass usam apps e jornadas distintas, compartilhando apenas modulos funcionais reutilizaveis.
+- Escopo MVP: resolver de fluxo, perfil `marketplace_provider` para Kaptur, perfil `corporate_first_access` para Compass, retomada de etapa pendente e preservacao de usuarios legados.
+- Criterio de pronto: app Kaptur nao cai no fluxo Compass; app Compass nao exibe cadastro aberto de vistoriador; modulos compartilhados possuem contrato de entrada/saida.
+- Dependencias: BL-031, BL-056, BL-068, INT-031, BOW-212.
+- Observacao 2026-04-10 (PARCIAL - Compass): flavor Compass passou a redirecionar `AppAuthStatus.onboarding` para tela dedicada de primeiro acesso e o login passou a expor CTA `Primeiro acesso`, sem reaproveitar o onboarding PJ/Kaptur.
+
+### BL-076
+Implementar primeiro acesso Compass para usuario provisionado pelo backoffice, com lookup seguro, OTP e criacao de senha.
+
+- Fonte funcional: `docs/03-architecture/09_WHITE_LABEL_ONBOARDING_STRATEGY.md`
+- Area: mobile/auth
+- Objetivo: ativar usuario Compass ja cadastrado sem auto-cadastro e sem autenticar apenas por CPF/data de nascimento.
+- Fluxo: Gate Compass -> Primeiro acesso -> CPF + data nascimento + identificador adicional -> OTP em contato ja cadastrado -> criar senha -> selfie/complementos minimos -> termos -> permissoes -> Home ou aguardando aprovacao.
+- Criterio de pronto: CPF/data nascimento apenas localizam cadastro; OTP e obrigatorio; mensagens nao enumeram usuarios; contato so pode ser alterado pelo backoffice.
+- Dependencias: BL-031, INT-031, BOW-212.
+- Observacao 2026-04-10 (PARCIAL - baseline local): backend recebeu `/auth/first-access/start` e `/auth/first-access/complete` com OTP temporario, resposta neutra para cadastro inexistente, criacao de senha somente apos OTP e emissao de sessao no fim do fluxo. Mobile Compass recebeu tela dedicada com CPF + data de nascimento + identificador, OTP e criacao de senha. Evidencia local: `flutter test --no-pub test/screens/compass_first_access_screen_test.dart` passou no terminal nativo; backend compilou com `mvn -q -f apps/backend/pom.xml -DskipTests compile` e `AuthIntegrationTest.class` foi gerado apos `test-compile`.
+
+### BL-077
+Evoluir cadastro Kaptur marketplace para prestador PF/MEI/PJ com dados fiscais, area de atuacao, equipamentos, dados bancarios/PIX e aprovacao.
+
+- Fonte funcional: `docs/03-architecture/09_WHITE_LABEL_ONBOARDING_STRATEGY.md`
+- Area: mobile onboarding
+- Objetivo: substituir o cadastro PJ curto atual por jornada de prestador adequada ao app Kaptur.
+- Escopo MVP: gate Kaptur com `Criar minha conta de Vistoriador`, identificacao inicial, OTP, tipo de prestador PF/MEI/PJ, termos, permissao e aguardando aprovacao.
+- Fase 2: dados fiscais completos, area/disponibilidade, equipamentos, antecedentes, bancarios/PIX com titularidade.
+- Criterio de pronto: Kaptur permite novo cadastro; CNPJ deixa de ser obrigatorio para todos; dados bancarios ficam restritos a Kaptur/repasse.
+- Dependencias: BL-031, BL-032, BL-033, INT-031, BOW-211.
+
+### BL-078
+Evoluir permissoes do sistema para solicitacao progressiva por recurso e por marca.
+
+- Fonte funcional: `docs/03-architecture/09_WHITE_LABEL_ONBOARDING_STRATEGY.md`
+- Area: mobile permissoes
+- Objetivo: preservar tela explicativa, mas solicitar camera, localizacao, microfone e notificacoes no momento de valor.
+- Regra: camera antes de selfie/foto; localizacao antes de check-in/geofence; microfone apenas se voz estiver habilitada; notificacoes em fase posterior.
+- Criterio de pronto: negativa simples permite nova tentativa; negativa permanente oferece abrir Ajustes; microfone nao e solicitado para Compass/Kaptur quando voz estiver desabilitada.
+- Dependencias: BL-056, BL-075.
+
+### BL-079
+Criar modulos reutilizaveis de termos e pocket training por app.
+
+- Fonte funcional: `docs/03-architecture/09_WHITE_LABEL_ONBOARDING_STRATEGY.md`
+- Area: mobile/produto
+- Objetivo: versionar aceite de LGPD/confidencialidade/conduta e entregar tutorial curto por marca.
+- Escopo MVP: termos versionados por app e treinamento curto antes da Home.
+- Criterio de pronto: Compass e Kaptur podem ter textos e obrigatoriedade distintos sem fork de tela.
+- Dependencias: BL-075, BOW-212.
 
 ### BL-017
 Adicionar contract tests entre mobile e backend para validar schemas e evitar quebra silenciosa de integrações críticas.
@@ -435,6 +504,11 @@ Observacao 2026-03-30 (PARCIAL): fluxo de autenticacao com estado persistido loc
 Observacao 2026-03-31 (EM ANDAMENTO): reforcada a testabilidade da tela de login para automacao Maestro com identificadores semanticos estaveis em campos e botao de submit.
 Observacao 2026-04-02 (REPLANEJADO): validado que o app ainda nao autentica contra backend real; passam a ser obrigatorios neste item o login backend-first, refresh/revogacao de sessao, trilha de auditoria de acesso, controle de tentativas/lockout e readiness para MFA/FIDO2.
 Observacao 2026-04-03 (SEQUENCIAMENTO): BL-031 depende dos cards de backend BOW-100 (Tenant+Membership), BOW-101 (User entity retrofit) e BOW-102 (JWT auth backend). Não iniciar o lado mobile enquanto o backend não tiver JWT funcional com GET /auth/me retornando tenant context correto.
+Observacao 2026-04-10 (PARCIAL - Compass Pacote B): app mobile ganhou cliente backend-first para `POST /auth/login` + `GET /auth/me`, ativado por `--dart-define=APP_API_BASE_URL=...` e `--dart-define=APP_TENANT_ID=tenant-compass`. Quando a API nao esta configurada, o fluxo mock legado permanece como fallback local.
+Observacao 2026-04-10 (PARCIAL - Compass Pacote B): contexto operacional mobile passou a priorizar a sessao autenticada (`auth_tenant_id`, `auth_user_id`, `auth_access_token`) para chamadas de configuracao dinamica e sincronizacao de vistoria, mantendo overrides/env apenas como fallback tecnico.
+Observacao 2026-04-10 (PARCIAL - Compass Pacote B): sessao mobile passa a persistir expiracao do access token, executar refresh automatico ao restaurar sessao expirada e revogar refresh token no logout via `/auth/logout` quando backend esta configurado.
+Observacao 2026-04-10 (PARCIAL - Compass Pacote B): backend passou a validar o bearer token em `GET /api/mobile/jobs` contra `X-Tenant-Id` e `X-Actor-Id`, com teste de integracao Compass cobrindo login real + listagem de jobs e rejeicao de contexto divergente.
+Observacao 2026-04-10 (PARCIAL - Compass Pacote B): backend tambem valida o bearer token quando informado em configuracao dinamica e sincronizacao de vistoria, bloqueando tenant/ator divergente antes do processamento operacional.
 
 ### BL-032
 Criar onboarding de novos usuários para perfis CLT e PJ, com coleta de dados cadastrais completos e captura de foto pelo app.
@@ -625,6 +699,8 @@ Observacao 2026-03-30 (Em andamento): corrigida a persistencia do snapshot dinam
 
 Observacao 2026-03-30 (Concluido): reforcado o caminho de persistencia do indicador em retomadas com payload parcial/corrompido da Etapa 2, substituindo parse direto por restauracao resiliente (`restoreStep2Model`) em Home/Revisao e adicionando regressao para manter sinalizacao de obrigatorios pendentes sem quebra de tela.
 
+Observacao 2026-04-10 (PARCIAL - Compass Pacote C): smoke E2E de homolog valida que a politica dinamica de fotos Compass (`min=2`, `max=8`) publicada no pacote operacional e consumida pelo mobile antes da vistoria finalizada, reduzindo risco de divergencia entre configuracao, captura e payload enviado.
+
 ### BL-052
 Unificar no Hub Operacional um pacote único de parametrização para o modo desenvolvedor, deixando explícito o que pertence ao Check-in e o que pertence à Câmera, com organização por níveis configuráveis.
 
@@ -641,6 +717,8 @@ Observacao 2026-03-30 (Em andamento): definido checklist de validacao go/no-go p
 Observacao 2026-03-30 (Em andamento): cobertura de regressao da BL-052 foi ampliada no servico de menus para camera com cenarios de fallback por subtipo nao configurado, fallback padrao sem niveis e saneamento de IDs invalidos de niveis, reduzindo risco de divergencia de ordem/visibilidade em runtime.
 
 Observacao 2026-03-30 (Em andamento): adicionados testes de widget da camera para validar ordem e visibilidade dinamica dos seletores por nivel/subtipo (`test/screens/overlay_camera_screen_test.dart`), com modo deterministico de dados de teste na tela para evitar dependencia de inicializacao de hardware/servicos no ambiente de teste.
+
+Observacao 2026-04-10 (PARCIAL - Compass Pacote C): smoke E2E de homolog cobre o pacote unificado Compass saindo do backoffice e governando o fluxo mobile ate sync, valuation, report e control tower, mantendo a regra operacional por tenant como fonte unica do percurso.
 
 ---
 
@@ -769,7 +847,7 @@ Ao pegar um item para implementar:
 
 - Trilhas criticas mantidas: BL-012, BL-001, BL-051, BL-052 e BL-054.
 - BL-031 segue em andamento com dependencia de consolidacao backend-first.
-- BL-056 permanece proxima critica apos estabilizacao do nucleo de integracao.
+- BL-056 concluida no Pacote B Compass para roteamento pos-login e tela dedicada de permissoes.
 - Backlog complementar front/web: `docs/05-operations/tactical-backlogs/BACKLOG_FRONT_WEB.md`.
 
 

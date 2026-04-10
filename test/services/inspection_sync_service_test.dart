@@ -58,37 +58,40 @@ void main() {
     expect(result.backendStatus, 'Em Andamento');
   });
 
-  test('parses canonical protocol response for real backend sync contract', () async {
-    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-    addTearDown(() async => server.close(force: true));
+  test(
+    'parses canonical protocol response for real backend sync contract',
+    () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() async => server.close(force: true));
 
-    server.listen((request) async {
-      request.response.statusCode = 200;
-      request.response.headers.contentType = ContentType.json;
-      request.response.write(
-        '{"protocolId":"INS-2026-00123","processId":"781","processNumber":"INS-2026-00123","jobId":321,"status":"SUBMITTED","receivedAt":"2026-04-05T10:00:00Z","message":"Recebido com sucesso"}',
+      server.listen((request) async {
+        request.response.statusCode = 200;
+        request.response.headers.contentType = ContentType.json;
+        request.response.write(
+          '{"protocolId":"INS-2026-00123","processId":"781","processNumber":"INS-2026-00123","jobId":321,"status":"SUBMITTED","receivedAt":"2026-04-05T10:00:00Z","message":"Recebido com sucesso"}',
+        );
+        await request.response.close();
+      });
+
+      final service = InspectionSyncService(
+        baseUrl: 'http://${server.address.host}:${server.port}',
+        syncEndpoint: '/sync',
       );
-      await request.response.close();
-    });
 
-    final service = InspectionSyncService(
-      baseUrl: 'http://${server.address.host}:${server.port}',
-      syncEndpoint: '/sync',
-    );
+      final result = await service.syncFinalInspection(const {
+        'job': {'id': 'job-123'},
+        'exportedAt': '2026-04-05T10:00:00Z',
+      });
 
-    final result = await service.syncFinalInspection(const {
-      'job': {'id': 'job-123'},
-      'exportedAt': '2026-04-05T10:00:00Z',
-    });
-
-    expect(result.success, isTrue);
-    expect(result.protocolId, 'INS-2026-00123');
-    expect(result.processId, '781');
-    expect(result.processNumber, 'INS-2026-00123');
-    expect(result.backendStatus, 'SUBMITTED');
-    expect(result.receivedAtIso, '2026-04-05T10:00:00Z');
-    expect(result.message, 'Recebido com sucesso');
-  });
+      expect(result.success, isTrue);
+      expect(result.protocolId, 'INS-2026-00123');
+      expect(result.processId, '781');
+      expect(result.processNumber, 'INS-2026-00123');
+      expect(result.backendStatus, 'SUBMITTED');
+      expect(result.receivedAtIso, '2026-04-05T10:00:00Z');
+      expect(result.message, 'Recebido com sucesso');
+    },
+  );
 
   test('returns backend message for non-2xx response', () async {
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
@@ -151,50 +154,101 @@ void main() {
     expect(result.receivedAtIso, '2026-03-30T18:00:00Z');
   });
 
-  test('sends integration headers and idempotency key on sync request', () async {
-    const payload = {
-      'job': {'id': 'job-header'},
-      'exportedAt': '2026-04-05T10:00:00Z',
-    };
-    final expectedIdempotencyKey =
-        const IntegrationContextService().buildIdempotencyKey(payload);
+  test(
+    'sends integration headers and idempotency key on sync request',
+    () async {
+      const payload = {
+        'job': {'id': 'job-header'},
+        'exportedAt': '2026-04-05T10:00:00Z',
+      };
+      final expectedIdempotencyKey = const IntegrationContextService()
+          .buildIdempotencyKey(payload);
 
-    SharedPreferences.setMockInitialValues({
-      'integration_tenant_id_v1': 'tenant-qa',
-      'integration_actor_id_v1': 'actor-99',
-      'integration_api_version_v1': 'v1',
-    });
+      SharedPreferences.setMockInitialValues({
+        'integration_tenant_id_v1': 'tenant-qa',
+        'integration_actor_id_v1': 'actor-99',
+        'integration_api_version_v1': 'v1',
+      });
 
-    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-    addTearDown(() async => server.close(force: true));
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() async => server.close(force: true));
 
-    server.listen((request) async {
-      expect(request.headers.value('X-Tenant-Id'), 'tenant-qa');
-      expect(request.headers.value('X-Actor-Id'), 'actor-99');
-      expect(request.headers.value('X-Api-Version'), 'v1');
-      expect(request.headers.value('X-Idempotency-Key'), expectedIdempotencyKey);
-      expect(request.headers.value('X-Request-Timestamp'), isNotEmpty);
-      expect(request.headers.value('X-Request-Nonce'), startsWith('nonce-'));
-      expect(request.headers.value(HttpHeaders.authorizationHeader), 'Bearer token-qa');
+      server.listen((request) async {
+        expect(request.headers.value('X-Tenant-Id'), 'tenant-qa');
+        expect(request.headers.value('X-Actor-Id'), 'actor-99');
+        expect(request.headers.value('X-Api-Version'), 'v1');
+        expect(
+          request.headers.value('X-Idempotency-Key'),
+          expectedIdempotencyKey,
+        );
+        expect(request.headers.value('X-Request-Timestamp'), isNotEmpty);
+        expect(request.headers.value('X-Request-Nonce'), startsWith('nonce-'));
+        expect(
+          request.headers.value(HttpHeaders.authorizationHeader),
+          'Bearer token-qa',
+        );
 
-      final correlationId = request.headers.value('X-Correlation-Id') ?? '';
-      expect(correlationId, startsWith('mob-'));
+        final correlationId = request.headers.value('X-Correlation-Id') ?? '';
+        expect(correlationId, startsWith('mob-'));
 
-      request.response.statusCode = 200;
-      request.response.headers.contentType = ContentType.json;
-      request.response.write('{"message":"ok"}');
-      await request.response.close();
-    });
+        request.response.statusCode = 200;
+        request.response.headers.contentType = ContentType.json;
+        request.response.write('{"message":"ok"}');
+        await request.response.close();
+      });
 
-    final service = InspectionSyncService(
-      baseUrl: 'http://${server.address.host}:${server.port}',
-      authToken: 'token-qa',
-      syncEndpoint: '/sync',
-    );
+      final service = InspectionSyncService(
+        baseUrl: 'http://${server.address.host}:${server.port}',
+        authToken: 'token-qa',
+        syncEndpoint: '/sync',
+      );
 
-    final result = await service.syncFinalInspection(payload);
+      final result = await service.syncFinalInspection(payload);
 
-    expect(result.success, isTrue);
-    expect(result.message, 'ok');
-  });
+      expect(result.success, isTrue);
+      expect(result.message, 'ok');
+    },
+  );
+
+  test(
+    'uses authenticated session context when token override is absent',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        'auth_tenant_id': 'tenant-compass',
+        'auth_user_id': '77',
+        'auth_access_token': 'session-token',
+        'integration_tenant_id_v1': 'tenant-legacy',
+        'integration_actor_id_v1': 'actor-legacy',
+      });
+
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() async => server.close(force: true));
+
+      server.listen((request) async {
+        expect(request.headers.value('X-Tenant-Id'), 'tenant-compass');
+        expect(request.headers.value('X-Actor-Id'), '77');
+        expect(
+          request.headers.value(HttpHeaders.authorizationHeader),
+          'Bearer session-token',
+        );
+
+        request.response.statusCode = 200;
+        request.response.headers.contentType = ContentType.json;
+        request.response.write('{"message":"ok"}');
+        await request.response.close();
+      });
+
+      final service = InspectionSyncService(
+        baseUrl: 'http://${server.address.host}:${server.port}',
+        syncEndpoint: '/sync',
+      );
+
+      final result = await service.syncFinalInspection(const {
+        'job': {'id': 'job-session'},
+      });
+
+      expect(result.success, isTrue);
+      expect(result.message, 'ok');
+    },
+  );
 }

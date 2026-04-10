@@ -111,6 +111,9 @@ public class OperationalEventRecorder {
         if ("/api/mobile/inspections/finalized".equals(requestUri)) {
             return "mobile.inspections.finalized";
         }
+        if ("/api/mobile/config-packages/application-status".equals(requestUri)) {
+            return "mobile.config-package-status";
+        }
         if (requestUri.startsWith("/api/backoffice/config/packages/approve")) {
             return "backoffice.config.approve";
         }

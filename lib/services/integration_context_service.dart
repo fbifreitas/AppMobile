@@ -6,12 +6,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 class IntegrationContext {
   final String tenantId;
   final String actorId;
+  final String authToken;
   final String apiVersion;
   final String correlationId;
 
   const IntegrationContext({
     required this.tenantId,
     required this.actorId,
+    required this.authToken,
     required this.apiVersion,
     required this.correlationId,
   });
@@ -23,6 +25,9 @@ class IntegrationContextService {
   static const _tenantIdKey = 'integration_tenant_id_v1';
   static const _actorIdKey = 'integration_actor_id_v1';
   static const _apiVersionKey = 'integration_api_version_v1';
+  static const _authTenantIdKey = 'auth_tenant_id';
+  static const _authUserIdKey = 'auth_user_id';
+  static const _authAccessTokenKey = 'auth_access_token';
 
   static const String _tenantIdEnv = String.fromEnvironment(
     'APP_TENANT_ID',
@@ -40,14 +45,22 @@ class IntegrationContextService {
   Future<IntegrationContext> buildContext() async {
     final prefs = await SharedPreferences.getInstance();
     final tenantId =
-        (prefs.getString(_tenantIdKey) ?? _tenantIdEnv).trim();
+        (prefs.getString(_authTenantIdKey) ??
+                prefs.getString(_tenantIdKey) ??
+                _tenantIdEnv)
+            .trim();
     final actorId =
-        (prefs.getString(_actorIdKey) ?? _actorIdEnv).trim();
+        (prefs.getString(_authUserIdKey) ??
+                prefs.getString(_actorIdKey) ??
+                _actorIdEnv)
+            .trim();
+    final authToken = (prefs.getString(_authAccessTokenKey) ?? '').trim();
     final apiVersion =
         (prefs.getString(_apiVersionKey) ?? _apiVersionEnv).trim();
     return IntegrationContext(
       tenantId: tenantId.isEmpty ? 'tenant-default' : tenantId,
       actorId: actorId.isEmpty ? '1' : actorId,
+      authToken: authToken,
       apiVersion: apiVersion.isEmpty ? 'v1' : apiVersion,
       correlationId: _newCorrelationId(),
     );
@@ -74,8 +87,14 @@ class IntegrationContextService {
   }
 
   String buildIdempotencyKey(Map<String, dynamic> payload) {
-    final jobId = _extractNestedText(payload, const ['job', 'id'], fallback: 'sem-job');
-    final exportedAt = _extractText(payload['exportedAt'], fallback: 'sem-exported-at');
+    final jobId = _extractNestedText(payload, const [
+      'job',
+      'id',
+    ], fallback: 'sem-job');
+    final exportedAt = _extractText(
+      payload['exportedAt'],
+      fallback: 'sem-exported-at',
+    );
     final payloadChecksum = _fnv1a64(_canonicalizeForHash(payload));
     final raw = '$jobId|$exportedAt|$payloadChecksum';
     final hash = _fnv1a64(raw);
@@ -102,7 +121,10 @@ class IntegrationContextService {
     if (value is Map) {
       final entries =
           value.entries
-              .map((entry) => MapEntry('${entry.key}', _normalizeForHash(entry.value)))
+              .map(
+                (entry) =>
+                    MapEntry('${entry.key}', _normalizeForHash(entry.value)),
+              )
               .toList()
             ..sort((left, right) => left.key.compareTo(right.key));
       return <String, Object?>{

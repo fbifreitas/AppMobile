@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { buildAuthenticatedHeaders, readAuthSession, unauthorizedJson } from "../../../../../lib/auth_session";
 import { callBackendOperationsApi } from "../../../../../lib/operations_backend_client";
 
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ processId: string }> }
 ) {
-  const tenantId = request.nextUrl.searchParams.get("tenantId") ?? "tenant-default";
-  const actorId = request.headers.get("X-Actor-Id") ?? "backoffice-operator";
+  const session = readAuthSession(request);
+  if (!session) {
+    return unauthorizedJson();
+  }
 
   try {
     const body = await request.json();
@@ -15,10 +18,11 @@ export async function POST(
       `backoffice/valuation/processes/${processId}/validate-intake`,
       {
         method: "POST",
+        headers: buildAuthenticatedHeaders(session, "intake-validation"),
         body: JSON.stringify(body)
       },
       undefined,
-      { tenantId, actorId, correlationPrefix: "intake-validation" }
+      { tenantId: session.tenantId, actorId: String(session.userId), correlationPrefix: "intake-validation" }
     );
 
     return NextResponse.json(payload, { status });

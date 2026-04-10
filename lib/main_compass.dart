@@ -5,12 +5,13 @@ import 'branding/brand_provider.dart';
 import 'branding/compass_brand.dart';
 import 'branding/remote/brand_config_resolver.dart';
 import 'branding/remote/remote_brand_overrides.dart';
+import 'repositories/backend_job_repository.dart';
 import 'repositories/fake_job_repository.dart';
 import 'repositories/preferences_repository.dart';
 import 'screens/awaiting_approval_screen.dart';
+import 'screens/compass_first_access_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
-import 'screens/onboarding_screen.dart';
 import 'screens/permissions_onboarding_screen.dart';
 import 'state/app_state.dart';
 import 'state/auth_state.dart';
@@ -40,10 +41,11 @@ void main() {
       child: MultiProvider(
         providers: [
           ChangeNotifierProvider(
-            create: (_) => AppState(
-              FakeJobRepository(),
-              const SharedPreferencesRepository(),
-            ),
+            create:
+                (_) => AppState(
+                  BackendJobRepository(fallbackRepository: FakeJobRepository()),
+                  const SharedPreferencesRepository(),
+                ),
           ),
           ChangeNotifierProvider(create: (_) => InspectionState()),
           ChangeNotifierProvider(
@@ -87,7 +89,7 @@ class _AppEntryPoint extends StatelessWidget {
       case AppAuthStatus.unauthenticated:
         return const LoginScreen();
       case AppAuthStatus.onboarding:
-        return const OnboardingScreen();
+        return const CompassFirstAccessScreen();
       case AppAuthStatus.awaitingApproval:
         return const AwaitingApprovalScreen();
       case AppAuthStatus.active:

@@ -67,6 +67,8 @@ Widgets **nunca** leem o manifest diretamente — apenas `BrandProvider.configOf
 | `marketplace` | Kaptur    | Propostas habilitadas, swipe, linguagem uberizada         |
 | `corporate`   | Compass   | Ordens do dia, sem propostas, linguagem operacional       |
 
+O onboarding tambem segue `ProductMode`, mas nao deve virar um fluxo unico com condicionais internos. A fonte funcional da substituicao/evolucao do onboarding por marca e `docs/03-architecture/09_WHITE_LABEL_ONBOARDING_STRATEGY.md`.
+
 ---
 
 ## BrandFeatureFlags
@@ -91,6 +93,24 @@ flutter run --flavor compass -t lib/main_compass.dart  # dev Compass
 flutter build apk --flavor kaptur  -t lib/main_kaptur.dart   # release Kaptur
 flutter build apk --flavor compass -t lib/main_compass.dart  # release Compass
 ```
+
+Compass em homologacao deve receber tambem:
+
+```bash
+--dart-define=APP_TENANT_ID=tenant-compass
+--dart-define=APP_API_BASE_URL=<backend-homolog>
+```
+
+Firebase App Distribution usa apps separados por marca:
+
+| Brand   | Secret GitHub Actions              |
+|---------|------------------------------------|
+| Kaptur  | `FIREBASE_APP_ID_ANDROID`          |
+| Compass | `FIREBASE_APP_ID_ANDROID_COMPASS`  |
+
+Android tambem possui recursos nativos por flavor em `android/app/src/<brand>/res/` para splash e adaptive icon.
+
+iOS usa `ios/Flutter/kaptur.xcconfig` e `ios/Flutter/compass.xcconfig` para `APP_DISPLAY_NAME`, `APP_BUNDLE_NAME` e `APP_BUNDLE_IDENTIFIER`. O target/scheme Compass deve apontar para o xcconfig Compass no Xcode.
 
 ---
 

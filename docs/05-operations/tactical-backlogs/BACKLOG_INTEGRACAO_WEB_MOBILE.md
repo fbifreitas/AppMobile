@@ -5,7 +5,7 @@
 
 # Backlog de Integracao Web-Mobile (Seguranca e Comunicacao Bidirecional)
 
-Atualizado em: 2026-04-08
+Atualizado em: 2026-04-10
 
 ## Objetivo
 Planejar e executar a camada de integracao entre backoffice web e AppMobile com:
@@ -112,7 +112,7 @@ Motivo:
 | 2 | INT-002 | Contratos versionados Web-Mobile | Critica | Em andamento (header obrigatï¿½rio X-Api-Version v1 aplicado em 2026-04-04) | OpenAPI versionada + politica de compatibilidade retroativa + deprecation policy |
 | 3 | INT-003 | Canal seguro de configuracao remota | Critica | Em andamento (baseline funcional entregue em 2026-04-08 com assinatura HMAC emitida/validada e consumo mobile real) | Pacotes assinados, versionados e auditaveis para menus dinamicos/config operacional |
 | 4 | INT-004 | Rollout e rollback de pacotes | Critica | Em andamento (baseline operacional entregue em 2026-04-08 com versionamento de pacote e rollback refletindo no mobile) | Publicacao por tenant, por grupo de apps e rollback em 1 clique com trilha |
-| 5 | INT-005 | ACK/NACK de pacote no mobile | Alta | Pendente | Backoffice enxerga status de aplicacao por dispositivo/app version |
+| 5 | INT-005 | ACK/NACK de pacote no mobile | Alta | Concluido localmente (baseline Compass entregue em 2026-04-10) | Backoffice enxerga status de aplicacao por dispositivo/app version |
 | 6 | INT-006 | Uplink de vistoria com idempotencia | Critica | Em andamento (baseline operacional entregue em 2026-04-08 com API idempotente, dedupe local e sync real) | Recebimento resiliente de vistoria final sem duplicidade por retry offline |
 | 7 | INT-007 | Protocolo de entrega e reconciliacao | Alta | Em andamento (metadata de processo/protocolo devolvida no sync ate 2026-04-08) | Protocolo unico por vistoria com consulta de status fim a fim |
 | 8 | INT-008 | Fila de reprocessamento no backoffice | Alta | Pendente | Mensagens/payloads com erro podem ser reprocessados com controle e auditoria |
@@ -138,6 +138,8 @@ Motivo:
 | 28 | INT-028 | Contrato de erro canÃ´nico entre canais | Alta | Em andamento (fundaÃ§Ã£o v1 + cobertura TDD ampliada nos endpoints mobile crÃ­ticos) | CatÃ¡logo Ãºnico de erros com cÃ³digos, severidade e orientaÃ§Ã£o operacional consistente para web/mobile |
 
 | 30 | INT-030 | Configuracao de segredo de assinatura por ambiente (homolog/producao) | Critica | Em andamento (validator e gate operacional entregues em 2026-04-08; pendente provisionamento definitivo por ambiente) | integration.config-signing.hmac-key provisionado por ambiente via secret manager/Actions secrets, com checklist de release e evidencias de validacao |
+| 31 | INT-031 | Contrato de primeiro acesso e OTP white label | Critica | Em andamento (slice Compass local entregue em 2026-04-10) | Compass ativa usuario provisionado via lookup seguro + OTP + criacao de senha; Kaptur valida cadastro aberto via OTP sem enumerar usuarios |
+| 32 | INT-032 | Pendencias de onboarding por usuario/app | Alta | Em andamento (baseline local entregue em 2026-04-10) | Backend informa etapas pendentes por marca para o mobile retomar onboarding sem hardcode local |
 
 ---
 
@@ -211,6 +213,44 @@ Motivo:
 - INT-025: pacote `v1.2.28+48` incluiu ajuste de resiliencia no `openapi-compatibility-gate` da `backend_ci.yml`, evitando quebra hard quando o OpenAPI current nao sobe no run de PR.
 - INT-016: estabilizacao do backend CI com alinhamento de asserts canonicos em `ConfigPackageControllerContractErrorTest` para mensagem de contrato vigente.
 - Checkpoint de processo: pacote promovido para branch `release/v1.2.28+48` (sem PR direto para `main`), respeitando fluxo de homologacao documentado.
+
+## Adendo 2026-04-10 - Compass Mobile Auth/Jobs
+- INT-001: `GET /api/mobile/jobs` exige `Authorization: Bearer <token>` e valida a sessao contra `X-Tenant-Id` e `X-Actor-Id`, bloqueando spoof de contexto por header.
+- INT-001: `GET /api/mobile/checkin-config` e `POST /api/mobile/inspections/finalized` validam o bearer token quando informado, bloqueando contexto divergente antes de resolver configuracao ou aceitar payload finalizado.
+- INT-016: `MobileAuthJobsIntegrationTest` cobre o smoke Compass com login backend real, job aceito atribuido ao operador e rejeicao `AUTH_CONTEXT_MISMATCH` para ator divergente.
+- Evidencia local: `C:\tools\apache-maven-3.9.14\bin\mvn.cmd "-Dtest=MobileAuthJobsIntegrationTest,MobileApiControllerContractErrorTest,AuthIntegrationTest" test` passou com 17 testes; suite focada `MobileAuthJobsIntegrationTest,MobileApiControllerContractErrorTest,MobileCheckinConfigIntegrationTest,InspectionSubmissionIntegrationTest` passou com 26 testes apos hardening de config/sync.
+
+## Adendo 2026-04-10 - Compass Operacao E2E Homolog
+- INT-001: smoke E2E valida o percurso autenticado Compass de login, jobs mobile, config mobile e sync de vistoria finalizada usando bearer e contexto tenant/ator.
+- INT-004: smoke E2E valida publicacao e aprovacao de pacote operacional Compass por tenant antes do consumo mobile.
+- INT-009: smoke E2E valida persistencia de eventos operacionais durante config, sync, inspection, valuation e report.
+- INT-018: smoke E2E valida control tower com requests nas ultimas 24h, endpoint mobile rastreado e report pronto para assinatura.
+- Evidencia local: `C:\tools\apache-maven-3.9.14\bin\mvn.cmd "-Dtest=CompassOperationEndToEndIntegrationTest" test` passou com 1 teste; regressao focada `CompassOperationEndToEndIntegrationTest,ValuationReportBackofficeIntegrationTest,OperationsControlTowerIntegrationTest` passou com 3 testes.
+
+## Adendo 2026-04-10 - ACK/NACK de pacote Compass
+- INT-005: backend recebeu tabela canonica de status de aplicacao de pacote por tenant, dispositivo, versao de app, plataforma, pacote e versao de pacote.
+- INT-005: mobile envia ACK `APPLIED` best-effort quando consome configuracao remota assinada com `appliedPackageIds` ou `packageId`; falha no ACK nao bloqueia aplicacao da config.
+- INT-005: backoffice consulta status por tenant e pode filtrar por `packageVersion`, permitindo rastrear quais dispositivos aplicaram o pacote operacional.
+- INT-009/INT-018: ACK/NACK gera evento operacional `mobile.config-package-status`, ficando visivel na trilha de observabilidade e control tower.
+- Evidencia local: `C:\tools\apache-maven-3.9.14\bin\mvn.cmd "-Dtest=MobileAuthJobsIntegrationTest,CompassOperationEndToEndIntegrationTest" test` finalizou com `BUILD SUCCESS`, 6 testes e 0 falhas em 2026-04-10; `C:\src\flutter\bin\flutter.bat test --no-pub test/services/checkin_dynamic_config_service_test.dart` passou com 21 testes; `C:\src\flutter\bin\flutter.bat analyze --no-pub` passou sem issues.
+
+## Adendo 2026-04-10 - Onboarding White Label
+- Fonte funcional: `docs/03-architecture/09_WHITE_LABEL_ONBOARDING_STRATEGY.md`.
+- INT-031: o contrato de primeiro acesso deve separar lookup de autenticacao final. CPF + data de nascimento + identificador adicional localizam cadastro, mas a ativacao exige OTP para contato ja cadastrado e criacao de senha.
+- INT-031: Compass usa primeiro acesso para usuario provisionado; Kaptur usa cadastro aberto com OTP para contato informado, politicas anti-enumeracao e rate limit.
+- INT-032: o mobile deve receber pendencias de onboarding por usuario/app, incluindo selfie, termos, treinamento, permissoes e aguardando aprovacao, evitando que cada flavor mantenha regras hardcoded divergentes.
+- Criterio de pronto: mensagens de erro neutras, cooldown/reenvio de OTP, limite de tentativas, auditoria por tenant/ator/correlationId e testes de contrato para sucesso, expirado, invalido e cadastro nao encontrado.
+
+## Adendo 2026-04-10 - Slice Compass de primeiro acesso
+- INT-031: backend exposto em `/auth/first-access/start` e `/auth/first-access/complete`, separando lookup de autenticacao final e exigindo OTP antes da criacao de senha.
+- INT-031: lookup usa `cpf + birthDate + identifier`, mas cadastro nao encontrado responde de forma neutra, sem enumerar usuario.
+- INT-031: OTP temporario por desafio; senha so e persistida apos OTP valido e a sessao ja e emitida na conclusao.
+- Evidencia local: `flutter test --no-pub test/screens/compass_first_access_screen_test.dart` passou no terminal nativo; backend validado com `mvn -q -f apps/backend/pom.xml -DskipTests compile` e compilacao de testes gerando `apps/backend/target/test-classes/com/appbackoffice/api/auth/AuthIntegrationTest.class`.
+
+## Adendo 2026-04-10 - Pendencias de onboarding por usuario/app
+- INT-032: backend passou a expor `GET /auth/onboarding-pending` para o usuario autenticado e `GET /api/users/onboarding-statuses` para visibilidade administrativa no backoffice.
+- INT-032: a derivacao de pendencias considera `tenant -> appCode -> onboardingPolicy`, distinguindo `corporate_first_access` de `marketplace_provider`.
+- INT-032: o backoffice de usuarios recebeu leitura dedicada de pendencias para identificar usuarios Compass com `identity_validation`, `selfie`, `terms`, `permissions` e `awaiting_approval`.
 
 ## Adendo 2026-04-08 - Agrupamento operacional em 2 macro-pacotes
 

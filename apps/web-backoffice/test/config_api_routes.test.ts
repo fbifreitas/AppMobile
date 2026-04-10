@@ -14,6 +14,21 @@ function makeJsonResponse(status: number, body: unknown): Response {
   });
 }
 
+function sessionCookie(membershipRole = "TENANT_ADMIN", tenantId = "tenant-alpha"): string {
+  return `backoffice_auth_session=${Buffer.from(JSON.stringify({
+    accessToken: "access-token",
+    refreshToken: "refresh-token",
+    tokenType: "Bearer",
+    tenantId,
+    userId: 77,
+    email: "admin@compass.com",
+    userStatus: "APPROVED",
+    membershipRole,
+    membershipStatus: "ACTIVE",
+    permissions: ["tenant:*"]
+  }), "utf8").toString("base64url")}`;
+}
+
 test("approve route retorna 400 quando tenantId esta ausente", async () => {
   const request = new NextRequest("http://localhost/api/config/packages/approve", {
     method: "POST",
@@ -23,7 +38,8 @@ test("approve route retorna 400 quando tenantId esta ausente", async () => {
       actorRole: "tenant_admin"
     }),
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      cookie: sessionCookie()
     }
   });
 
@@ -44,7 +60,8 @@ test("approve route retorna 403 para role sem permissao", async () => {
       actorRole: "operator"
     }),
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      cookie: sessionCookie("AUDITOR")
     }
   });
 
@@ -52,7 +69,27 @@ test("approve route retorna 403 para role sem permissao", async () => {
   const payload = (await response.json()) as { error: string };
 
   assert.equal(response.status, 403);
-  assert.equal(payload.error, "Perfil operator nao possui permissao para approve pacote de configuracao.");
+  assert.equal(payload.error, "Perfil viewer nao possui permissao para approve pacote de configuracao.");
+});
+
+test("approve route rejeita tenant diferente da sessao", async () => {
+  const request = new NextRequest("http://localhost/api/config/packages/approve", {
+    method: "POST",
+    body: JSON.stringify({
+      packageId: "cfg-001",
+      tenantId: "tenant-beta"
+    }),
+    headers: {
+      "Content-Type": "application/json",
+      cookie: sessionCookie("TENANT_ADMIN", "tenant-alpha")
+    }
+  });
+
+  const response = await approvePost(request);
+  const payload = (await response.json()) as { error: string };
+
+  assert.equal(response.status, 403);
+  assert.equal(payload.error, "Tenant da configuracao difere da sessao autenticada");
 });
 
 test("approve route propaga 404 retornado pelo backend", async () => {
@@ -69,12 +106,13 @@ test("approve route propaga 404 retornado pelo backend", async () => {
       method: "POST",
       body: JSON.stringify({
         packageId: "cfg-001",
-        tenantId: "tenant-beta",
+        tenantId: "tenant-alpha",
         actorId: "approver-web",
         actorRole: "tenant_admin"
       }),
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        cookie: sessionCookie()
       }
     });
 
@@ -102,12 +140,13 @@ test("rollback route propaga 404 retornado pelo backend", async () => {
       method: "POST",
       body: JSON.stringify({
         packageId: "cfg-001",
-        tenantId: "tenant-beta",
+        tenantId: "tenant-alpha",
         actorId: "operator-web",
         actorRole: "tenant_admin"
       }),
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        cookie: sessionCookie()
       }
     });
 
@@ -147,14 +186,16 @@ test("approve route injeta X-Correlation-Id ao chamar backend", async () => {
         actorRole: "tenant_admin"
       }),
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        cookie: sessionCookie()
       }
     });
 
     const response = await approvePost(request);
 
     assert.equal(response.status, 200);
-    assert.match(capturedHeaders?.get("X-Correlation-Id") ?? "", /^cfg-/);
+    assert.match(capturedHeaders?.get("X-Correlation-Id") ?? "", /^config-approve-/);
+    assert.equal(capturedHeaders?.get("Authorization"), "Bearer access-token");
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -186,14 +227,16 @@ test("rollback route injeta X-Correlation-Id ao chamar backend", async () => {
         actorRole: "tenant_admin"
       }),
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        cookie: sessionCookie()
       }
     });
 
     const response = await rollbackPost(request);
 
     assert.equal(response.status, 200);
-    assert.match(capturedHeaders?.get("X-Correlation-Id") ?? "", /^cfg-/);
+    assert.match(capturedHeaders?.get("X-Correlation-Id") ?? "", /^config-rollback-/);
+    assert.equal(capturedHeaders?.get("Authorization"), "Bearer access-token");
   } finally {
     globalThis.fetch = originalFetch;
   }

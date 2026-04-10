@@ -15,6 +15,10 @@ on:
         description: "Grupo de testers no Firebase App Distribution"
         required: false
         default: "testers-internos"
+      brand:
+        description: "Marca para distribuir: kaptur, compass ou all"
+        required: false
+        default: "kaptur"
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -50,15 +54,9 @@ jobs:
           if git show HEAD~1:pubspec.yaml >/dev/null 2>&1; then
             PREVIOUS_VERSION=$(git show HEAD~1:pubspec.yaml | awk '/^version:/{print $2; exit}')
             if [ -n "$PREVIOUS_VERSION" ] && [ "$CURRENT_VERSION" = "$PREVIOUS_VERSION" ]; then
-              # Versão igual — só é erro se pubspec.yaml foi alterado neste commit
-              if git diff --name-only HEAD~1 HEAD | grep -q "^pubspec.yaml$"; then
-                echo "pubspec.yaml foi alterado mas a versao nao foi incrementada: $CURRENT_VERSION"
-                echo "Atualize o campo version no pubspec.yaml antes de distribuir no Firebase."
-                exit 1
-              else
-                echo "pubspec.yaml nao alterado neste commit; validacao de versao ignorada."
-                exit 0
-              fi
+              echo "Versao nao incrementada para distribuicao: $CURRENT_VERSION"
+              echo "Atualize o campo version no pubspec.yaml antes de distribuir no Firebase."
+              exit 1
             fi
             echo "Versao validada para distribuicao: atual=$CURRENT_VERSION anterior=$PREVIOUS_VERSION"
           else
@@ -88,6 +86,12 @@ jobs:
             echo "Secret FIREBASE_APP_ID_ANDROID não configurado"
             exit 1
           fi
+          if [ "${{ github.event.inputs.brand }}" = "compass" ] || [ "${{ github.event.inputs.brand }}" = "all" ]; then
+            if [ -z "${{ secrets.FIREBASE_APP_ID_ANDROID_COMPASS }}" ]; then
+              echo "Secret FIREBASE_APP_ID_ANDROID_COMPASS nao configurado"
+              exit 1
+            fi
+          fi
           if [ -z "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}" ]; then
             echo "Secret GOOGLE_APPLICATION_CREDENTIALS_JSON não configurado"
             exit 1
@@ -113,6 +117,7 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             INPUT_NOTES="${{ github.event.inputs.release_notes }}"
             INPUT_GROUP="${{ github.event.inputs.tester_group }}"
+            INPUT_BRAND="${{ github.event.inputs.brand }}"
 
             if [ -z "$INPUT_NOTES" ]; then
               RELEASE_NOTES="Build ${APP_VERSION} (${SHORT_SHA}) distribuido manualmente pelo GitHub Actions"
@@ -126,16 +131,30 @@ jobs:
             else
               TESTER_GROUP="$INPUT_GROUP"
             fi
+            if [ -z "$INPUT_BRAND" ]; then
+              DISTRIBUTION_BRAND="kaptur"
+            else
+              DISTRIBUTION_BRAND="$INPUT_BRAND"
+            fi
           else
             # Builds automáticos de produção vão para prod-testers
             RELEASE_NOTES="Build ${APP_VERSION} (${SHORT_SHA}) distribuido automaticamente apos Android CI verde"
             TESTER_GROUP="prod-testers"
+            DISTRIBUTION_BRAND="kaptur"
           fi
 
           echo "app_version=${APP_VERSION}" >> $GITHUB_OUTPUT
           echo "source_sha=${SOURCE_SHA}" >> $GITHUB_OUTPUT
           echo "release_notes=${RELEASE_NOTES}" >> $GITHUB_OUTPUT
           echo "tester_group=${TESTER_GROUP}" >> $GITHUB_OUTPUT
+          case "$DISTRIBUTION_BRAND" in
+            kaptur|compass|all) ;;
+            *)
+              echo "Brand invalida para distribuicao: $DISTRIBUTION_BRAND"
+              exit 1
+              ;;
+          esac
+          echo "distribution_brand=${DISTRIBUTION_BRAND}" >> $GITHUB_OUTPUT
 
       - name: Flutter version
         run: flutter --version
@@ -149,8 +168,16 @@ jobs:
       - name: Test
         run: flutter test
 
-      - name: Build debug APK
-        run: flutter build apk --debug --flavor kaptur
+      - name: Build debug APK (Kaptur)
+        if: steps.meta.outputs.distribution_brand == 'kaptur' || steps.meta.outputs.distribution_brand == 'all'
+        run: flutter build apk --debug --flavor kaptur --target lib/main_kaptur.dart
+
+      - name: Build debug APK (Compass)
+        if: steps.meta.outputs.distribution_brand == 'compass' || steps.meta.outputs.distribution_brand == 'all'
+        run: >
+          flutter build apk --debug --flavor compass --target lib/main_compass.dart
+          --dart-define=APP_TENANT_ID=tenant-compass
+          --dart-define=APP_API_BASE_URL=${{ vars.COMPASS_APP_API_BASE_URL }}
 
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
@@ -158,7 +185,8 @@ jobs:
       - name: Setup Google credentials
         run: echo '${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}' > /tmp/gcloud-key.json
 
-      - name: Distribute debug APK to Firebase App Distribution
+      - name: Distribute Kaptur debug APK to Firebase App Distribution
+        if: steps.meta.outputs.distribution_brand == 'kaptur' || steps.meta.outputs.distribution_brand == 'all'
         run: |
           firebase appdistribution:distribute build/app/outputs/flutter-apk/app-kaptur-debug.apk \
             --app "${{ secrets.FIREBASE_APP_ID_ANDROID }}" \
@@ -167,9 +195,28 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcloud-key.json
 
-      - name: Upload debug APK artifact
+      - name: Distribute Compass debug APK to Firebase App Distribution
+        if: steps.meta.outputs.distribution_brand == 'compass' || steps.meta.outputs.distribution_brand == 'all'
+        run: |
+          firebase appdistribution:distribute build/app/outputs/flutter-apk/app-compass-debug.apk \
+            --app "${{ secrets.FIREBASE_APP_ID_ANDROID_COMPASS }}" \
+            --groups "${{ steps.meta.outputs.tester_group }}" \
+            --release-notes "Compass | ${{ steps.meta.outputs.release_notes }}"
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcloud-key.json
+
+      - name: Upload Kaptur debug APK artifact
+        if: steps.meta.outputs.distribution_brand == 'kaptur' || steps.meta.outputs.distribution_brand == 'all'
         uses: actions/upload-artifact@v6
         with:
-          name: app-debug-apk-firebase
+          name: app-kaptur-debug-apk-firebase
           path: build/app/outputs/flutter-apk/app-kaptur-debug.apk
+          if-no-files-found: error
+
+      - name: Upload Compass debug APK artifact
+        if: steps.meta.outputs.distribution_brand == 'compass' || steps.meta.outputs.distribution_brand == 'all'
+        uses: actions/upload-artifact@v6
+        with:
+          name: app-compass-debug-apk-firebase
+          path: build/app/outputs/flutter-apk/app-compass-debug.apk
           if-no-files-found: error

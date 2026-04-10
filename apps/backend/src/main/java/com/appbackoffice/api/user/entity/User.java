@@ -2,6 +2,7 @@ package com.appbackoffice.api.user.entity;
 
 import jakarta.persistence.*;
 import java.time.Instant;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "users", uniqueConstraints = {
@@ -29,6 +30,12 @@ public class User {
 
     @Column(name = "cnpj")
     private String cnpj;
+
+    @Column(name = "birth_date")
+    private LocalDate birthDate;
+
+    @Column(name = "phone")
+    private String phone;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -142,6 +149,22 @@ public class User {
 
     public void setCnpj(String cnpj) {
         this.cnpj = cnpj;
+    }
+
+    public LocalDate getBirthDate() {
+        return birthDate;
+    }
+
+    public void setBirthDate(LocalDate birthDate) {
+        this.birthDate = birthDate;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
 
     public UserStatus getStatus() {

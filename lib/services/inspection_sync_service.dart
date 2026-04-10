@@ -124,8 +124,9 @@ class InspectionSyncService {
       try {
         final context = await const IntegrationContextService().buildContext();
         final integrationContextService = const IntegrationContextService();
-        final idempotencyKey =
-            integrationContextService.buildIdempotencyKey(payload);
+        final idempotencyKey = integrationContextService.buildIdempotencyKey(
+          payload,
+        );
         final requestTimestamp =
             integrationContextService.buildRequestTimestamp();
         final requestNonce = integrationContextService.buildRequestNonce();
@@ -139,7 +140,10 @@ class InspectionSyncService {
         request.headers.set('X-Idempotency-Key', idempotencyKey);
         request.headers.set('X-Request-Timestamp', requestTimestamp);
         request.headers.set('X-Request-Nonce', requestNonce);
-        final authToken = _resolvedAuthToken;
+        final authToken =
+            _resolvedAuthToken.isNotEmpty
+                ? _resolvedAuthToken
+                : context.authToken;
         if (authToken.isNotEmpty) {
           request.headers.set(
             HttpHeaders.authorizationHeader,

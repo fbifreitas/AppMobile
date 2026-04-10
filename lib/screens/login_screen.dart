@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../branding/brand_provider.dart';
 import '../branding/brand_tokens.dart';
 import '../state/auth_state.dart';
+import 'compass_first_access_screen.dart';
+import 'onboarding_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -31,9 +33,19 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _loading = true);
     try {
-      await context.read<AuthState>().login(_emailController.text);
+      await context.read<AuthState>().login(
+        _emailController.text,
+        password: _senhaController.text,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -45,6 +57,7 @@ class _LoginScreenState extends State<LoginScreen> {
       'login_welcome',
       defaultValue: 'Bem-vindo ao App de Vistorias',
     );
+    final isCompass = config.brandId == 'compass';
 
     return Scaffold(
       backgroundColor: BrandTokens.background,
@@ -156,6 +169,35 @@ class _LoginScreenState extends State<LoginScreen> {
                               )
                               : const Text('Entrar'),
                     ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    key: const Key('login_first_access_button'),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => isCompass
+                            ? const CompassFirstAccessScreen()
+                            : const OnboardingScreen(),
+                      ),
+                    ),
+                    child: Text(
+                      isCompass
+                          ? 'Primeiro acesso'
+                          : 'Criar minha conta de Vistoriador',
+                    ),
+                  ),
+                  TextButton(
+                    key: const Key('login_forgot_password_button'),
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Recuperacao de senha sera validada no proximo pacote de autenticacao.',
+                          ),
+                        ),
+                      );
+                    },
+                    child: const Text('Esqueci minha senha'),
                   ),
                 ],
               ),

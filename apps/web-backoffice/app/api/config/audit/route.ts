@@ -1,22 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
+import { buildAuthenticatedHeaders, readAuthSession, unauthorizedJson } from "../../../lib/auth_session";
 import { callBackendConfigApi } from "../../../lib/config_backend_client";
 import {
+  actorRoleFromSession,
+  canAccessConfigTenant,
   canPerformConfigAction,
-  getPolicyErrorMessage,
-  type ActorRole
+  getPolicyErrorMessage
 } from "../../../lib/config_policy";
 
 export function GET(request: NextRequest) {
-  const tenantId = request.nextUrl.searchParams.get("tenantId") ?? undefined;
+  const session = readAuthSession(request);
+  if (!session) {
+    return unauthorizedJson();
+  }
+
+  const tenantId = request.nextUrl.searchParams.get("tenantId") ?? session.tenantId;
   const limit = Number(request.nextUrl.searchParams.get("limit") ?? "20");
-  const actorRole = (request.nextUrl.searchParams.get("actorRole") ?? "tenant_admin") as ActorRole;
+  const actorRole = actorRoleFromSession(session);
 
   if (!canPerformConfigAction(actorRole, "read")) {
     return NextResponse.json({ error: getPolicyErrorMessage(actorRole, "read") }, { status: 403 });
   }
 
-  if (!tenantId) {
-    return NextResponse.json({ error: "Campo obrigatorio ausente: tenantId" }, { status: 400 });
+  if (!canAccessConfigTenant(session, tenantId)) {
+    return NextResponse.json({ error: "Tenant da configuracao difere da sessao autenticada" }, { status: 403 });
   }
 
   const normalizedLimit = Number.isFinite(limit) ? Math.max(1, limit) : 20;
@@ -24,7 +31,9 @@ export function GET(request: NextRequest) {
 
   return callBackendConfigApi<{ items: unknown[]; count: number; generatedAt: string }>(
     "audit",
-    undefined,
+    {
+      headers: buildAuthenticatedHeaders(session, "config-audit")
+    },
     query
   )
     .then(({ status, payload }) => {

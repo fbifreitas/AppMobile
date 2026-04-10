@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { buildAuthenticatedHeaders, readAuthSession, unauthorizedJson } from "../../../../lib/auth_session";
 import { callBackendOperationsApi } from "../../../../lib/operations_backend_client";
 
 export const dynamic = "force-dynamic";
@@ -7,14 +8,18 @@ export function GET(
   request: NextRequest,
   context: { params: Promise<{ jobId: string }> }
 ) {
-  const tenantId = request.nextUrl.searchParams.get("tenantId") ?? request.headers.get("X-Tenant-Id") ?? "tenant-default";
-  const actorId = request.nextUrl.searchParams.get("actorId") ?? request.headers.get("X-Actor-Id") ?? "backoffice-operator";
+  const session = readAuthSession(request);
+  if (!session) {
+    return unauthorizedJson();
+  }
 
   return context.params
     .then(({ jobId }) =>
-      callBackendOperationsApi(`jobs/${jobId}/timeline`, undefined, undefined, {
-        tenantId,
-        actorId,
+      callBackendOperationsApi(`jobs/${jobId}/timeline`, {
+        headers: buildAuthenticatedHeaders(session, "job-timeline")
+      }, undefined, {
+        tenantId: session.tenantId,
+        actorId: String(session.userId),
         correlationPrefix: "job-timeline"
       })
     )
