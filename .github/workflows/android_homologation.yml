@@ -81,14 +81,27 @@ jobs:
       - name: Test
         run: flutter test
 
-      - name: Build debug APK (homologation candidate)
-        run: flutter build apk --debug --flavor kaptur
+      - name: Build debug APK (Kaptur homologation candidate)
+        run: flutter build apk --debug --flavor kaptur --target lib/main_kaptur.dart
 
-      - name: Upload homologation APK artifact
+      - name: Build debug APK (Compass homologation candidate)
+        run: >
+          flutter build apk --debug --flavor compass --target lib/main_compass.dart
+          --dart-define=APP_TENANT_ID=tenant-compass
+          --dart-define=APP_API_BASE_URL=${{ vars.COMPASS_APP_API_BASE_URL }}
+
+      - name: Upload homologation APK artifact (Kaptur)
         uses: actions/upload-artifact@v6
         with:
-          name: app-homolog-apk
+          name: app-kaptur-homolog-apk
           path: build/app/outputs/flutter-apk/app-kaptur-debug.apk
+          if-no-files-found: error
+
+      - name: Upload homologation APK artifact (Compass)
+        uses: actions/upload-artifact@v6
+        with:
+          name: app-compass-homolog-apk
+          path: build/app/outputs/flutter-apk/app-compass-debug.apk
           if-no-files-found: error
 
       - name: Install Firebase CLI

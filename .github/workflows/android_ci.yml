@@ -72,12 +72,26 @@ jobs:
       - name: Test
         run: flutter test
 
-      - name: Build debug APK
-        run: flutter build apk --debug --flavor kaptur --verbose
+      - name: Build debug APK (Kaptur)
+        run: flutter build apk --debug --flavor kaptur --target lib/main_kaptur.dart --verbose
 
-      - name: Upload debug APK artifact
+      - name: Build debug APK (Compass)
+        run: >
+          flutter build apk --debug --flavor compass --target lib/main_compass.dart
+          --dart-define=APP_TENANT_ID=tenant-compass
+          --dart-define=APP_API_BASE_URL=${{ vars.COMPASS_APP_API_BASE_URL }}
+          --verbose
+
+      - name: Upload debug APK artifact (Kaptur)
         uses: actions/upload-artifact@v6
         with:
-          name: app-debug-apk
+          name: app-kaptur-debug-apk
           path: build/app/outputs/flutter-apk/app-kaptur-debug.apk
+          if-no-files-found: error
+
+      - name: Upload debug APK artifact (Compass)
+        uses: actions/upload-artifact@v6
+        with:
+          name: app-compass-debug-apk
+          path: build/app/outputs/flutter-apk/app-compass-debug.apk
           if-no-files-found: error

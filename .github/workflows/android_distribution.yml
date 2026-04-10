@@ -144,7 +144,7 @@ jobs:
         run: flutter test
 
       - name: Build debug APK
-        run: flutter build apk --debug --flavor kaptur
+        run: flutter build apk --debug --flavor kaptur --target lib/main_kaptur.dart
 
       - name: Install Firebase CLI
         run: npm install -g firebase-tools

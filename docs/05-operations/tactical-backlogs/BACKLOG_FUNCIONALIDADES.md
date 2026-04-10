@@ -319,6 +319,7 @@ Registrar telemetria minima do fluxo de vistoria (inicio, retomada, conclusao e 
 Estruturar flavors de distribuicao (prod, internal e dev) para separar pacotes e pipelines quando estiver proximo ao go-live.
 
 Observacao 2026-03-31: item mantido como pre-requisito tecnico para reduzir tamanho real do pacote removendo codigo/dev tools do artefato de producao.
+Observacao 2026-04-10 (PARCIAL - Compass Pacote B): CI/homologacao Android passam a buildar explicitamente `kaptur` com `lib/main_kaptur.dart` e `compass` com `lib/main_compass.dart`, publicando artefato Compass separado. Build Compass usa `APP_TENANT_ID=tenant-compass` e `COMPASS_APP_API_BASE_URL` como variavel de ambiente do GitHub Actions.
 
 ### BL-053
 Remover modulo desenvolvedor do pacote final (empacotamento enxuto para producao).
