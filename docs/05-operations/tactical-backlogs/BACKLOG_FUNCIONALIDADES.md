@@ -373,6 +373,7 @@ Detalhamento:
 3. Implementar verificação de estado no login para redirecionar usuários sem onboarding/permissões concluídas para a nova tela.
 
 Observacao 2026-04-10 (CONCLUIDO - Compass Pacote B): regra de roteamento ajustada para nao exibir onboarding de permissoes antes do login. A etapa passa a bloquear somente usuario autenticado/ativo sem permissao concluida, cobrindo o primeiro acesso de usuario provisionado via backoffice.
+Observacao 2026-04-10 (CONCLUIDO - Compass Pacote B): adicionada auditoria automatizada entre catalogo de permissoes, `AndroidManifest.xml` e `Info.plist`, protegendo camera, localizacao, microfone e reconhecimento de fala usados pelo onboarding.
 
 ### BL-017
 Adicionar contract tests entre mobile e backend para validar schemas e evitar quebra silenciosa de integrações críticas.
