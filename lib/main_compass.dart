@@ -5,6 +5,7 @@ import 'branding/brand_provider.dart';
 import 'branding/compass_brand.dart';
 import 'branding/remote/brand_config_resolver.dart';
 import 'branding/remote/remote_brand_overrides.dart';
+import 'repositories/backend_job_repository.dart';
 import 'repositories/fake_job_repository.dart';
 import 'repositories/preferences_repository.dart';
 import 'screens/awaiting_approval_screen.dart';
@@ -40,10 +41,11 @@ void main() {
       child: MultiProvider(
         providers: [
           ChangeNotifierProvider(
-            create: (_) => AppState(
-              FakeJobRepository(),
-              const SharedPreferencesRepository(),
-            ),
+            create:
+                (_) => AppState(
+                  BackendJobRepository(fallbackRepository: FakeJobRepository()),
+                  const SharedPreferencesRepository(),
+                ),
           ),
           ChangeNotifierProvider(create: (_) => InspectionState()),
           ChangeNotifierProvider(

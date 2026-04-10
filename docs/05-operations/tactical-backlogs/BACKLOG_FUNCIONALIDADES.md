@@ -219,6 +219,7 @@ Enviar o JSON final da vistoria para a API web oficial com autenticacao, registr
 Observacao 2026-03-30: payloads de origem financeira para criacao de processo devem ser tratados e normalizados no backoffice/integracao (docs/05-operations/tactical-backlogs/BACKLOG_BACKOFFICE_WEB.md e docs/05-operations/tactical-backlogs/BACKLOG_INTEGRACAO_WEB_MOBILE.md). O app mobile consome apenas campos operacionais expostos pelas APIs internas (jobs/config/sync), evitando acoplamento ao contrato externo bruto.
 
 Observacao 2026-03-30 (Em andamento): sincronizacao final passou a interpretar metadados de resposta da API (ex.: process_id/process_number/status) e a expor protocolo no feedback de conclusao. Adicionado tambem modo desenvolvedor para resposta mock de sync quando a integracao web definitiva ainda nao estiver disponivel.
+Observacao 2026-04-10 (PARCIAL - Compass Pacote B): entrypoint Compass passou a carregar jobs via `GET /api/mobile/jobs` com contexto autenticado (`X-Tenant-Id`, `X-Actor-Id`, bearer). Fallback mock permanece apenas quando `APP_API_BASE_URL` nao esta configurado.
 
 ### BL-002
 Criar fila offline para armazenar vistorias finalizadas quando nao houver conectividade e sincronizar automaticamente quando a rede retornar.
