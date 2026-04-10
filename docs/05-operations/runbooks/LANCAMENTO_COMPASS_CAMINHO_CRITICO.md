@@ -352,7 +352,8 @@ Materializar o app Compass como app por marca, separado da Kaptu, com autenticac
 - O entrypoint Compass usa repositorio mobile backend-first para `GET /api/mobile/jobs`; fallback mock fica restrito a build sem `APP_API_BASE_URL`, mantendo o gate de campo dependente de jobs reais por usuario autenticado.
 - O backend de `GET /api/mobile/jobs` valida o bearer token contra `X-Tenant-Id` e `X-Actor-Id`; contexto divergente retorna `AUTH_CONTEXT_MISMATCH` e impede spoof por headers em homolog.
 - Evidencia local: `C:\tools\apache-maven-3.9.14\bin\mvn.cmd "-Dtest=MobileAuthJobsIntegrationTest,MobileApiControllerContractErrorTest,AuthIntegrationTest" test` passou com 17 testes em 2026-04-10.
-- Android possui splash e adaptive icon por flavor (`kaptur` e `compass`). iOS passa a parametrizar display name, bundle name e bundle identifier por xcconfig de marca; o scheme/target Compass ainda deve ser validado em ambiente Xcode antes do gate final de loja.
+- Android possui splash e adaptive icon por flavor (`kaptur` e `compass`). iOS possui xcconfigs e schemes compartilhados por marca (`kaptur` e `compass`), com configuracoes `Debug/Release/Profile` por flavor apontando para bundle/display name separados.
+- Evidencia local iOS em Windows: XML dos schemes `kaptur.xcscheme` e `compass.xcscheme` validado; `C:\src\flutter\bin\flutter.bat analyze --no-pub` passou sem issues. Build iOS real ainda deve rodar em ambiente macOS/Xcode antes do gate final de loja.
 
 ### Dependencia
 - depende do `Pacote A` para:

@@ -1,0 +1,2 @@
+#include "kaptur.xcconfig"
+#include "Generated.xcconfig"
