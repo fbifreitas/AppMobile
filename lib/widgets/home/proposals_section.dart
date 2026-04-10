@@ -129,6 +129,22 @@ class _ProposalsSectionState extends State<ProposalsSection> {
       'proposal_empty_title',
       defaultValue: 'Nenhuma proposta disponível no momento.',
     );
+    final expirationPrefix = config.copyText(
+      'proposal_expiration_prefix',
+      defaultValue: 'Expira em',
+    );
+    final addressLabel = config.copyText(
+      'proposal_address_label',
+      defaultValue: 'Endereço',
+    );
+    final ownerLabel = config.copyText(
+      'proposal_owner_label',
+      defaultValue: 'Proprietário',
+    );
+    final scheduleLabel = config.copyText(
+      'proposal_schedule_label',
+      defaultValue: 'Agendamento',
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -169,6 +185,10 @@ class _ProposalsSectionState extends State<ProposalsSection> {
               financialSummaryEnabled: widget.financialSummaryEnabled,
               swipeLabel: swipeLabel,
               acceptLabel: acceptLabel,
+              expirationPrefix: expirationPrefix,
+              addressLabel: addressLabel,
+              ownerLabel: ownerLabel,
+              scheduleLabel: scheduleLabel,
               onAccept: () => _acceptProposal(item),
             ),
           ),
@@ -187,6 +207,10 @@ class _ProposalCard extends StatelessWidget {
     required this.financialSummaryEnabled,
     required this.swipeLabel,
     required this.acceptLabel,
+    required this.expirationPrefix,
+    required this.addressLabel,
+    required this.ownerLabel,
+    required this.scheduleLabel,
   });
 
   final ProposalOffer proposta;
@@ -200,6 +224,12 @@ class _ProposalCard extends StatelessWidget {
 
   /// Label shown when swiping reveals the accept background, and on the button.
   final String acceptLabel;
+
+  /// Labels for info rows — resolved from brand config.
+  final String expirationPrefix;
+  final String addressLabel;
+  final String ownerLabel;
+  final String scheduleLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -240,7 +270,7 @@ class _ProposalCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
-                    'Expira em ${_formatDuration(proposta.expiraEm)}',
+                    '$expirationPrefix ${_formatDuration(proposta.expiraEm)}',
                     style: const TextStyle(
                       color: BrandTokens.warning,
                       fontWeight: FontWeight.w800,
@@ -279,12 +309,12 @@ class _ProposalCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _InfoRow(label: 'Endereço', value: proposta.endereco),
+                _InfoRow(label: addressLabel, value: proposta.endereco),
                 const SizedBox(height: 6),
-                _InfoRow(label: 'Proprietário', value: proposta.proprietario),
+                _InfoRow(label: ownerLabel, value: proposta.proprietario),
                 const SizedBox(height: 6),
                 _InfoRow(
-                  label: 'Agendamento',
+                  label: scheduleLabel,
                   value: _formatDateTime(proposta.dataHoraAgendamento),
                 ),
               ],

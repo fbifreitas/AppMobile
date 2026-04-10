@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../branding/brand_provider.dart';
 import '../../theme/app_colors.dart';
 
 class LocationStatusCard extends StatelessWidget {
@@ -22,6 +23,7 @@ class LocationStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = BrandProvider.configOf(context).tokens;
     final hasLocation = latitude != null && longitude != null;
 
     return Container(
@@ -36,9 +38,9 @@ class LocationStatusCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.my_location_outlined,
-                color: AppColors.primary,
+                color: tokens.primary,
               ),
               const SizedBox(width: 8),
               const Expanded(

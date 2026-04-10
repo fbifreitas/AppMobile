@@ -314,6 +314,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               startLabel: config.copyTextOrNull('job_start_label'),
               resumeLabel: config.copyTextOrNull('job_resume_label'),
               startBlockedLabel: config.copyTextOrNull('job_start_blocked_label'),
+              navigateLabel: config.copyTextOrNull('job_navigate_label'),
+              withinRangeLabel: config.copyTextOrNull('job_within_range_label'),
+              outOfRangeLabel: config.copyTextOrNull('job_out_of_range_label'),
               onNavigateToJob: ({
                 required double? latitude,
                 required double? longitude,
@@ -353,12 +356,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         onTap: (index) {
           setState(() => _currentTabIndex = index);
         },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Painel'),
-          BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Vistorias'),
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
-            label: 'Agenda',
+            icon: const Icon(Icons.dashboard),
+            label: config.copyText('nav_home_label', defaultValue: 'Painel'),
+          ),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.list),
+            label: config.copyText('nav_jobs_label', defaultValue: 'Vistorias'),
+          ),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.calendar_today),
+            label: config.copyText('nav_agenda_label', defaultValue: 'Agenda'),
           ),
         ],
       ),

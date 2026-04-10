@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../branding/brand_provider.dart';
 import '../../theme/app_colors.dart';
 
 class OperationalHubCard extends StatelessWidget {
@@ -12,6 +13,8 @@ class OperationalHubCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = BrandProvider.configOf(context).tokens;
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -25,12 +28,12 @@ class OperationalHubCard extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: AppColors.primaryLight,
+              color: tokens.primaryLight,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.dashboard_customize_outlined,
-              color: AppColors.primary,
+              color: tokens.primary,
             ),
           ),
           const SizedBox(width: 10),

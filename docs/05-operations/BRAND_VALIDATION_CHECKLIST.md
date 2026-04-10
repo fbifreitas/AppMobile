@@ -33,6 +33,18 @@
 | **Home — Propostas** | Background do swipe: "ACEITAR PROPOSTA" | `proposal_accept_label` em `kapturManifest` | ☐ |
 | **Home — Propostas** | Snackbar após aceite: "Proposta aceita! Job adicionado ao seu dia." | `proposal_snackbar_accept_success` em `kapturManifest` | ☐ |
 | **Home — Propostas** | Valor monetário visível no card | `featureFlags.financialSummaryEnabled == true` | ☐ |
+| **Home — Propostas** | Label expiração: "Expira em XX:XX" | `proposal_expiration_prefix` em `kapturManifest` | ☐ |
+| **Home — Propostas** | Label campo endereço: "Endereço" | `proposal_address_label` em `kapturManifest` | ☐ |
+| **Home — Propostas** | Label campo proprietário: "Proprietário" | `proposal_owner_label` em `kapturManifest` | ☐ |
+| **Home — Propostas** | Label campo data: "Agendamento" | `proposal_schedule_label` em `kapturManifest` | ☐ |
+| **Home — Jobs** | Botão navegação: "COMO CHEGAR" | `job_navigate_label` em `kapturManifest` | ☐ |
+| **Home — Jobs** | Tag de raio quando dentro: "Dentro do raio" | `job_within_range_label` em `kapturManifest` | ☐ |
+| **Home — Jobs** | Tag de raio quando fora: "Fora do raio" | `job_out_of_range_label` em `kapturManifest` | ☐ |
+| **Bottom Nav** | Tab Home: "Painel" | `nav_home_label` em `kapturManifest` | ☐ |
+| **Bottom Nav** | Tab Jobs: "Vistorias" | `nav_jobs_label` em `kapturManifest` | ☐ |
+| **Bottom Nav** | Tab Agenda: "Agenda" | `nav_agenda_label` em `kapturManifest` | ☐ |
+| **LocationStatusCard** | Ícone de localização em azul da marca | `tokens.primary` via `BrandProvider.configOf(context)` | ☐ |
+| **OperationalHubCard** | Ícone e fundo do hub em azul da marca | `tokens.primary/primaryLight` via `BrandProvider.configOf(context)` | ☐ |
 | **Tema** | Cor primária azul (#0D3B92) em botões e ícones | `tokens.primary` via `BrandTokens.fromManifest` | ☐ |
 | **App title** | Title do MaterialApp: "Kaptur" | `config.appName` de `kapturManifest` | ☐ |
 
@@ -56,6 +68,13 @@
 | **Home — Propostas** | Botão (sem swipe) para aceitar | `featureFlags.swipeRequired == false` → `_AcceptButton` | ☐ |
 | **Home — Propostas** | Label botão: "ACEITAR DEMANDA" | `proposal_accept_label` em `compassManifest` | ☐ |
 | **Home — Propostas** | Snackbar após aceite: "Demanda aceita! Adicionada ao seu painel." | `proposal_snackbar_accept_success` em `compassManifest` | ☐ |
+| **Home — Propostas** | Label campo proprietário: "Responsável" *(≠ Kaptur)* | `proposal_owner_label` em `compassManifest` | ☐ |
+| **Home — Propostas** | Label campo data: "Data da avaliação" *(≠ Kaptur)* | `proposal_schedule_label` em `compassManifest` | ☐ |
+| **Home — Jobs** | Tag de raio quando dentro: "Dentro da área" *(≠ Kaptur)* | `job_within_range_label` em `compassManifest` | ☐ |
+| **Home — Jobs** | Tag de raio quando fora: "Fora da área" *(≠ Kaptur)* | `job_out_of_range_label` em `compassManifest` | ☐ |
+| **Bottom Nav** | Tab Jobs: "Avaliações" *(≠ Kaptur)* | `nav_jobs_label` em `compassManifest` | ☐ |
+| **LocationStatusCard** | Ícone de localização em verde da marca | `tokens.primary` via `BrandProvider.configOf(context)` | ☐ |
+| **OperationalHubCard** | Ícone e fundo do hub em verde da marca | `tokens.primary/primaryLight` via `BrandProvider.configOf(context)` | ☐ |
 | **Tema** | Cor primária verde (#1B6B3A) em botões e ícones | `tokens.primary` via `BrandTokens.fromManifest` | ☐ |
 | **App title** | Title do MaterialApp: "Compass Avaliações" | `config.appName` de `compassManifest` | ☐ |
 
@@ -84,6 +103,11 @@
 | Label iniciar | INICIAR VISTORIA | INICIAR AVALIAÇÃO | `job_start_label` |
 | Label retomar | RETOMAR VISTORIA | RETOMAR AVALIAÇÃO | `job_resume_label` |
 | Aceite de proposta | Swipe + label "DESLIZE PARA ACEITAR" | Botão "ACEITAR DEMANDA" | `swipeRequired` + `proposal_*` |
+| Campo proprietário | "Proprietário" | "Responsável" | `proposal_owner_label` |
+| Campo data | "Agendamento" | "Data da avaliação" | `proposal_schedule_label` |
+| Tab jobs | "Vistorias" | "Avaliações" | `nav_jobs_label` |
+| Range label (dentro) | "Dentro do raio" | "Dentro da área" | `job_within_range_label` |
+| Range label (fora) | "Fora do raio" | "Fora da área" | `job_out_of_range_label` |
 | Cor primária | Azul #0D3B92 | Verde #1B6B3A | `primaryColor` |
 | Modo de produto | marketplace | corporate | `productMode` |
 
