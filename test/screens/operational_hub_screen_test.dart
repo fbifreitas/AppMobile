@@ -8,6 +8,8 @@ import 'package:provider/provider.dart';
 
 import 'package:appmobile/models/job.dart';
 
+import '../helpers/brand_test_helper.dart';
+
 class _ImmediateJobRepository implements JobRepository {
   @override
   Future<List<Job>> getJobs() async => <Job>[];
@@ -47,10 +49,10 @@ void main() {
     });
 
     await tester.pumpWidget(
-      ChangeNotifierProvider(
+      withBrand(ChangeNotifierProvider(
         create: (_) => AppState(_ImmediateJobRepository()),
         child: const MaterialApp(home: OperationalHubScreen()),
-      ),
+      )),
     );
 
     await tester.pump();
@@ -73,14 +75,14 @@ void main() {
     final navigationCoordinator = _FakeAppNavigationCoordinator();
 
     await tester.pumpWidget(
-      ChangeNotifierProvider(
+      withBrand(ChangeNotifierProvider(
         create: (_) => AppState(_ImmediateJobRepository()),
         child: MaterialApp(
           home: OperationalHubScreen(
             navigationCoordinator: navigationCoordinator,
           ),
         ),
-      ),
+      )),
     );
 
     await tester.pump();

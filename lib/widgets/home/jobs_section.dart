@@ -30,6 +30,9 @@ class JobsSection extends StatelessWidget {
     this.startLabel,
     this.resumeLabel,
     this.startBlockedLabel,
+    this.navigateLabel,
+    this.withinRangeLabel,
+    this.outOfRangeLabel,
   });
 
   final AppState appState;
@@ -52,6 +55,9 @@ class JobsSection extends StatelessWidget {
   final String? startLabel;
   final String? resumeLabel;
   final String? startBlockedLabel;
+  final String? navigateLabel;
+  final String? withinRangeLabel;
+  final String? outOfRangeLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -99,6 +105,9 @@ class JobsSection extends StatelessWidget {
               startLabel: startLabel,
               resumeLabel: resumeLabel,
               startBlockedLabel: startBlockedLabel,
+              navigateLabel: navigateLabel,
+              withinRangeLabel: withinRangeLabel,
+              outOfRangeLabel: outOfRangeLabel,
               onNavigateToJob: () {
                 return onNavigateToJob(
                   latitude: job.latitude,
@@ -222,6 +231,9 @@ class _RichJobCard extends StatelessWidget {
     this.startLabel,
     this.resumeLabel,
     this.startBlockedLabel,
+    this.navigateLabel,
+    this.withinRangeLabel,
+    this.outOfRangeLabel,
   });
 
   final AppState appState;
@@ -240,6 +252,9 @@ class _RichJobCard extends StatelessWidget {
   final String? startLabel;
   final String? resumeLabel;
   final String? startBlockedLabel;
+  final String? navigateLabel;
+  final String? withinRangeLabel;
+  final String? outOfRangeLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -432,9 +447,9 @@ class _RichJobCard extends StatelessWidget {
                   onPressed: () async {
                     await onNavigateToJob();
                   },
-                  child: const Text(
-                    'COMO CHEGAR',
-                    style: TextStyle(fontSize: 11),
+                  child: Text(
+                    navigateLabel ?? 'COMO CHEGAR',
+                    style: const TextStyle(fontSize: 11),
                   ),
                 ),
               ),
@@ -490,10 +505,13 @@ class _RichJobCard extends StatelessWidget {
       subtipoImovel: job.subtipoImovel,
     );
 
+    final withinLabel = withinRangeLabel ?? 'Dentro do raio';
+    final outsideLabel = outOfRangeLabel ?? 'Fora do raio';
+
     if (distanceMeters <= 80) {
-      return const _DistanceInfo(
+      return _DistanceInfo(
         label: 'Você está no local',
-        rangeLabel: 'Dentro do raio',
+        rangeLabel: withinLabel,
         withinRange: true,
       );
     }
@@ -501,14 +519,14 @@ class _RichJobCard extends StatelessWidget {
     if (distanceMeters < 1000) {
       return _DistanceInfo(
         label: '${distanceMeters.toStringAsFixed(0)} m de distância',
-        rangeLabel: withinRange ? 'Dentro do raio' : 'Fora do raio',
+        rangeLabel: withinRange ? withinLabel : outsideLabel,
         withinRange: withinRange,
       );
     }
 
     return _DistanceInfo(
       label: '${(distanceMeters / 1000).toStringAsFixed(1)} km de distância',
-      rangeLabel: withinRange ? 'Dentro do raio' : 'Fora do raio',
+      rangeLabel: withinRange ? withinLabel : outsideLabel,
       withinRange: withinRange,
     );
   }

@@ -35,5 +35,17 @@ const BrandManifest kapturManifest = BrandManifest(
     'proposal_accept_label': 'ACEITAR PROPOSTA',
     'proposal_snackbar_accept_success': 'Proposta aceita! Job adicionado ao seu dia.',
     'proposal_empty_title': 'Nenhuma proposta disponível no momento.',
+    'proposal_expiration_prefix': 'Expira em',
+    'proposal_address_label': 'Endereço',
+    'proposal_owner_label': 'Proprietário',
+    'proposal_schedule_label': 'Agendamento',
+    // Jobs — geofence e navegação
+    'job_navigate_label': 'COMO CHEGAR',
+    'job_within_range_label': 'Dentro do raio',
+    'job_out_of_range_label': 'Fora do raio',
+    // Navegação (bottom nav)
+    'nav_home_label': 'Painel',
+    'nav_jobs_label': 'Vistorias',
+    'nav_agenda_label': 'Agenda',
   },
 );

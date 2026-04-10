@@ -1,7 +1,7 @@
 name: appmobile
 description: Plataforma corporativa multi-dominio, multi-tenant e white-label com apps e operacao de campo.
 publish_to: 'none'
-version: 1.2.47+67
+version: 1.2.48+68
 
 environment:
   sdk: ">=3.7.0 <4.0.0"
