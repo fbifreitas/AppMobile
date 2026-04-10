@@ -50,9 +50,15 @@ jobs:
           if git show HEAD~1:pubspec.yaml >/dev/null 2>&1; then
             PREVIOUS_VERSION=$(git show HEAD~1:pubspec.yaml | awk '/^version:/{print $2; exit}')
             if [ -n "$PREVIOUS_VERSION" ] && [ "$CURRENT_VERSION" = "$PREVIOUS_VERSION" ]; then
-              echo "Versao nao incrementada para distribuicao: $CURRENT_VERSION"
-              echo "Atualize o campo version no pubspec.yaml antes de distribuir no Firebase."
-              exit 1
+              # Versão igual — só é erro se pubspec.yaml foi alterado neste commit
+              if git diff --name-only HEAD~1 HEAD | grep -q "^pubspec.yaml$"; then
+                echo "pubspec.yaml foi alterado mas a versao nao foi incrementada: $CURRENT_VERSION"
+                echo "Atualize o campo version no pubspec.yaml antes de distribuir no Firebase."
+                exit 1
+              else
+                echo "pubspec.yaml nao alterado neste commit; validacao de versao ignorada."
+                exit 0
+              fi
             fi
             echo "Versao validada para distribuicao: atual=$CURRENT_VERSION anterior=$PREVIOUS_VERSION"
           else
