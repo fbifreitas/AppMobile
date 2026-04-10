@@ -409,6 +409,12 @@ Garantir que o tenant Compass consiga operar o fluxo de negocio completo ate o l
 - Para Compass, as rotas web de configuracao devem operar com sessao real do backoffice e tenant derivado do login/handoff, nao por `tenantId`/`actorRole` confiados do cliente.
 - A validacao de campo real permanece dependente do `Pacote B`, mas a governanca web do tenant ja pode ser endurecida antes disso.
 
+### Nota 2026-04-10 - Smoke Compass E2E homolog
+
+- Adicionado smoke E2E de homolog para o tenant Compass cobrindo login mobile real, pacote de configuracao publicado/aprovado, `GET /api/mobile/checkin-config`, `GET /api/mobile/jobs`, envio de vistoria finalizada com bearer, recebimento no backoffice, valuation, report e control tower.
+- O teste materializa o gate do `Pacote C` sem billing automatico e valida que a operacao completa chega ate laudo pronto para assinatura com rastreabilidade minima.
+- Evidencia local: `C:\tools\apache-maven-3.9.14\bin\mvn.cmd "-Dtest=CompassOperationEndToEndIntegrationTest" test` passou com 1 teste; regressao focada `CompassOperationEndToEndIntegrationTest,ValuationReportBackofficeIntegrationTest,OperationsControlTowerIntegrationTest` passou com 3 testes.
+
 ### Dependencia
 - depende do `Pacote A` para tenant, usuarios, licenciamento e auth web
 - depende do `Pacote B` para o app Compass real em campo

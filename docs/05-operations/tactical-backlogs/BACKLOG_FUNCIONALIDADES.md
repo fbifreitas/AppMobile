@@ -213,6 +213,8 @@ Tornar os menus de checkin etapa 1 e etapa 2 dinamicos via backend, permitindo a
 
 Observacao 2026-03-30 (Em andamento): adicionado fallback de configuracao dinamica por modo desenvolvedor, com documento JSON local configuravel no painel de dados mock. Fluxo de leitura agora prioriza mock local quando habilitado, depois API, depois cache, e por ultimo fallback hardcoded.
 
+Observacao 2026-04-10 (PARCIAL - Compass Pacote C): smoke E2E de homolog valida que pacote operacional Compass publicado/aprovado pelo backoffice chega ao mobile via `GET /api/mobile/checkin-config` autenticado, incluindo politica de fotos e feature flags.
+
 ### BL-001
 Enviar o JSON final da vistoria para a API web oficial com autenticacao, registro de sucesso/erro e rastreabilidade por job.
 
@@ -220,6 +222,7 @@ Observacao 2026-03-30: payloads de origem financeira para criacao de processo de
 
 Observacao 2026-03-30 (Em andamento): sincronizacao final passou a interpretar metadados de resposta da API (ex.: process_id/process_number/status) e a expor protocolo no feedback de conclusao. Adicionado tambem modo desenvolvedor para resposta mock de sync quando a integracao web definitiva ainda nao estiver disponivel.
 Observacao 2026-04-10 (PARCIAL - Compass Pacote B): entrypoint Compass passou a carregar jobs via `GET /api/mobile/jobs` com contexto autenticado (`X-Tenant-Id`, `X-Actor-Id`, bearer). Fallback mock permanece apenas quando `APP_API_BASE_URL` nao esta configurado.
+Observacao 2026-04-10 (PARCIAL - Compass Pacote C): smoke E2E de homolog cobre envio de vistoria finalizada Compass com bearer, idempotencia e correlacao, confirmando recebimento no backoffice e criacao do fluxo de valuation/report.
 
 ### BL-002
 Criar fila offline para armazenar vistorias finalizadas quando nao houver conectividade e sincronizar automaticamente quando a rede retornar.
@@ -638,6 +641,8 @@ Observacao 2026-03-30 (Em andamento): corrigida a persistencia do snapshot dinam
 
 Observacao 2026-03-30 (Concluido): reforcado o caminho de persistencia do indicador em retomadas com payload parcial/corrompido da Etapa 2, substituindo parse direto por restauracao resiliente (`restoreStep2Model`) em Home/Revisao e adicionando regressao para manter sinalizacao de obrigatorios pendentes sem quebra de tela.
 
+Observacao 2026-04-10 (PARCIAL - Compass Pacote C): smoke E2E de homolog valida que a politica dinamica de fotos Compass (`min=2`, `max=8`) publicada no pacote operacional e consumida pelo mobile antes da vistoria finalizada, reduzindo risco de divergencia entre configuracao, captura e payload enviado.
+
 ### BL-052
 Unificar no Hub Operacional um pacote único de parametrização para o modo desenvolvedor, deixando explícito o que pertence ao Check-in e o que pertence à Câmera, com organização por níveis configuráveis.
 
@@ -654,6 +659,8 @@ Observacao 2026-03-30 (Em andamento): definido checklist de validacao go/no-go p
 Observacao 2026-03-30 (Em andamento): cobertura de regressao da BL-052 foi ampliada no servico de menus para camera com cenarios de fallback por subtipo nao configurado, fallback padrao sem niveis e saneamento de IDs invalidos de niveis, reduzindo risco de divergencia de ordem/visibilidade em runtime.
 
 Observacao 2026-03-30 (Em andamento): adicionados testes de widget da camera para validar ordem e visibilidade dinamica dos seletores por nivel/subtipo (`test/screens/overlay_camera_screen_test.dart`), com modo deterministico de dados de teste na tela para evitar dependencia de inicializacao de hardware/servicos no ambiente de teste.
+
+Observacao 2026-04-10 (PARCIAL - Compass Pacote C): smoke E2E de homolog cobre o pacote unificado Compass saindo do backoffice e governando o fluxo mobile ate sync, valuation, report e control tower, mantendo a regra operacional por tenant como fonte unica do percurso.
 
 ---
 

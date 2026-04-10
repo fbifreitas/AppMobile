@@ -218,6 +218,13 @@ Motivo:
 - INT-016: `MobileAuthJobsIntegrationTest` cobre o smoke Compass com login backend real, job aceito atribuido ao operador e rejeicao `AUTH_CONTEXT_MISMATCH` para ator divergente.
 - Evidencia local: `C:\tools\apache-maven-3.9.14\bin\mvn.cmd "-Dtest=MobileAuthJobsIntegrationTest,MobileApiControllerContractErrorTest,AuthIntegrationTest" test` passou com 17 testes; suite focada `MobileAuthJobsIntegrationTest,MobileApiControllerContractErrorTest,MobileCheckinConfigIntegrationTest,InspectionSubmissionIntegrationTest` passou com 26 testes apos hardening de config/sync.
 
+## Adendo 2026-04-10 - Compass Operacao E2E Homolog
+- INT-001: smoke E2E valida o percurso autenticado Compass de login, jobs mobile, config mobile e sync de vistoria finalizada usando bearer e contexto tenant/ator.
+- INT-004: smoke E2E valida publicacao e aprovacao de pacote operacional Compass por tenant antes do consumo mobile.
+- INT-009: smoke E2E valida persistencia de eventos operacionais durante config, sync, inspection, valuation e report.
+- INT-018: smoke E2E valida control tower com requests nas ultimas 24h, endpoint mobile rastreado e report pronto para assinatura.
+- Evidencia local: `C:\tools\apache-maven-3.9.14\bin\mvn.cmd "-Dtest=CompassOperationEndToEndIntegrationTest" test` passou com 1 teste; regressao focada `CompassOperationEndToEndIntegrationTest,ValuationReportBackofficeIntegrationTest,OperationsControlTowerIntegrationTest` passou com 3 testes.
+
 ## Adendo 2026-04-08 - Agrupamento operacional em 2 macro-pacotes
 
 ### Macro-pacote A - Go-Live Core Web-Mobile
