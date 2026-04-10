@@ -21,6 +21,8 @@ import com.appbackoffice.api.job.repository.JobRepository;
 import com.appbackoffice.api.job.repository.JobTimelineRepository;
 import com.appbackoffice.api.job.service.CaseService;
 import com.appbackoffice.api.job.service.JobService;
+import com.appbackoffice.api.platform.repository.TenantApplicationRepository;
+import com.appbackoffice.api.platform.repository.TenantLicenseRepository;
 import com.appbackoffice.api.user.entity.User;
 import com.appbackoffice.api.user.entity.UserRole;
 import com.appbackoffice.api.user.entity.UserSource;
@@ -68,6 +70,8 @@ class MobileAuthJobsIntegrationTest {
     @Autowired private JobRepository jobRepository;
     @Autowired private CaseRepository caseRepository;
     @Autowired private ConfigPackageApplicationStatusRepository applicationStatusRepository;
+    @Autowired private TenantApplicationRepository tenantApplicationRepository;
+    @Autowired private TenantLicenseRepository tenantLicenseRepository;
     @Autowired private PasswordEncoder passwordEncoder;
 
     private User operator;
@@ -276,6 +280,8 @@ class MobileAuthJobsIntegrationTest {
         jobRepository.deleteAll();
         caseRepository.deleteAll();
         userRepository.deleteAll();
+        tenantApplicationRepository.deleteAll();
+        tenantLicenseRepository.deleteAll();
         tenantRepository.deleteAll();
     }
 }

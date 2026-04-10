@@ -26,6 +26,8 @@ import com.appbackoffice.api.mobile.repository.CheckinSectionRepository;
 import com.appbackoffice.api.mobile.repository.InspectionRepository;
 import com.appbackoffice.api.mobile.repository.InspectionSubmissionRepository;
 import com.appbackoffice.api.observability.IntegrationOperationEventRepository;
+import com.appbackoffice.api.platform.repository.TenantApplicationRepository;
+import com.appbackoffice.api.platform.repository.TenantLicenseRepository;
 import com.appbackoffice.api.user.entity.User;
 import com.appbackoffice.api.user.entity.UserRole;
 import com.appbackoffice.api.user.entity.UserSource;
@@ -66,6 +68,8 @@ class CompassOperationEndToEndIntegrationTest {
     @Autowired private TenantRepository tenantRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private MembershipRepository membershipRepository;
+    @Autowired private TenantApplicationRepository tenantApplicationRepository;
+    @Autowired private TenantLicenseRepository tenantLicenseRepository;
     @Autowired private UserCredentialRepository userCredentialRepository;
     @Autowired private IdentityBindingRepository identityBindingRepository;
     @Autowired private SessionRepository sessionRepository;
@@ -412,6 +416,8 @@ class CompassOperationEndToEndIntegrationTest {
         userCredentialRepository.deleteAll();
         membershipRepository.deleteAll();
         userRepository.deleteAll();
+        tenantApplicationRepository.deleteAll();
+        tenantLicenseRepository.deleteAll();
         tenantRepository.deleteAll();
     }
 }

@@ -15,6 +15,7 @@ import com.appbackoffice.api.identity.repository.TenantRepository;
 import com.appbackoffice.api.platform.entity.TenantApplicationEntity;
 import com.appbackoffice.api.platform.entity.TenantApplicationStatus;
 import com.appbackoffice.api.platform.repository.TenantApplicationRepository;
+import com.appbackoffice.api.platform.repository.TenantLicenseRepository;
 import com.appbackoffice.api.user.entity.User;
 import com.appbackoffice.api.user.entity.UserRole;
 import com.appbackoffice.api.user.entity.UserSource;
@@ -79,12 +80,16 @@ class AuthIntegrationTest {
     @Autowired
     private TenantApplicationRepository tenantApplicationRepository;
 
+    @Autowired
+    private TenantLicenseRepository tenantLicenseRepository;
+
     @BeforeEach
     void setUp() {
         sessionRepository.deleteAll();
         identityBindingRepository.deleteAll();
         firstAccessOtpRepository.deleteAll();
         tenantApplicationRepository.deleteAll();
+        tenantLicenseRepository.deleteAll();
         userCredentialRepository.deleteAll();
         membershipRepository.deleteAll();
         userRepository.deleteAll();

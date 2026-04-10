@@ -15,6 +15,8 @@ import com.appbackoffice.api.job.service.CaseService;
 import com.appbackoffice.api.job.service.JobService;
 import com.appbackoffice.api.mobile.repository.InspectionRepository;
 import com.appbackoffice.api.mobile.repository.InspectionSubmissionRepository;
+import com.appbackoffice.api.platform.repository.TenantApplicationRepository;
+import com.appbackoffice.api.platform.repository.TenantLicenseRepository;
 import com.appbackoffice.api.user.entity.User;
 import com.appbackoffice.api.user.entity.UserStatus;
 import com.appbackoffice.api.user.repository.UserRepository;
@@ -56,6 +58,8 @@ class InspectionSubmissionIntegrationTest {
     @Autowired private CaseRepository caseRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private TenantRepository tenantRepository;
+    @Autowired private TenantApplicationRepository tenantApplicationRepository;
+    @Autowired private TenantLicenseRepository tenantLicenseRepository;
     @Autowired private CaseService caseService;
     @Autowired private JobService jobService;
 
@@ -72,6 +76,8 @@ class InspectionSubmissionIntegrationTest {
         jobRepository.deleteAll();
         caseRepository.deleteAll();
         userRepository.deleteAll();
+        tenantApplicationRepository.deleteAll();
+        tenantLicenseRepository.deleteAll();
         tenantRepository.deleteAll();
 
         tenantRepository.save(new Tenant(TENANT_ID, TENANT_ID, "Tenant Mobile", TenantStatus.ACTIVE));
@@ -101,6 +107,8 @@ class InspectionSubmissionIntegrationTest {
         jobRepository.deleteAll();
         caseRepository.deleteAll();
         userRepository.deleteAll();
+        tenantApplicationRepository.deleteAll();
+        tenantLicenseRepository.deleteAll();
         tenantRepository.deleteAll();
     }
 

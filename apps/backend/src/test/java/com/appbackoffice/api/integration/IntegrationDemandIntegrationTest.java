@@ -12,6 +12,8 @@ import com.appbackoffice.api.identity.repository.MembershipRepository;
 import com.appbackoffice.api.identity.entity.Tenant;
 import com.appbackoffice.api.identity.entity.TenantStatus;
 import com.appbackoffice.api.identity.repository.TenantRepository;
+import com.appbackoffice.api.platform.repository.TenantApplicationRepository;
+import com.appbackoffice.api.platform.repository.TenantLicenseRepository;
 import com.appbackoffice.api.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -74,6 +76,12 @@ class IntegrationDemandIntegrationTest {
     @Autowired
     private TenantRepository tenantRepository;
 
+    @Autowired
+    private TenantApplicationRepository tenantApplicationRepository;
+
+    @Autowired
+    private TenantLicenseRepository tenantLicenseRepository;
+
     @BeforeEach
     void setUp() {
                 integrationDemandRepository.deleteAll();
@@ -86,6 +94,8 @@ class IntegrationDemandIntegrationTest {
                 userCredentialRepository.deleteAll();
                 membershipRepository.deleteAll();
                 userRepository.deleteAll();
+                tenantApplicationRepository.deleteAll();
+                tenantLicenseRepository.deleteAll();
         tenantRepository.deleteAll();
         tenantRepository.save(new Tenant(TENANT_ID, TENANT_ID, "Tenant Integration", TenantStatus.ACTIVE));
     }

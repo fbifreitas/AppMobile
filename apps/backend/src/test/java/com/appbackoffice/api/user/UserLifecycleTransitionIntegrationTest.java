@@ -8,6 +8,8 @@ import com.appbackoffice.api.identity.entity.Tenant;
 import com.appbackoffice.api.identity.entity.TenantStatus;
 import com.appbackoffice.api.identity.repository.MembershipRepository;
 import com.appbackoffice.api.identity.repository.TenantRepository;
+import com.appbackoffice.api.platform.repository.TenantApplicationRepository;
+import com.appbackoffice.api.platform.repository.TenantLicenseRepository;
 import com.appbackoffice.api.user.entity.User;
 import com.appbackoffice.api.user.entity.UserLifecycleStatus;
 import com.appbackoffice.api.user.repository.UserLifecycleRepository;
@@ -55,6 +57,12 @@ class UserLifecycleTransitionIntegrationTest {
     @Autowired
     private IdentityBindingRepository identityBindingRepository;
 
+    @Autowired
+    private TenantApplicationRepository tenantApplicationRepository;
+
+    @Autowired
+    private TenantLicenseRepository tenantLicenseRepository;
+
     private static final String TENANT_ID = "tenant-lifecycle-transition";
     private static final String CORRELATION_ID = "corr-lifecycle-transition-001";
     private static final String ACTOR_ID = "backoffice-admin";
@@ -67,6 +75,8 @@ class UserLifecycleTransitionIntegrationTest {
         membershipRepository.deleteAll();
         userLifecycleRepository.deleteAll();
         userRepository.deleteAll();
+        tenantApplicationRepository.deleteAll();
+        tenantLicenseRepository.deleteAll();
         tenantRepository.deleteAll();
         tenantRepository.save(new Tenant(TENANT_ID, "tenant-lifecycle-transition", "Tenant Lifecycle Transition", TenantStatus.ACTIVE));
     }

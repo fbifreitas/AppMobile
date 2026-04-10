@@ -17,6 +17,8 @@ import com.appbackoffice.api.job.repository.JobRepository;
 import com.appbackoffice.api.job.repository.JobTimelineRepository;
 import com.appbackoffice.api.job.service.CaseService;
 import com.appbackoffice.api.job.service.JobService;
+import com.appbackoffice.api.platform.repository.TenantApplicationRepository;
+import com.appbackoffice.api.platform.repository.TenantLicenseRepository;
 import com.appbackoffice.api.user.entity.User;
 import com.appbackoffice.api.user.entity.UserStatus;
 import com.appbackoffice.api.user.repository.UserRepository;
@@ -47,6 +49,8 @@ class CaseJobDomainIntegrationTest {
     @Autowired private AssignmentRepository assignmentRepository;
     @Autowired private JobRepository jobRepository;
     @Autowired private CaseRepository caseRepository;
+    @Autowired private TenantApplicationRepository tenantApplicationRepository;
+    @Autowired private TenantLicenseRepository tenantLicenseRepository;
 
     private Long operatorUserId;
     private Long otherTenantUserId;
@@ -57,6 +61,8 @@ class CaseJobDomainIntegrationTest {
         jobRepository.deleteAll();
         caseRepository.deleteAll();
         userRepository.deleteAll();
+        tenantApplicationRepository.deleteAll();
+        tenantLicenseRepository.deleteAll();
         tenantRepository.deleteAll();
     }
 

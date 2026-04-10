@@ -4,6 +4,9 @@ import com.appbackoffice.api.config.ConfigPackageService;
 import com.appbackoffice.api.config.dto.ConfigPackagePublishRequest;
 import com.appbackoffice.api.config.dto.ConfigRulesDto;
 import com.appbackoffice.api.config.dto.RolloutPolicyDto;
+import com.appbackoffice.api.auth.repository.IdentityBindingRepository;
+import com.appbackoffice.api.auth.repository.SessionRepository;
+import com.appbackoffice.api.auth.repository.UserCredentialRepository;
 import com.appbackoffice.api.job.dto.AssignJobRequest;
 import com.appbackoffice.api.job.dto.CreateCaseRequest;
 import com.appbackoffice.api.job.dto.CreateCaseResponse;
@@ -19,6 +22,8 @@ import com.appbackoffice.api.identity.repository.MembershipRepository;
 import com.appbackoffice.api.identity.repository.TenantRepository;
 import com.appbackoffice.api.mobile.repository.InspectionRepository;
 import com.appbackoffice.api.mobile.repository.InspectionSubmissionRepository;
+import com.appbackoffice.api.platform.repository.TenantApplicationRepository;
+import com.appbackoffice.api.platform.repository.TenantLicenseRepository;
 import com.appbackoffice.api.user.entity.User;
 import com.appbackoffice.api.user.entity.UserStatus;
 import com.appbackoffice.api.user.repository.UserRepository;
@@ -63,6 +68,11 @@ class OperationsControlTowerIntegrationTest {
     @Autowired private UserRepository userRepository;
     @Autowired private MembershipRepository membershipRepository;
     @Autowired private TenantRepository tenantRepository;
+    @Autowired private UserCredentialRepository userCredentialRepository;
+    @Autowired private IdentityBindingRepository identityBindingRepository;
+    @Autowired private SessionRepository sessionRepository;
+    @Autowired private TenantApplicationRepository tenantApplicationRepository;
+    @Autowired private TenantLicenseRepository tenantLicenseRepository;
     @Autowired private CaseService caseService;
     @Autowired private JobService jobService;
     @Autowired private ConfigPackageService configPackageService;
@@ -79,8 +89,13 @@ class OperationsControlTowerIntegrationTest {
         assignmentRepository.deleteAll();
         jobRepository.deleteAll();
         caseRepository.deleteAll();
+        sessionRepository.deleteAll();
+        identityBindingRepository.deleteAll();
+        userCredentialRepository.deleteAll();
         membershipRepository.deleteAll();
         userRepository.deleteAll();
+        tenantApplicationRepository.deleteAll();
+        tenantLicenseRepository.deleteAll();
         tenantRepository.deleteAll();
 
         tenantRepository.save(new Tenant(TENANT_ID, TENANT_ID, "Tenant Ops", TenantStatus.ACTIVE));
@@ -120,8 +135,13 @@ class OperationsControlTowerIntegrationTest {
         assignmentRepository.deleteAll();
         jobRepository.deleteAll();
         caseRepository.deleteAll();
+        sessionRepository.deleteAll();
+        identityBindingRepository.deleteAll();
+        userCredentialRepository.deleteAll();
         membershipRepository.deleteAll();
         userRepository.deleteAll();
+        tenantApplicationRepository.deleteAll();
+        tenantLicenseRepository.deleteAll();
         tenantRepository.deleteAll();
     }
 
