@@ -1,0 +1,36 @@
+---
+title: Build por Marca — Android & iOS
+---
+flowchart LR
+    subgraph Android["Android (build.gradle.kts)"]
+        AF_K["flavor: kaptur\napplicationId: com.kaptur.field\napp_name: Kaptur"]
+        AF_C["flavor: compass\napplicationId: com.compass.avaliacoes\napp_name: Compass Avaliações"]
+    end
+
+    subgraph iOS["iOS (Xcode)"]
+        IOS_K["Target: Runner\nScheme: Kaptur\nxcconfig: kaptur.xcconfig\nbundle: com.kaptur.field"]
+        IOS_C["Target: RunnerCompass\nScheme: Compass\nxcconfig: compass.xcconfig\nbundle: com.compass.avaliacoes"]
+    end
+
+    subgraph Entrypoints["Flutter Entrypoints"]
+        E_K["lib/main_kaptur.dart\n→ kapturManifest"]
+        E_C["lib/main_compass.dart\n→ compassManifest"]
+    end
+
+    subgraph Commands["Comandos"]
+        CMD_K["flutter run --flavor kaptur\n  -t lib/main_kaptur.dart"]
+        CMD_C["flutter run --flavor compass\n  -t lib/main_compass.dart"]
+    end
+
+    AF_K --> CMD_K
+    IOS_K --> CMD_K
+    E_K --> CMD_K
+
+    AF_C --> CMD_C
+    IOS_C --> CMD_C
+    E_C --> CMD_C
+
+    style Android fill:#e8f0ff,stroke:#0D3B92
+    style iOS fill:#e6f5ee,stroke:#1B8A5A
+    style Entrypoints fill:#fff4e5,stroke:#F39C12
+    style Commands fill:#f4f7fa,stroke:#6B7280

@@ -19,14 +19,51 @@ const BrandManifest compassManifest = BrandManifest(
   productMode: ProductMode.corporate,
   featureFlags: BrandFeatureFlags.compass,
   copyOverrides: {
+    // Seções
     'jobs_section_title': 'ORDENS DO DIA',
     'proposals_section_title': 'DEMANDAS DISPONÍVEIS',
-    'home_subtitle': 'Seu painel de avaliações',
+    // Home
+    'home_header_subtitle': 'Seu painel de avaliações',
+    // Login
     'login_welcome': 'Bem-vindo à Compass Avaliações',
-    'proposal_accept_label': 'ACEITAR DEMANDA',
+    // Jobs
+    'job_start_label': 'INICIAR AVALIAÇÃO',
+    'job_resume_label': 'RETOMAR AVALIAÇÃO',
+    'job_start_blocked_label': 'Fora da área de atendimento.',
+    // Propostas
     'proposal_swipe_label': 'CONFIRMAR ACEITE',
-    'job_start_label': 'Iniciar avaliação',
-    'job_resume_label': 'Retomar avaliação',
-    'job_start_blocked_label': 'Fora da área',
+    'proposal_accept_label': 'ACEITAR DEMANDA',
+    'proposal_snackbar_accept_success': 'Demanda aceita! Adicionada ao seu painel.',
+    'proposal_empty_title': 'Nenhuma demanda disponível no momento.',
+    'proposal_expiration_prefix': 'Expira em',
+    'proposal_address_label': 'Endereço',
+    'proposal_owner_label': 'Responsável',
+    'proposal_schedule_label': 'Data da avaliação',
+    // Jobs — geofence e navegação
+    'job_navigate_label': 'COMO CHEGAR',
+    'job_within_range_label': 'Dentro da área',
+    'job_out_of_range_label': 'Fora da área',
+    'job_geofence_radius_prefix': 'Área:',
+    // Jobs — estados de carregamento e vazio
+    'job_loading_label': 'Carregando avaliações...',
+    'job_error_title': 'Não foi possível carregar as avaliações.',
+    'job_empty_label': 'Nenhuma avaliação disponível no momento.',
+    // Jobs — modo desenvolvedor
+    'job_dev_mode_hint_label': 'Modo desenvolvedor ativo: fluxo liberado para teste fora do raio.',
+    'job_dev_mode_start_label': 'INICIAR (DEV)',
+    // Jobs — distância
+    'job_location_pending_label': 'Localização pendente',
+    'job_no_calculation_label': 'Sem cálculo',
+    'job_on_site_label': 'Você está no local',
+    // Home — saudação
+    'home_greeting_prefix': 'Olá,',
+    // Jobs — status e recuperação
+    'job_status_active_label': 'EM ANDAMENTO',
+    'job_status_recoverable_label': 'EM RECUPERAÇÃO',
+    'job_recovery_warning_prefix': 'Avaliação interrompida. Última etapa salva:',
+    // Navegação (bottom nav)
+    'nav_home_label': 'Painel',
+    'nav_jobs_label': 'Avaliações',
+    'nav_agenda_label': 'Agenda',
   },
 );

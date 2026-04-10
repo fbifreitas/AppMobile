@@ -1,0 +1,38 @@
+---
+title: Consumo de Config na UI — Contrato
+---
+flowchart TD
+    subgraph Entrypoint["Entrypoint (main_kaptur.dart / main_compass.dart)"]
+        M["BrandManifest"]
+        RO["RemoteBrandOverrides (opcional)"]
+        BCR["BrandConfigResolver.resolve()"]
+        BP["BrandProvider(config: resolved)"]
+        M --> BCR
+        RO -.-> BCR
+        BCR --> BP
+    end
+
+    subgraph Widget["Widget build()"]
+        READ["final config = BrandProvider.configOf(context)"]
+        COPY["config.copyText('key', defaultValue: '...')"]
+        FLAGS["config.featureFlags.someFlag"]
+        TOKENS["config.tokens.primary"]
+        APPNAME["config.appName"]
+        READ --> COPY
+        READ --> FLAGS
+        READ --> TOKENS
+        READ --> APPNAME
+    end
+
+    subgraph Proibido["❌ Proibido em widgets"]
+        X1["BrandManifest direto"]
+        X2["RemoteBrandOverrides direto"]
+        X3["Merge manual de config"]
+        X4["if (brand == 'kaptur') ..."]
+    end
+
+    BP -->|InheritedWidget| READ
+
+    style Entrypoint fill:#e8f0ff,stroke:#0D3B92
+    style Widget fill:#e6f5ee,stroke:#1B8A5A
+    style Proibido fill:#fdecec,stroke:#D64545

@@ -2,10 +2,12 @@ import 'package:appmobile/widgets/home/location_status_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers/brand_test_helper.dart';
+
 void main() {
   testWidgets('LocationStatusCard renders empty state', (tester) async {
     await tester.pumpWidget(
-      MaterialApp(
+      withBrand(MaterialApp(
         home: Scaffold(
           body: LocationStatusCard(
             loading: false,
@@ -16,7 +18,7 @@ void main() {
             onRefresh: () async {},
           ),
         ),
-      ),
+      )),
     );
 
     expect(find.text('Localização operacional'), findsOneWidget);

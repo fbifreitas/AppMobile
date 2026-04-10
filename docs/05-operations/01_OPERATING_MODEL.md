@@ -34,8 +34,8 @@ Esta pasta concentra documentação operacional corrente ativa.
 
 ## Scope boundary
 
-Os documentos desta pasta são operacionais e não substituem a direção arquitetural V2.
-Para decisões estratégicas, usar sempre `README.md`, `GEMINI.md`, `.github/copilot-instructions.md` e os docs ativos de arquitetura/engenharia V2.
+Os documentos desta pasta são operacionais e não substituem a direção arquitetural multi-brand.
+Para decisões estratégicas, usar sempre `README.md`, `GEMINI.md`, `.github/copilot-instructions.md` e os docs ativos de arquitetura/engenharia.
 
 ## Corporate operation
 

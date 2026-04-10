@@ -19,11 +19,51 @@ const BrandManifest kapturManifest = BrandManifest(
   productMode: ProductMode.marketplace,
   featureFlags: BrandFeatureFlags.kaptur,
   copyOverrides: {
+    // Seções
     'jobs_section_title': 'MEUS JOBS DE HOJE',
     'proposals_section_title': 'NOVAS PROPOSTAS',
-    'home_subtitle': 'Seu painel operacional de hoje',
+    // Home
+    'home_header_subtitle': 'Seu painel operacional de hoje',
+    // Login
     'login_welcome': 'Bem-vindo ao Kaptur',
-    // Botões: sem override — widgets usam fallback hardcoded canônico.
-    // Compass pode sobrescrever com linguagem corporativa via copyOverrides.
+    // Jobs
+    'job_start_label': 'INICIAR VISTORIA',
+    'job_resume_label': 'RETOMAR VISTORIA',
+    'job_start_blocked_label': 'Fora do raio de vistoria.',
+    // Propostas
+    'proposal_swipe_label': 'DESLIZE PARA ACEITAR',
+    'proposal_accept_label': 'ACEITAR PROPOSTA',
+    'proposal_snackbar_accept_success': 'Proposta aceita! Job adicionado ao seu dia.',
+    'proposal_empty_title': 'Nenhuma proposta disponível no momento.',
+    'proposal_expiration_prefix': 'Expira em',
+    'proposal_address_label': 'Endereço',
+    'proposal_owner_label': 'Proprietário',
+    'proposal_schedule_label': 'Agendamento',
+    // Jobs — geofence e navegação
+    'job_navigate_label': 'COMO CHEGAR',
+    'job_within_range_label': 'Dentro do raio',
+    'job_out_of_range_label': 'Fora do raio',
+    'job_geofence_radius_prefix': 'Raio:',
+    // Jobs — estados de carregamento e vazio
+    'job_loading_label': 'Carregando jobs...',
+    'job_error_title': 'Não foi possível carregar as vistorias.',
+    'job_empty_label': 'Nenhuma vistoria disponível no momento.',
+    // Jobs — modo desenvolvedor
+    'job_dev_mode_hint_label': 'Modo desenvolvedor ativo: fluxo liberado para teste fora do raio.',
+    'job_dev_mode_start_label': 'INICIAR (DEV)',
+    // Jobs — distância
+    'job_location_pending_label': 'Localização pendente',
+    'job_no_calculation_label': 'Sem cálculo',
+    'job_on_site_label': 'Você está no local',
+    // Home — saudação
+    'home_greeting_prefix': 'Olá,',
+    // Jobs — status e recuperação
+    'job_status_active_label': 'EM ANDAMENTO',
+    'job_status_recoverable_label': 'EM RECUPERAÇÃO',
+    'job_recovery_warning_prefix': 'Vistoria em andamento interrompida. Última etapa salva:',
+    // Navegação (bottom nav)
+    'nav_home_label': 'Painel',
+    'nav_jobs_label': 'Vistorias',
+    'nav_agenda_label': 'Agenda',
   },
 );

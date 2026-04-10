@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../branding/brand_provider.dart';
 import '../../branding/brand_tokens.dart';
+import '../../branding/resolved_brand_config.dart';
 import '../../models/job.dart';
 import '../../models/job_status.dart';
 import '../../services/location_service.dart';
@@ -30,6 +31,9 @@ class JobsSection extends StatelessWidget {
     this.startLabel,
     this.resumeLabel,
     this.startBlockedLabel,
+    this.navigateLabel,
+    this.withinRangeLabel,
+    this.outOfRangeLabel,
   });
 
   final AppState appState;
@@ -52,13 +56,22 @@ class JobsSection extends StatelessWidget {
   final String? startLabel;
   final String? resumeLabel;
   final String? startBlockedLabel;
+  final String? navigateLabel;
+  final String? withinRangeLabel;
+  final String? outOfRangeLabel;
 
   @override
   Widget build(BuildContext context) {
     final config = BrandProvider.configOf(context);
     final tokens = config.tokens;
     final resolvedTitle =
-        sectionTitle?.isNotEmpty == true ? sectionTitle! : 'MEUS JOBS DE HOJE';
+        sectionTitle?.isNotEmpty == true
+            ? sectionTitle!
+            : config.copyText('jobs_section_title', defaultValue: 'MEUS JOBS DE HOJE');
+
+    final loadingLabel = config.copyText('job_loading_label', defaultValue: 'Carregando jobs...');
+    final errorTitle = config.copyText('job_error_title', defaultValue: 'Não foi possível carregar as vistorias.');
+    final emptyLabel = config.copyText('job_empty_label', defaultValue: 'Nenhuma vistoria disponível no momento.');
 
     final activeJobs =
         appState.jobs
@@ -79,11 +92,11 @@ class JobsSection extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         if (appState.isLoadingJobs)
-          _buildInlineLoadingCard()
+          _buildInlineLoadingCard(loadingLabel)
         else if (appState.jobsLoadError != null)
-          _buildJobsLoadErrorCard(appState.jobsLoadError!)
+          _buildJobsLoadErrorCard(appState.jobsLoadError!, errorTitle)
         else if (activeJobs.isEmpty)
-          _buildEmptyJobsCard()
+          _buildEmptyJobsCard(emptyLabel)
         else
           ...activeJobs.map(
             (job) => _RichJobCard(
@@ -97,6 +110,9 @@ class JobsSection extends StatelessWidget {
               startLabel: startLabel,
               resumeLabel: resumeLabel,
               startBlockedLabel: startBlockedLabel,
+              navigateLabel: navigateLabel,
+              withinRangeLabel: withinRangeLabel,
+              outOfRangeLabel: outOfRangeLabel,
               onNavigateToJob: () {
                 return onNavigateToJob(
                   latitude: job.latitude,
@@ -113,7 +129,7 @@ class JobsSection extends StatelessWidget {
     );
   }
 
-  Widget _buildInlineLoadingCard() {
+  Widget _buildInlineLoadingCard(String loadingLabel) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(14),
@@ -122,18 +138,18 @@ class JobsSection extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: BrandTokens.border),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          SizedBox(
+          const SizedBox(
             width: 18,
             height: 18,
             child: CircularProgressIndicator(strokeWidth: 2.2),
           ),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Carregando jobs...',
-              style: TextStyle(color: BrandTokens.textSecondary, fontSize: 12),
+              loadingLabel,
+              style: const TextStyle(color: BrandTokens.textSecondary, fontSize: 12),
             ),
           ),
         ],
@@ -141,7 +157,7 @@ class JobsSection extends StatelessWidget {
     );
   }
 
-  Widget _buildJobsLoadErrorCard(String message) {
+  Widget _buildJobsLoadErrorCard(String message, String errorTitle) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(14),
@@ -153,9 +169,9 @@ class JobsSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Não foi possível carregar as vistorias.',
-            style: TextStyle(
+          Text(
+            errorTitle,
+            style: const TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 13,
               color: BrandTokens.textPrimary,
@@ -174,7 +190,7 @@ class JobsSection extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyJobsCard() {
+  Widget _buildEmptyJobsCard(String emptyLabel) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(18),
@@ -183,18 +199,18 @@ class JobsSection extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: BrandTokens.border),
       ),
-      child: const Column(
+      child: Column(
         children: [
-          Icon(
+          const Icon(
             Icons.assignment_outlined,
             size: 40,
             color: BrandTokens.textSecondary,
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Text(
-            'Nenhuma vistoria disponível no momento.',
+            emptyLabel,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 14,
               color: BrandTokens.textPrimary,
@@ -220,6 +236,9 @@ class _RichJobCard extends StatelessWidget {
     this.startLabel,
     this.resumeLabel,
     this.startBlockedLabel,
+    this.navigateLabel,
+    this.withinRangeLabel,
+    this.outOfRangeLabel,
   });
 
   final AppState appState;
@@ -238,10 +257,16 @@ class _RichJobCard extends StatelessWidget {
   final String? startLabel;
   final String? resumeLabel;
   final String? startBlockedLabel;
+  final String? navigateLabel;
+  final String? withinRangeLabel;
+  final String? outOfRangeLabel;
 
   @override
   Widget build(BuildContext context) {
-    final distanceInfo = _buildDistanceInfo();
+    final config = BrandProvider.configOf(context);
+    final devHint = config.copyText('job_dev_mode_hint_label', defaultValue: 'Modo desenvolvedor ativo: fluxo liberado para teste fora do raio.');
+    final devStartLabel = config.copyText('job_dev_mode_start_label', defaultValue: 'INICIAR (DEV)');
+    final distanceInfo = _buildDistanceInfo(config);
     final canStart =
         !geofenceRequired ||
         appState.canStartInspection(
@@ -294,7 +319,9 @@ class _RichJobCard extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                isRecoverable ? 'EM RECUPERAÇÃO' : 'EM ANDAMENTO',
+                isRecoverable
+                    ? config.copyText('job_status_recoverable_label', defaultValue: 'EM RECUPERAÇÃO')
+                    : config.copyText('job_status_active_label', defaultValue: 'EM ANDAMENTO'),
                 style: TextStyle(
                   color:
                       isRecoverable ? BrandTokens.warning : tokens.primary,
@@ -381,7 +408,7 @@ class _RichJobCard extends StatelessWidget {
                 _JobTag(
                   bg: BrandTokens.surface,
                   fg: BrandTokens.textSecondary,
-                  text: 'Raio: ${radiusMeters.toStringAsFixed(0)}m',
+                  text: '${config.copyText('job_geofence_radius_prefix', defaultValue: 'Raio:')} ${radiusMeters.toStringAsFixed(0)}m',
                 ),
               ],
             ),
@@ -395,7 +422,7 @@ class _RichJobCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                'Vistoria em andamento interrompida. Última etapa salva: $recoveryStageLabel.',
+                '${config.copyText('job_recovery_warning_prefix', defaultValue: 'Vistoria em andamento interrompida. Última etapa salva:')} $recoveryStageLabel.',
                 style: const TextStyle(
                   color: BrandTokens.warning,
                   fontSize: 11,
@@ -415,7 +442,7 @@ class _RichJobCard extends StatelessWidget {
             )
           else if (showDevStart)
             Text(
-              'Modo desenvolvedor ativo: fluxo liberado para teste fora do raio.',
+              devHint,
               style: TextStyle(
                 color: tokens.primary,
                 fontSize: 11,
@@ -430,9 +457,9 @@ class _RichJobCard extends StatelessWidget {
                   onPressed: () async {
                     await onNavigateToJob();
                   },
-                  child: const Text(
-                    'COMO CHEGAR',
-                    style: TextStyle(fontSize: 11),
+                  child: Text(
+                    navigateLabel ?? 'COMO CHEGAR',
+                    style: const TextStyle(fontSize: 11),
                   ),
                 ),
               ),
@@ -449,7 +476,7 @@ class _RichJobCard extends StatelessWidget {
                     isRecoverable
                         ? (resumeLabel ?? 'RETOMAR VISTORIA')
                         : showDevStart
-                        ? 'INICIAR (DEV)'
+                        ? devStartLabel
                         : (startLabel ?? 'INICIAR VISTORIA'),
                     style: const TextStyle(fontSize: 11),
                   ),
@@ -462,15 +489,19 @@ class _RichJobCard extends StatelessWidget {
     );
   }
 
-  _DistanceInfo _buildDistanceInfo() {
+  _DistanceInfo _buildDistanceInfo(ResolvedBrandConfig config) {
+    final pendingLabel = config.copyText('job_location_pending_label', defaultValue: 'Localização pendente');
+    final noCalcLabel = config.copyText('job_no_calculation_label', defaultValue: 'Sem cálculo');
+    final onSiteLabel = config.copyText('job_on_site_label', defaultValue: 'Você está no local');
+
     if (!useDistanceMetrics ||
         currentLatitude == null ||
         currentLongitude == null ||
         job.latitude == null ||
         job.longitude == null) {
-      return const _DistanceInfo(
-        label: 'Localização pendente',
-        rangeLabel: 'Sem cálculo',
+      return _DistanceInfo(
+        label: pendingLabel,
+        rangeLabel: noCalcLabel,
         withinRange: false,
       );
     }
@@ -488,10 +519,13 @@ class _RichJobCard extends StatelessWidget {
       subtipoImovel: job.subtipoImovel,
     );
 
+    final withinLabel = withinRangeLabel ?? 'Dentro do raio';
+    final outsideLabel = outOfRangeLabel ?? 'Fora do raio';
+
     if (distanceMeters <= 80) {
-      return const _DistanceInfo(
-        label: 'Você está no local',
-        rangeLabel: 'Dentro do raio',
+      return _DistanceInfo(
+        label: onSiteLabel,
+        rangeLabel: withinLabel,
         withinRange: true,
       );
     }
@@ -499,14 +533,14 @@ class _RichJobCard extends StatelessWidget {
     if (distanceMeters < 1000) {
       return _DistanceInfo(
         label: '${distanceMeters.toStringAsFixed(0)} m de distância',
-        rangeLabel: withinRange ? 'Dentro do raio' : 'Fora do raio',
+        rangeLabel: withinRange ? withinLabel : outsideLabel,
         withinRange: withinRange,
       );
     }
 
     return _DistanceInfo(
       label: '${(distanceMeters / 1000).toStringAsFixed(1)} km de distância',
-      rangeLabel: withinRange ? 'Dentro do raio' : 'Fora do raio',
+      rangeLabel: withinRange ? withinLabel : outsideLabel,
       withinRange: withinRange,
     );
   }

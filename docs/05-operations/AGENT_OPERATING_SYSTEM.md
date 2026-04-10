@@ -1,12 +1,12 @@
 # AGENT OPERATING SYSTEM
 
 ## Objetivo
-Ser o sistema operacional de execucao do agente para tarefas deste repositorio, mantendo a direcao V2 ativa.
+Ser o sistema operacional de execucao do agente para tarefas deste repositorio, mantendo a direcao multi-brand ativa.
 
 ## Escopo
 - Documento operacional ativo.
-- Nao substitui a direcao arquitetural V2.
-- Ler junto com README.md, GEMINI.md, .github/copilot-instructions.md e docs estrategicos V2.
+- Nao substitui a direcao arquitetural multi-brand.
+- Ler junto com README.md, GEMINI.md, .github/copilot-instructions.md e docs estrategicos de arquitetura.
 
 ## Fluxo padrao do agente
 1. Classificar tarefa por camada e dominio.
