@@ -43,6 +43,11 @@ const BrandManifest kapturManifest = BrandManifest(
     'job_navigate_label': 'COMO CHEGAR',
     'job_within_range_label': 'Dentro do raio',
     'job_out_of_range_label': 'Fora do raio',
+    'job_geofence_radius_prefix': 'Raio:',
+    // Jobs — status e recuperação
+    'job_status_active_label': 'EM ANDAMENTO',
+    'job_status_recoverable_label': 'EM RECUPERAÇÃO',
+    'job_recovery_warning_prefix': 'Vistoria em andamento interrompida. Última etapa salva:',
     // Navegação (bottom nav)
     'nav_home_label': 'Painel',
     'nav_jobs_label': 'Vistorias',

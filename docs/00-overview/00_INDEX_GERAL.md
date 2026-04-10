@@ -17,12 +17,12 @@
 13. docs/04-engineering/01_ENGINEERING_GUARDRAILS.md
 14. docs/04-engineering/02_REPO_TARGET_STRUCTURE.md
 15. docs/04-engineering/03_SHORT_PATH_TRANSITION_PLAN.md
-16. docs/BACKLOG_V2_PRIORIDADES.md
+16. docs/BACKLOG_V2_PRIORIDADES.md  (backlog estratégico multi-brand)
 17. docs/05-operations/01_OPERATING_MODEL.md
 
 ## Regra geral
 
-Se houver conflito entre documentos antigos e a V2, a V2 é a direção ativa.
+Se houver conflito entre documentos antigos e a arquitetura multi-brand, a arquitetura multi-brand é a direção ativa.
 
 ## Classificação ativa de documentação
 
@@ -32,7 +32,7 @@ Se houver conflito entre documentos antigos e a V2, a V2 é a direção ativa.
 	- docs/02-product/
 	- docs/03-architecture/
 	- docs/04-engineering/
-	- docs/BACKLOG_V2_PRIORIDADES.md
+	- docs/BACKLOG_V2_PRIORIDADES.md  (backlog estratégico)
 2. Operacional corrente ativo:
 	- docs/05-operations/
 3. Engenharia multi-brand (ativo):
@@ -48,7 +48,7 @@ Se houver conflito entre documentos antigos e a V2, a V2 é a direção ativa.
 1. Trilha estratégica/corporativa:
 	- docs/03-architecture/*
 	- docs/04-engineering/*
-	- docs/BACKLOG_V2_PRIORIDADES.md
+	- docs/BACKLOG_V2_PRIORIDADES.md  (backlog estratégico)
 2. Trilha operacional:
 	- docs/05-operations/01_OPERATING_MODEL.md
 	- docs/05-operations/AGENT_OPERATING_SYSTEM.md

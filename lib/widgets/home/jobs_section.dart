@@ -258,6 +258,7 @@ class _RichJobCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final config = BrandProvider.configOf(context);
     final distanceInfo = _buildDistanceInfo();
     final canStart =
         !geofenceRequired ||
@@ -311,7 +312,9 @@ class _RichJobCard extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                isRecoverable ? 'EM RECUPERAÇÃO' : 'EM ANDAMENTO',
+                isRecoverable
+                    ? config.copyText('job_status_recoverable_label', defaultValue: 'EM RECUPERAÇÃO')
+                    : config.copyText('job_status_active_label', defaultValue: 'EM ANDAMENTO'),
                 style: TextStyle(
                   color:
                       isRecoverable ? BrandTokens.warning : tokens.primary,
@@ -398,7 +401,7 @@ class _RichJobCard extends StatelessWidget {
                 _JobTag(
                   bg: BrandTokens.surface,
                   fg: BrandTokens.textSecondary,
-                  text: 'Raio: ${radiusMeters.toStringAsFixed(0)}m',
+                  text: '${config.copyText('job_geofence_radius_prefix', defaultValue: 'Raio:')} ${radiusMeters.toStringAsFixed(0)}m',
                 ),
               ],
             ),
@@ -412,7 +415,7 @@ class _RichJobCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                'Vistoria em andamento interrompida. Última etapa salva: $recoveryStageLabel.',
+                '${config.copyText('job_recovery_warning_prefix', defaultValue: 'Vistoria em andamento interrompida. Última etapa salva:')} $recoveryStageLabel.',
                 style: const TextStyle(
                   color: BrandTokens.warning,
                   fontSize: 11,

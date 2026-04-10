@@ -4,7 +4,7 @@
 Definir tema -> documento oficial para reduzir ambiguidade de execucao.
 
 ## Matriz
-- Direcao corporativa V2: README.md
+- Direcao corporativa multi-brand: README.md
 - Guardrails do agente: GEMINI.md e .github/copilot-instructions.md
 - Visao geral e ordem de leitura: docs/00-overview/00_INDEX_GERAL.md
 - Arquitetura corporativa: docs/03-architecture/01_CORPORATE_BLUEPRINT.md
