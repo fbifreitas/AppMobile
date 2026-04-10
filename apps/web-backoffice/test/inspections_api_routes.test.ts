@@ -14,12 +14,29 @@ function makeJsonResponse(status: number, body: unknown): Response {
   });
 }
 
+function sessionCookie(tenantId = "tenant-alpha"): string {
+  return `backoffice_auth_session=${Buffer.from(JSON.stringify({
+    accessToken: "access-token",
+    refreshToken: "refresh-token",
+    tokenType: "Bearer",
+    tenantId,
+    userId: 77,
+    email: "operator@compass.com",
+    userStatus: "APPROVED",
+    membershipRole: "TENANT_ADMIN",
+    membershipStatus: "ACTIVE",
+    permissions: ["inspections:*"]
+  }), "utf8").toString("base64url")}`;
+}
+
 test("inspections route propaga query params e resposta do backend", async () => {
   const originalFetch = globalThis.fetch;
   let capturedUrl = "";
+  let capturedHeaders: Headers | undefined;
 
-  globalThis.fetch = async (input) => {
+  globalThis.fetch = async (input, init) => {
     capturedUrl = String(input);
+    capturedHeaders = new Headers(init?.headers);
     return makeJsonResponse(200, {
       page: 0,
       size: 20,
@@ -29,7 +46,11 @@ test("inspections route propaga query params e resposta do backend", async () =>
   };
 
   try {
-    const request = new NextRequest("http://localhost/api/inspections?tenantId=tenant-alpha&status=SUBMITTED&vistoriadorId=42&page=1&size=10");
+    const request = new NextRequest("http://localhost/api/inspections?tenantId=ignored&status=SUBMITTED&vistoriadorId=42&page=1&size=10", {
+      headers: {
+        cookie: sessionCookie()
+      }
+    });
     const response = await inspectionsGet(request);
     const payload = (await response.json()) as { total: number };
 
@@ -40,6 +61,30 @@ test("inspections route propaga query params e resposta do backend", async () =>
     assert.match(capturedUrl, /vistoriadorId=42/);
     assert.match(capturedUrl, /page=1/);
     assert.match(capturedUrl, /size=10/);
+    assert.equal(capturedHeaders?.get("Authorization"), "Bearer access-token");
+    assert.equal(capturedHeaders?.get("X-Tenant-Id"), "tenant-alpha");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("inspections route exige sessao autenticada", async () => {
+  const originalFetch = globalThis.fetch;
+  let called = false;
+
+  globalThis.fetch = async () => {
+    called = true;
+    return makeJsonResponse(200, {});
+  };
+
+  try {
+    const request = new NextRequest("http://localhost/api/inspections?tenantId=tenant-alpha");
+    const response = await inspectionsGet(request);
+    const payload = (await response.json()) as { error: string };
+
+    assert.equal(response.status, 401);
+    assert.equal(payload.error, "Authentication required");
+    assert.equal(called, false);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -59,7 +104,11 @@ test("inspection detail route propaga detalhe do backend", async () => {
   };
 
   try {
-    const request = new NextRequest("http://localhost/api/inspections/9?tenantId=tenant-alpha");
+    const request = new NextRequest("http://localhost/api/inspections/9?tenantId=ignored", {
+      headers: {
+        cookie: sessionCookie()
+      }
+    });
     const response = await inspectionDetailGet(request, {
       params: Promise.resolve({ inspectionId: "9" })
     });

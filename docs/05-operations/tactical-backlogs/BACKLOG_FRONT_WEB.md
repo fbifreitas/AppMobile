@@ -97,3 +97,8 @@ Controlar o backlog de experiencia web (UI, navegacao, telas operacionais e usab
 
 - Os proxies Next.js de jobs e cases deixam de aceitar `tenantId`/`actorId` confiados via query/header e passam a exigir cookie de login web.
 - As chamadas ao backend operacional passam a encaminhar `Authorization`, `X-Tenant-Id`, `X-Actor-Id` e correlation id derivados da sessao, removendo o fallback operacional `tenant-default` neste recorte.
+
+## Adendo 2026-04-10 - Inspections com sessao real
+
+- Os proxies Next.js de inspections passam a exigir cookie de login web e resolvem `tenantId` pela sessao.
+- Os filtros operacionais (`status`, janela de data, `vistoriadorId`, paginacao) permanecem aceitos, mas o tenant deixa de ser confiado do cliente.

@@ -1,16 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+import { buildAuthenticatedHeaders, readAuthSession, unauthorizedJson } from "../../../lib/auth_session";
 import { callBackendInspectionsApi } from "../../../lib/inspections_backend_client";
 
 export function GET(
   request: NextRequest,
   context: { params: Promise<{ inspectionId: string }> }
 ) {
-  const tenantId = request.nextUrl.searchParams.get("tenantId") ?? "tenant-default";
+  const session = readAuthSession(request);
+  if (!session) {
+    return unauthorizedJson();
+  }
 
   return context.params
     .then(({ inspectionId }) => {
-      const query = new URLSearchParams({ tenantId });
-      return callBackendInspectionsApi(inspectionId, undefined, query);
+      const query = new URLSearchParams({ tenantId: session.tenantId });
+      return callBackendInspectionsApi(inspectionId, {
+        headers: buildAuthenticatedHeaders(session, "inspection-detail")
+      }, query);
     })
     .then(({ status, payload }) => NextResponse.json(payload, { status }))
     .catch(() =>
