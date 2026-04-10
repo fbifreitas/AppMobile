@@ -2,25 +2,25 @@
 
 Atualizado em: 2026-04-10
 
-## IA-Mobile
+## Codex Big Bang Compass
 
 - Status: ativo
 - Responsavel atual: Codex nesta sessao
 - Branch: `codex/docs-governance-20260409`
-- Frente: mobile, distribuicao Android/iOS, branding nativo Compass
-- Objetivo atual: fechar `Pacote B - Mobile Compass Brand Build`
+- Frente: implantacao integrada Compass em janela solo
+- Objetivo atual: acelerar fechamento integrado dos Pacotes A/B/C necessarios para homolog, priorizando o caminho critico
 - Fonte principal: `docs/05-operations/runbooks/LANCAMENTO_COMPASS_CAMINHO_CRITICO.md`
-- Escopo permitido: `lib/`, `test/`, `android/`, `ios/`, `.github/workflows/android_*`, docs diretamente relacionados a mobile/distribuicao/branding
-- Ultimo commit conhecido: `3b44004 [Compass Pacote B] fix: renovar sessao mobile autenticada`
-- Proximo foco: `BL-068` nativo, principalmente iOS target/scheme/bundle id e launcher/splash por marca
+- Escopo permitido durante janela big bang: mobile, backend, web-backoffice, integracao, operacao e docs Compass
+- Ultimo commit conhecido: `c67c4dd [Compass Pacote B] feat: parametrizar identidade nativa por marca`
+- Proximo foco: fechar pendencias de homolog integradas e registrar evidencias para handoff das 18:00 BRT
 
 ## IA-Backend-Web
 
-- Status: reservado para outra IA
-- Responsavel atual: aguardando inicio
+- Status: pausado ate 2026-04-10 18:00 BRT
+- Responsavel atual: aguardando retomada
 - Branch sugerida: `codex/compass-platform-operacao-20260410`
 - Frente: backend, web-backoffice, operacao/homolog
-- Objetivo atual: validar dependencias reais para smoke Compass com tenant/admin/usuario e endpoints mobile
+- Objetivo ao retomar: revisar o handoff big bang e assumir pendencias backend/web remanescentes
 - Fonte principal: `docs/05-operations/runbooks/LANCAMENTO_COMPASS_CAMINHO_CRITICO.md`
 - Escopo permitido: `apps/backend/`, `apps/web-backoffice/`, docs de backend/web/integracao/operacao
 - Proximo foco: tenant/admin/usuario provisionado, smoke JWT real, `GET /api/mobile/jobs`, config e sync por sessao real

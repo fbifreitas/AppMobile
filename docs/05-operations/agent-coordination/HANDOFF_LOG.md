@@ -34,6 +34,20 @@
   - Validacao final iOS depende de ambiente Xcode/scheme Compass.
   - Build Android local ja havia excedido timeout neste ambiente; validar em CI/homolog.
 
+## 2026-04-10 - Codex Big Bang Compass
+
+- Decisao: como a IA-Backend-Web so retoma as 18:00 BRT, a execucao passa temporariamente para modelo big bang solo.
+- Branch ativa: `codex/docs-governance-20260409`.
+- Escopo temporario: mobile, backend, web-backoffice, integracao, operacao e docs Compass.
+- Regra de seguranca:
+  - manter commits por frente;
+  - registrar testes/evidencias por commit;
+  - nao integrar `origin/main`;
+  - nao tocar arquivos proibidos;
+  - deixar handoff claro para a IA-Backend-Web retomar.
+- Ultimo commit antes da janela big bang:
+  - `c67c4dd [Compass Pacote B] feat: parametrizar identidade nativa por marca`.
+
 ## Reserva - IA-Backend-Web
 
 - Status: aguardando outra IA iniciar.
