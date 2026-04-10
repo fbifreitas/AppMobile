@@ -120,3 +120,20 @@ jobs:
             --release-notes "Build de homologacao ${APP_VERSION} (${SHORT_SHA}) via CI/CD."
         env:
           GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcloud-key.json
+
+      - name: Distribute Compass homolog APK to Firebase App Distribution (QA)
+        run: |
+          APP_VERSION=$(awk '/^version:/{print $2; exit}' pubspec.yaml)
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          if [ -z "$FIREBASE_APP_ID_ANDROID_COMPASS" ]; then
+            echo "Secret FIREBASE_APP_ID_ANDROID_COMPASS nao configurado; distribuicao Compass ignorada."
+            exit 0
+          fi
+
+          firebase appdistribution:distribute build/app/outputs/flutter-apk/app-compass-debug.apk \
+            --app "$FIREBASE_APP_ID_ANDROID_COMPASS" \
+            --groups "testers-internos" \
+            --release-notes "Build Compass homologacao ${APP_VERSION} (${SHORT_SHA}) via CI/CD."
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcloud-key.json
+          FIREBASE_APP_ID_ANDROID_COMPASS: ${{ secrets.FIREBASE_APP_ID_ANDROID_COMPASS }}

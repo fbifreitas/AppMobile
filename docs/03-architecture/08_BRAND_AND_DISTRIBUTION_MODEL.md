@@ -92,6 +92,20 @@ flutter build apk --flavor kaptur  -t lib/main_kaptur.dart   # release Kaptur
 flutter build apk --flavor compass -t lib/main_compass.dart  # release Compass
 ```
 
+Compass em homologacao deve receber tambem:
+
+```bash
+--dart-define=APP_TENANT_ID=tenant-compass
+--dart-define=APP_API_BASE_URL=<backend-homolog>
+```
+
+Firebase App Distribution usa apps separados por marca:
+
+| Brand   | Secret GitHub Actions              |
+|---------|------------------------------------|
+| Kaptur  | `FIREBASE_APP_ID_ANDROID`          |
+| Compass | `FIREBASE_APP_ID_ANDROID_COMPASS`  |
+
 ---
 
 ## Adicionando uma Nova Marca

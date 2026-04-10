@@ -14,25 +14,55 @@ class ReleaseIdentityAuditService {
     return const <ReleaseIdentityItem>[
       ReleaseIdentityItem(
         scope: 'pubspec',
-        currentValue: 'myapp',
-        suggestedValue: 'appmobile',
-        description: 'Padronizar o nome do pacote para uma identidade coerente com o produto.',
+        currentValue: 'appmobile',
+        suggestedValue: 'canonical',
+        description:
+            'Padronizar o nome do pacote para uma identidade coerente com o produto.',
       ),
       ReleaseIdentityItem(
-        scope: 'android_label',
-        currentValue: 'myapp',
-        suggestedValue: '@string/app_name (flavor-specific)',
+        scope: 'android:label',
+        currentValue: '@string/app_name by flavor',
+        suggestedValue: 'canonical',
         description:
             'Label Android resolvido por flavor: kaptur → "Kaptur", compass → "Compass Avaliações". '
             'Gerenciado em build.gradle.kts via resValue.',
       ),
       ReleaseIdentityItem(
-        scope: 'ios_bundle_display_name',
-        currentValue: 'Myapp',
-        suggestedValue: 'Flavor-specific (ver iOS_FLAVOR_SETUP_GUIDE.md)',
+        scope: 'ios:bundle_display_name',
+        currentValue: 'Flavor-specific target/scheme',
+        suggestedValue: 'pending native project application',
         description:
             'CFBundleDisplayName resolvido por scheme iOS. '
             'Kaptur → "Kaptur"; Compass → "Compass Avaliações".',
+      ),
+      ReleaseIdentityItem(
+        scope: 'android:kaptur',
+        currentValue: 'com.kaptur.field / Kaptur / lib/main_kaptur.dart',
+        suggestedValue: 'canonical',
+        description:
+            'Flavor Android Kaptur com applicationId, app_name e entrypoint proprios.',
+      ),
+      ReleaseIdentityItem(
+        scope: 'android:compass',
+        currentValue:
+            'com.compass.avaliacoes / Compass Avaliacoes / lib/main_compass.dart',
+        suggestedValue: 'canonical',
+        description:
+            'Flavor Android Compass com applicationId, app_name, entrypoint e artefato de CI separados.',
+      ),
+      ReleaseIdentityItem(
+        scope: 'firebase:kaptur',
+        currentValue: 'FIREBASE_APP_ID_ANDROID',
+        suggestedValue: 'required',
+        description:
+            'Secret usado para distribuir o APK Kaptur no Firebase App Distribution.',
+      ),
+      ReleaseIdentityItem(
+        scope: 'firebase:compass',
+        currentValue: 'FIREBASE_APP_ID_ANDROID_COMPASS',
+        suggestedValue: 'required for Compass',
+        description:
+            'Secret dedicado para distribuir o APK Compass sem reutilizar o app Firebase da Kaptur.',
       ),
     ];
   }
