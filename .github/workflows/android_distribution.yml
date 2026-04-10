@@ -82,8 +82,8 @@ jobs:
             echo "Secret FIREBASE_APP_ID_ANDROID não configurado"
             exit 1
           fi
-          if [ -z "${{ secrets.FIREBASE_TOKEN }}" ]; then
-            echo "Secret FIREBASE_TOKEN não configurado"
+          if [ -z "${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}" ]; then
+            echo "Secret GOOGLE_APPLICATION_CREDENTIALS_JSON não configurado"
             exit 1
           fi
 
@@ -144,20 +144,26 @@ jobs:
         run: flutter test
 
       - name: Build debug APK
-        run: flutter build apk --debug
+        run: flutter build apk --debug --flavor kaptur
 
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
+      - name: Setup Google credentials
+        run: echo '${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}' > /tmp/gcloud-key.json
+
       - name: Distribute debug APK to Firebase App Distribution
         run: |
-          firebase appdistribution:distribute build/app/outputs/flutter-apk/app-debug.apk             --app "${{ secrets.FIREBASE_APP_ID_ANDROID }}"             --groups "${{ steps.meta.outputs.tester_group }}"             --release-notes "${{ steps.meta.outputs.release_notes }}"
+          firebase appdistribution:distribute build/app/outputs/flutter-apk/app-kaptur-debug.apk \
+            --app "${{ secrets.FIREBASE_APP_ID_ANDROID }}" \
+            --groups "${{ steps.meta.outputs.tester_group }}" \
+            --release-notes "${{ steps.meta.outputs.release_notes }}"
         env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcloud-key.json
 
       - name: Upload debug APK artifact
         uses: actions/upload-artifact@v6
         with:
           name: app-debug-apk-firebase
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          path: build/app/outputs/flutter-apk/app-kaptur-debug.apk
           if-no-files-found: error
