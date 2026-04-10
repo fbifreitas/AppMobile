@@ -659,6 +659,22 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
   - distribuicao Android concluida no ciclo.
 - Status final: **ENCERRADO**.
 
+## Checkpoint 2026-04-10 - preparacao release v1.2.47+67 (Compass caminho critico M4-M6)
+- Branch tecnica: `codex/docs-governance-20260409`
+- Branch candidata planejada: `homolog/compass-m7-20260410`
+- Objetivo: consolidar o fechamento local do caminho critico Compass ate M6, deixando a release pronta para homologacao formal.
+- Escopo funcional consolidado:
+  - M4 `a6598f8` â€” ACK/NACK de configuracao mobile com persistencia por tenant/dispositivo/app version, endpoint mobile de status e rastreabilidade `mobile.config-package-status`.
+  - M5 `c039b61` â€” primeiro acesso Compass com OTP, criacao de senha e tela dedicada no flavor Compass, sem reaproveitar onboarding PJ/Kaptur.
+  - M6 `a108857` â€” pendencias de onboarding por usuario/app via `/auth/onboarding-pending` e `/api/users/onboarding-statuses`, com superficie administrativa no backoffice.
+- Validacoes locais consolidadas:
+  - `flutter test --no-pub test/screens/compass_first_access_screen_test.dart` verde em terminal nativo;
+  - `mvn -q -f apps/backend/pom.xml -DskipTests compile` verde;
+  - compilacao de testes backend evidenciada pela geracao de `apps/backend/target/test-classes/com/appbackoffice/api/auth/AuthIntegrationTest.class`;
+  - `node apps/web-backoffice/node_modules/typescript/bin/tsc -p apps/web-backoffice/tsconfig.json --noEmit` verde.
+- Gate de versao: `pubspec.yaml` incrementado para `1.2.47+67`.
+- Proximo passo oficial: publicar `homolog/compass-m7-20260410`, aguardar `Android Homologation` e so depois abrir PR para `main`.
+
 ## Checkpoint 2026-04-08 - Operational Control Tower Closure
 - Objetivo: fechar a camada operacional do fluxo `config -> finalized inspection -> valuation -> report` sem abrir nova frente funcional de dominio.
 - Escopo implementado:
