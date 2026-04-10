@@ -449,10 +449,10 @@ class _RichJobCard extends StatelessWidget {
                           : null,
                   child: Text(
                     isRecoverable
-                        ? (resumeLabel ?? 'RETOMAR')
+                        ? (resumeLabel ?? 'RETOMAR VISTORIA')
                         : showDevStart
                         ? 'INICIAR (DEV)'
-                        : (startLabel ?? 'INICIAR'),
+                        : (startLabel ?? 'INICIAR VISTORIA'),
                     style: const TextStyle(fontSize: 11),
                   ),
                 ),
