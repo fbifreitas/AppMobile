@@ -169,6 +169,17 @@ export function unauthorizedJson(message = "Authentication required") {
   return NextResponse.json({ error: message }, { status: 401 });
 }
 
+export function forbiddenJson(message = "Insufficient permissions") {
+  return NextResponse.json({ error: message }, { status: 403 });
+}
+
+export function requirePlatformAdmin(session: AuthSession): NextResponse | null {
+  if (session.membershipRole !== "PLATFORM_ADMIN" || session.membershipStatus !== "ACTIVE") {
+    return forbiddenJson("PLATFORM_ADMIN role required");
+  }
+  return null;
+}
+
 export function buildAuthenticatedHeaders(session: AuthSession, correlationPrefix: string, initHeaders?: HeadersInit): Headers {
   const headers = new Headers(initHeaders ?? {});
   if (!headers.has("Content-Type")) {

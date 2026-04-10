@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { buildAuthenticatedHeaders, readAuthSession, unauthorizedJson } from "../../../../../lib/auth_session";
+import { buildAuthenticatedHeaders, readAuthSession, requirePlatformAdmin, unauthorizedJson } from "../../../../../lib/auth_session";
 import { callBackendOperationsApi } from "../../../../../lib/operations_backend_client";
 
 type RouteContext = {
@@ -13,6 +13,10 @@ export function GET(request: NextRequest, context: RouteContext) {
   const session = readAuthSession(request);
   if (!session) {
     return unauthorizedJson();
+  }
+  const forbidden = requirePlatformAdmin(session);
+  if (forbidden) {
+    return forbidden;
   }
 
   return callBackendOperationsApi(`backoffice/platform/tenants/${context.params.tenantId}/admin-handoff`, {
@@ -32,6 +36,10 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   const session = readAuthSession(request);
   if (!session) {
     return unauthorizedJson();
+  }
+  const forbidden = requirePlatformAdmin(session);
+  if (forbidden) {
+    return forbidden;
   }
 
   const payload = await request.json();

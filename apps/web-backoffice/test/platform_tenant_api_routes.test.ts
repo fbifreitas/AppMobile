@@ -24,6 +24,14 @@ function sessionCookie(): string {
   return `backoffice_auth_session=${Buffer.from(JSON.stringify(session), "utf8").toString("base64url")}`;
 }
 
+function tenantAdminSessionCookie(): string {
+  return `backoffice_auth_session=${Buffer.from(JSON.stringify({
+    ...session,
+    membershipRole: "TENANT_ADMIN",
+    permissions: ["users:manage"]
+  }), "utf8").toString("base64url")}`;
+}
+
 function makeJsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -55,6 +63,32 @@ test("platform tenant list route proxies platform admin request", async () => {
     assert.equal(payload.total, 1);
     assert.match(capturedUrl, /backoffice\/platform\/tenants/);
     assert.match(capturedUrl, /actorRole=platform_admin/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("platform tenant routes reject non platform admin session before proxying", async () => {
+  const originalFetch = globalThis.fetch;
+  let called = false;
+
+  globalThis.fetch = async () => {
+    called = true;
+    return makeJsonResponse(200, { total: 1, items: [] });
+  };
+
+  try {
+    const request = new NextRequest("http://localhost/api/platform/tenants", {
+      headers: {
+        cookie: tenantAdminSessionCookie()
+      }
+    });
+    const response = await listTenants(request);
+    const payload = (await response.json()) as { error: string };
+
+    assert.equal(response.status, 403);
+    assert.equal(payload.error, "PLATFORM_ADMIN role required");
+    assert.equal(called, false);
   } finally {
     globalThis.fetch = originalFetch;
   }

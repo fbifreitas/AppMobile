@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { buildAuthenticatedHeaders, readAuthSession, unauthorizedJson } from "../../../lib/auth_session";
+import { buildAuthenticatedHeaders, readAuthSession, requirePlatformAdmin, unauthorizedJson } from "../../../lib/auth_session";
 import { callBackendOperationsApi } from "../../../lib/operations_backend_client";
 
 export function GET(request: NextRequest) {
   const session = readAuthSession(request);
   if (!session) {
     return unauthorizedJson();
+  }
+  const forbidden = requirePlatformAdmin(session);
+  if (forbidden) {
+    return forbidden;
   }
 
   const query = new URLSearchParams({ actorRole: "platform_admin" });
