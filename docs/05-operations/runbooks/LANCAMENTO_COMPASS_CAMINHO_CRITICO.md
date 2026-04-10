@@ -386,6 +386,12 @@ Garantir que o tenant Compass consiga operar o fluxo de negocio completo ate o l
 4. valuation e report funcionam
 5. a operacao acompanha saude e rastreabilidade na control tower
 
+### Nota 2026-04-10 - Preparacao web/backend sem mobile
+
+- O primeiro recorte permitido apos `Pacote A`, sem tocar em mobile, e a publicacao de configuracao operacional por tenant no backoffice.
+- Para Compass, as rotas web de configuracao devem operar com sessao real do backoffice e tenant derivado do login/handoff, nao por `tenantId`/`actorRole` confiados do cliente.
+- A validacao de campo real permanece dependente do `Pacote B`, mas a governanca web do tenant ja pode ser endurecida antes disso.
+
 ### Dependencia
 - depende do `Pacote A` para tenant, usuarios, licenciamento e auth web
 - depende do `Pacote B` para o app Compass real em campo

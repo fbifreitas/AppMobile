@@ -59,6 +59,11 @@ type AuditResponse = {
   }>;
 };
 
+type AuthMeResponse = {
+  tenantId: string;
+  membershipRole: string;
+};
+
 async function fetchPackages(tenantId: string, actorRole: ActorRole): Promise<PackagesResponse> {
   const response = await fetch(
     `/api/config/packages?tenantId=${encodeURIComponent(tenantId)}&actorRole=${encodeURIComponent(actorRole)}`,
@@ -114,7 +119,7 @@ function toPretty(value: unknown): string {
 }
 
 export default function ConfigTargetingPanel() {
-  const [tenantId, setTenantId] = useState("tenant-alpha");
+  const [tenantId, setTenantId] = useState("");
   const [roleId, setRoleId] = useState("vistoriador");
   const [userId, setUserId] = useState("user-42");
   const [deviceId, setDeviceId] = useState("device-x7");
@@ -137,6 +142,40 @@ export default function ConfigTargetingPanel() {
   const [publishSectionsJson, setPublishSectionsJson] = useState(
     '[\n  {\n    "sectionKey": "fachada",\n    "sectionLabel": "Fachada",\n    "mandatory": true,\n    "photoMin": 1,\n    "photoMax": 5,\n    "desiredItems": ["orientacao", "material"],\n    "tipoImovel": "Urbano",\n    "sortOrder": 1\n  }\n]'
   );
+
+  useEffect(() => {
+    let active = true;
+
+    const run = async () => {
+      try {
+        const response = await fetch("/api/auth/me", { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error(`Falha ao carregar sessao: ${response.status}`);
+        }
+        const session = (await response.json()) as AuthMeResponse;
+        if (active) {
+          setTenantId(session.tenantId);
+          setActorRole(
+            session.membershipRole === "TENANT_ADMIN" || session.membershipRole === "PLATFORM_ADMIN"
+              ? "tenant_admin"
+              : session.membershipRole === "AUDITOR"
+                ? "viewer"
+                : "operator"
+          );
+        }
+      } catch (err) {
+        if (active) {
+          setError(err instanceof Error ? err.message : "Erro ao carregar sessao autenticada");
+        }
+      }
+    };
+
+    run();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const query = useMemo(() => {
     const params = new URLSearchParams();
@@ -162,6 +201,10 @@ export default function ConfigTargetingPanel() {
     let active = true;
 
     const run = async () => {
+      if (!tenantId.trim()) {
+        return;
+      }
+
       setLoading(true);
       setError(null);
 
@@ -198,6 +241,11 @@ export default function ConfigTargetingPanel() {
   }, [query, tenantId, actorRole]);
 
   const publishPackage = async () => {
+    if (!tenantId.trim()) {
+      setError("Tenant autenticado ainda nao carregado.");
+      return;
+    }
+
     setPublishing(true);
     setError(null);
 
@@ -277,6 +325,11 @@ export default function ConfigTargetingPanel() {
   };
 
   const rollbackPackage = async (packageId: string) => {
+    if (!tenantId.trim()) {
+      setError("Tenant autenticado ainda nao carregado.");
+      return;
+    }
+
     setRollingBackId(packageId);
     setError(null);
 
@@ -311,6 +364,11 @@ export default function ConfigTargetingPanel() {
   };
 
   const approvePackage = async (packageId: string) => {
+    if (!tenantId.trim()) {
+      setError("Tenant autenticado ainda nao carregado.");
+      return;
+    }
+
     setApprovingId(packageId);
     setError(null);
 

@@ -86,3 +86,9 @@ Controlar o backlog de experiencia web (UI, navegacao, telas operacionais e usab
 
 - FW-005 deixou de ser somente proposta de backlog e passou a expor cards de requests/erros/retries/backlog, tabela de metricas por endpoint, alertas ativos, retention manual e drill-down recente por `correlationId`/`protocolId`/`jobId`/`processId`/`reportId`.
 - A home do backoffice agora aponta para `/backoffice/operations`, consolidando o papel do web como superficie principal de operacao do fluxo integrado.
+
+## Adendo 2026-04-10 - Compass FW-004 com sessao real
+
+- FW-004 deixou de aceitar `tenantId`, `actorId` e `actorRole` confiados do cliente nas rotas Next.js de `/api/config/*`.
+- As rotas de pacotes, approve, rollback, resolve e audit passam a exigir sessao web real e encaminham `Authorization`, `X-Tenant-Id`, `X-Actor-Id` e `X-Actor-Role` derivados do cookie de login.
+- O painel `/backoffice/config` inicializa o tenant a partir de `/api/auth/me`, preparando a publicacao de configuracao operacional do tenant Compass apos o handoff administrativo do Pacote A.
