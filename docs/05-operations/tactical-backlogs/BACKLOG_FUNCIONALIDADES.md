@@ -444,6 +444,7 @@ Observacao 2026-04-03 (SEQUENCIAMENTO): BL-031 depende dos cards de backend BOW-
 Observacao 2026-04-10 (PARCIAL - Compass Pacote B): app mobile ganhou cliente backend-first para `POST /auth/login` + `GET /auth/me`, ativado por `--dart-define=APP_API_BASE_URL=...` e `--dart-define=APP_TENANT_ID=tenant-compass`. Quando a API nao esta configurada, o fluxo mock legado permanece como fallback local.
 Observacao 2026-04-10 (PARCIAL - Compass Pacote B): contexto operacional mobile passou a priorizar a sessao autenticada (`auth_tenant_id`, `auth_user_id`, `auth_access_token`) para chamadas de configuracao dinamica e sincronizacao de vistoria, mantendo overrides/env apenas como fallback tecnico.
 Observacao 2026-04-10 (PARCIAL - Compass Pacote B): sessao mobile passa a persistir expiracao do access token, executar refresh automatico ao restaurar sessao expirada e revogar refresh token no logout via `/auth/logout` quando backend esta configurado.
+Observacao 2026-04-10 (PARCIAL - Compass Pacote B): backend passou a validar o bearer token em `GET /api/mobile/jobs` contra `X-Tenant-Id` e `X-Actor-Id`, com teste de integracao Compass cobrindo login real + listagem de jobs e rejeicao de contexto divergente.
 
 ### BL-032
 Criar onboarding de novos usuários para perfis CLT e PJ, com coleta de dados cadastrais completos e captura de foto pelo app.

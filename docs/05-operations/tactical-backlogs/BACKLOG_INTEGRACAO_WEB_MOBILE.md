@@ -212,6 +212,11 @@ Motivo:
 - INT-016: estabilizacao do backend CI com alinhamento de asserts canonicos em `ConfigPackageControllerContractErrorTest` para mensagem de contrato vigente.
 - Checkpoint de processo: pacote promovido para branch `release/v1.2.28+48` (sem PR direto para `main`), respeitando fluxo de homologacao documentado.
 
+## Adendo 2026-04-10 - Compass Mobile Auth/Jobs
+- INT-001: `GET /api/mobile/jobs` exige `Authorization: Bearer <token>` e valida a sessao contra `X-Tenant-Id` e `X-Actor-Id`, bloqueando spoof de contexto por header.
+- INT-016: `MobileAuthJobsIntegrationTest` cobre o smoke Compass com login backend real, job aceito atribuido ao operador e rejeicao `AUTH_CONTEXT_MISMATCH` para ator divergente.
+- Evidencia local: `C:\tools\apache-maven-3.9.14\bin\mvn.cmd "-Dtest=MobileAuthJobsIntegrationTest,MobileApiControllerContractErrorTest,AuthIntegrationTest" test` passou com 17 testes.
+
 ## Adendo 2026-04-08 - Agrupamento operacional em 2 macro-pacotes
 
 ### Macro-pacote A - Go-Live Core Web-Mobile

@@ -1,5 +1,7 @@
 package com.appbackoffice.api.mobile;
 
+import com.appbackoffice.api.auth.dto.AuthMeResponse;
+import com.appbackoffice.api.auth.service.AuthService;
 import com.appbackoffice.api.config.ConfigPayloadSignatureService;
 import com.appbackoffice.api.contract.ApiContractException;
 import com.appbackoffice.api.contract.CanonicalErrorResponse;
@@ -39,17 +41,20 @@ import java.util.List;
 @Tag(name = "Mobile v1", description = "Contratos criticos do AppMobile (v1)")
 public class MobileApiController {
 
+    private final AuthService authService;
     private final JobService jobService;
     private final InspectionSubmissionService inspectionSubmissionService;
     private final MobileCheckinConfigService mobileCheckinConfigService;
     private final ConfigPayloadSignatureService configPayloadSignatureService;
     private final ObjectMapper objectMapper;
 
-    public MobileApiController(JobService jobService,
+    public MobileApiController(AuthService authService,
+                               JobService jobService,
                                InspectionSubmissionService inspectionSubmissionService,
                                MobileCheckinConfigService mobileCheckinConfigService,
                                ConfigPayloadSignatureService configPayloadSignatureService,
                                ObjectMapper objectMapper) {
+        this.authService = authService;
         this.jobService = jobService;
         this.inspectionSubmissionService = inspectionSubmissionService;
         this.mobileCheckinConfigService = mobileCheckinConfigService;
@@ -156,13 +161,43 @@ public class MobileApiController {
             @RequestHeader("X-Correlation-Id") String correlationId,
             @RequestHeader("X-Actor-Id") String actorId,
             @RequestHeader("X-Api-Version") String apiVersion,
+            @RequestHeader("Authorization") String authorizationHeader,
             @Parameter(description = "Filtro por status (ex: ACCEPTED, IN_EXECUTION). Padrao: ACCEPTED")
             @RequestParam(required = false) String status
     ) {
         RequestContextValidator.requireApiVersion(apiVersion);
         RequestContextValidator.requireFullContext(tenantId, correlationId, actorId);
         Long userId = parseUserId(actorId);
+        validateMobileBearer(authorizationHeader, tenantId, userId);
         return ResponseEntity.ok(jobService.getMobileJobsForUser(tenantId, userId, status));
+    }
+
+    private void validateMobileBearer(String authorizationHeader, String tenantId, Long userId) {
+        AuthMeResponse session = authService.me(extractBearer(authorizationHeader));
+        if (!tenantId.equals(session.tenantId()) || !userId.equals(session.userId())) {
+            throw new ApiContractException(
+                    HttpStatus.UNAUTHORIZED,
+                    "AUTH_CONTEXT_MISMATCH",
+                    "Token nao corresponde ao contexto mobile informado",
+                    ErrorSeverity.ERROR,
+                    "Refaca login e envie X-Tenant-Id e X-Actor-Id da sessao autenticada.",
+                    "tenantId=" + tenantId + ", actorId=" + userId
+            );
+        }
+    }
+
+    private String extractBearer(String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            throw new ApiContractException(
+                    HttpStatus.UNAUTHORIZED,
+                    "AUTH_INVALID_TOKEN",
+                    "Token invalido ou expirado",
+                    ErrorSeverity.ERROR,
+                    "Envie Authorization: Bearer <token>.",
+                    null
+            );
+        }
+        return authorizationHeader.substring("Bearer ".length());
     }
 
     private Long parseUserId(String actorId) {

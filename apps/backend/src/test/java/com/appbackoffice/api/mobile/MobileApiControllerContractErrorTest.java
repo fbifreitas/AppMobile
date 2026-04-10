@@ -1,5 +1,6 @@
 package com.appbackoffice.api.mobile;
 
+import com.appbackoffice.api.auth.service.AuthService;
 import com.appbackoffice.api.config.ConfigPayloadSignatureService;
 import com.appbackoffice.api.job.service.JobService;
 import com.appbackoffice.api.mobile.service.InspectionSubmissionService;
@@ -31,6 +32,9 @@ class MobileApiControllerContractErrorTest {
 
     @MockBean
     private JobService jobService;
+
+    @MockBean
+    private AuthService authService;
 
     @MockBean
     private InspectionSubmissionService inspectionSubmissionService;
