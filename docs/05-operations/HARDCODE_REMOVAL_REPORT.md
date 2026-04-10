@@ -1,8 +1,9 @@
-# Hardcode Removal Report — Multi-Brand BL-075 + BL-076
+# Hardcode Removal Report — Multi-Brand BL-075 + BL-076 + BL-077
 
-> Gerado em: 2026-04-09 (BL-075) · Atualizado: 2026-04-10 (BL-076)
+> Gerado em: 2026-04-09 (BL-075) · Atualizado: 2026-04-10 (BL-076) · Atualizado: 2026-04-10 (BL-077)
 > Ciclo: BL-075 — Fechamento da arquitetura multi-brand
 > Ciclo: BL-076 — Fechamento dos gaps remanescentes (InfoRow, nav, range labels, AppColors.primary)
+> Ciclo: BL-077 — Fechamento final (job status labels, geofence radius prefix, recovery warning)
 
 ---
 
@@ -95,6 +96,19 @@
 | `AppColors.primaryLight` | Container de ícone (background) | `tokens.primaryLight` via `BrandProvider.configOf(context).tokens` |
 | `AppColors.primary` | `Icon` do hub | `tokens.primary` via `BrandProvider.configOf(context).tokens` |
 
+## BL-077 — Fechamento final (2026-04-10)
+
+### `lib/widgets/home/jobs_section.dart` — BL-077
+
+| String removida | Localização anterior | Substituição adotada |
+|---|---|---|
+| `'EM ANDAMENTO'` | `_RichJobCard.build()` status indicator | `config.copyText('job_status_active_label', defaultValue: 'EM ANDAMENTO')` |
+| `'EM RECUPERAÇÃO'` | `_RichJobCard.build()` status indicator | `config.copyText('job_status_recoverable_label', defaultValue: 'EM RECUPERAÇÃO')` |
+| `'Raio: ${radiusMeters}m'` | `_RichJobCard.build()` geofence tag | `'${config.copyText('job_geofence_radius_prefix', defaultValue: 'Raio:')} ${radiusMeters}m'` |
+| `'Vistoria em andamento interrompida. Última etapa salva: ...'` | `_RichJobCard.build()` recovery banner | `'${config.copyText('job_recovery_warning_prefix', ...)} $recoveryStageLabel.'` |
+
+---
+
 ### `README.md` — BL-076
 
 | Alteração | Detalhe |
@@ -128,8 +142,12 @@
 | `nav_home_label` | `'Painel'` | BL-076 |
 | `nav_jobs_label` | `'Vistorias'` | BL-076 |
 | `nav_agenda_label` | `'Agenda'` | BL-076 |
+| `job_status_active_label` | `'EM ANDAMENTO'` | BL-077 |
+| `job_status_recoverable_label` | `'EM RECUPERAÇÃO'` | BL-077 |
+| `job_geofence_radius_prefix` | `'Raio:'` | BL-077 |
+| `job_recovery_warning_prefix` | `'Vistoria em andamento interrompida. Última etapa salva:'` | BL-077 |
 
-### `lib/branding/compass_brand.dart` — chaves adicionadas (BL-075 + BL-076)
+### `lib/branding/compass_brand.dart` — chaves adicionadas (BL-075 + BL-076 + BL-077)
 
 | Chave | Valor | Ciclo |
 |---|---|---|
@@ -149,6 +167,10 @@
 | `nav_home_label` | `'Painel'` | BL-076 |
 | `nav_jobs_label` | `'Avaliações'` *(diferença de marca)* | BL-076 |
 | `nav_agenda_label` | `'Agenda'` | BL-076 |
+| `job_status_active_label` | `'EM ANDAMENTO'` | BL-077 |
+| `job_status_recoverable_label` | `'EM RECUPERAÇÃO'` | BL-077 |
+| `job_geofence_radius_prefix` | `'Área:'` *(diferença de marca)* | BL-077 |
+| `job_recovery_warning_prefix` | `'Avaliação interrompida. Última etapa salva:'` *(diferença de marca)* | BL-077 |
 
 ---
 
@@ -170,3 +192,8 @@
 - [x] `AppColors.primary/primaryLight` substituídos por `tokens.primary/primaryLight` nos widgets da Home
 - [x] O tema vem da marca ativa via `AppTheme.fromConfig(config)`
 - [x] README sem referência ativa a `(V2)` nem ao modelo anterior
+- [x] `jobs_section.dart` não contém labels de status hardcoded (EM ANDAMENTO / EM RECUPERAÇÃO)
+- [x] `jobs_section.dart` não contém prefixo de raio/área hardcoded
+- [x] `jobs_section.dart` não contém mensagem de recuperação hardcoded
+- [x] Compass exibe 'Área:' e 'Avaliação interrompida...' em vez dos textos Kaptur
+- [x] `validate_brand_setup.sh` valida todas as 24 chaves obrigatórias

@@ -40,6 +40,10 @@
 | **Home — Jobs** | Botão navegação: "COMO CHEGAR" | `job_navigate_label` em `kapturManifest` | ☐ |
 | **Home — Jobs** | Tag de raio quando dentro: "Dentro do raio" | `job_within_range_label` em `kapturManifest` | ☐ |
 | **Home — Jobs** | Tag de raio quando fora: "Fora do raio" | `job_out_of_range_label` em `kapturManifest` | ☐ |
+| **Home — Jobs** | Tag de raio: "Raio: 500m" (prefixo configurável) | `job_geofence_radius_prefix` em `kapturManifest` | ☐ |
+| **Home — Jobs** | Indicador de status em andamento: "EM ANDAMENTO" | `job_status_active_label` em `kapturManifest` | ☐ |
+| **Home — Jobs** | Indicador de status recuperável: "EM RECUPERAÇÃO" | `job_status_recoverable_label` em `kapturManifest` | ☐ |
+| **Home — Jobs** | Banner de recuperação: "Vistoria em andamento interrompida. Última etapa salva: ..." | `job_recovery_warning_prefix` em `kapturManifest` | ☐ |
 | **Bottom Nav** | Tab Home: "Painel" | `nav_home_label` em `kapturManifest` | ☐ |
 | **Bottom Nav** | Tab Jobs: "Vistorias" | `nav_jobs_label` em `kapturManifest` | ☐ |
 | **Bottom Nav** | Tab Agenda: "Agenda" | `nav_agenda_label` em `kapturManifest` | ☐ |
@@ -72,6 +76,10 @@
 | **Home — Propostas** | Label campo data: "Data da avaliação" *(≠ Kaptur)* | `proposal_schedule_label` em `compassManifest` | ☐ |
 | **Home — Jobs** | Tag de raio quando dentro: "Dentro da área" *(≠ Kaptur)* | `job_within_range_label` em `compassManifest` | ☐ |
 | **Home — Jobs** | Tag de raio quando fora: "Fora da área" *(≠ Kaptur)* | `job_out_of_range_label` em `compassManifest` | ☐ |
+| **Home — Jobs** | Tag de raio: "Área: 500m" *(prefixo ≠ Kaptur)* | `job_geofence_radius_prefix` em `compassManifest` | ☐ |
+| **Home — Jobs** | Indicador de status em andamento: "EM ANDAMENTO" | `job_status_active_label` em `compassManifest` | ☐ |
+| **Home — Jobs** | Indicador de status recuperável: "EM RECUPERAÇÃO" | `job_status_recoverable_label` em `compassManifest` | ☐ |
+| **Home — Jobs** | Banner de recuperação: "Avaliação interrompida. Última etapa salva: ..." *(≠ Kaptur)* | `job_recovery_warning_prefix` em `compassManifest` | ☐ |
 | **Bottom Nav** | Tab Jobs: "Avaliações" *(≠ Kaptur)* | `nav_jobs_label` em `compassManifest` | ☐ |
 | **LocationStatusCard** | Ícone de localização em verde da marca | `tokens.primary` via `BrandProvider.configOf(context)` | ☐ |
 | **OperationalHubCard** | Ícone e fundo do hub em verde da marca | `tokens.primary/primaryLight` via `BrandProvider.configOf(context)` | ☐ |
