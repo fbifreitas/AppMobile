@@ -29,6 +29,20 @@ class MobileAuthSession {
   final List<String> permissions;
 }
 
+class MobileAuthTokens {
+  const MobileAuthTokens({
+    required this.accessToken,
+    required this.refreshToken,
+    required this.tokenType,
+    required this.expiresInSeconds,
+  });
+
+  final String accessToken;
+  final String refreshToken;
+  final String tokenType;
+  final int expiresInSeconds;
+}
+
 abstract class MobileAuthGateway {
   bool get isConfigured;
 
@@ -38,6 +52,10 @@ abstract class MobileAuthGateway {
     required String password,
     required String deviceInfo,
   });
+
+  Future<MobileAuthTokens> refresh({required String refreshToken});
+
+  Future<void> logout({required String refreshToken});
 }
 
 class MobileBackendAuthService implements MobileAuthGateway {
@@ -89,6 +107,19 @@ class MobileBackendAuthService implements MobileAuthGateway {
           .map((value) => value.toString())
           .toList(growable: false),
     );
+  }
+
+  @override
+  Future<MobileAuthTokens> refresh({required String refreshToken}) async {
+    final tokens = await _postJson('/auth/refresh', {
+      'refreshToken': refreshToken,
+    });
+    return _tokensFromJson(tokens);
+  }
+
+  @override
+  Future<void> logout({required String refreshToken}) async {
+    await _postJson('/auth/logout', {'refreshToken': refreshToken});
   }
 
   Future<Map<String, dynamic>> _postJson(
@@ -174,6 +205,15 @@ class MobileBackendAuthService implements MobileAuthGateway {
     final value = map[key];
     if (value is num) return value.toInt();
     return int.tryParse(value?.toString() ?? '') ?? defaultValue;
+  }
+
+  MobileAuthTokens _tokensFromJson(Map<String, dynamic> map) {
+    return MobileAuthTokens(
+      accessToken: _requireString(map, 'accessToken'),
+      refreshToken: _requireString(map, 'refreshToken'),
+      tokenType: _stringOrDefault(map, 'tokenType', 'Bearer'),
+      expiresInSeconds: _intOrDefault(map, 'expiresInSeconds', 0),
+    );
   }
 }
 

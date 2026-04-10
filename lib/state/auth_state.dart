@@ -36,6 +36,7 @@ class AuthState extends ChangeNotifier {
   static const _userIdKey = 'auth_user_id';
   static const _accessTokenKey = 'auth_access_token';
   static const _refreshTokenKey = 'auth_refresh_token';
+  static const _accessTokenExpiresAtKey = 'auth_access_token_expires_at';
   static const _membershipRoleKey = 'auth_membership_role';
   static const _membershipStatusKey = 'auth_membership_status';
   static const _permissionsOnboardingCompletedKey =
@@ -51,6 +52,7 @@ class AuthState extends ChangeNotifier {
   String? _userId;
   String? _accessToken;
   String? _refreshToken;
+  String? _accessTokenExpiresAt;
   String? _membershipRole;
   String? _membershipStatus;
   bool _loading = true;
@@ -66,6 +68,7 @@ class AuthState extends ChangeNotifier {
   String? get userId => _userId;
   String? get accessToken => _accessToken;
   String? get refreshToken => _refreshToken;
+  String? get accessTokenExpiresAt => _accessTokenExpiresAt;
   String? get membershipRole => _membershipRole;
   String? get membershipStatus => _membershipStatus;
   bool get loading => _loading;
@@ -91,6 +94,9 @@ class AuthState extends ChangeNotifier {
     _userId = await _preferencesRepository.getString(_userIdKey);
     _accessToken = await _preferencesRepository.getString(_accessTokenKey);
     _refreshToken = await _preferencesRepository.getString(_refreshTokenKey);
+    _accessTokenExpiresAt = await _preferencesRepository.getString(
+      _accessTokenExpiresAtKey,
+    );
     _membershipRole = await _preferencesRepository.getString(
       _membershipRoleKey,
     );
@@ -102,6 +108,13 @@ class AuthState extends ChangeNotifier {
           _permissionsOnboardingCompletedKey,
         ) ??
         false;
+    if (_authGateway.isConfigured && _shouldRefreshAccessToken()) {
+      try {
+        await _refreshBackendSession();
+      } catch (_) {
+        await _clearSessionLocally();
+      }
+    }
     _loading = false;
     notifyListeners();
   }
@@ -152,6 +165,7 @@ class AuthState extends ChangeNotifier {
     _userId = session.userId.toString();
     _accessToken = session.accessToken;
     _refreshToken = session.refreshToken;
+    _accessTokenExpiresAt = _expiresAtFromSeconds(session.expiresInSeconds);
     _membershipRole = session.membershipRole;
     _membershipStatus = session.membershipStatus;
     _status = _statusFromBackend(session.userStatus);
@@ -163,6 +177,10 @@ class AuthState extends ChangeNotifier {
     await _preferencesRepository.setString(_accessTokenKey, _accessToken!);
     await _preferencesRepository.setString(_refreshTokenKey, _refreshToken!);
     await _preferencesRepository.setString(
+      _accessTokenExpiresAtKey,
+      _accessTokenExpiresAt!,
+    );
+    await _preferencesRepository.setString(
       _membershipRoleKey,
       _membershipRole!,
     );
@@ -170,6 +188,34 @@ class AuthState extends ChangeNotifier {
       _membershipStatusKey,
       _membershipStatus!,
     );
+  }
+
+  bool _shouldRefreshAccessToken() {
+    if (_status == AppAuthStatus.unauthenticated) return false;
+    if ((_refreshToken ?? '').trim().isEmpty) return false;
+    final expiresAt = DateTime.tryParse(_accessTokenExpiresAt ?? '');
+    return expiresAt == null || !expiresAt.isAfter(DateTime.now().toUtc());
+  }
+
+  Future<void> _refreshBackendSession() async {
+    final tokens = await _authGateway.refresh(refreshToken: _refreshToken!);
+    _accessToken = tokens.accessToken;
+    _refreshToken = tokens.refreshToken;
+    _accessTokenExpiresAt = _expiresAtFromSeconds(tokens.expiresInSeconds);
+    await _preferencesRepository.setString(_accessTokenKey, _accessToken!);
+    await _preferencesRepository.setString(_refreshTokenKey, _refreshToken!);
+    await _preferencesRepository.setString(
+      _accessTokenExpiresAtKey,
+      _accessTokenExpiresAt!,
+    );
+  }
+
+  String _expiresAtFromSeconds(int seconds) {
+    final safeSeconds = seconds <= 0 ? 900 : seconds;
+    return DateTime.now()
+        .toUtc()
+        .add(Duration(seconds: safeSeconds))
+        .toIso8601String();
   }
 
   AppAuthStatus _statusFromBackend(String userStatus) {
@@ -248,6 +294,21 @@ class AuthState extends ChangeNotifier {
 
   Future<void> logout() async {
     await _ensureLoaded();
+    final refreshToken = _refreshToken;
+    if (_authGateway.isConfigured &&
+        refreshToken != null &&
+        refreshToken.trim().isNotEmpty) {
+      try {
+        await _authGateway.logout(refreshToken: refreshToken);
+      } catch (_) {
+        // Local logout must still clear the session if backend revocation fails.
+      }
+    }
+    await _clearSessionLocally();
+    notifyListeners();
+  }
+
+  Future<void> _clearSessionLocally() async {
     _status = AppAuthStatus.unauthenticated;
     _userEmail = null;
     _userNome = null;
@@ -258,6 +319,7 @@ class AuthState extends ChangeNotifier {
     _userId = null;
     _accessToken = null;
     _refreshToken = null;
+    _accessTokenExpiresAt = null;
     _membershipRole = null;
     _membershipStatus = null;
     _permissionsOnboardingCompleted = false;
@@ -271,10 +333,10 @@ class AuthState extends ChangeNotifier {
     await _preferencesRepository.remove(_userIdKey);
     await _preferencesRepository.remove(_accessTokenKey);
     await _preferencesRepository.remove(_refreshTokenKey);
+    await _preferencesRepository.remove(_accessTokenExpiresAtKey);
     await _preferencesRepository.remove(_membershipRoleKey);
     await _preferencesRepository.remove(_membershipStatusKey);
     await _preferencesRepository.remove(_permissionsOnboardingCompletedKey);
-    notifyListeners();
   }
 
   Future<void> resetOnboardingForMock() async {
