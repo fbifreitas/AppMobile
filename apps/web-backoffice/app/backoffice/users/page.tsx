@@ -23,6 +23,13 @@ interface UserListResponse {
   users: User[];
 }
 
+interface OnboardingStatus {
+  userId: number;
+  onboardingPolicy: string;
+  pendingSteps: string[];
+  awaitingApproval: boolean;
+}
+
 const STATUS_TABS: Array<{ label: string; value: 'ALL' | UserStatus }> = [
   { label: 'Todos', value: 'ALL' },
   { label: 'Aguardando aprovação', value: 'AWAITING_APPROVAL' },
@@ -42,6 +49,7 @@ export default function UsersPage() {
   const [activeStatus, setActiveStatus] = useState<'ALL' | UserStatus>('ALL');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [onboardingStatuses, setOnboardingStatuses] = useState<Record<number, OnboardingStatus>>({});
 
   async function loadUsers(status: 'ALL' | UserStatus) {
     setLoading(true);
@@ -63,6 +71,21 @@ export default function UsersPage() {
 
       const data: UserListResponse = await response.json();
       setUsers(data.users || []);
+
+      const onboardingResponse = await fetch('/api/users/onboarding-statuses', {
+        method: 'GET',
+        headers: {
+          'X-Tenant-Id': 'tenant-default',
+          'X-Correlation-Id': `web-users-onboarding-${Date.now()}`,
+        },
+      });
+
+      if (onboardingResponse.ok) {
+        const onboardingItems: OnboardingStatus[] = await onboardingResponse.json();
+        setOnboardingStatuses(Object.fromEntries(onboardingItems.map((item) => [item.userId, item])));
+      } else {
+        setOnboardingStatuses({});
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro inesperado');
     } finally {
@@ -146,6 +169,7 @@ export default function UsersPage() {
                 <th>Role</th>
                 <th>Origem</th>
                 <th>Status</th>
+                <th>Pendencias</th>
                 <th>Criado em</th>
               </tr>
             </thead>
@@ -162,6 +186,16 @@ export default function UsersPage() {
                     <span className="source-badge">{sourceLabel(user.source)}</span>
                   </td>
                   <td>{user.status}</td>
+                  <td>
+                    {onboardingStatuses[user.id]?.pendingSteps?.length ? (
+                      <>
+                        <strong>{onboardingStatuses[user.id].onboardingPolicy}</strong>
+                        <small>{onboardingStatuses[user.id].pendingSteps.join(', ')}</small>
+                      </>
+                    ) : (
+                      <span className="done-badge">Sem pendencias</span>
+                    )}
+                  </td>
                   <td>{new Date(user.createdAt).toLocaleString('pt-BR')}</td>
                 </tr>
               ))}
@@ -354,6 +388,16 @@ export default function UsersPage() {
           border-radius: 999px;
           background: #e8f7fc;
           color: #0d6c88;
+          font-size: 0.75rem;
+          font-weight: 700;
+          padding: 4px 8px;
+        }
+
+        .done-badge {
+          display: inline-block;
+          border-radius: 999px;
+          background: #edf7ed;
+          color: #217a3a;
           font-size: 0.75rem;
           font-weight: 700;
           padding: 4px 8px;

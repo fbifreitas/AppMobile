@@ -10,6 +10,7 @@ import com.appbackoffice.api.auth.dto.LogoutRequest;
 import com.appbackoffice.api.auth.dto.RefreshTokenRequest;
 import com.appbackoffice.api.auth.service.AuthService;
 import com.appbackoffice.api.auth.service.FirstAccessService;
+import com.appbackoffice.api.user.dto.OnboardingPendingResponse;
 import com.appbackoffice.api.contract.ApiContractException;
 import com.appbackoffice.api.contract.ErrorSeverity;
 import com.appbackoffice.api.contract.RequestContextValidator;
@@ -77,6 +78,13 @@ public class AuthController {
                              @RequestHeader("Authorization") String authorizationHeader) {
         RequestContextValidator.requireCorrelationId(correlationId);
         return authService.me(extractBearer(authorizationHeader));
+    }
+
+    @GetMapping("/onboarding-pending")
+    public OnboardingPendingResponse onboardingPending(@RequestHeader("X-Correlation-Id") String correlationId,
+                                                       @RequestHeader("Authorization") String authorizationHeader) {
+        RequestContextValidator.requireCorrelationId(correlationId);
+        return authService.onboardingPending(extractBearer(authorizationHeader));
     }
 
     private String extractBearer(String authorizationHeader) {

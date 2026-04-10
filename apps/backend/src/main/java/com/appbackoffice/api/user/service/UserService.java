@@ -13,6 +13,7 @@ import com.appbackoffice.api.platform.service.TenantLicensingService;
 import com.appbackoffice.api.user.audit.UserAuditAction;
 import com.appbackoffice.api.user.audit.UserAuditService;
 import com.appbackoffice.api.user.dto.CreateUserRequest;
+import com.appbackoffice.api.user.dto.OnboardingPendingResponse;
 import com.appbackoffice.api.user.entity.User;
 import com.appbackoffice.api.user.entity.UserRole;
 import com.appbackoffice.api.user.entity.UserSource;
@@ -33,19 +34,22 @@ public class UserService {
     private final UserAuditService userAuditService;
     private final UserLifecycleService userLifecycleService;
     private final TenantLicensingService tenantLicensingService;
+    private final OnboardingStatusService onboardingStatusService;
 
     public UserService(UserRepository userRepository,
                        TenantRepository tenantRepository,
                        MembershipRepository membershipRepository,
                        UserAuditService userAuditService,
                        UserLifecycleService userLifecycleService,
-                       TenantLicensingService tenantLicensingService) {
+                       TenantLicensingService tenantLicensingService,
+                       OnboardingStatusService onboardingStatusService) {
         this.userRepository = userRepository;
         this.tenantRepository = tenantRepository;
         this.membershipRepository = membershipRepository;
         this.userAuditService = userAuditService;
         this.userLifecycleService = userLifecycleService;
         this.tenantLicensingService = tenantLicensingService;
+        this.onboardingStatusService = onboardingStatusService;
     }
 
     // --- Fluxo mobile onboarding (status inicial = AWAITING_APPROVAL) ---
@@ -265,6 +269,12 @@ public class UserService {
                         "userId: " + userId));
 
         return applyEffectiveRoleFromMembership(user);
+    }
+
+    public List<OnboardingPendingResponse> findOnboardingStatuses(String tenantId) {
+        return findAllUsers(tenantId).stream()
+                .map(onboardingStatusService::build)
+                .toList();
     }
 
     // --- helpers ---

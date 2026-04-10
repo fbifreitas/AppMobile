@@ -12,6 +12,9 @@ import com.appbackoffice.api.identity.entity.Tenant;
 import com.appbackoffice.api.identity.entity.TenantStatus;
 import com.appbackoffice.api.identity.repository.MembershipRepository;
 import com.appbackoffice.api.identity.repository.TenantRepository;
+import com.appbackoffice.api.platform.entity.TenantApplicationEntity;
+import com.appbackoffice.api.platform.entity.TenantApplicationStatus;
+import com.appbackoffice.api.platform.repository.TenantApplicationRepository;
 import com.appbackoffice.api.user.entity.User;
 import com.appbackoffice.api.user.entity.UserRole;
 import com.appbackoffice.api.user.entity.UserSource;
@@ -73,11 +76,15 @@ class AuthIntegrationTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private TenantApplicationRepository tenantApplicationRepository;
+
     @BeforeEach
     void setUp() {
         sessionRepository.deleteAll();
         identityBindingRepository.deleteAll();
         firstAccessOtpRepository.deleteAll();
+        tenantApplicationRepository.deleteAll();
         userCredentialRepository.deleteAll();
         membershipRepository.deleteAll();
         userRepository.deleteAll();
@@ -100,6 +107,16 @@ class AuthIntegrationTest {
         credential.setTenantId(TENANT_ID);
         credential.setPasswordHash(passwordEncoder.encode("Senha@123"));
         userCredentialRepository.save(credential);
+
+        TenantApplicationEntity application = new TenantApplicationEntity();
+        application.setTenantId(TENANT_ID);
+        application.setAppCode("compass");
+        application.setBrandName("Compass");
+        application.setDisplayName("Compass Avaliacoes");
+        application.setApplicationId("com.app.compass");
+        application.setBundleId("com.app.compass");
+        application.setStatus(TenantApplicationStatus.ACTIVE);
+        tenantApplicationRepository.save(application);
     }
 
     @Test
@@ -336,5 +353,35 @@ class AuthIntegrationTest {
                 .andExpect(jsonPath("$.challengeId").isString())
                 .andExpect(jsonPath("$.deliveryHint").value("Se os dados estiverem corretos, enviaremos um codigo ao contato cadastrado."))
                 .andExpect(jsonPath("$.debugOtp").doesNotExist());
+    }
+
+    @Test
+    void shouldReturnAuthenticatedOnboardingPendingStatus() throws Exception {
+        String loginPayload = """
+                {
+                  "tenantId": "tenant-auth-it",
+                  "email": "auth.user@tenant.com",
+                  "password": "Senha@123"
+                }
+                """;
+
+        var loginResult = mockMvc.perform(post("/auth/login")
+                        .header("X-Correlation-Id", CORRELATION_ID)
+                        .contentType("application/json")
+                        .content(loginPayload))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode loginJson = objectMapper.readTree(loginResult.getResponse().getContentAsString());
+        String accessToken = loginJson.get("accessToken").asText();
+
+        mockMvc.perform(get("/auth/onboarding-pending")
+                        .header("X-Correlation-Id", CORRELATION_ID)
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tenantId").value(TENANT_ID))
+                .andExpect(jsonPath("$.appCode").value("compass"))
+                .andExpect(jsonPath("$.onboardingPolicy").value("corporate_first_access"))
+                .andExpect(jsonPath("$.pendingSteps[0]").value("identity_validation"));
     }
 }

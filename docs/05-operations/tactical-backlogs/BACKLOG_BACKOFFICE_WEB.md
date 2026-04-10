@@ -900,6 +900,7 @@ Kaptur e Compass sao apps distintos. O backend precisa informar ao mobile quais 
 
 **Observacao 2026-04-10 (PARCIAL - Compass):**
 - O backend ja cobre o primeiro acesso Compass com lookup seguro, OTP e criacao de senha, mas ainda nao expoe o endpoint consolidado de pendencias por usuario/app nem a visibilidade administrativa no backoffice.
+- Baseline local M6: endpoints de pendencia de onboarding adicionados para sessao autenticada e para consulta administrativa; pagina de usuarios do backoffice passou a consumir status dedicado de pendencias por usuario.
 
 ---
 

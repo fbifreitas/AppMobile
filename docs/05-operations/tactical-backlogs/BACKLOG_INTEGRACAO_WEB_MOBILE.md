@@ -139,7 +139,7 @@ Motivo:
 
 | 30 | INT-030 | Configuracao de segredo de assinatura por ambiente (homolog/producao) | Critica | Em andamento (validator e gate operacional entregues em 2026-04-08; pendente provisionamento definitivo por ambiente) | integration.config-signing.hmac-key provisionado por ambiente via secret manager/Actions secrets, com checklist de release e evidencias de validacao |
 | 31 | INT-031 | Contrato de primeiro acesso e OTP white label | Critica | Em andamento (slice Compass local entregue em 2026-04-10) | Compass ativa usuario provisionado via lookup seguro + OTP + criacao de senha; Kaptur valida cadastro aberto via OTP sem enumerar usuarios |
-| 32 | INT-032 | Pendencias de onboarding por usuario/app | Alta | Planejado | Backend informa etapas pendentes por marca para o mobile retomar onboarding sem hardcode local |
+| 32 | INT-032 | Pendencias de onboarding por usuario/app | Alta | Em andamento (baseline local entregue em 2026-04-10) | Backend informa etapas pendentes por marca para o mobile retomar onboarding sem hardcode local |
 
 ---
 
@@ -246,6 +246,11 @@ Motivo:
 - INT-031: lookup usa `cpf + birthDate + identifier`, mas cadastro nao encontrado responde de forma neutra, sem enumerar usuario.
 - INT-031: OTP temporario por desafio; senha so e persistida apos OTP valido e a sessao ja e emitida na conclusao.
 - Evidencia local: `flutter test --no-pub test/screens/compass_first_access_screen_test.dart` passou no terminal nativo; backend validado com `mvn -q -f apps/backend/pom.xml -DskipTests compile` e compilacao de testes gerando `apps/backend/target/test-classes/com/appbackoffice/api/auth/AuthIntegrationTest.class`.
+
+## Adendo 2026-04-10 - Pendencias de onboarding por usuario/app
+- INT-032: backend passou a expor `GET /auth/onboarding-pending` para o usuario autenticado e `GET /api/users/onboarding-statuses` para visibilidade administrativa no backoffice.
+- INT-032: a derivacao de pendencias considera `tenant -> appCode -> onboardingPolicy`, distinguindo `corporate_first_access` de `marketplace_provider`.
+- INT-032: o backoffice de usuarios recebeu leitura dedicada de pendencias para identificar usuarios Compass com `identity_validation`, `selfie`, `terms`, `permissions` e `awaiting_approval`.
 
 ## Adendo 2026-04-08 - Agrupamento operacional em 2 macro-pacotes
 

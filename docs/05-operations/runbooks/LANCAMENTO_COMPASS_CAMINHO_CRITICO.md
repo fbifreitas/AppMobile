@@ -377,6 +377,12 @@ Materializar o app Compass como app por marca, separado da Kaptu, com autenticac
 - Cadastro inexistente responde sem enumeracao e a sessao ja e emitida ao concluir o primeiro acesso com sucesso.
 - Evidencia local: `flutter test --no-pub test/screens/compass_first_access_screen_test.dart` passou no terminal nativo; backend compilou com `mvn -q -f apps/backend/pom.xml -DskipTests compile` e a compilacao de testes voltou a gerar `AuthIntegrationTest.class`.
 
+### Nota 2026-04-10 - Pendencias administrativas de onboarding
+
+- O backend passou a expor pendencias do onboarding por usuario autenticado (`/auth/onboarding-pending`) e por consulta administrativa (`/api/users/onboarding-statuses`).
+- O backoffice de usuarios ganhou superficie para enxergar politica de onboarding e passos pendentes por usuario, reduzindo handoff manual na homologacao Compass.
+- Este recorte fecha a visibilidade minima para `BOW-212` e `INT-032` sem depender ainda da implementacao completa de selfie/termos/training.
+
 ### Dependencia
 - depende do `Pacote A` para:
   - login real
