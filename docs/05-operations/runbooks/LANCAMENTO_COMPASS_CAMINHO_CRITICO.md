@@ -350,6 +350,7 @@ Materializar o app Compass como app por marca, separado da Kaptu, com autenticac
 - O CI Android e a homologacao devem compilar `kaptur` e `compass` com entrypoints explicitos; o artefato Compass usa `COMPASS_APP_API_BASE_URL` e `APP_TENANT_ID=tenant-compass` para validar build separado.
 - A distribuicao Firebase da Compass deve usar `FIREBASE_APP_ID_ANDROID_COMPASS`; o workflow manual de distribuicao aceita `brand=kaptur`, `brand=compass` ou `brand=all` para evitar reutilizar o app Firebase da Kaptur.
 - O entrypoint Compass usa repositorio mobile backend-first para `GET /api/mobile/jobs`; fallback mock fica restrito a build sem `APP_API_BASE_URL`, mantendo o gate de campo dependente de jobs reais por usuario autenticado.
+- Android possui splash e adaptive icon por flavor (`kaptur` e `compass`). iOS passa a parametrizar display name, bundle name e bundle identifier por xcconfig de marca; o scheme/target Compass ainda deve ser validado em ambiente Xcode antes do gate final de loja.
 
 ### Dependencia
 - depende do `Pacote A` para:

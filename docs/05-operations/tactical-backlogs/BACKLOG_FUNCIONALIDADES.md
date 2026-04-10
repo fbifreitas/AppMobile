@@ -322,6 +322,7 @@ Estruturar flavors de distribuicao (prod, internal e dev) para separar pacotes e
 Observacao 2026-03-31: item mantido como pre-requisito tecnico para reduzir tamanho real do pacote removendo codigo/dev tools do artefato de producao.
 Observacao 2026-04-10 (PARCIAL - Compass Pacote B): CI/homologacao Android passam a buildar explicitamente `kaptur` com `lib/main_kaptur.dart` e `compass` com `lib/main_compass.dart`, publicando artefato Compass separado. Build Compass usa `APP_TENANT_ID=tenant-compass` e `COMPASS_APP_API_BASE_URL` como variavel de ambiente do GitHub Actions.
 Observacao 2026-04-10 (PARCIAL - Compass Pacote B): distribuicao Android manual passa a aceitar `brand=compass`/`all` e exige `FIREBASE_APP_ID_ANDROID_COMPASS` para publicar Compass em Firebase App Distribution separado da Kaptur.
+Observacao 2026-04-10 (PARCIAL - Compass Pacote B): Android ganhou recursos nativos por flavor para splash/adaptive icon. iOS ganhou xcconfigs por marca e Info.plist parametrizado; validacao final de scheme/target Compass permanece pendente em ambiente Xcode.
 
 ### BL-053
 Remover modulo desenvolvedor do pacote final (empacotamento enxuto para producao).

@@ -106,6 +106,10 @@ Firebase App Distribution usa apps separados por marca:
 | Kaptur  | `FIREBASE_APP_ID_ANDROID`          |
 | Compass | `FIREBASE_APP_ID_ANDROID_COMPASS`  |
 
+Android tambem possui recursos nativos por flavor em `android/app/src/<brand>/res/` para splash e adaptive icon.
+
+iOS usa `ios/Flutter/kaptur.xcconfig` e `ios/Flutter/compass.xcconfig` para `APP_DISPLAY_NAME`, `APP_BUNDLE_NAME` e `APP_BUNDLE_IDENTIFIER`. O target/scheme Compass deve apontar para o xcconfig Compass no Xcode.
+
 ---
 
 ## Adicionando uma Nova Marca

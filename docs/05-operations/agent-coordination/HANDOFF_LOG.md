@@ -25,6 +25,15 @@
 - Proximo foco IA-Mobile:
   - `BL-068`: iOS target/scheme/bundle id, launcher icon/splash nativo por marca, validacao de build Compass.
 
+## 2026-04-10 - IA-Mobile - BL-068 em andamento
+
+- Mudanca em andamento:
+  - Android: adicionados recursos nativos por flavor para splash e adaptive icon em `android/app/src/kaptur/res/` e `android/app/src/compass/res/`.
+  - iOS: `Info.plist` parametrizado por `APP_DISPLAY_NAME` e `APP_BUNDLE_NAME`; `PRODUCT_BUNDLE_IDENTIFIER` passa a usar `APP_BUNDLE_IDENTIFIER`; criados `ios/Flutter/kaptur.xcconfig` e `ios/Flutter/compass.xcconfig`.
+- Risco:
+  - Validacao final iOS depende de ambiente Xcode/scheme Compass.
+  - Build Android local ja havia excedido timeout neste ambiente; validar em CI/homolog.
+
 ## Reserva - IA-Backend-Web
 
 - Status: aguardando outra IA iniciar.
