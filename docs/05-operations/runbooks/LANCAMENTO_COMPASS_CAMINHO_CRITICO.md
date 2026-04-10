@@ -369,6 +369,14 @@ Materializar o app Compass como app por marca, separado da Kaptu, com autenticac
 - A tela atual de permissoes deve ser evoluida para modulo explicativo por permissao e por momento de uso; microfone so deve ser solicitado quando recurso de voz estiver habilitado.
 - Cards novos do caminho critico: `BL-075` arquitetura modular de onboarding por marca, `BL-076` primeiro acesso Compass com OTP e senha, `BL-077` cadastro Kaptur PF/MEI/PJ, `INT-031` contrato backend de OTP/primeiro acesso, `BOW-212` lifecycle/pendencias de onboarding por usuario.
 
+### Nota 2026-04-10 - Slice local de primeiro acesso Compass
+
+- O flavor Compass deixou de reutilizar o onboarding PJ/Kaptur quando o usuario cai em estado de onboarding: agora o destino e a tela dedicada `Primeiro acesso`.
+- O login Compass passou a expor CTA dedicado de primeiro acesso e o backend recebeu os endpoints `/auth/first-access/start` e `/auth/first-access/complete`.
+- O lookup usa CPF + data de nascimento + identificador adicional apenas para localizar o cadastro pre-provisionado; a autenticacao final exige OTP e criacao de senha.
+- Cadastro inexistente responde sem enumeracao e a sessao ja e emitida ao concluir o primeiro acesso com sucesso.
+- Evidencia local: `flutter test --no-pub test/screens/compass_first_access_screen_test.dart` passou no terminal nativo; backend compilou com `mvn -q -f apps/backend/pom.xml -DskipTests compile` e a compilacao de testes voltou a gerar `AuthIntegrationTest.class`.
+
 ### Dependencia
 - depende do `Pacote A` para:
   - login real

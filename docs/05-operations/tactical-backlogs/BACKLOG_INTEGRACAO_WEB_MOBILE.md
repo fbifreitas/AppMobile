@@ -138,7 +138,7 @@ Motivo:
 | 28 | INT-028 | Contrato de erro canÃ´nico entre canais | Alta | Em andamento (fundaÃ§Ã£o v1 + cobertura TDD ampliada nos endpoints mobile crÃ­ticos) | CatÃ¡logo Ãºnico de erros com cÃ³digos, severidade e orientaÃ§Ã£o operacional consistente para web/mobile |
 
 | 30 | INT-030 | Configuracao de segredo de assinatura por ambiente (homolog/producao) | Critica | Em andamento (validator e gate operacional entregues em 2026-04-08; pendente provisionamento definitivo por ambiente) | integration.config-signing.hmac-key provisionado por ambiente via secret manager/Actions secrets, com checklist de release e evidencias de validacao |
-| 31 | INT-031 | Contrato de primeiro acesso e OTP white label | Critica | Planejado | Compass ativa usuario provisionado via lookup seguro + OTP + criacao de senha; Kaptur valida cadastro aberto via OTP sem enumerar usuarios |
+| 31 | INT-031 | Contrato de primeiro acesso e OTP white label | Critica | Em andamento (slice Compass local entregue em 2026-04-10) | Compass ativa usuario provisionado via lookup seguro + OTP + criacao de senha; Kaptur valida cadastro aberto via OTP sem enumerar usuarios |
 | 32 | INT-032 | Pendencias de onboarding por usuario/app | Alta | Planejado | Backend informa etapas pendentes por marca para o mobile retomar onboarding sem hardcode local |
 
 ---
@@ -240,6 +240,12 @@ Motivo:
 - INT-031: Compass usa primeiro acesso para usuario provisionado; Kaptur usa cadastro aberto com OTP para contato informado, politicas anti-enumeracao e rate limit.
 - INT-032: o mobile deve receber pendencias de onboarding por usuario/app, incluindo selfie, termos, treinamento, permissoes e aguardando aprovacao, evitando que cada flavor mantenha regras hardcoded divergentes.
 - Criterio de pronto: mensagens de erro neutras, cooldown/reenvio de OTP, limite de tentativas, auditoria por tenant/ator/correlationId e testes de contrato para sucesso, expirado, invalido e cadastro nao encontrado.
+
+## Adendo 2026-04-10 - Slice Compass de primeiro acesso
+- INT-031: backend exposto em `/auth/first-access/start` e `/auth/first-access/complete`, separando lookup de autenticacao final e exigindo OTP antes da criacao de senha.
+- INT-031: lookup usa `cpf + birthDate + identifier`, mas cadastro nao encontrado responde de forma neutra, sem enumerar usuario.
+- INT-031: OTP temporario por desafio; senha so e persistida apos OTP valido e a sessao ja e emitida na conclusao.
+- Evidencia local: `flutter test --no-pub test/screens/compass_first_access_screen_test.dart` passou no terminal nativo; backend validado com `mvn -q -f apps/backend/pom.xml -DskipTests compile` e compilacao de testes gerando `apps/backend/target/test-classes/com/appbackoffice/api/auth/AuthIntegrationTest.class`.
 
 ## Adendo 2026-04-08 - Agrupamento operacional em 2 macro-pacotes
 

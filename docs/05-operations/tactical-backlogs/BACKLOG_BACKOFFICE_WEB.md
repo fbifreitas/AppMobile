@@ -878,7 +878,7 @@ BL-032 e BL-033 tÃªm o fluxo mobile. Este item fecha o ciclo com o backoffice 
 ---
 
 #### BOW-212 - Pendencias e politicas de onboarding white label
-**Onda:** 2 | **Prioridade:** Critica | **Status:** Planejado  
+**Onda:** 2 | **Prioridade:** Critica | **Status:** Em andamento (contrato Compass de primeiro acesso entregue localmente em 2026-04-10)  
 **Depende de:** BOW-100, BOW-101, BOW-102, BOW-211
 
 **Contexto:**  
@@ -897,6 +897,9 @@ Kaptur e Compass sao apps distintos. O backend precisa informar ao mobile quais 
 - Mobile consegue retomar etapa pendente apos reinstalacao/login.
 - Backoffice consegue ver status de ativacao/onboarding por usuario.
 - Testes cobrem lookup inexistente, OTP expirado, OTP invalido, senha criada e pendencias resolvidas.
+
+**Observacao 2026-04-10 (PARCIAL - Compass):**
+- O backend ja cobre o primeiro acesso Compass com lookup seguro, OTP e criacao de senha, mas ainda nao expoe o endpoint consolidado de pendencias por usuario/app nem a visibilidade administrativa no backoffice.
 
 ---
 

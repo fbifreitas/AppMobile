@@ -177,8 +177,8 @@ Step 8️⃣ (BACKEND BLOQUEADO — aguarda Onda 1 BOW) → BL-031 (depende de B
 | 5️⃣8️⃣ | BL-059 | Tratar duplicação de ambiente repetido como ação contextual do nível atual | Planejado | 🔴 Crítica | A câmera permite `Trocar` e `Novo <ambiente>` sem criar novo nível na árvore principal, preservando revisão/retomada e matching de obrigatórios |
 | 5️⃣9️⃣ | BL-060 | Quebrar o service concentrador de configuração em fatias coesas e compatíveis com V2 | Planejado | 🟠 Alta | Carregamento, merge, fallback, histórico e prediction deixam de ficar concentrados em um único service, mantendo a API pública estável na migração |
 | 6️⃣0️⃣ | BL-061 | Isolar especialização do domínio inspection sobre um core reutilizável de fluxo configurável | Planejado | 🟠 Alta | Taxonomia imobiliária, instâncias operacionais e labels de inspection permanecem no domain layer, desacopladas do core/plataforma e sem rename cego |
-| 6️⃣1️⃣ | BL-075 | Arquitetura modular de onboarding white label por marca/produto | Planejado | 🔴 Crítica | Substituir o onboarding único por resolver de fluxo por brand/productMode, reaproveitando core e separando jornadas Kaptur/Compass |
-| 6️⃣2️⃣ | BL-076 | Primeiro acesso Compass para usuário provisionado com OTP e criação de senha | Planejado | 🔴 Crítica | Compass deve localizar cadastro prévio, validar OTP em contato cadastrado, criar senha e seguir pendências mínimas sem auto-cadastro |
+| 6️⃣1️⃣ | BL-075 | Arquitetura modular de onboarding white label por marca/produto | Em andamento (slice Compass iniciado em 2026-04-10) | 🔴 Crítica | Substituir o onboarding único por resolver de fluxo por brand/productMode, reaproveitando core e separando jornadas Kaptur/Compass |
+| 6️⃣2️⃣ | BL-076 | Primeiro acesso Compass para usuário provisionado com OTP e criação de senha | Em andamento (baseline local entregue em 2026-04-10) | 🔴 Crítica | Compass deve localizar cadastro prévio, validar OTP em contato cadastrado, criar senha e seguir pendências mínimas sem auto-cadastro |
 | 6️⃣3️⃣ | BL-077 | Cadastro Kaptur marketplace PF/MEI/PJ com módulos fiscais, atuação e repasse | Planejado | 🔴 Crítica | Kaptur deve evoluir o cadastro atual PJ para jornada completa de prestador, com campos condicionais e aprovação |
 | 6️⃣4️⃣ | BL-078 | Permissões progressivas por recurso e por marca | Planejado | 🟠 Alta | Tela atual de permissões vira módulo explicativo; câmera/localização/microfone são solicitados no momento certo e microfone fica condicional |
 | 6️⃣5️⃣ | BL-079 | Pocket training e termos versionados por app | Planejado | 🟠 Alta | Tutorial, LGPD, confidencialidade e conduta passam a ser módulos reutilizáveis com conteúdo e obrigatoriedade por marca |
@@ -392,6 +392,7 @@ Criar arquitetura modular de onboarding white label por marca/produto, substitui
 - Escopo MVP: resolver de fluxo, perfil `marketplace_provider` para Kaptur, perfil `corporate_first_access` para Compass, retomada de etapa pendente e preservacao de usuarios legados.
 - Criterio de pronto: app Kaptur nao cai no fluxo Compass; app Compass nao exibe cadastro aberto de vistoriador; modulos compartilhados possuem contrato de entrada/saida.
 - Dependencias: BL-031, BL-056, BL-068, INT-031, BOW-212.
+- Observacao 2026-04-10 (PARCIAL - Compass): flavor Compass passou a redirecionar `AppAuthStatus.onboarding` para tela dedicada de primeiro acesso e o login passou a expor CTA `Primeiro acesso`, sem reaproveitar o onboarding PJ/Kaptur.
 
 ### BL-076
 Implementar primeiro acesso Compass para usuario provisionado pelo backoffice, com lookup seguro, OTP e criacao de senha.
@@ -402,6 +403,7 @@ Implementar primeiro acesso Compass para usuario provisionado pelo backoffice, c
 - Fluxo: Gate Compass -> Primeiro acesso -> CPF + data nascimento + identificador adicional -> OTP em contato ja cadastrado -> criar senha -> selfie/complementos minimos -> termos -> permissoes -> Home ou aguardando aprovacao.
 - Criterio de pronto: CPF/data nascimento apenas localizam cadastro; OTP e obrigatorio; mensagens nao enumeram usuarios; contato so pode ser alterado pelo backoffice.
 - Dependencias: BL-031, INT-031, BOW-212.
+- Observacao 2026-04-10 (PARCIAL - baseline local): backend recebeu `/auth/first-access/start` e `/auth/first-access/complete` com OTP temporario, resposta neutra para cadastro inexistente, criacao de senha somente apos OTP e emissao de sessao no fim do fluxo. Mobile Compass recebeu tela dedicada com CPF + data de nascimento + identificador, OTP e criacao de senha. Evidencia local: `flutter test --no-pub test/screens/compass_first_access_screen_test.dart` passou no terminal nativo; backend compilou com `mvn -q -f apps/backend/pom.xml -DskipTests compile` e `AuthIntegrationTest.class` foi gerado apos `test-compile`.
 
 ### BL-077
 Evoluir cadastro Kaptur marketplace para prestador PF/MEI/PJ com dados fiscais, area de atuacao, equipamentos, dados bancarios/PIX e aprovacao.

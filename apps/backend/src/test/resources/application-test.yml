@@ -26,6 +26,9 @@ auth:
   lockout:
     max-attempts: 5
     window-minutes: 10
+  first-access:
+    otp-ttl-minutes: 10
+    expose-debug-otp: true
 
 integration:
   config-signing:

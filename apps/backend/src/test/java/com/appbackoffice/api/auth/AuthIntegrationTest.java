@@ -2,6 +2,7 @@ package com.appbackoffice.api.auth;
 
 import com.appbackoffice.api.auth.entity.UserCredentialEntity;
 import com.appbackoffice.api.auth.repository.IdentityBindingRepository;
+import com.appbackoffice.api.auth.repository.FirstAccessOtpRepository;
 import com.appbackoffice.api.auth.repository.SessionRepository;
 import com.appbackoffice.api.auth.repository.UserCredentialRepository;
 import com.appbackoffice.api.identity.entity.Membership;
@@ -25,6 +26,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -65,12 +68,16 @@ class AuthIntegrationTest {
     private IdentityBindingRepository identityBindingRepository;
 
     @Autowired
+    private FirstAccessOtpRepository firstAccessOtpRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @BeforeEach
     void setUp() {
         sessionRepository.deleteAll();
         identityBindingRepository.deleteAll();
+        firstAccessOtpRepository.deleteAll();
         userCredentialRepository.deleteAll();
         membershipRepository.deleteAll();
         userRepository.deleteAll();
@@ -233,5 +240,101 @@ class AuthIntegrationTest {
                         .content(invalidPayload))
                 .andExpect(status().isLocked())
                 .andExpect(jsonPath("$.code").value("AUTH_ACCOUNT_LOCKED"));
+    }
+
+    @Test
+    void shouldCompleteCompassFirstAccessWithOtpBeforePasswordLogin() throws Exception {
+        User compassUser = new User(
+                TENANT_ID,
+                "compass.operator@tenant.com",
+                "Compass Operator",
+                "CLT",
+                UserRole.OPERATOR,
+                UserSource.WEB_CREATED
+        );
+        compassUser.setCpf("12345678901");
+        compassUser.setBirthDate(LocalDate.of(1990, 5, 20));
+        compassUser.setExternalId("COMPASS-001");
+        compassUser.setPhone("+55 11 99999-1234");
+        compassUser = userRepository.save(compassUser);
+        Tenant tenant = tenantRepository.findById(TENANT_ID).orElseThrow();
+        membershipRepository.save(new Membership(compassUser, tenant, null, MembershipRole.OPERATOR, MembershipStatus.ACTIVE));
+
+        String startPayload = """
+                {
+                  "tenantId": "tenant-auth-it",
+                  "cpf": "123.456.789-01",
+                  "birthDate": "1990-05-20",
+                  "identifier": "COMPASS-001"
+                }
+                """;
+
+        var startResult = mockMvc.perform(post("/auth/first-access/start")
+                        .header("X-Correlation-Id", CORRELATION_ID)
+                        .contentType("application/json")
+                        .content(startPayload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.challengeId").isString())
+                .andExpect(jsonPath("$.deliveryHint").value("Codigo enviado ao telefone cadastrado final 1234."))
+                .andExpect(jsonPath("$.debugOtp").isString())
+                .andReturn();
+
+        JsonNode startJson = objectMapper.readTree(startResult.getResponse().getContentAsString());
+        String challengeId = startJson.get("challengeId").asText();
+        String otp = startJson.get("debugOtp").asText();
+
+        String completePayload = """
+                {
+                  "tenantId": "tenant-auth-it",
+                  "challengeId": "%s",
+                  "otp": "%s",
+                  "newPassword": "Compass@123",
+                  "deviceInfo": "android-compass"
+                }
+                """.formatted(challengeId, otp);
+
+        mockMvc.perform(post("/auth/first-access/complete")
+                        .header("X-Correlation-Id", CORRELATION_ID)
+                        .contentType("application/json")
+                        .content(completePayload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.accessToken").isString())
+                .andExpect(jsonPath("$.refreshToken").isString());
+
+        String loginPayload = """
+                {
+                  "tenantId": "tenant-auth-it",
+                  "email": "compass.operator@tenant.com",
+                  "password": "Compass@123"
+                }
+                """;
+
+        mockMvc.perform(post("/auth/login")
+                        .header("X-Correlation-Id", CORRELATION_ID)
+                        .contentType("application/json")
+                        .content(loginPayload))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldReturnNeutralFirstAccessStartForUnknownCompassUser() throws Exception {
+        String startPayload = """
+                {
+                  "tenantId": "tenant-auth-it",
+                  "cpf": "00000000000",
+                  "birthDate": "1990-05-20",
+                  "identifier": "UNKNOWN"
+                }
+                """;
+
+        mockMvc.perform(post("/auth/first-access/start")
+                        .header("X-Correlation-Id", CORRELATION_ID)
+                        .contentType("application/json")
+                        .content(startPayload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.challengeId").isString())
+                .andExpect(jsonPath("$.deliveryHint").value("Se os dados estiverem corretos, enviaremos um codigo ao contato cadastrado."))
+                .andExpect(jsonPath("$.debugOtp").doesNotExist());
     }
 }

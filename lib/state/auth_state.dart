@@ -161,6 +161,12 @@ class AuthState extends ChangeNotifier {
     );
 
     _userEmail = session.email;
+    await applyBackendSession(session);
+  }
+
+  Future<void> applyBackendSession(MobileAuthSession session) async {
+    await _ensureLoaded();
+    _userEmail = session.email;
     _tenantId = session.tenantId;
     _userId = session.userId.toString();
     _accessToken = session.accessToken;

@@ -9,9 +9,9 @@ import 'repositories/backend_job_repository.dart';
 import 'repositories/fake_job_repository.dart';
 import 'repositories/preferences_repository.dart';
 import 'screens/awaiting_approval_screen.dart';
+import 'screens/compass_first_access_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
-import 'screens/onboarding_screen.dart';
 import 'screens/permissions_onboarding_screen.dart';
 import 'state/app_state.dart';
 import 'state/auth_state.dart';
@@ -89,7 +89,7 @@ class _AppEntryPoint extends StatelessWidget {
       case AppAuthStatus.unauthenticated:
         return const LoginScreen();
       case AppAuthStatus.onboarding:
-        return const OnboardingScreen();
+        return const CompassFirstAccessScreen();
       case AppAuthStatus.awaitingApproval:
         return const AwaitingApprovalScreen();
       case AppAuthStatus.active:

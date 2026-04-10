@@ -43,6 +43,18 @@ class MobileAuthTokens {
   final int expiresInSeconds;
 }
 
+class MobileFirstAccessChallenge {
+  const MobileFirstAccessChallenge({
+    required this.challengeId,
+    required this.deliveryHint,
+    required this.expiresInSeconds,
+  });
+
+  final String challengeId;
+  final String deliveryHint;
+  final int expiresInSeconds;
+}
+
 abstract class MobileAuthGateway {
   bool get isConfigured;
 
@@ -120,6 +132,64 @@ class MobileBackendAuthService implements MobileAuthGateway {
   @override
   Future<void> logout({required String refreshToken}) async {
     await _postJson('/auth/logout', {'refreshToken': refreshToken});
+  }
+
+  Future<MobileFirstAccessChallenge> startFirstAccess({
+    required String tenantId,
+    required String cpf,
+    required String birthDate,
+    required String identifier,
+  }) async {
+    final response = await _postJson('/auth/first-access/start', {
+      'tenantId': tenantId,
+      'cpf': cpf,
+      'birthDate': birthDate,
+      'identifier': identifier,
+    });
+    return MobileFirstAccessChallenge(
+      challengeId: _requireString(response, 'challengeId'),
+      deliveryHint: _stringOrDefault(
+        response,
+        'deliveryHint',
+        'Se os dados estiverem corretos, enviaremos um codigo ao contato cadastrado.',
+      ),
+      expiresInSeconds: _intOrDefault(response, 'expiresInSeconds', 600),
+    );
+  }
+
+  Future<MobileAuthSession> completeFirstAccess({
+    required String tenantId,
+    required String challengeId,
+    required String otp,
+    required String newPassword,
+    required String deviceInfo,
+  }) async {
+    final tokens = await _postJson('/auth/first-access/complete', {
+      'tenantId': tenantId,
+      'challengeId': challengeId,
+      'otp': otp,
+      'newPassword': newPassword,
+      'deviceInfo': deviceInfo,
+    });
+
+    final accessToken = _requireString(tokens, 'accessToken');
+    final me = await _getJson('/auth/me', authorization: 'Bearer $accessToken');
+
+    return MobileAuthSession(
+      accessToken: accessToken,
+      refreshToken: _requireString(tokens, 'refreshToken'),
+      tokenType: _stringOrDefault(tokens, 'tokenType', 'Bearer'),
+      expiresInSeconds: _intOrDefault(tokens, 'expiresInSeconds', 0),
+      userId: _intOrDefault(me, 'userId', 0),
+      tenantId: _requireString(me, 'tenantId'),
+      email: _requireString(me, 'email'),
+      userStatus: _stringOrDefault(me, 'userStatus', 'APPROVED'),
+      membershipRole: _stringOrDefault(me, 'membershipRole', 'FIELD_OPERATOR'),
+      membershipStatus: _stringOrDefault(me, 'membershipStatus', 'ACTIVE'),
+      permissions: (me['permissions'] as List<dynamic>? ?? const <dynamic>[])
+          .map((value) => value.toString())
+          .toList(growable: false),
+    );
   }
 
   Future<Map<String, dynamic>> _postJson(
