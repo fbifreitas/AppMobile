@@ -9,6 +9,7 @@ import com.appbackoffice.api.identity.entity.Tenant;
 import com.appbackoffice.api.identity.entity.TenantStatus;
 import com.appbackoffice.api.identity.repository.MembershipRepository;
 import com.appbackoffice.api.identity.repository.TenantRepository;
+import com.appbackoffice.api.platform.service.TenantLicensingService;
 import com.appbackoffice.api.user.audit.UserAuditAction;
 import com.appbackoffice.api.user.audit.UserAuditService;
 import com.appbackoffice.api.user.dto.CreateUserRequest;
@@ -31,17 +32,20 @@ public class UserService {
     private final MembershipRepository membershipRepository;
     private final UserAuditService userAuditService;
     private final UserLifecycleService userLifecycleService;
+    private final TenantLicensingService tenantLicensingService;
 
     public UserService(UserRepository userRepository,
                        TenantRepository tenantRepository,
                        MembershipRepository membershipRepository,
                        UserAuditService userAuditService,
-                       UserLifecycleService userLifecycleService) {
+                       UserLifecycleService userLifecycleService,
+                       TenantLicensingService tenantLicensingService) {
         this.userRepository = userRepository;
         this.tenantRepository = tenantRepository;
         this.membershipRepository = membershipRepository;
         this.userAuditService = userAuditService;
         this.userLifecycleService = userLifecycleService;
+        this.tenantLicensingService = tenantLicensingService;
     }
 
     // --- Fluxo mobile onboarding (status inicial = AWAITING_APPROVAL) ---
@@ -97,6 +101,7 @@ public class UserService {
                     "status: " + user.getStatus());
         }
 
+        tenantLicensingService.ensureSeatAvailable(tenantId);
         user.setStatus(UserStatus.APPROVED);
         user.setApprovedAt(Instant.now());
         User saved = userRepository.save(user);
@@ -154,6 +159,7 @@ public class UserService {
 
     public User createFromWeb(String tenantId, CreateUserRequest req) {
         checkEmailConflict(tenantId, req.email());
+        tenantLicensingService.ensureSeatAvailable(tenantId);
         UserRole role = parseRole(req.role());
         User user = new User(tenantId, req.email(), req.nome(), req.tipo(), role, UserSource.WEB_CREATED);
         user.setCpf(req.cpf());
@@ -200,6 +206,7 @@ public class UserService {
                 }
             }
 
+            tenantLicensingService.ensureSeatAvailable(tenantId);
             UserRole role = parseRole(req.role());
             User user = new User(tenantId, req.email(), req.nome(), req.tipo(), role, UserSource.AD_IMPORT);
             user.setCpf(req.cpf());
