@@ -21,8 +21,13 @@
 |---|---|---|---|
 | **Login** | Exibe "Bem-vindo ao Kaptur" | `login_welcome` em `kapturManifest` | ☐ |
 | **Login** | Cor do ícone principal é azul (#0D3B92) | `primaryColor` em `kapturManifest` | ☐ |
+| **Home — cabeçalho** | Saudação: "Olá, [Nome]!" (prefixo configurável) | `home_greeting_prefix` em `kapturManifest` | ☐ |
 | **Home — cabeçalho** | Subtítulo: "Seu painel operacional de hoje" | `home_header_subtitle` em `kapturManifest` | ☐ |
 | **Home — Jobs** | Título da seção: "MEUS JOBS DE HOJE" | `jobs_section_title` em `kapturManifest` | ☐ |
+| **Home — Jobs** | Estado carregando: "Carregando jobs..." | `job_loading_label` em `kapturManifest` | ☐ |
+| **Home — Jobs** | Estado erro: "Não foi possível carregar as vistorias." | `job_error_title` em `kapturManifest` | ☐ |
+| **Home — Jobs** | Estado vazio: "Nenhuma vistoria disponível no momento." | `job_empty_label` em `kapturManifest` | ☐ |
+| **Home — Jobs** | Distância ≤ 80m: "Você está no local" | `job_on_site_label` em `kapturManifest` | ☐ |
 | **Home — Jobs** | Botão iniciar: "INICIAR VISTORIA" | `job_start_label` em `kapturManifest` | ☐ |
 | **Home — Jobs** | Botão retomar: "RETOMAR VISTORIA" | `job_resume_label` em `kapturManifest` | ☐ |
 | **Home — Jobs** | Label bloqueio: "Fora do raio de vistoria." | `job_start_blocked_label` em `kapturManifest` | ☐ |
@@ -62,8 +67,13 @@
 |---|---|---|---|
 | **Login** | Exibe "Bem-vindo à Compass Avaliações" | `login_welcome` em `compassManifest` | ☐ |
 | **Login** | Cor do ícone principal é verde (#1B6B3A) | `primaryColor` em `compassManifest` | ☐ |
+| **Home — cabeçalho** | Saudação: "Olá, [Nome]!" (prefixo configurável) | `home_greeting_prefix` em `compassManifest` | ☐ |
 | **Home — cabeçalho** | Subtítulo: "Seu painel de avaliações" | `home_header_subtitle` em `compassManifest` | ☐ |
 | **Home — Jobs** | Título da seção: "ORDENS DO DIA" | `jobs_section_title` em `compassManifest` | ☐ |
+| **Home — Jobs** | Estado carregando: "Carregando avaliações..." *(≠ Kaptur)* | `job_loading_label` em `compassManifest` | ☐ |
+| **Home — Jobs** | Estado erro: "Não foi possível carregar as avaliações." *(≠ Kaptur)* | `job_error_title` em `compassManifest` | ☐ |
+| **Home — Jobs** | Estado vazio: "Nenhuma avaliação disponível no momento." *(≠ Kaptur)* | `job_empty_label` em `compassManifest` | ☐ |
+| **Home — Jobs** | Distância ≤ 80m: "Você está no local" | `job_on_site_label` em `compassManifest` | ☐ |
 | **Home — Jobs** | Botão iniciar: "INICIAR AVALIAÇÃO" | `job_start_label` em `compassManifest` | ☐ |
 | **Home — Jobs** | Botão retomar: "RETOMAR AVALIAÇÃO" | `job_resume_label` em `compassManifest` | ☐ |
 | **Home — Jobs** | Label bloqueio: "Fora da área de atendimento." | `job_start_blocked_label` em `compassManifest` | ☐ |

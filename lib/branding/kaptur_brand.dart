@@ -44,6 +44,19 @@ const BrandManifest kapturManifest = BrandManifest(
     'job_within_range_label': 'Dentro do raio',
     'job_out_of_range_label': 'Fora do raio',
     'job_geofence_radius_prefix': 'Raio:',
+    // Jobs — estados de carregamento e vazio
+    'job_loading_label': 'Carregando jobs...',
+    'job_error_title': 'Não foi possível carregar as vistorias.',
+    'job_empty_label': 'Nenhuma vistoria disponível no momento.',
+    // Jobs — modo desenvolvedor
+    'job_dev_mode_hint_label': 'Modo desenvolvedor ativo: fluxo liberado para teste fora do raio.',
+    'job_dev_mode_start_label': 'INICIAR (DEV)',
+    // Jobs — distância
+    'job_location_pending_label': 'Localização pendente',
+    'job_no_calculation_label': 'Sem cálculo',
+    'job_on_site_label': 'Você está no local',
+    // Home — saudação
+    'home_greeting_prefix': 'Olá,',
     // Jobs — status e recuperação
     'job_status_active_label': 'EM ANDAMENTO',
     'job_status_recoverable_label': 'EM RECUPERAÇÃO',

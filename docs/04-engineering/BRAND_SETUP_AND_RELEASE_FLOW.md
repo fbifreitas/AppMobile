@@ -197,7 +197,7 @@ flutter run --flavor compass -t lib/main_compass.dart
 
 ## 7. Chaves de Copy Mínimas por Marca
 
-Toda marca deve ter as seguintes chaves em `copyOverrides`:
+Toda marca deve ter as seguintes 33 chaves em `copyOverrides`. Este contrato é verificado por `validate_brand_setup.sh`:
 
 ```dart
 // Seções
@@ -205,17 +205,46 @@ Toda marca deve ter as seguintes chaves em `copyOverrides`:
 'proposals_section_title'
 // Home
 'home_header_subtitle'
+'home_greeting_prefix'
 // Login
 'login_welcome'
-// Jobs
+// Jobs — ações
 'job_start_label'
 'job_resume_label'
 'job_start_blocked_label'
+'job_navigate_label'
+// Jobs — estados de carregamento e vazio
+'job_loading_label'
+'job_error_title'
+'job_empty_label'
+// Jobs — status
+'job_status_active_label'
+'job_status_recoverable_label'
+'job_recovery_warning_prefix'
+// Jobs — modo desenvolvedor
+'job_dev_mode_hint_label'
+'job_dev_mode_start_label'
+// Jobs — geofence
+'job_geofence_radius_prefix'
+'job_within_range_label'
+'job_out_of_range_label'
+// Jobs — distância
+'job_location_pending_label'
+'job_no_calculation_label'
+'job_on_site_label'
 // Propostas
 'proposal_swipe_label'
 'proposal_accept_label'
 'proposal_snackbar_accept_success'
 'proposal_empty_title'
+'proposal_expiration_prefix'
+'proposal_address_label'
+'proposal_owner_label'
+'proposal_schedule_label'
+// Navegação
+'nav_home_label'
+'nav_jobs_label'
+'nav_agenda_label'
 ```
 
 Use `./scripts/validate_brand_setup.sh` para verificar presença de todas as chaves.

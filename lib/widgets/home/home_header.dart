@@ -36,6 +36,7 @@ class HomeHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final config = BrandProvider.configOf(context);
     final tokens = config.tokens;
+    final greetingPrefix = config.copyText('home_greeting_prefix', defaultValue: 'Olá,');
     final resolvedSubtitle =
         subtitle?.isNotEmpty == true
             ? subtitle!
@@ -54,7 +55,7 @@ class HomeHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Olá, $firstName!',
+                '$greetingPrefix $firstName!',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(

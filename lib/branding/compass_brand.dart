@@ -44,6 +44,19 @@ const BrandManifest compassManifest = BrandManifest(
     'job_within_range_label': 'Dentro da área',
     'job_out_of_range_label': 'Fora da área',
     'job_geofence_radius_prefix': 'Área:',
+    // Jobs — estados de carregamento e vazio
+    'job_loading_label': 'Carregando avaliações...',
+    'job_error_title': 'Não foi possível carregar as avaliações.',
+    'job_empty_label': 'Nenhuma avaliação disponível no momento.',
+    // Jobs — modo desenvolvedor
+    'job_dev_mode_hint_label': 'Modo desenvolvedor ativo: fluxo liberado para teste fora do raio.',
+    'job_dev_mode_start_label': 'INICIAR (DEV)',
+    // Jobs — distância
+    'job_location_pending_label': 'Localização pendente',
+    'job_no_calculation_label': 'Sem cálculo',
+    'job_on_site_label': 'Você está no local',
+    // Home — saudação
+    'home_greeting_prefix': 'Olá,',
     // Jobs — status e recuperação
     'job_status_active_label': 'EM ANDAMENTO',
     'job_status_recoverable_label': 'EM RECUPERAÇÃO',
