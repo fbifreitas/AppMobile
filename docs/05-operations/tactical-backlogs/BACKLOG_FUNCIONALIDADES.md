@@ -438,6 +438,7 @@ Observacao 2026-03-31 (EM ANDAMENTO): reforcada a testabilidade da tela de login
 Observacao 2026-04-02 (REPLANEJADO): validado que o app ainda nao autentica contra backend real; passam a ser obrigatorios neste item o login backend-first, refresh/revogacao de sessao, trilha de auditoria de acesso, controle de tentativas/lockout e readiness para MFA/FIDO2.
 Observacao 2026-04-03 (SEQUENCIAMENTO): BL-031 depende dos cards de backend BOW-100 (Tenant+Membership), BOW-101 (User entity retrofit) e BOW-102 (JWT auth backend). Não iniciar o lado mobile enquanto o backend não tiver JWT funcional com GET /auth/me retornando tenant context correto.
 Observacao 2026-04-10 (PARCIAL - Compass Pacote B): app mobile ganhou cliente backend-first para `POST /auth/login` + `GET /auth/me`, ativado por `--dart-define=APP_API_BASE_URL=...` e `--dart-define=APP_TENANT_ID=tenant-compass`. Quando a API nao esta configurada, o fluxo mock legado permanece como fallback local.
+Observacao 2026-04-10 (PARCIAL - Compass Pacote B): contexto operacional mobile passou a priorizar a sessao autenticada (`auth_tenant_id`, `auth_user_id`, `auth_access_token`) para chamadas de configuracao dinamica e sincronizacao de vistoria, mantendo overrides/env apenas como fallback tecnico.
 
 ### BL-032
 Criar onboarding de novos usuários para perfis CLT e PJ, com coleta de dados cadastrais completos e captura de foto pelo app.

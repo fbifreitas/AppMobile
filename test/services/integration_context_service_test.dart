@@ -1,43 +1,63 @@
 import 'package:appmobile/services/integration_context_service.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  test('buildIdempotencyKey is stable for equivalent payloads with different map order', () {
-    const service = IntegrationContextService();
-
-    final payloadA = <String, dynamic>{
-      'exportedAt': '2026-04-05T10:00:00Z',
-      'job': {
-        'id': 'job-123',
-        'titulo': 'Vistoria A',
-      },
-      'review': {
-        'tipoImovel': 'Urbano',
-        'capturas': [
-          {'filePath': '/tmp/a.jpg', 'ambiente': 'Fachada'},
-        ],
-      },
-    };
-
-    final payloadB = <String, dynamic>{
-      'review': {
-        'capturas': [
-          {'ambiente': 'Fachada', 'filePath': '/tmp/a.jpg'},
-        ],
-        'tipoImovel': 'Urbano',
-      },
-      'job': {
-        'titulo': 'Vistoria A',
-        'id': 'job-123',
-      },
-      'exportedAt': '2026-04-05T10:00:00Z',
-    };
-
-    expect(
-      service.buildIdempotencyKey(payloadA),
-      service.buildIdempotencyKey(payloadB),
-    );
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
   });
+
+  test('buildContext prioritizes authenticated mobile session', () async {
+    SharedPreferences.setMockInitialValues({
+      'auth_tenant_id': 'tenant-compass',
+      'auth_user_id': '77',
+      'auth_access_token': 'access-token',
+      'integration_tenant_id_v1': 'tenant-legacy',
+      'integration_actor_id_v1': 'actor-legacy',
+      'integration_api_version_v1': 'v2',
+    });
+
+    final context = await const IntegrationContextService().buildContext();
+
+    expect(context.tenantId, 'tenant-compass');
+    expect(context.actorId, '77');
+    expect(context.authToken, 'access-token');
+    expect(context.apiVersion, 'v2');
+  });
+
+  test(
+    'buildIdempotencyKey is stable for equivalent payloads with different map order',
+    () {
+      const service = IntegrationContextService();
+
+      final payloadA = <String, dynamic>{
+        'exportedAt': '2026-04-05T10:00:00Z',
+        'job': {'id': 'job-123', 'titulo': 'Vistoria A'},
+        'review': {
+          'tipoImovel': 'Urbano',
+          'capturas': [
+            {'filePath': '/tmp/a.jpg', 'ambiente': 'Fachada'},
+          ],
+        },
+      };
+
+      final payloadB = <String, dynamic>{
+        'review': {
+          'capturas': [
+            {'ambiente': 'Fachada', 'filePath': '/tmp/a.jpg'},
+          ],
+          'tipoImovel': 'Urbano',
+        },
+        'job': {'titulo': 'Vistoria A', 'id': 'job-123'},
+        'exportedAt': '2026-04-05T10:00:00Z',
+      };
+
+      expect(
+        service.buildIdempotencyKey(payloadA),
+        service.buildIdempotencyKey(payloadB),
+      );
+    },
+  );
 
   test('buildIdempotencyKey changes when exportedAt changes', () {
     const service = IntegrationContextService();

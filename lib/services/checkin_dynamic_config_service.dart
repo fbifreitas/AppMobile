@@ -56,7 +56,8 @@ class CheckinDynamicConfigService {
        _integrationContextService =
            integrationContextService ?? const IntegrationContextService();
 
-  static final CheckinDynamicConfigService instance = CheckinDynamicConfigService();
+  static final CheckinDynamicConfigService instance =
+      CheckinDynamicConfigService();
   static const InspectionRequirementPolicyService _requirementPolicy =
       InspectionRequirementPolicyService.instance;
 
@@ -475,7 +476,10 @@ class CheckinDynamicConfigService {
         request.headers.set('X-Correlation-Id', context.correlationId);
         request.headers.set('X-Actor-Id', context.actorId);
         request.headers.set('X-Api-Version', context.apiVersion);
-        final authToken = _resolvedAuthToken;
+        final authToken =
+            _resolvedAuthToken.isNotEmpty
+                ? _resolvedAuthToken
+                : context.authToken;
         if (authToken.isNotEmpty) {
           request.headers.set(
             HttpHeaders.authorizationHeader,
@@ -631,7 +635,10 @@ class CheckinDynamicConfigService {
     final signatureHeader =
         response.headers.value('X-Config-Signature')?.trim() ?? '';
     final algorithmHeader =
-        response.headers.value('X-Config-Signature-Alg')?.trim().toLowerCase() ??
+        response.headers
+            .value('X-Config-Signature-Alg')
+            ?.trim()
+            .toLowerCase() ??
         '';
 
     if (signatureHeader.isEmpty || algorithmHeader != 'hmac-sha256') {

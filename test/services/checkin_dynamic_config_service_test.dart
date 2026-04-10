@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:appmobile/config/checkin_step2_config.dart';
@@ -338,42 +338,163 @@ void main() {
     },
   );
 
-  test('loadStep2Config calls backend with required integration headers', () async {
-    SharedPreferences.setMockInitialValues({
-      'integration_tenant_id_v1': 'tenant-ops',
-      'integration_actor_id_v1': 'actor-ops',
-      'integration_api_version_v1': 'v1',
-    });
+  test(
+    'loadStep2Config calls backend with required integration headers',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        'integration_tenant_id_v1': 'tenant-ops',
+        'integration_actor_id_v1': 'actor-ops',
+        'integration_api_version_v1': 'v1',
+      });
 
-    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-    addTearDown(() async => server.close(force: true));
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() async => server.close(force: true));
 
-    server.listen((request) async {
-      expect(request.method, 'GET');
-      expect(request.uri.path, '/api/mobile/checkin-config');
-      expect(request.uri.queryParameters['tipoImovel'], 'urbano');
-      expect(request.headers.value('X-Tenant-Id'), 'tenant-ops');
-      expect(request.headers.value('X-Actor-Id'), 'actor-ops');
-      expect(request.headers.value('X-Api-Version'), 'v1');
-      expect(
-        request.headers.value(HttpHeaders.authorizationHeader),
-        'Bearer token-checkin',
+      server.listen((request) async {
+        expect(request.method, 'GET');
+        expect(request.uri.path, '/api/mobile/checkin-config');
+        expect(request.uri.queryParameters['tipoImovel'], 'urbano');
+        expect(request.headers.value('X-Tenant-Id'), 'tenant-ops');
+        expect(request.headers.value('X-Actor-Id'), 'actor-ops');
+        expect(request.headers.value('X-Api-Version'), 'v1');
+        expect(
+          request.headers.value(HttpHeaders.authorizationHeader),
+          'Bearer token-checkin',
+        );
+        final correlationId = request.headers.value('X-Correlation-Id') ?? '';
+        expect(correlationId, startsWith('mob-'));
+
+        request.response.statusCode = 200;
+        request.response.headers.contentType = ContentType.json;
+        request.response.write(
+          jsonEncode({
+            'step2': {
+              'byTipo': {
+                'urbano': {
+                  'tituloTela': 'Config remota real',
+                  'camposFotos': [
+                    {
+                      'id': 'fachada_remota',
+                      'titulo': 'Fachada remota',
+                      'icon': 'home_work_outlined',
+                      'obrigatorio': true,
+                      'cameraMacroLocal': 'Rua',
+                      'cameraAmbiente': 'Fachada',
+                    },
+                  ],
+                },
+              },
+            },
+          }),
+        );
+        await request.response.close();
+      });
+
+      final service = CheckinDynamicConfigService(
+        baseUrl: 'http://${server.address.host}:${server.port}',
+        authToken: 'token-checkin',
+        checkinConfigEndpoint: '/api/mobile/checkin-config',
       );
-      final correlationId = request.headers.value('X-Correlation-Id') ?? '';
-      expect(correlationId, startsWith('mob-'));
+      final fallback = CheckinStep2Configs.byTipo(TipoImovel.urbano);
 
-      request.response.statusCode = 200;
-      request.response.headers.contentType = ContentType.json;
-      request.response.write(
-        jsonEncode({
+      final result = await service.loadStep2Config(
+        tipo: TipoImovel.urbano,
+        fallback: fallback,
+      );
+
+      expect(result.tituloTela, 'Config remota real');
+      expect(result.camposFotos.first.id, 'fachada_remota');
+    },
+  );
+
+  test(
+    'loadStep2Config uses authenticated session headers without token override',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        'auth_tenant_id': 'tenant-compass',
+        'auth_user_id': '77',
+        'auth_access_token': 'session-token',
+        'integration_tenant_id_v1': 'tenant-ops',
+        'integration_actor_id_v1': 'actor-ops',
+        'integration_api_version_v1': 'v1',
+      });
+
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() async => server.close(force: true));
+
+      server.listen((request) async {
+        expect(request.headers.value('X-Tenant-Id'), 'tenant-compass');
+        expect(request.headers.value('X-Actor-Id'), '77');
+        expect(
+          request.headers.value(HttpHeaders.authorizationHeader),
+          'Bearer session-token',
+        );
+
+        request.response.statusCode = 200;
+        request.response.headers.contentType = ContentType.json;
+        request.response.write(
+          jsonEncode({
+            'step2': {
+              'byTipo': {
+                'urbano': {
+                  'tituloTela': 'Config por sessao',
+                  'camposFotos': [
+                    {
+                      'id': 'fachada_sessao',
+                      'titulo': 'Fachada sessao',
+                      'icon': 'home_work_outlined',
+                      'obrigatorio': true,
+                      'cameraMacroLocal': 'Rua',
+                      'cameraAmbiente': 'Fachada',
+                    },
+                  ],
+                },
+              },
+            },
+          }),
+        );
+        await request.response.close();
+      });
+
+      final service = CheckinDynamicConfigService(
+        baseUrl: 'http://${server.address.host}:${server.port}',
+        checkinConfigEndpoint: '/api/mobile/checkin-config',
+      );
+      final fallback = CheckinStep2Configs.byTipo(TipoImovel.urbano);
+
+      final result = await service.loadStep2Config(
+        tipo: TipoImovel.urbano,
+        fallback: fallback,
+      );
+
+      expect(result.tituloTela, 'Config por sessao');
+      expect(result.camposFotos.first.id, 'fachada_sessao');
+    },
+  );
+
+  test(
+    'loadStep2Config accepts remote payload with valid hmac signature',
+    () async {
+      const signingKey = 'tenant-hmac-secret';
+      SharedPreferences.setMockInitialValues({
+        'integration_tenant_id_v1': 'tenant-ops',
+        'integration_actor_id_v1': 'actor-ops',
+        'integration_api_version_v1': 'v1',
+      });
+
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() async => server.close(force: true));
+
+      server.listen((request) async {
+        final payload = jsonEncode({
           'step2': {
             'byTipo': {
               'urbano': {
-                'tituloTela': 'Config remota real',
+                'tituloTela': 'Config assinada',
                 'camposFotos': [
                   {
-                    'id': 'fachada_remota',
-                    'titulo': 'Fachada remota',
+                    'id': 'fachada_assinada',
+                    'titulo': 'Fachada assinada',
                     'icon': 'home_work_outlined',
                     'obrigatorio': true,
                     'cameraMacroLocal': 'Rua',
@@ -383,183 +504,148 @@ void main() {
               },
             },
           },
-        }),
+        });
+        final signature = base64Encode(
+          Hmac(
+            sha256,
+            utf8.encode(signingKey),
+          ).convert(utf8.encode(payload)).bytes,
+        );
+
+        request.response.statusCode = 200;
+        request.response.headers.contentType = ContentType.json;
+        request.response.headers.set('X-Config-Signature', signature);
+        request.response.headers.set('X-Config-Signature-Alg', 'hmac-sha256');
+        request.response.write(payload);
+        await request.response.close();
+      });
+
+      final service = CheckinDynamicConfigService(
+        baseUrl: 'http://${server.address.host}:${server.port}',
+        authToken: 'token-checkin',
+        checkinConfigEndpoint: '/api/mobile/checkin-config',
+        configSigningHmacKey: signingKey,
       );
-      await request.response.close();
-    });
+      final fallback = CheckinStep2Configs.byTipo(TipoImovel.urbano);
 
-    final service = CheckinDynamicConfigService(
-      baseUrl: 'http://${server.address.host}:${server.port}',
-      authToken: 'token-checkin',
-      checkinConfigEndpoint: '/api/mobile/checkin-config',
-    );
-    final fallback = CheckinStep2Configs.byTipo(TipoImovel.urbano);
+      final result = await service.loadStep2Config(
+        tipo: TipoImovel.urbano,
+        fallback: fallback,
+      );
 
-    final result = await service.loadStep2Config(
-      tipo: TipoImovel.urbano,
-      fallback: fallback,
-    );
+      expect(result.tituloTela, 'Config assinada');
+      expect(result.camposFotos.first.id, 'fachada_assinada');
+    },
+  );
 
-    expect(result.tituloTela, 'Config remota real');
-    expect(result.camposFotos.first.id, 'fachada_remota');
-  });
+  test(
+    'loadStep2Config rejects remote payload with invalid hmac signature',
+    () async {
+      const signingKey = 'tenant-hmac-secret';
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() async => server.close(force: true));
 
-  test('loadStep2Config accepts remote payload with valid hmac signature', () async {
-    const signingKey = 'tenant-hmac-secret';
-    SharedPreferences.setMockInitialValues({
-      'integration_tenant_id_v1': 'tenant-ops',
-      'integration_actor_id_v1': 'actor-ops',
-      'integration_api_version_v1': 'v1',
-    });
-
-    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-    addTearDown(() async => server.close(force: true));
-
-    server.listen((request) async {
-      final payload = jsonEncode({
-        'step2': {
-          'byTipo': {
-            'urbano': {
-              'tituloTela': 'Config assinada',
-              'camposFotos': [
-                {
-                  'id': 'fachada_assinada',
-                  'titulo': 'Fachada assinada',
-                  'icon': 'home_work_outlined',
-                  'obrigatorio': true,
-                  'cameraMacroLocal': 'Rua',
-                  'cameraAmbiente': 'Fachada',
-                },
-              ],
+      server.listen((request) async {
+        final payload = jsonEncode({
+          'step2': {
+            'byTipo': {
+              'urbano': {
+                'tituloTela': 'Config invalida',
+                'camposFotos': [
+                  {
+                    'id': 'fachada_invalida',
+                    'titulo': 'Fachada invalida',
+                    'icon': 'home_work_outlined',
+                    'obrigatorio': true,
+                    'cameraMacroLocal': 'Rua',
+                    'cameraAmbiente': 'Fachada',
+                  },
+                ],
+              },
             },
           },
-        },
+        });
+
+        request.response.statusCode = 200;
+        request.response.headers.contentType = ContentType.json;
+        request.response.headers.set(
+          'X-Config-Signature',
+          'assinatura-invalida',
+        );
+        request.response.headers.set('X-Config-Signature-Alg', 'hmac-sha256');
+        request.response.write(payload);
+        await request.response.close();
       });
-      final signature = base64Encode(
-        Hmac(sha256, utf8.encode(signingKey)).convert(utf8.encode(payload)).bytes,
+
+      final service = CheckinDynamicConfigService(
+        baseUrl: 'http://${server.address.host}:${server.port}',
+        authToken: 'token-checkin',
+        checkinConfigEndpoint: '/api/mobile/checkin-config',
+        configSigningHmacKey: signingKey,
+      );
+      final fallback = CheckinStep2Configs.byTipo(TipoImovel.urbano);
+
+      final result = await service.loadStep2Config(
+        tipo: TipoImovel.urbano,
+        fallback: fallback,
       );
 
-      request.response.statusCode = 200;
-      request.response.headers.contentType = ContentType.json;
-      request.response.headers.set('X-Config-Signature', signature);
-      request.response.headers.set('X-Config-Signature-Alg', 'hmac-sha256');
-      request.response.write(payload);
-      await request.response.close();
-    });
+      expect(result.tituloTela, fallback.tituloTela);
+      expect(result.camposFotos.first.id, fallback.camposFotos.first.id);
+    },
+  );
 
-    final service = CheckinDynamicConfigService(
-      baseUrl: 'http://${server.address.host}:${server.port}',
-      authToken: 'token-checkin',
-      checkinConfigEndpoint: '/api/mobile/checkin-config',
-      configSigningHmacKey: signingKey,
-    );
-    final fallback = CheckinStep2Configs.byTipo(TipoImovel.urbano);
+  test(
+    'loadStep1Config accepts remote payload with valid hmac signature',
+    () async {
+      const signingKey = 'tenant-hmac-secret';
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() async => server.close(force: true));
 
-    final result = await service.loadStep2Config(
-      tipo: TipoImovel.urbano,
-      fallback: fallback,
-    );
-
-    expect(result.tituloTela, 'Config assinada');
-    expect(result.camposFotos.first.id, 'fachada_assinada');
-  });
-
-  test('loadStep2Config rejects remote payload with invalid hmac signature', () async {
-    const signingKey = 'tenant-hmac-secret';
-    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-    addTearDown(() async => server.close(force: true));
-
-    server.listen((request) async {
-      final payload = jsonEncode({
-        'step2': {
-          'byTipo': {
-            'urbano': {
-              'tituloTela': 'Config invalida',
-              'camposFotos': [
-                {
-                  'id': 'fachada_invalida',
-                  'titulo': 'Fachada invalida',
-                  'icon': 'home_work_outlined',
-                  'obrigatorio': true,
-                  'cameraMacroLocal': 'Rua',
-                  'cameraAmbiente': 'Fachada',
-                },
-              ],
+      server.listen((request) async {
+        final payload = jsonEncode({
+          'version': 'cfg-signed-v1',
+          'step1': {
+            'tipos': <String>['Comercial'],
+            'contextos': <String>['Area interna'],
+            'subtiposPorTipo': {
+              'Comercial': <String>['Loja'],
             },
           },
-        },
+        });
+        final signature = base64Encode(
+          Hmac(
+            sha256,
+            utf8.encode(signingKey),
+          ).convert(utf8.encode(payload)).bytes,
+        );
+
+        request.response.statusCode = 200;
+        request.response.headers.contentType = ContentType.json;
+        request.response.headers.set('X-Config-Signature', signature);
+        request.response.headers.set('X-Config-Signature-Alg', 'hmac-sha256');
+        request.response.write(payload);
+        await request.response.close();
       });
 
-      request.response.statusCode = 200;
-      request.response.headers.contentType = ContentType.json;
-      request.response.headers.set('X-Config-Signature', 'assinatura-invalida');
-      request.response.headers.set('X-Config-Signature-Alg', 'hmac-sha256');
-      request.response.write(payload);
-      await request.response.close();
-    });
-
-    final service = CheckinDynamicConfigService(
-      baseUrl: 'http://${server.address.host}:${server.port}',
-      authToken: 'token-checkin',
-      checkinConfigEndpoint: '/api/mobile/checkin-config',
-      configSigningHmacKey: signingKey,
-    );
-    final fallback = CheckinStep2Configs.byTipo(TipoImovel.urbano);
-
-    final result = await service.loadStep2Config(
-      tipo: TipoImovel.urbano,
-      fallback: fallback,
-    );
-
-    expect(result.tituloTela, fallback.tituloTela);
-    expect(result.camposFotos.first.id, fallback.camposFotos.first.id);
-  });
-
-  test('loadStep1Config accepts remote payload with valid hmac signature', () async {
-    const signingKey = 'tenant-hmac-secret';
-    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-    addTearDown(() async => server.close(force: true));
-
-    server.listen((request) async {
-      final payload = jsonEncode({
-        'version': 'cfg-signed-v1',
-        'step1': {
-          'tipos': <String>['Comercial'],
-          'contextos': <String>['Area interna'],
-          'subtiposPorTipo': {
-            'Comercial': <String>['Loja'],
-          },
-        },
-      });
-      final signature = base64Encode(
-        Hmac(sha256, utf8.encode(signingKey)).convert(utf8.encode(payload)).bytes,
+      final service = CheckinDynamicConfigService(
+        baseUrl: 'http://${server.address.host}:${server.port}',
+        authToken: 'token-checkin',
+        checkinConfigEndpoint: '/api/mobile/checkin-config',
+        configSigningHmacKey: signingKey,
       );
 
-      request.response.statusCode = 200;
-      request.response.headers.contentType = ContentType.json;
-      request.response.headers.set('X-Config-Signature', signature);
-      request.response.headers.set('X-Config-Signature-Alg', 'hmac-sha256');
-      request.response.write(payload);
-      await request.response.close();
-    });
+      final result = await service.loadStep1Config(
+        fallbackTipos: defaultTipos,
+        fallbackSubtiposPorTipo: defaultSubtipos,
+        fallbackContextos: defaultContextos,
+      );
 
-    final service = CheckinDynamicConfigService(
-      baseUrl: 'http://${server.address.host}:${server.port}',
-      authToken: 'token-checkin',
-      checkinConfigEndpoint: '/api/mobile/checkin-config',
-      configSigningHmacKey: signingKey,
-    );
-
-    final result = await service.loadStep1Config(
-      fallbackTipos: defaultTipos,
-      fallbackSubtiposPorTipo: defaultSubtipos,
-      fallbackContextos: defaultContextos,
-    );
-
-    expect(result.tipos, <String>['Comercial']);
-    expect(result.contextos, <String>['Area interna']);
-    expect(result.subtiposPorTipo['Comercial'], <String>['Loja']);
-  });
+      expect(result.tipos, <String>['Comercial']);
+      expect(result.contextos, <String>['Area interna']);
+      expect(result.subtiposPorTipo['Comercial'], <String>['Loja']);
+    },
+  );
 
   test(
     'loadStep1Config falls back to cached document when remote signature is invalid',
@@ -594,7 +680,10 @@ void main() {
 
         request.response.statusCode = 200;
         request.response.headers.contentType = ContentType.json;
-        request.response.headers.set('X-Config-Signature', 'assinatura-invalida');
+        request.response.headers.set(
+          'X-Config-Signature',
+          'assinatura-invalida',
+        );
         request.response.headers.set('X-Config-Signature-Alg', 'hmac-sha256');
         request.response.write(payload);
         await request.response.close();
@@ -619,237 +708,245 @@ void main() {
     },
   );
 
-  test('loadStep2Config reflects remote rollback on next fetch instead of stale cache', () async {
-    var requestCount = 0;
-    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-    addTearDown(() async => server.close(force: true));
+  test(
+    'loadStep2Config reflects remote rollback on next fetch instead of stale cache',
+    () async {
+      var requestCount = 0;
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() async => server.close(force: true));
 
-    server.listen((request) async {
-      requestCount += 1;
-      request.response.statusCode = 200;
-      request.response.headers.contentType = ContentType.json;
-      if (requestCount == 1) {
-        request.response.write(
-          jsonEncode({
-            'version': 'cfg-v1',
-            'step2': {
-              'byTipo': {
-                'urbano': {
-                  'tituloTela': 'Config publicada',
-                  'camposFotos': [
-                    {
-                      'id': 'fachada_publicada',
-                      'titulo': 'Fachada publicada',
-                      'icon': 'home_work_outlined',
-                      'obrigatorio': true,
-                      'cameraMacroLocal': 'Rua',
-                      'cameraAmbiente': 'Fachada',
-                    },
-                  ],
+      server.listen((request) async {
+        requestCount += 1;
+        request.response.statusCode = 200;
+        request.response.headers.contentType = ContentType.json;
+        if (requestCount == 1) {
+          request.response.write(
+            jsonEncode({
+              'version': 'cfg-v1',
+              'step2': {
+                'byTipo': {
+                  'urbano': {
+                    'tituloTela': 'Config publicada',
+                    'camposFotos': [
+                      {
+                        'id': 'fachada_publicada',
+                        'titulo': 'Fachada publicada',
+                        'icon': 'home_work_outlined',
+                        'obrigatorio': true,
+                        'cameraMacroLocal': 'Rua',
+                        'cameraAmbiente': 'Fachada',
+                      },
+                    ],
+                  },
                 },
               },
-            },
-          }),
-        );
-      } else {
-        request.response.write(
-          jsonEncode({
-            'version': 'cfg-v2-rollback',
-            'step1': {
-              'tipos': <String>['Urbano'],
-              'contextos': <String>['Rua'],
-              'subtiposPorTipo': {
-                'Urbano': <String>['Casa'],
-              },
-            },
-          }),
-        );
-      }
-      await request.response.close();
-    });
-
-    final service = CheckinDynamicConfigService(
-      baseUrl: 'http://${server.address.host}:${server.port}',
-      authToken: 'token-checkin',
-      checkinConfigEndpoint: '/api/mobile/checkin-config',
-    );
-    final fallback = CheckinStep2Configs.byTipo(TipoImovel.urbano);
-
-    final published = await service.loadStep2Config(
-      tipo: TipoImovel.urbano,
-      fallback: fallback,
-    );
-    final rolledBack = await service.loadStep2Config(
-      tipo: TipoImovel.urbano,
-      fallback: fallback,
-    );
-
-    expect(published.tituloTela, 'Config publicada');
-    expect(published.camposFotos.first.id, 'fachada_publicada');
-    expect(rolledBack.tituloTela, fallback.tituloTela);
-    expect(rolledBack.camposFotos.first.id, fallback.camposFotos.first.id);
-  });
-
-  test('loadStep2Config reuses cached payload when remote version is unchanged', () async {
-    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-    addTearDown(() async => server.close(force: true));
-
-    var requestCount = 0;
-    server.listen((request) async {
-      requestCount += 1;
-      request.response.statusCode = 200;
-      request.response.headers.contentType = ContentType.json;
-      if (requestCount == 1) {
-        request.response.write(
-          jsonEncode({
-            'version': 'cfg-stable-v1',
-            'step2': {
-              'byTipo': {
-                'urbano': {
-                  'tituloTela': 'Config cacheada',
-                  'camposFotos': [
-                    {
-                      'id': 'fachada_cacheada',
-                      'titulo': 'Fachada cacheada',
-                      'icon': 'home_work_outlined',
-                      'obrigatorio': true,
-                      'cameraMacroLocal': 'Rua',
-                      'cameraAmbiente': 'Fachada',
-                    },
-                  ],
+            }),
+          );
+        } else {
+          request.response.write(
+            jsonEncode({
+              'version': 'cfg-v2-rollback',
+              'step1': {
+                'tipos': <String>['Urbano'],
+                'contextos': <String>['Rua'],
+                'subtiposPorTipo': {
+                  'Urbano': <String>['Casa'],
                 },
               },
-            },
-          }),
-        );
-      } else {
-        request.response.write(
-          jsonEncode({
-            'version': 'cfg-stable-v1',
-            'step2': {
-              'byTipo': {
-                'urbano': {
-                  'tituloTela': 'Config alterada sem bump',
-                  'camposFotos': [
-                    {
-                      'id': 'fachada_alterada_sem_bump',
-                      'titulo': 'Fachada alterada sem bump',
-                      'icon': 'home_work_outlined',
-                      'obrigatorio': true,
-                      'cameraMacroLocal': 'Rua',
-                      'cameraAmbiente': 'Fachada',
-                    },
-                  ],
+            }),
+          );
+        }
+        await request.response.close();
+      });
+
+      final service = CheckinDynamicConfigService(
+        baseUrl: 'http://${server.address.host}:${server.port}',
+        authToken: 'token-checkin',
+        checkinConfigEndpoint: '/api/mobile/checkin-config',
+      );
+      final fallback = CheckinStep2Configs.byTipo(TipoImovel.urbano);
+
+      final published = await service.loadStep2Config(
+        tipo: TipoImovel.urbano,
+        fallback: fallback,
+      );
+      final rolledBack = await service.loadStep2Config(
+        tipo: TipoImovel.urbano,
+        fallback: fallback,
+      );
+
+      expect(published.tituloTela, 'Config publicada');
+      expect(published.camposFotos.first.id, 'fachada_publicada');
+      expect(rolledBack.tituloTela, fallback.tituloTela);
+      expect(rolledBack.camposFotos.first.id, fallback.camposFotos.first.id);
+    },
+  );
+
+  test(
+    'loadStep2Config reuses cached payload when remote version is unchanged',
+    () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() async => server.close(force: true));
+
+      var requestCount = 0;
+      server.listen((request) async {
+        requestCount += 1;
+        request.response.statusCode = 200;
+        request.response.headers.contentType = ContentType.json;
+        if (requestCount == 1) {
+          request.response.write(
+            jsonEncode({
+              'version': 'cfg-stable-v1',
+              'step2': {
+                'byTipo': {
+                  'urbano': {
+                    'tituloTela': 'Config cacheada',
+                    'camposFotos': [
+                      {
+                        'id': 'fachada_cacheada',
+                        'titulo': 'Fachada cacheada',
+                        'icon': 'home_work_outlined',
+                        'obrigatorio': true,
+                        'cameraMacroLocal': 'Rua',
+                        'cameraAmbiente': 'Fachada',
+                      },
+                    ],
+                  },
                 },
               },
-            },
-          }),
-        );
-      }
-      await request.response.close();
-    });
-
-    final service = CheckinDynamicConfigService(
-      baseUrl: 'http://${server.address.host}:${server.port}',
-      authToken: 'token-checkin',
-      checkinConfigEndpoint: '/api/mobile/checkin-config',
-    );
-    final fallback = CheckinStep2Configs.byTipo(TipoImovel.urbano);
-
-    final first = await service.loadStep2Config(
-      tipo: TipoImovel.urbano,
-      fallback: fallback,
-    );
-    final second = await service.loadStep2Config(
-      tipo: TipoImovel.urbano,
-      fallback: fallback,
-    );
-
-    expect(first.tituloTela, 'Config cacheada');
-    expect(first.camposFotos.first.id, 'fachada_cacheada');
-    expect(second.tituloTela, 'Config cacheada');
-    expect(second.camposFotos.first.id, 'fachada_cacheada');
-  });
-
-  test('loadStep2Config applies fresh payload when remote version changes', () async {
-    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-    addTearDown(() async => server.close(force: true));
-
-    var requestCount = 0;
-    server.listen((request) async {
-      requestCount += 1;
-      request.response.statusCode = 200;
-      request.response.headers.contentType = ContentType.json;
-      if (requestCount == 1) {
-        request.response.write(
-          jsonEncode({
-            'version': 'cfg-v1',
-            'step2': {
-              'byTipo': {
-                'urbano': {
-                  'tituloTela': 'Config publicada v1',
-                  'camposFotos': [
-                    {
-                      'id': 'fachada_v1',
-                      'titulo': 'Fachada v1',
-                      'icon': 'home_work_outlined',
-                      'obrigatorio': true,
-                      'cameraMacroLocal': 'Rua',
-                      'cameraAmbiente': 'Fachada',
-                    },
-                  ],
+            }),
+          );
+        } else {
+          request.response.write(
+            jsonEncode({
+              'version': 'cfg-stable-v1',
+              'step2': {
+                'byTipo': {
+                  'urbano': {
+                    'tituloTela': 'Config alterada sem bump',
+                    'camposFotos': [
+                      {
+                        'id': 'fachada_alterada_sem_bump',
+                        'titulo': 'Fachada alterada sem bump',
+                        'icon': 'home_work_outlined',
+                        'obrigatorio': true,
+                        'cameraMacroLocal': 'Rua',
+                        'cameraAmbiente': 'Fachada',
+                      },
+                    ],
+                  },
                 },
               },
-            },
-          }),
-        );
-      } else {
-        request.response.write(
-          jsonEncode({
-            'version': 'cfg-v2',
-            'step2': {
-              'byTipo': {
-                'urbano': {
-                  'tituloTela': 'Config publicada v2',
-                  'camposFotos': [
-                    {
-                      'id': 'fachada_v2',
-                      'titulo': 'Fachada v2',
-                      'icon': 'home_work_outlined',
-                      'obrigatorio': true,
-                      'cameraMacroLocal': 'Rua',
-                      'cameraAmbiente': 'Fachada',
-                    },
-                  ],
+            }),
+          );
+        }
+        await request.response.close();
+      });
+
+      final service = CheckinDynamicConfigService(
+        baseUrl: 'http://${server.address.host}:${server.port}',
+        authToken: 'token-checkin',
+        checkinConfigEndpoint: '/api/mobile/checkin-config',
+      );
+      final fallback = CheckinStep2Configs.byTipo(TipoImovel.urbano);
+
+      final first = await service.loadStep2Config(
+        tipo: TipoImovel.urbano,
+        fallback: fallback,
+      );
+      final second = await service.loadStep2Config(
+        tipo: TipoImovel.urbano,
+        fallback: fallback,
+      );
+
+      expect(first.tituloTela, 'Config cacheada');
+      expect(first.camposFotos.first.id, 'fachada_cacheada');
+      expect(second.tituloTela, 'Config cacheada');
+      expect(second.camposFotos.first.id, 'fachada_cacheada');
+    },
+  );
+
+  test(
+    'loadStep2Config applies fresh payload when remote version changes',
+    () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() async => server.close(force: true));
+
+      var requestCount = 0;
+      server.listen((request) async {
+        requestCount += 1;
+        request.response.statusCode = 200;
+        request.response.headers.contentType = ContentType.json;
+        if (requestCount == 1) {
+          request.response.write(
+            jsonEncode({
+              'version': 'cfg-v1',
+              'step2': {
+                'byTipo': {
+                  'urbano': {
+                    'tituloTela': 'Config publicada v1',
+                    'camposFotos': [
+                      {
+                        'id': 'fachada_v1',
+                        'titulo': 'Fachada v1',
+                        'icon': 'home_work_outlined',
+                        'obrigatorio': true,
+                        'cameraMacroLocal': 'Rua',
+                        'cameraAmbiente': 'Fachada',
+                      },
+                    ],
+                  },
                 },
               },
-            },
-          }),
-        );
-      }
-      await request.response.close();
-    });
+            }),
+          );
+        } else {
+          request.response.write(
+            jsonEncode({
+              'version': 'cfg-v2',
+              'step2': {
+                'byTipo': {
+                  'urbano': {
+                    'tituloTela': 'Config publicada v2',
+                    'camposFotos': [
+                      {
+                        'id': 'fachada_v2',
+                        'titulo': 'Fachada v2',
+                        'icon': 'home_work_outlined',
+                        'obrigatorio': true,
+                        'cameraMacroLocal': 'Rua',
+                        'cameraAmbiente': 'Fachada',
+                      },
+                    ],
+                  },
+                },
+              },
+            }),
+          );
+        }
+        await request.response.close();
+      });
 
-    final service = CheckinDynamicConfigService(
-      baseUrl: 'http://${server.address.host}:${server.port}',
-      authToken: 'token-checkin',
-      checkinConfigEndpoint: '/api/mobile/checkin-config',
-    );
-    final fallback = CheckinStep2Configs.byTipo(TipoImovel.urbano);
+      final service = CheckinDynamicConfigService(
+        baseUrl: 'http://${server.address.host}:${server.port}',
+        authToken: 'token-checkin',
+        checkinConfigEndpoint: '/api/mobile/checkin-config',
+      );
+      final fallback = CheckinStep2Configs.byTipo(TipoImovel.urbano);
 
-    final first = await service.loadStep2Config(
-      tipo: TipoImovel.urbano,
-      fallback: fallback,
-    );
-    final second = await service.loadStep2Config(
-      tipo: TipoImovel.urbano,
-      fallback: fallback,
-    );
+      final first = await service.loadStep2Config(
+        tipo: TipoImovel.urbano,
+        fallback: fallback,
+      );
+      final second = await service.loadStep2Config(
+        tipo: TipoImovel.urbano,
+        fallback: fallback,
+      );
 
-    expect(first.tituloTela, 'Config publicada v1');
-    expect(first.camposFotos.first.id, 'fachada_v1');
-    expect(second.tituloTela, 'Config publicada v2');
-    expect(second.camposFotos.first.id, 'fachada_v2');
-  });
+      expect(first.tituloTela, 'Config publicada v1');
+      expect(first.camposFotos.first.id, 'fachada_v1');
+      expect(second.tituloTela, 'Config publicada v2');
+      expect(second.camposFotos.first.id, 'fachada_v2');
+    },
+  );
 }
-
