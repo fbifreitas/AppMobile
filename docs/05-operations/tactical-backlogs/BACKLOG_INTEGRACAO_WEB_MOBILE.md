@@ -214,8 +214,9 @@ Motivo:
 
 ## Adendo 2026-04-10 - Compass Mobile Auth/Jobs
 - INT-001: `GET /api/mobile/jobs` exige `Authorization: Bearer <token>` e valida a sessao contra `X-Tenant-Id` e `X-Actor-Id`, bloqueando spoof de contexto por header.
+- INT-001: `GET /api/mobile/checkin-config` e `POST /api/mobile/inspections/finalized` validam o bearer token quando informado, bloqueando contexto divergente antes de resolver configuracao ou aceitar payload finalizado.
 - INT-016: `MobileAuthJobsIntegrationTest` cobre o smoke Compass com login backend real, job aceito atribuido ao operador e rejeicao `AUTH_CONTEXT_MISMATCH` para ator divergente.
-- Evidencia local: `C:\tools\apache-maven-3.9.14\bin\mvn.cmd "-Dtest=MobileAuthJobsIntegrationTest,MobileApiControllerContractErrorTest,AuthIntegrationTest" test` passou com 17 testes.
+- Evidencia local: `C:\tools\apache-maven-3.9.14\bin\mvn.cmd "-Dtest=MobileAuthJobsIntegrationTest,MobileApiControllerContractErrorTest,AuthIntegrationTest" test` passou com 17 testes; suite focada `MobileAuthJobsIntegrationTest,MobileApiControllerContractErrorTest,MobileCheckinConfigIntegrationTest,InspectionSubmissionIntegrationTest` passou com 26 testes apos hardening de config/sync.
 
 ## Adendo 2026-04-08 - Agrupamento operacional em 2 macro-pacotes
 

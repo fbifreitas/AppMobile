@@ -149,6 +149,56 @@ class MobileAuthJobsIntegrationTest {
         assertThat(body.get("code").asText()).isEqualTo("AUTH_CONTEXT_MISMATCH");
     }
 
+    @Test
+    void shouldRejectCheckinConfigWhenBearerDoesNotMatchActorHeader() throws Exception {
+        JsonNode loginJson = login("vistoriador.compass@compass.test", PASSWORD);
+        String accessToken = loginJson.get("accessToken").asText();
+
+        var result = mockMvc.perform(get("/api/mobile/checkin-config")
+                        .header("X-Tenant-Id", TENANT_ID)
+                        .header("X-Correlation-Id", CORRELATION_ID)
+                        .header("X-Actor-Id", String.valueOf(operator.getId() + 1))
+                        .header("X-Api-Version", "v1")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andReturn();
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(401);
+        JsonNode body = objectMapper.readTree(result.getResponse().getContentAsString());
+        assertThat(body.get("code").asText()).isEqualTo("AUTH_CONTEXT_MISMATCH");
+    }
+
+    @Test
+    void shouldRejectFinalizedInspectionWhenBearerDoesNotMatchActorHeader() throws Exception {
+        JsonNode loginJson = login("vistoriador.compass@compass.test", PASSWORD);
+        String accessToken = loginJson.get("accessToken").asText();
+
+        var result = mockMvc.perform(post("/api/mobile/inspections/finalized")
+                        .contentType("application/json")
+                        .header("X-Tenant-Id", TENANT_ID)
+                        .header("X-Correlation-Id", CORRELATION_ID)
+                        .header("X-Actor-Id", String.valueOf(operator.getId() + 1))
+                        .header("X-Api-Version", "v1")
+                        .header("X-Idempotency-Key", "idem-compass-auth-mismatch")
+                        .header("X-Request-Timestamp", Instant.now().toString())
+                        .header("X-Request-Nonce", "nonce-compass-auth-mismatch")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .content("""
+                                {
+                                  "exportedAt": "2026-04-10T10:00:00Z",
+                                  "job": {"id": "job-123", "titulo": "Vistoria Compass"},
+                                  "step1": {},
+                                  "step2": {},
+                                  "step2Config": {},
+                                  "review": {}
+                                }
+                                """))
+                .andReturn();
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(401);
+        JsonNode body = objectMapper.readTree(result.getResponse().getContentAsString());
+        assertThat(body.get("code").asText()).isEqualTo("AUTH_CONTEXT_MISMATCH");
+    }
+
     private JsonNode login(String email, String password) throws Exception {
         var result = mockMvc.perform(post("/auth/login")
                         .header("X-Correlation-Id", CORRELATION_ID)

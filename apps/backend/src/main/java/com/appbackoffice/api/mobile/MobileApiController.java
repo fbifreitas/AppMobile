@@ -81,10 +81,12 @@ public class MobileApiController {
             @RequestHeader("X-Tenant-Id") String tenantId,
             @RequestHeader("X-Correlation-Id") String correlationId,
             @RequestHeader("X-Actor-Id") String actorId,
-            @RequestHeader("X-Api-Version") String apiVersion
+            @RequestHeader("X-Api-Version") String apiVersion,
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader
     ) {
         RequestContextValidator.requireApiVersion(apiVersion);
         RequestContextValidator.requireFullContext(tenantId, correlationId, actorId);
+        validateMobileBearerIfPresent(authorizationHeader, tenantId, actorId);
 
         CheckinConfigResponse response = mobileCheckinConfigService.resolve(tenantId, actorId, tipoImovel);
         ResponseEntity.BodyBuilder builder = ResponseEntity.ok();
@@ -125,12 +127,14 @@ public class MobileApiController {
             @RequestHeader("X-Request-Timestamp") String requestTimestamp,
             @RequestHeader("X-Request-Nonce") String requestNonce,
             @RequestHeader("X-Api-Version") String apiVersion,
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
             @Valid @RequestBody InspectionFinalizedRequest request
     ) {
         RequestContextValidator.requireApiVersion(apiVersion);
         RequestContextValidator.requireFullContext(tenantId, correlationId, actorId);
         RequestContextValidator.requireIdempotencyKey(idempotencyKey);
         RequestContextValidator.requireProtectedWriteHeaders(requestTimestamp, requestNonce);
+        validateMobileBearerIfPresent(authorizationHeader, tenantId, actorId);
 
         Long userId = parseUserId(actorId);
         InspectionFinalizedResponse created = inspectionSubmissionService.receive(
@@ -170,6 +174,13 @@ public class MobileApiController {
         Long userId = parseUserId(actorId);
         validateMobileBearer(authorizationHeader, tenantId, userId);
         return ResponseEntity.ok(jobService.getMobileJobsForUser(tenantId, userId, status));
+    }
+
+    private void validateMobileBearerIfPresent(String authorizationHeader, String tenantId, String actorId) {
+        if (authorizationHeader == null || authorizationHeader.isBlank()) {
+            return;
+        }
+        validateMobileBearer(authorizationHeader, tenantId, parseUserId(actorId));
     }
 
     private void validateMobileBearer(String authorizationHeader, String tenantId, Long userId) {
