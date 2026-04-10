@@ -67,6 +67,8 @@ Widgets **nunca** leem o manifest diretamente — apenas `BrandProvider.configOf
 | `marketplace` | Kaptur    | Propostas habilitadas, swipe, linguagem uberizada         |
 | `corporate`   | Compass   | Ordens do dia, sem propostas, linguagem operacional       |
 
+O onboarding tambem segue `ProductMode`, mas nao deve virar um fluxo unico com condicionais internos. A fonte funcional da substituicao/evolucao do onboarding por marca e `docs/03-architecture/09_WHITE_LABEL_ONBOARDING_STRATEGY.md`.
+
 ---
 
 ## BrandFeatureFlags

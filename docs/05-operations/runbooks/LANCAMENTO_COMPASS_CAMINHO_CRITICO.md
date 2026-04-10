@@ -333,6 +333,9 @@ Materializar o app Compass como app por marca, separado da Kaptu, com autenticac
 3. `BL-056`
 4. `BL-062`
 5. `BL-068`
+6. `BL-075`
+7. `BL-076`
+8. `BL-077`
 
 ### Gate de saida
 1. existe build Compass separado do build Kaptu
@@ -356,6 +359,15 @@ Materializar o app Compass como app por marca, separado da Kaptu, com autenticac
 - Evidencia local: `C:\tools\apache-maven-3.9.14\bin\mvn.cmd "-Dtest=MobileAuthJobsIntegrationTest,MobileApiControllerContractErrorTest,AuthIntegrationTest" test` passou com 17 testes em 2026-04-10; `C:\tools\apache-maven-3.9.14\bin\mvn.cmd "-Dtest=MobileAuthJobsIntegrationTest,MobileApiControllerContractErrorTest,MobileCheckinConfigIntegrationTest,InspectionSubmissionIntegrationTest" test` passou com 26 testes apos hardening de config/sync.
 - Android possui splash e adaptive icon por flavor (`kaptur` e `compass`). iOS possui xcconfigs e schemes compartilhados por marca (`kaptur` e `compass`), com configuracoes `Debug/Release/Profile` por flavor apontando para bundle/display name separados.
 - Evidencia local iOS em Windows: XML dos schemes `kaptur.xcscheme` e `compass.xcscheme` validado; `C:\src\flutter\bin\flutter.bat analyze --no-pub` passou sem issues. Build iOS real ainda deve rodar em ambiente macOS/Xcode antes do gate final de loja.
+
+### Nota 2026-04-10 - Onboarding white label
+
+- Fonte funcional adicionada: `docs/03-architecture/09_WHITE_LABEL_ONBOARDING_STRATEGY.md`.
+- O onboarding atual deixa de ser tratado como fluxo unico para todos os produtos. Ele deve ser substituido por arquitetura modular por marca: Kaptur usa cadastro marketplace de vistoriador/prestador; Compass usa primeiro acesso corporativo para usuario provisionado pelo backoffice.
+- Compass nao deve exibir "criar conta de vistoriador"; deve exibir "Primeiro acesso", localizar cadastro por CPF + data de nascimento + identificador adicional e exigir OTP para contato ja cadastrado antes da criacao de senha.
+- CPF/data de nascimento sao fatores de localizacao/validacao inicial, nao autenticacao final.
+- A tela atual de permissoes deve ser evoluida para modulo explicativo por permissao e por momento de uso; microfone so deve ser solicitado quando recurso de voz estiver habilitado.
+- Cards novos do caminho critico: `BL-075` arquitetura modular de onboarding por marca, `BL-076` primeiro acesso Compass com OTP e senha, `BL-077` cadastro Kaptur PF/MEI/PJ, `INT-031` contrato backend de OTP/primeiro acesso, `BOW-212` lifecycle/pendencias de onboarding por usuario.
 
 ### Dependencia
 - depende do `Pacote A` para:

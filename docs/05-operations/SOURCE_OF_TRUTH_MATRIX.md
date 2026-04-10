@@ -14,6 +14,7 @@ Definir tema -> documento oficial para reduzir ambiguidade de execucao.
 - Domain wellness: docs/03-architecture/04_DOMAIN_PACK_WELLNESS.md
 - Domain church: docs/03-architecture/05_DOMAIN_PACK_CHURCH.md
 - Tenant/white-label: docs/03-architecture/06_TENANT_AND_WHITE_LABEL_MODEL.md
+- Onboarding white label mobile: docs/03-architecture/09_WHITE_LABEL_ONBOARDING_STRATEGY.md
 - Guardrails de engenharia: docs/04-engineering/01_ENGINEERING_GUARDRAILS.md
 - Backlog estrategico: docs/BACKLOG_V2_PRIORIDADES.md
 - Operacao ativa (entrada): docs/05-operations/01_OPERATING_MODEL.md

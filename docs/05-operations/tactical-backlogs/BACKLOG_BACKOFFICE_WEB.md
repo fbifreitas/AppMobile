@@ -877,6 +877,29 @@ BL-032 e BL-033 tÃªm o fluxo mobile. Este item fecha o ciclo com o backoffice 
 
 ---
 
+#### BOW-212 - Pendencias e politicas de onboarding white label
+**Onda:** 2 | **Prioridade:** Critica | **Status:** Planejado  
+**Depende de:** BOW-100, BOW-101, BOW-102, BOW-211
+
+**Contexto:**  
+Kaptur e Compass sao apps distintos. O backend precisa informar ao mobile quais etapas de onboarding estao pendentes por usuario/app, sem obrigar o app a manter regras hardcoded divergentes.
+
+**O que construir:**
+- Endpoint de pendencias de onboarding por usuario autenticado, brand/app e tenant.
+- Politica por marca: `marketplace_provider` para Kaptur e `corporate_first_access` para Compass.
+- Registro versionado de termos, selfie, treinamento, permissoes e aprovacao.
+- Para Compass, suporte a primeiro acesso de usuario provisionado: lookup seguro, OTP em contato cadastrado e criacao de senha.
+- Para Kaptur, suporte a cadastro aberto com OTP, PF/MEI/PJ, aprovacao e dados complementares.
+- Mensagens e erros sem enumeracao de usuario.
+
+**Criterio de pronto:**
+- CPF + data de nascimento nunca autenticam sozinhos.
+- Mobile consegue retomar etapa pendente apos reinstalacao/login.
+- Backoffice consegue ver status de ativacao/onboarding por usuario.
+- Testes cobrem lookup inexistente, OTP expirado, OTP invalido, senha criada e pendencias resolvidas.
+
+---
+
 ## Onda 3 â€” Backlog resumido (planejamento)
 
 #### BOW-300 â€” Multi-tenant real: isolamento de dados por schema ou row-level security

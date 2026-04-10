@@ -177,6 +177,11 @@ Step 8️⃣ (BACKEND BLOQUEADO — aguarda Onda 1 BOW) → BL-031 (depende de B
 | 5️⃣8️⃣ | BL-059 | Tratar duplicação de ambiente repetido como ação contextual do nível atual | Planejado | 🔴 Crítica | A câmera permite `Trocar` e `Novo <ambiente>` sem criar novo nível na árvore principal, preservando revisão/retomada e matching de obrigatórios |
 | 5️⃣9️⃣ | BL-060 | Quebrar o service concentrador de configuração em fatias coesas e compatíveis com V2 | Planejado | 🟠 Alta | Carregamento, merge, fallback, histórico e prediction deixam de ficar concentrados em um único service, mantendo a API pública estável na migração |
 | 6️⃣0️⃣ | BL-061 | Isolar especialização do domínio inspection sobre um core reutilizável de fluxo configurável | Planejado | 🟠 Alta | Taxonomia imobiliária, instâncias operacionais e labels de inspection permanecem no domain layer, desacopladas do core/plataforma e sem rename cego |
+| 6️⃣1️⃣ | BL-075 | Arquitetura modular de onboarding white label por marca/produto | Planejado | 🔴 Crítica | Substituir o onboarding único por resolver de fluxo por brand/productMode, reaproveitando core e separando jornadas Kaptur/Compass |
+| 6️⃣2️⃣ | BL-076 | Primeiro acesso Compass para usuário provisionado com OTP e criação de senha | Planejado | 🔴 Crítica | Compass deve localizar cadastro prévio, validar OTP em contato cadastrado, criar senha e seguir pendências mínimas sem auto-cadastro |
+| 6️⃣3️⃣ | BL-077 | Cadastro Kaptur marketplace PF/MEI/PJ com módulos fiscais, atuação e repasse | Planejado | 🔴 Crítica | Kaptur deve evoluir o cadastro atual PJ para jornada completa de prestador, com campos condicionais e aprovação |
+| 6️⃣4️⃣ | BL-078 | Permissões progressivas por recurso e por marca | Planejado | 🟠 Alta | Tela atual de permissões vira módulo explicativo; câmera/localização/microfone são solicitados no momento certo e microfone fica condicional |
+| 6️⃣5️⃣ | BL-079 | Pocket training e termos versionados por app | Planejado | 🟠 Alta | Tutorial, LGPD, confidencialidade e conduta passam a ser módulos reutilizáveis com conteúdo e obrigatoriedade por marca |
 
 ---
 
@@ -377,6 +382,57 @@ Detalhamento:
 
 Observacao 2026-04-10 (CONCLUIDO - Compass Pacote B): regra de roteamento ajustada para nao exibir onboarding de permissoes antes do login. A etapa passa a bloquear somente usuario autenticado/ativo sem permissao concluida, cobrindo o primeiro acesso de usuario provisionado via backoffice.
 Observacao 2026-04-10 (CONCLUIDO - Compass Pacote B): adicionada auditoria automatizada entre catalogo de permissoes, `AndroidManifest.xml` e `Info.plist`, protegendo camera, localizacao, microfone e reconhecimento de fala usados pelo onboarding.
+
+### BL-075
+Criar arquitetura modular de onboarding white label por marca/produto, substituindo o fluxo unico atual por um `OnboardingFlowResolver` baseado em brand/productMode.
+
+- Fonte funcional: `docs/03-architecture/09_WHITE_LABEL_ONBOARDING_STRATEGY.md`
+- Area: mobile / arquitetura white label
+- Objetivo: Kaptur e Compass usam apps e jornadas distintas, compartilhando apenas modulos funcionais reutilizaveis.
+- Escopo MVP: resolver de fluxo, perfil `marketplace_provider` para Kaptur, perfil `corporate_first_access` para Compass, retomada de etapa pendente e preservacao de usuarios legados.
+- Criterio de pronto: app Kaptur nao cai no fluxo Compass; app Compass nao exibe cadastro aberto de vistoriador; modulos compartilhados possuem contrato de entrada/saida.
+- Dependencias: BL-031, BL-056, BL-068, INT-031, BOW-212.
+
+### BL-076
+Implementar primeiro acesso Compass para usuario provisionado pelo backoffice, com lookup seguro, OTP e criacao de senha.
+
+- Fonte funcional: `docs/03-architecture/09_WHITE_LABEL_ONBOARDING_STRATEGY.md`
+- Area: mobile/auth
+- Objetivo: ativar usuario Compass ja cadastrado sem auto-cadastro e sem autenticar apenas por CPF/data de nascimento.
+- Fluxo: Gate Compass -> Primeiro acesso -> CPF + data nascimento + identificador adicional -> OTP em contato ja cadastrado -> criar senha -> selfie/complementos minimos -> termos -> permissoes -> Home ou aguardando aprovacao.
+- Criterio de pronto: CPF/data nascimento apenas localizam cadastro; OTP e obrigatorio; mensagens nao enumeram usuarios; contato so pode ser alterado pelo backoffice.
+- Dependencias: BL-031, INT-031, BOW-212.
+
+### BL-077
+Evoluir cadastro Kaptur marketplace para prestador PF/MEI/PJ com dados fiscais, area de atuacao, equipamentos, dados bancarios/PIX e aprovacao.
+
+- Fonte funcional: `docs/03-architecture/09_WHITE_LABEL_ONBOARDING_STRATEGY.md`
+- Area: mobile onboarding
+- Objetivo: substituir o cadastro PJ curto atual por jornada de prestador adequada ao app Kaptur.
+- Escopo MVP: gate Kaptur com `Criar minha conta de Vistoriador`, identificacao inicial, OTP, tipo de prestador PF/MEI/PJ, termos, permissao e aguardando aprovacao.
+- Fase 2: dados fiscais completos, area/disponibilidade, equipamentos, antecedentes, bancarios/PIX com titularidade.
+- Criterio de pronto: Kaptur permite novo cadastro; CNPJ deixa de ser obrigatorio para todos; dados bancarios ficam restritos a Kaptur/repasse.
+- Dependencias: BL-031, BL-032, BL-033, INT-031, BOW-211.
+
+### BL-078
+Evoluir permissoes do sistema para solicitacao progressiva por recurso e por marca.
+
+- Fonte funcional: `docs/03-architecture/09_WHITE_LABEL_ONBOARDING_STRATEGY.md`
+- Area: mobile permissoes
+- Objetivo: preservar tela explicativa, mas solicitar camera, localizacao, microfone e notificacoes no momento de valor.
+- Regra: camera antes de selfie/foto; localizacao antes de check-in/geofence; microfone apenas se voz estiver habilitada; notificacoes em fase posterior.
+- Criterio de pronto: negativa simples permite nova tentativa; negativa permanente oferece abrir Ajustes; microfone nao e solicitado para Compass/Kaptur quando voz estiver desabilitada.
+- Dependencias: BL-056, BL-075.
+
+### BL-079
+Criar modulos reutilizaveis de termos e pocket training por app.
+
+- Fonte funcional: `docs/03-architecture/09_WHITE_LABEL_ONBOARDING_STRATEGY.md`
+- Area: mobile/produto
+- Objetivo: versionar aceite de LGPD/confidencialidade/conduta e entregar tutorial curto por marca.
+- Escopo MVP: termos versionados por app e treinamento curto antes da Home.
+- Criterio de pronto: Compass e Kaptur podem ter textos e obrigatoriedade distintos sem fork de tela.
+- Dependencias: BL-075, BOW-212.
 
 ### BL-017
 Adicionar contract tests entre mobile e backend para validar schemas e evitar quebra silenciosa de integrações críticas.

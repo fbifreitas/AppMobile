@@ -138,6 +138,8 @@ Motivo:
 | 28 | INT-028 | Contrato de erro canÃ´nico entre canais | Alta | Em andamento (fundaÃ§Ã£o v1 + cobertura TDD ampliada nos endpoints mobile crÃ­ticos) | CatÃ¡logo Ãºnico de erros com cÃ³digos, severidade e orientaÃ§Ã£o operacional consistente para web/mobile |
 
 | 30 | INT-030 | Configuracao de segredo de assinatura por ambiente (homolog/producao) | Critica | Em andamento (validator e gate operacional entregues em 2026-04-08; pendente provisionamento definitivo por ambiente) | integration.config-signing.hmac-key provisionado por ambiente via secret manager/Actions secrets, com checklist de release e evidencias de validacao |
+| 31 | INT-031 | Contrato de primeiro acesso e OTP white label | Critica | Planejado | Compass ativa usuario provisionado via lookup seguro + OTP + criacao de senha; Kaptur valida cadastro aberto via OTP sem enumerar usuarios |
+| 32 | INT-032 | Pendencias de onboarding por usuario/app | Alta | Planejado | Backend informa etapas pendentes por marca para o mobile retomar onboarding sem hardcode local |
 
 ---
 
@@ -224,6 +226,13 @@ Motivo:
 - INT-009: smoke E2E valida persistencia de eventos operacionais durante config, sync, inspection, valuation e report.
 - INT-018: smoke E2E valida control tower com requests nas ultimas 24h, endpoint mobile rastreado e report pronto para assinatura.
 - Evidencia local: `C:\tools\apache-maven-3.9.14\bin\mvn.cmd "-Dtest=CompassOperationEndToEndIntegrationTest" test` passou com 1 teste; regressao focada `CompassOperationEndToEndIntegrationTest,ValuationReportBackofficeIntegrationTest,OperationsControlTowerIntegrationTest` passou com 3 testes.
+
+## Adendo 2026-04-10 - Onboarding White Label
+- Fonte funcional: `docs/03-architecture/09_WHITE_LABEL_ONBOARDING_STRATEGY.md`.
+- INT-031: o contrato de primeiro acesso deve separar lookup de autenticacao final. CPF + data de nascimento + identificador adicional localizam cadastro, mas a ativacao exige OTP para contato ja cadastrado e criacao de senha.
+- INT-031: Compass usa primeiro acesso para usuario provisionado; Kaptur usa cadastro aberto com OTP para contato informado, politicas anti-enumeracao e rate limit.
+- INT-032: o mobile deve receber pendencias de onboarding por usuario/app, incluindo selfie, termos, treinamento, permissoes e aguardando aprovacao, evitando que cada flavor mantenha regras hardcoded divergentes.
+- Criterio de pronto: mensagens de erro neutras, cooldown/reenvio de OTP, limite de tentativas, auditoria por tenant/ator/correlationId e testes de contrato para sucesso, expirado, invalido e cadastro nao encontrado.
 
 ## Adendo 2026-04-08 - Agrupamento operacional em 2 macro-pacotes
 
