@@ -80,6 +80,17 @@ class MobileApiControllerContractErrorTest {
     }
 
     @Test
+    void getMobileJobs_withoutBearer_returnsAuthError() throws Exception {
+        mockMvc.perform(get("/api/mobile/jobs")
+                        .header("X-Tenant-Id", "tenant-a")
+                        .header("X-Correlation-Id", "corr-123")
+                        .header("X-Actor-Id", "1")
+                        .header("X-Api-Version", "v1"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTH_INVALID_TOKEN"));
+    }
+
+    @Test
     void postInspectionFinalized_withoutIdempotencyHeader_returnsCanonicalError() throws Exception {
         String payload = """
                 {

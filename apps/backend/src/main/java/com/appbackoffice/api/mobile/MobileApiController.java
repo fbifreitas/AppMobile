@@ -161,7 +161,7 @@ public class MobileApiController {
             @RequestHeader("X-Correlation-Id") String correlationId,
             @RequestHeader("X-Actor-Id") String actorId,
             @RequestHeader("X-Api-Version") String apiVersion,
-            @RequestHeader("Authorization") String authorizationHeader,
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
             @Parameter(description = "Filtro por status (ex: ACCEPTED, IN_EXECUTION). Padrao: ACCEPTED")
             @RequestParam(required = false) String status
     ) {
