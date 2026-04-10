@@ -16,26 +16,22 @@ class ProposalsSection extends StatefulWidget {
     this.sectionTitle,
     this.swipeRequired = true,
     this.financialSummaryEnabled = true,
-    this.marketplaceCopyEnabled = true,
   });
 
   final List<ProposalOffer>? propostas;
   final ValueChanged<ProposalOffer>? onAcceptProposal;
 
-  /// Section heading. Falls back to 'NOVAS PROPOSTAS' when null.
+  /// Section heading. Falls back to config key 'proposals_section_title'.
   /// Callers pass: config.copyText('proposals_section_title', defaultValue: 'NOVAS PROPOSTAS')
   final String? sectionTitle;
 
   /// When false (Compass / corporate mode), swipe interaction is replaced
   /// by a standard ElevatedButton to accept the proposal.
+  /// This is a structural flag only — does NOT determine copy.
   final bool swipeRequired;
 
   /// When false, financial values (valor) are hidden from proposal cards.
   final bool financialSummaryEnabled;
-
-  /// When true, marketplace-style copy is used ('DESLIZE PARA ACEITAR', etc.).
-  /// Corporate mode replaces with neutral action language.
-  final bool marketplaceCopyEnabled;
 
   static final List<ProposalOffer> _mockPropostas = [
     ProposalOffer(
@@ -77,6 +73,7 @@ class _ProposalsSectionState extends State<ProposalsSection> {
 
   void _acceptProposal(ProposalOffer proposta) {
     final appState = Provider.of<AppState>(context, listen: false);
+    final config = BrandProvider.configOf(context);
 
     final newJob = Job(
       id: proposta.id,
@@ -97,12 +94,13 @@ class _ProposalsSectionState extends State<ProposalsSection> {
 
     widget.onAcceptProposal?.call(proposta);
 
+    final snackbarText = config.copyText(
+      'proposal_snackbar_accept_success',
+      defaultValue: 'Proposta aceita! Job adicionado ao seu dia.',
+    );
+
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Proposta ${proposta.id} aceita! Job adicionado aos seus jobs de hoje.',
-        ),
-      ),
+      SnackBar(content: Text(snackbarText)),
     );
   }
 
@@ -110,10 +108,27 @@ class _ProposalsSectionState extends State<ProposalsSection> {
   Widget build(BuildContext context) {
     final config = BrandProvider.configOf(context);
     final tokens = config.tokens;
+
     final resolvedTitle =
         widget.sectionTitle?.isNotEmpty == true
             ? widget.sectionTitle!
-            : 'NOVAS PROPOSTAS';
+            : config.copyText(
+                'proposals_section_title',
+                defaultValue: 'NOVAS PROPOSTAS',
+              );
+
+    final swipeLabel = config.copyText(
+      'proposal_swipe_label',
+      defaultValue: 'DESLIZE PARA ACEITAR',
+    );
+    final acceptLabel = config.copyText(
+      'proposal_accept_label',
+      defaultValue: 'ACEITAR PROPOSTA',
+    );
+    final emptyLabel = config.copyText(
+      'proposal_empty_title',
+      defaultValue: 'Nenhuma proposta disponível no momento.',
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -136,9 +151,12 @@ class _ProposalsSectionState extends State<ProposalsSection> {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: BrandTokens.border),
             ),
-            child: const Text(
-              'Nenhuma proposta disponível no momento.',
-              style: TextStyle(color: BrandTokens.textSecondary, fontSize: 12),
+            child: Text(
+              emptyLabel,
+              style: const TextStyle(
+                color: BrandTokens.textSecondary,
+                fontSize: 12,
+              ),
             ),
           )
         else
@@ -149,7 +167,8 @@ class _ProposalsSectionState extends State<ProposalsSection> {
               tokens: tokens,
               swipeRequired: widget.swipeRequired,
               financialSummaryEnabled: widget.financialSummaryEnabled,
-              marketplaceCopyEnabled: widget.marketplaceCopyEnabled,
+              swipeLabel: swipeLabel,
+              acceptLabel: acceptLabel,
               onAccept: () => _acceptProposal(item),
             ),
           ),
@@ -166,7 +185,8 @@ class _ProposalCard extends StatelessWidget {
     required this.onAccept,
     required this.swipeRequired,
     required this.financialSummaryEnabled,
-    required this.marketplaceCopyEnabled,
+    required this.swipeLabel,
+    required this.acceptLabel,
   });
 
   final ProposalOffer proposta;
@@ -174,7 +194,12 @@ class _ProposalCard extends StatelessWidget {
   final VoidCallback onAccept;
   final bool swipeRequired;
   final bool financialSummaryEnabled;
-  final bool marketplaceCopyEnabled;
+
+  /// Label shown on the swipe track foreground and button background.
+  final String swipeLabel;
+
+  /// Label shown when swiping reveals the accept background, and on the button.
+  final String acceptLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -270,13 +295,14 @@ class _ProposalCard extends StatelessWidget {
             _SwipeToAccept(
               onAccept: onAccept,
               tokens: tokens,
-              marketplaceCopyEnabled: marketplaceCopyEnabled,
+              swipeLabel: swipeLabel,
+              acceptBgLabel: acceptLabel,
             )
           else
             _AcceptButton(
               onAccept: onAccept,
               tokens: tokens,
-              marketplaceCopyEnabled: marketplaceCopyEnabled,
+              label: acceptLabel,
             ),
         ],
       ),
@@ -354,24 +380,26 @@ class _InfoRow extends StatelessWidget {
 }
 
 /// Swipe-to-accept interaction — used in marketplace (Kaptur) mode.
+/// Copy comes from [ResolvedBrandConfig] resolved by the parent.
 class _SwipeToAccept extends StatelessWidget {
   const _SwipeToAccept({
     required this.onAccept,
     required this.tokens,
-    required this.marketplaceCopyEnabled,
+    required this.swipeLabel,
+    required this.acceptBgLabel,
   });
 
   final VoidCallback onAccept;
   final BrandTokens tokens;
-  final bool marketplaceCopyEnabled;
+
+  /// Label shown on the swipe foreground track (e.g. 'DESLIZE PARA ACEITAR').
+  final String swipeLabel;
+
+  /// Label shown when the swipe background is revealed (e.g. 'ACEITAR PROPOSTA').
+  final String acceptBgLabel;
 
   @override
   Widget build(BuildContext context) {
-    final actionLabel =
-        marketplaceCopyEnabled ? 'DESLIZE PARA ACEITAR' : 'ACEITAR';
-    final backgroundLabel =
-        marketplaceCopyEnabled ? 'ACEITAR PROPOSTA' : 'ACEITAR';
-
     return Dismissible(
       key: UniqueKey(),
       direction: DismissDirection.startToEnd,
@@ -390,7 +418,7 @@ class _SwipeToAccept extends StatelessWidget {
             const Icon(Icons.swipe_right_alt, color: Colors.white),
             const SizedBox(width: 8),
             Text(
-              backgroundLabel,
+              acceptBgLabel,
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w800,
@@ -414,7 +442,7 @@ class _SwipeToAccept extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                actionLabel,
+                swipeLabel,
                 style: TextStyle(
                   color: tokens.primary,
                   fontWeight: FontWeight.w800,
@@ -431,16 +459,19 @@ class _SwipeToAccept extends StatelessWidget {
 
 /// Button-based accept interaction — used in corporate (Compass) mode
 /// when swipe interaction is not appropriate.
+/// Copy comes from [ResolvedBrandConfig] resolved by the parent.
 class _AcceptButton extends StatelessWidget {
   const _AcceptButton({
     required this.onAccept,
     required this.tokens,
-    required this.marketplaceCopyEnabled,
+    required this.label,
   });
 
   final VoidCallback onAccept;
   final BrandTokens tokens;
-  final bool marketplaceCopyEnabled;
+
+  /// Label resolved from config (e.g. 'ACEITAR PROPOSTA' or 'ACEITAR DEMANDA').
+  final String label;
 
   @override
   Widget build(BuildContext context) {
@@ -451,7 +482,7 @@ class _AcceptButton extends StatelessWidget {
         child: ElevatedButton(
           onPressed: onAccept,
           child: Text(
-            marketplaceCopyEnabled ? 'ACEITAR PROPOSTA' : 'ACEITAR',
+            label,
             style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
           ),
         ),

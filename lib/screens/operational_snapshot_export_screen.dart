@@ -22,7 +22,7 @@ class OperationalSnapshotExportScreen extends StatelessWidget {
       adminReady: true,
     );
     final snapshotText = const OperationalSnapshotExportService().buildPlainText(
-      appName: config.manifest.appName,
+      appName: config.appName,
       items: items,
     );
 

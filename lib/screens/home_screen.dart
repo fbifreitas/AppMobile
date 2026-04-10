@@ -294,7 +294,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               onHubTap: _openOperationalHub,
               showHubButton: appState.developerModeEnabled,
               subtitle: config.copyText(
-                'home_subtitle',
+                'home_header_subtitle',
                 defaultValue: 'Seu painel operacional de hoje',
               ),
             ),
@@ -338,7 +338,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ),
                 swipeRequired: flags.swipeRequired,
                 financialSummaryEnabled: flags.financialSummaryEnabled,
-                marketplaceCopyEnabled: flags.marketplaceCopyEnabled,
               ),
             ],
           ],

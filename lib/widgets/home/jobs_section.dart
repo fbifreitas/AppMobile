@@ -58,7 +58,9 @@ class JobsSection extends StatelessWidget {
     final config = BrandProvider.configOf(context);
     final tokens = config.tokens;
     final resolvedTitle =
-        sectionTitle?.isNotEmpty == true ? sectionTitle! : 'MEUS JOBS DE HOJE';
+        sectionTitle?.isNotEmpty == true
+            ? sectionTitle!
+            : config.copyText('jobs_section_title', defaultValue: 'MEUS JOBS DE HOJE');
 
     final activeJobs =
         appState.jobs

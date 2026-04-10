@@ -1,0 +1,36 @@
+---
+title: Fluxo de Criação de Nova Marca
+---
+flowchart TD
+    START([Iniciar nova marca]) --> SCRIPT
+
+    SCRIPT["./scripts/create_brand.sh\n--brand-id &lt;id&gt;\n--app-name &lt;nome&gt;\n--android-id &lt;pkg&gt;\n--ios-bundle &lt;bundle&gt;\n--product-mode &lt;modo&gt;"]
+
+    SCRIPT --> GEN_DART["Gera lib/branding/&lt;id&gt;_brand.dart\n(manifest + copy keys mínimas)"]
+    SCRIPT --> GEN_MAIN["Gera lib/main_&lt;id&gt;.dart\n(entrypoint do flavor)"]
+    SCRIPT --> GEN_ASSETS["Cria assets/brands/&lt;id&gt;/\nlogo.png + icon.png (placeholders)"]
+    SCRIPT --> GEN_IOS["Gera ios/Flutter/&lt;id&gt;.xcconfig\n(bundle, display name, target)"]
+    SCRIPT --> PRINT_STEPS["Imprime próximos passos\nAndroid + iOS + assets"]
+
+    GEN_DART --> MANUAL_COLOR["✏️ Editar cores no manifest\n(primary, secondary, accent)"]
+    MANUAL_COLOR --> ANDROID_FLAVOR
+
+    PRINT_STEPS --> ANDROID_FLAVOR["Adicionar flavor\nem build.gradle.kts"]
+    PRINT_STEPS --> IOS_XCODE["Criar target + scheme\nno Xcode"]
+    PRINT_STEPS --> REPLACE_ASSETS["Substituir placeholders\npor assets reais"]
+
+    ANDROID_FLAVOR --> VALIDATE
+    IOS_XCODE --> VALIDATE
+    REPLACE_ASSETS --> VALIDATE
+
+    VALIDATE["./scripts/validate_brand_setup.sh\n--brand-id &lt;id&gt;"]
+
+    VALIDATE --> PASS{Passou?}
+    PASS -->|sim| RUN["flutter run --flavor &lt;id&gt;\n-t lib/main_&lt;id&gt;.dart"]
+    PASS -->|não| FIX["Corrigir itens indicados\npelo validador"]
+    FIX --> VALIDATE
+
+    style START fill:#e6f5ee,stroke:#1B8A5A
+    style VALIDATE fill:#fff4e5,stroke:#F39C12
+    style RUN fill:#e8f0ff,stroke:#0D3B92
+    style FIX fill:#fdecec,stroke:#D64545
