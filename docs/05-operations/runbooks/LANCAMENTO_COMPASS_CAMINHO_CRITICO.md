@@ -340,6 +340,12 @@ Materializar o app Compass como app por marca, separado da Kaptu, com autenticac
 3. usuario provisionado pelo backoffice entra sem auto-cadastro indevido
 4. onboarding de permissoes e primeiro acesso residual ficam fechados
 
+### Nota 2026-04-10 - Login mobile Compass
+
+- O login backend-first do app mobile deve ser ativado no build Compass com `--dart-define=APP_API_BASE_URL=<backend>` e `--dart-define=APP_TENANT_ID=tenant-compass`.
+- Sem `APP_API_BASE_URL`, o app preserva o fluxo mock local para desenvolvimento, mas isso nao satisfaz o gate de homologacao do Pacote B.
+- O primeiro acesso de usuario provisionado pelo backoffice deve autenticar no backend e, se ainda nao tiver permissao/onboarding concluido, cair na tela dedicada de permissoes antes da Home.
+
 ### Dependencia
 - depende do `Pacote A` para:
   - login real

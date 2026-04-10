@@ -1,4 +1,5 @@
 import 'package:appmobile/repositories/preferences_repository.dart';
+import 'package:appmobile/services/mobile_auth_service.dart';
 import 'package:appmobile/state/auth_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -25,6 +26,23 @@ class _MemoryPreferencesRepository implements PreferencesRepository {
   Future<void> setString(String key, String value) async {
     _store[key] = value;
   }
+}
+
+class _FakeMobileAuthGateway implements MobileAuthGateway {
+  const _FakeMobileAuthGateway(this.session);
+
+  final MobileAuthSession session;
+
+  @override
+  bool get isConfigured => true;
+
+  @override
+  Future<MobileAuthSession> login({
+    required String tenantId,
+    required String email,
+    required String password,
+    required String deviceInfo,
+  }) async => session;
 }
 
 void main() {
@@ -148,4 +166,38 @@ void main() {
       expect(authState.requiresPermissionsOnboarding, isTrue);
     },
   );
+
+  test('backend login stores tenant context and tokens', () async {
+    final repo = _MemoryPreferencesRepository();
+    final authState = AuthState(
+      repo,
+      const _FakeMobileAuthGateway(
+        MobileAuthSession(
+          accessToken: 'access-token',
+          refreshToken: 'refresh-token',
+          tokenType: 'Bearer',
+          expiresInSeconds: 900,
+          userId: 77,
+          tenantId: 'tenant-compass',
+          email: 'operador@compass.com',
+          userStatus: 'APPROVED',
+          membershipRole: 'OPERATOR',
+          membershipStatus: 'ACTIVE',
+          permissions: ['jobs:read'],
+        ),
+      ),
+      'tenant-compass',
+    );
+    await waitAuthReady(authState);
+
+    await authState.login('operador@compass.com', password: 'Compass@123');
+
+    expect(authState.status, AppAuthStatus.active);
+    expect(authState.tenantId, 'tenant-compass');
+    expect(authState.userId, '77');
+    expect(authState.accessToken, 'access-token');
+    expect(authState.refreshToken, 'refresh-token');
+    expect(authState.membershipRole, 'OPERATOR');
+    expect(authState.requiresPermissionsOnboarding, isTrue);
+  });
 }
