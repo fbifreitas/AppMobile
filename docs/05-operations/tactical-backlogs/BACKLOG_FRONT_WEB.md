@@ -92,3 +92,8 @@ Controlar o backlog de experiencia web (UI, navegacao, telas operacionais e usab
 - FW-004 deixou de aceitar `tenantId`, `actorId` e `actorRole` confiados do cliente nas rotas Next.js de `/api/config/*`.
 - As rotas de pacotes, approve, rollback, resolve e audit passam a exigir sessao web real e encaminham `Authorization`, `X-Tenant-Id`, `X-Actor-Id` e `X-Actor-Role` derivados do cookie de login.
 - O painel `/backoffice/config` inicializa o tenant a partir de `/api/auth/me`, preparando a publicacao de configuracao operacional do tenant Compass apos o handoff administrativo do Pacote A.
+
+## Adendo 2026-04-10 - Jobs e cases com sessao real
+
+- Os proxies Next.js de jobs e cases deixam de aceitar `tenantId`/`actorId` confiados via query/header e passam a exigir cookie de login web.
+- As chamadas ao backend operacional passam a encaminhar `Authorization`, `X-Tenant-Id`, `X-Actor-Id` e correlation id derivados da sessao, removendo o fallback operacional `tenant-default` neste recorte.

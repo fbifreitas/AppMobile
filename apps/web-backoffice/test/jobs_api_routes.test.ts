@@ -18,6 +18,21 @@ function makeJsonResponse(status: number, body: unknown): Response {
   });
 }
 
+function sessionCookie(tenantId = "tenant-alpha", userId = 77): string {
+  return `backoffice_auth_session=${Buffer.from(JSON.stringify({
+    accessToken: "access-token",
+    refreshToken: "refresh-token",
+    tokenType: "Bearer",
+    tenantId,
+    userId,
+    email: "operator@compass.com",
+    userStatus: "APPROVED",
+    membershipRole: "TENANT_ADMIN",
+    membershipStatus: "ACTIVE",
+    permissions: ["jobs:*"]
+  }), "utf8").toString("base64url")}`;
+}
+
 test("jobs route propaga filtros e cabecalhos obrigatorios", async () => {
   const originalFetch = globalThis.fetch;
   let capturedUrl = "";
@@ -33,7 +48,11 @@ test("jobs route propaga filtros e cabecalhos obrigatorios", async () => {
   };
 
   try {
-    const request = new NextRequest("http://localhost/api/jobs?tenantId=tenant-alpha&actorId=ops-user&status=OFFERED&page=1&size=10");
+    const request = new NextRequest("http://localhost/api/jobs?tenantId=ignored&actorId=ignored&status=OFFERED&page=1&size=10", {
+      headers: {
+        cookie: sessionCookie()
+      }
+    });
     const response = await jobsGet(request);
     const payload = (await response.json()) as { totalElements: number };
 
@@ -44,8 +63,31 @@ test("jobs route propaga filtros e cabecalhos obrigatorios", async () => {
     assert.match(capturedUrl, /page=1/);
     assert.match(capturedUrl, /size=10/);
     assert.equal(capturedHeaders?.get("X-Tenant-Id"), "tenant-alpha");
-    assert.equal(capturedHeaders?.get("X-Actor-Id"), "ops-user");
+    assert.equal(capturedHeaders?.get("X-Actor-Id"), "77");
+    assert.equal(capturedHeaders?.get("Authorization"), "Bearer access-token");
     assert.match(capturedHeaders?.get("X-Correlation-Id") ?? "", /^jobs-list-/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("jobs route exige sessao autenticada", async () => {
+  const originalFetch = globalThis.fetch;
+  let called = false;
+
+  globalThis.fetch = async () => {
+    called = true;
+    return makeJsonResponse(200, {});
+  };
+
+  try {
+    const request = new NextRequest("http://localhost/api/jobs?tenantId=tenant-alpha");
+    const response = await jobsGet(request);
+    const payload = (await response.json()) as { error: string };
+
+    assert.equal(response.status, 401);
+    assert.equal(payload.error, "Authentication required");
+    assert.equal(called, false);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -61,7 +103,11 @@ test("job detail route propaga id do job", async () => {
   };
 
   try {
-    const request = new NextRequest("http://localhost/api/jobs/9?tenantId=tenant-alpha");
+    const request = new NextRequest("http://localhost/api/jobs/9?tenantId=ignored", {
+      headers: {
+        cookie: sessionCookie()
+      }
+    });
     const response = await jobDetailGet(request, {
       params: Promise.resolve({ jobId: "9" })
     });
@@ -85,7 +131,11 @@ test("job timeline route consulta timeline do backend", async () => {
   };
 
   try {
-    const request = new NextRequest("http://localhost/api/jobs/9/timeline?tenantId=tenant-alpha");
+    const request = new NextRequest("http://localhost/api/jobs/9/timeline?tenantId=ignored", {
+      headers: {
+        cookie: sessionCookie()
+      }
+    });
     const response = await jobTimelineGet(request, {
       params: Promise.resolve({ jobId: "9" })
     });
@@ -109,10 +159,13 @@ test("job assign route envia payload ao backend", async () => {
   };
 
   try {
-    const request = new NextRequest("http://localhost/api/jobs/15/assign?tenantId=tenant-alpha", {
+    const request = new NextRequest("http://localhost/api/jobs/15/assign?tenantId=ignored", {
       method: "POST",
       body: JSON.stringify({ userId: 44 }),
-      headers: { "Content-Type": "application/json" }
+      headers: {
+        "Content-Type": "application/json",
+        cookie: sessionCookie()
+      }
     });
     const response = await jobAssignPost(request, {
       params: Promise.resolve({ jobId: "15" })
@@ -137,10 +190,13 @@ test("job cancel route aceita motivo opcional", async () => {
   };
 
   try {
-    const request = new NextRequest("http://localhost/api/jobs/15/cancel?tenantId=tenant-alpha", {
+    const request = new NextRequest("http://localhost/api/jobs/15/cancel?tenantId=ignored", {
       method: "POST",
       body: JSON.stringify({ reason: "cliente desistiu" }),
-      headers: { "Content-Type": "application/json" }
+      headers: {
+        "Content-Type": "application/json",
+        cookie: sessionCookie()
+      }
     });
     const response = await jobCancelPost(request, {
       params: Promise.resolve({ jobId: "15" })
@@ -170,7 +226,7 @@ test("cases route envia criacao minima ao backend", async () => {
   };
 
   try {
-    const request = new NextRequest("http://localhost/api/cases?tenantId=tenant-alpha&actorId=ops-user", {
+    const request = new NextRequest("http://localhost/api/cases?tenantId=ignored&actorId=ignored", {
       method: "POST",
       body: JSON.stringify({
         number: "CASE-2026-001",
@@ -179,7 +235,10 @@ test("cases route envia criacao minima ao backend", async () => {
         deadline: "2026-04-05T12:00:00.000Z",
         jobTitle: "Vistoria inicial"
       }),
-      headers: { "Content-Type": "application/json" }
+      headers: {
+        "Content-Type": "application/json",
+        cookie: sessionCookie()
+      }
     });
     const response = await casesPost(request);
     const payload = (await response.json()) as { caseId: number };
