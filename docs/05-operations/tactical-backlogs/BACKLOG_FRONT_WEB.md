@@ -102,3 +102,8 @@ Controlar o backlog de experiencia web (UI, navegacao, telas operacionais e usab
 
 - Os proxies Next.js de inspections passam a exigir cookie de login web e resolvem `tenantId` pela sessao.
 - Os filtros operacionais (`status`, janela de data, `vistoriadorId`, paginacao) permanecem aceitos, mas o tenant deixa de ser confiado do cliente.
+
+## Adendo 2026-04-10 - Valuation e reports com sessao real
+
+- Os proxies Next.js de valuation e reports passam a exigir cookie de login web e derivam tenant/ator da sessao autenticada.
+- O fluxo operacional web ate laudo deixa de depender de `tenantId`/`actorId` confiados do cliente neste recorte.

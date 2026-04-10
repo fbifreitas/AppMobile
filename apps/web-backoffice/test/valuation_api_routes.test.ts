@@ -15,6 +15,21 @@ function makeJsonResponse(status: number, body: unknown): Response {
   });
 }
 
+function sessionCookie(tenantId = "tenant-alpha"): string {
+  return `backoffice_auth_session=${Buffer.from(JSON.stringify({
+    accessToken: "access-token",
+    refreshToken: "refresh-token",
+    tokenType: "Bearer",
+    tenantId,
+    userId: 77,
+    email: "analyst@compass.com",
+    userStatus: "APPROVED",
+    membershipRole: "TENANT_ADMIN",
+    membershipStatus: "ACTIVE",
+    permissions: ["valuation:*"]
+  }), "utf8").toString("base64url")}`;
+}
+
 test("valuation list route forwards filters to backend", async () => {
   const originalFetch = globalThis.fetch;
   let capturedUrl = "";
@@ -28,7 +43,11 @@ test("valuation list route forwards filters to backend", async () => {
   };
 
   try {
-    const request = new NextRequest("http://localhost/api/valuation/processes?tenantId=tenant-alpha&status=PENDING_INTAKE");
+    const request = new NextRequest("http://localhost/api/valuation/processes?tenantId=ignored&status=PENDING_INTAKE", {
+      headers: {
+        cookie: sessionCookie()
+      }
+    });
     const response = await valuationGet(request);
     const payload = (await response.json()) as { total: number };
 
@@ -36,6 +55,28 @@ test("valuation list route forwards filters to backend", async () => {
     assert.equal(payload.total, 1);
     assert.match(capturedUrl, /tenantId=tenant-alpha/);
     assert.match(capturedUrl, /status=PENDING_INTAKE/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("valuation list route exige sessao autenticada", async () => {
+  const originalFetch = globalThis.fetch;
+  let called = false;
+
+  globalThis.fetch = async () => {
+    called = true;
+    return makeJsonResponse(200, {});
+  };
+
+  try {
+    const request = new NextRequest("http://localhost/api/valuation/processes?tenantId=tenant-alpha");
+    const response = await valuationGet(request);
+    const payload = (await response.json()) as { error: string };
+
+    assert.equal(response.status, 401);
+    assert.equal(payload.error, "Authentication required");
+    assert.equal(called, false);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -53,11 +94,12 @@ test("valuation create route proxies payload to backend", async () => {
   };
 
   try {
-    const request = new NextRequest("http://localhost/api/valuation/processes?tenantId=tenant-alpha", {
+    const request = new NextRequest("http://localhost/api/valuation/processes?tenantId=ignored", {
       method: "POST",
       body: JSON.stringify({ inspectionId: 19, method: "BASIC" }),
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        cookie: sessionCookie()
       }
     });
     const response = await valuationPost(request);
@@ -82,7 +124,11 @@ test("valuation detail route proxies the process id", async () => {
   };
 
   try {
-    const request = new NextRequest("http://localhost/api/valuation/processes/77?tenantId=tenant-alpha");
+    const request = new NextRequest("http://localhost/api/valuation/processes/77?tenantId=ignored", {
+      headers: {
+        cookie: sessionCookie()
+      }
+    });
     const response = await valuationDetailGet(request, {
       params: Promise.resolve({ processId: "77" })
     });
@@ -106,11 +152,12 @@ test("intake validation route proxies body to backend", async () => {
   };
 
   try {
-    const request = new NextRequest("http://localhost/api/valuation/processes/77/validate-intake?tenantId=tenant-alpha", {
+    const request = new NextRequest("http://localhost/api/valuation/processes/77/validate-intake?tenantId=ignored", {
       method: "POST",
       body: JSON.stringify({ result: "VALIDATED", issues: [], notes: "ok" }),
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        cookie: sessionCookie()
       }
     });
     const response = await intakeValidationPost(request, {

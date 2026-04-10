@@ -1,19 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
+import { buildAuthenticatedHeaders, readAuthSession, unauthorizedJson } from "../../../../lib/auth_session";
 import { callBackendOperationsApi } from "../../../../lib/operations_backend_client";
 
 export function GET(
   request: NextRequest,
   context: { params: Promise<{ processId: string }> }
 ) {
-  const tenantId = request.nextUrl.searchParams.get("tenantId") ?? "tenant-default";
+  const session = readAuthSession(request);
+  if (!session) {
+    return unauthorizedJson();
+  }
 
   return context.params
     .then(({ processId }) =>
       callBackendOperationsApi(
         `backoffice/valuation/processes/${processId}`,
+        {
+          headers: buildAuthenticatedHeaders(session, "valuation-detail")
+        },
         undefined,
-        undefined,
-        { tenantId, correlationPrefix: "valuation-detail" }
+        { tenantId: session.tenantId, actorId: String(session.userId), correlationPrefix: "valuation-detail" }
       )
     )
     .then(({ status, payload }) => NextResponse.json(payload, { status }))

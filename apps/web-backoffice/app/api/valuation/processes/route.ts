@@ -1,16 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
+import { buildAuthenticatedHeaders, readAuthSession, unauthorizedJson } from "../../../lib/auth_session";
 import { callBackendOperationsApi } from "../../../lib/operations_backend_client";
 
 export function GET(request: NextRequest) {
-  const tenantId = request.nextUrl.searchParams.get("tenantId") ?? "tenant-default";
+  const session = readAuthSession(request);
+  if (!session) {
+    return unauthorizedJson();
+  }
+
   const status = request.nextUrl.searchParams.get("status") ?? undefined;
-  const query = new URLSearchParams({ tenantId });
+  const query = new URLSearchParams({ tenantId: session.tenantId });
 
   if (status) {
     query.set("status", status);
   }
 
-  return callBackendOperationsApi("backoffice/valuation/processes", undefined, query)
+  return callBackendOperationsApi("backoffice/valuation/processes", {
+    headers: buildAuthenticatedHeaders(session, "valuation-list")
+  }, query)
     .then(({ status: responseStatus, payload }) =>
       NextResponse.json(payload, { status: responseStatus })
     )
@@ -23,8 +30,10 @@ export function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const tenantId = request.nextUrl.searchParams.get("tenantId") ?? "tenant-default";
-  const actorId = request.headers.get("X-Actor-Id") ?? "backoffice-operator";
+  const session = readAuthSession(request);
+  if (!session) {
+    return unauthorizedJson();
+  }
 
   try {
     const body = await request.json();
@@ -32,10 +41,11 @@ export async function POST(request: NextRequest) {
       "backoffice/valuation/processes",
       {
         method: "POST",
+        headers: buildAuthenticatedHeaders(session, "valuation-create"),
         body: JSON.stringify(body)
       },
       undefined,
-      { tenantId, actorId, correlationPrefix: "valuation-create" }
+      { tenantId: session.tenantId, actorId: String(session.userId), correlationPrefix: "valuation-create" }
     );
 
     return NextResponse.json(payload, { status });
