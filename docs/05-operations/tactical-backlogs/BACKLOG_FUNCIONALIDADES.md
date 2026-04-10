@@ -171,7 +171,7 @@ Step 8️⃣ (BACKEND BLOQUEADO — aguarda Onda 1 BOW) → BL-031 (depende de B
 | 5️⃣2️⃣ | BL-052 | Unificar pacote de parametrização operacional do HUB para Check-in e Câmera por níveis | Em andamento | 🔴 Crítica | Mesmo documento do modo desenvolvedor deve definir menus do check-in e níveis da câmera, incluindo material e estado, sem contratos paralelos |
 | 5️⃣3️⃣ | BL-054 | UX progressiva no Check-in etapa 1 e 2 com acordeões por pergunta e resumo inline da resposta | Em andamento | 🟠 Alta | Exibir apenas a próxima pergunta pendente, colapsar respostas já preenchidas com status visual OK/NOK e manter feedback de progresso x/y durante o preenchimento |
 | 5️⃣4️⃣ | BL-055 | Revisar hierarquia visual e regras de casing por nível no Menu de Vistoria e Check-in Etapa 2 | Concluído | 🟠 Alta | Nível 1 em Title Case, nível 2 em CAIXA ALTA, nível 3 em Title Case, com acordeões iniciando recolhidos conforme regra operacional |
-| 5️⃣5️⃣ | BL-056 | Tela dedicada de onboarding de permissões Android e iOS com reentrada obrigatória para usuários sem etapa de onboarding (ex.: CLTs criados via web) | Pendente | 🔴 Crítica | Usuário concede permissões essenciais no onboarding inicial e, quando autenticado sem onboarding concluído, é redirecionado para tela de permissões antes de usar fluxos operacionais |
+| 5️⃣5️⃣ | BL-056 | Tela dedicada de onboarding de permissões Android e iOS com reentrada obrigatória para usuários sem etapa de onboarding (ex.: CLTs criados via web) | Concluido | 🔴 Crítica | Usuário concede permissões essenciais no onboarding inicial e, quando autenticado sem onboarding concluído, é redirecionado para tela de permissões antes de usar fluxos operacionais |
 | 5️⃣6️⃣ | BL-057 | Alinhar semântica canônica do fluxo de captura à arquitetura V2 da plataforma | Planejado | 🔴 Crítica | Labels diferentes por tela continuam possíveis, mas Check-in, Câmera, Revisão e Menu passam a apontar para a mesma dimensão semântica canônica, sem inspection definir o core global |
 | 5️⃣7️⃣ | BL-058 | Separar estado inicial sugerido, estado atual e estado de retomada da captura | Planejado | 🔴 Crítica | O fluxo mantém bootstrap do check-in, operação corrente e retomada como estados distintos, com recovery compatível e sem travar a câmera no contexto inicial |
 | 5️⃣8️⃣ | BL-059 | Tratar duplicação de ambiente repetido como ação contextual do nível atual | Planejado | 🔴 Crítica | A câmera permite `Trocar` e `Novo <ambiente>` sem criar novo nível na árvore principal, preservando revisão/retomada e matching de obrigatórios |
@@ -370,7 +370,7 @@ Detalhamento:
 2. Bloquear acesso ao fluxo principal até concluir a etapa de permissões mínimas obrigatórias.
 3. Implementar verificação de estado no login para redirecionar usuários sem onboarding/permissões concluídas para a nova tela.
 
-Observacao 2026-04-10 (PARCIAL - Compass Pacote B): regra de roteamento ajustada para nao exibir onboarding de permissoes antes do login. A etapa passa a bloquear somente usuario autenticado/ativo sem permissao concluida, cobrindo o primeiro acesso de usuario provisionado via backoffice.
+Observacao 2026-04-10 (CONCLUIDO - Compass Pacote B): regra de roteamento ajustada para nao exibir onboarding de permissoes antes do login. A etapa passa a bloquear somente usuario autenticado/ativo sem permissao concluida, cobrindo o primeiro acesso de usuario provisionado via backoffice.
 
 ### BL-017
 Adicionar contract tests entre mobile e backend para validar schemas e evitar quebra silenciosa de integrações críticas.
@@ -776,7 +776,7 @@ Ao pegar um item para implementar:
 
 - Trilhas criticas mantidas: BL-012, BL-001, BL-051, BL-052 e BL-054.
 - BL-031 segue em andamento com dependencia de consolidacao backend-first.
-- BL-056 permanece proxima critica apos estabilizacao do nucleo de integracao.
+- BL-056 concluida no Pacote B Compass para roteamento pos-login e tela dedicada de permissoes.
 - Backlog complementar front/web: `docs/05-operations/tactical-backlogs/BACKLOG_FRONT_WEB.md`.
 
 
