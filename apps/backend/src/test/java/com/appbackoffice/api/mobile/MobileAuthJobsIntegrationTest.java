@@ -4,6 +4,7 @@ import com.appbackoffice.api.auth.entity.UserCredentialEntity;
 import com.appbackoffice.api.auth.repository.IdentityBindingRepository;
 import com.appbackoffice.api.auth.repository.SessionRepository;
 import com.appbackoffice.api.auth.repository.UserCredentialRepository;
+import com.appbackoffice.api.config.ConfigPackageApplicationStatusRepository;
 import com.appbackoffice.api.identity.entity.Membership;
 import com.appbackoffice.api.identity.entity.MembershipRole;
 import com.appbackoffice.api.identity.entity.MembershipStatus;
@@ -66,6 +67,7 @@ class MobileAuthJobsIntegrationTest {
     @Autowired private AssignmentRepository assignmentRepository;
     @Autowired private JobRepository jobRepository;
     @Autowired private CaseRepository caseRepository;
+    @Autowired private ConfigPackageApplicationStatusRepository applicationStatusRepository;
     @Autowired private PasswordEncoder passwordEncoder;
 
     private User operator;
@@ -199,6 +201,52 @@ class MobileAuthJobsIntegrationTest {
         assertThat(body.get("code").asText()).isEqualTo("AUTH_CONTEXT_MISMATCH");
     }
 
+    @Test
+    void shouldRecordAndListConfigPackageApplicationStatus() throws Exception {
+        JsonNode loginJson = login("vistoriador.compass@compass.test", PASSWORD);
+        String accessToken = loginJson.get("accessToken").asText();
+
+        var ackResult = mockMvc.perform(post("/api/mobile/config-packages/application-status")
+                        .contentType("application/json")
+                        .header("X-Tenant-Id", TENANT_ID)
+                        .header("X-Correlation-Id", CORRELATION_ID)
+                        .header("X-Actor-Id", String.valueOf(operator.getId()))
+                        .header("X-Api-Version", "v1")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .content("""
+                                {
+                                  "packageId": "cfg-tenant-compass",
+                                  "packageVersion": "cfg-20260410",
+                                  "deviceId": "device-compass-android-01",
+                                  "appVersion": "1.2.40+60",
+                                  "platform": "android",
+                                  "status": "APPLIED",
+                                  "message": "Config aplicada no primeiro acesso"
+                                }
+                                """))
+                .andReturn();
+
+        assertThat(ackResult.getResponse().getStatus()).isEqualTo(202);
+        JsonNode ackBody = objectMapper.readTree(ackResult.getResponse().getContentAsString());
+        assertThat(ackBody.get("tenantId").asText()).isEqualTo(TENANT_ID);
+        assertThat(ackBody.get("actorId").asText()).isEqualTo(String.valueOf(operator.getId()));
+        assertThat(ackBody.get("packageVersion").asText()).isEqualTo("cfg-20260410");
+        assertThat(ackBody.get("status").asText()).isEqualTo("applied");
+
+        var listResult = mockMvc.perform(get("/api/backoffice/config/packages/application-status")
+                        .queryParam("tenantId", TENANT_ID)
+                        .queryParam("packageVersion", "cfg-20260410")
+                        .header("X-Correlation-Id", CORRELATION_ID)
+                        .param("actorRole", "tenant_admin"))
+                .andReturn();
+
+        assertThat(listResult.getResponse().getStatus()).isEqualTo(200);
+        JsonNode listBody = objectMapper.readTree(listResult.getResponse().getContentAsString());
+        assertThat(listBody.get("total").asInt()).isEqualTo(1);
+        assertThat(listBody.at("/items/0/deviceId").asText()).isEqualTo("device-compass-android-01");
+        assertThat(listBody.at("/items/0/appVersion").asText()).isEqualTo("1.2.40+60");
+    }
+
     private JsonNode login(String email, String password) throws Exception {
         var result = mockMvc.perform(post("/auth/login")
                         .header("X-Correlation-Id", CORRELATION_ID)
@@ -218,6 +266,7 @@ class MobileAuthJobsIntegrationTest {
     }
 
     private void cleanAll() {
+        applicationStatusRepository.deleteAll();
         sessionRepository.deleteAll();
         identityBindingRepository.deleteAll();
         userCredentialRepository.deleteAll();

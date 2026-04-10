@@ -98,4 +98,20 @@ public class ConfigPackageController {
         RequestContextValidator.requireCorrelationId(correlationId);
         return configPackageService.listAudit(tenantId, ActorRole.valueOf(actorRole.toUpperCase()));
     }
+
+    @GetMapping("/packages/application-status")
+    @RequiresTenantRole({MembershipRole.TENANT_ADMIN, MembershipRole.COORDINATOR, MembershipRole.AUDITOR, MembershipRole.PLATFORM_ADMIN})
+    public ConfigPackageApplicationStatusesResponse listApplicationStatuses(
+            @RequestParam String tenantId,
+            @RequestHeader("X-Correlation-Id") String correlationId,
+            @RequestParam(required = false) String packageVersion,
+            @RequestParam(defaultValue = "tenant_admin") String actorRole
+    ) {
+        RequestContextValidator.requireCorrelationId(correlationId);
+        return configPackageService.listApplicationStatuses(
+                tenantId,
+                packageVersion,
+                ActorRole.valueOf(actorRole.toUpperCase())
+        );
+    }
 }

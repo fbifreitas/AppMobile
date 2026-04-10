@@ -3,6 +3,7 @@ package com.appbackoffice.api.mobile;
 import com.appbackoffice.api.auth.dto.AuthMeResponse;
 import com.appbackoffice.api.auth.service.AuthService;
 import com.appbackoffice.api.config.ConfigPayloadSignatureService;
+import com.appbackoffice.api.config.ConfigPackageService;
 import com.appbackoffice.api.contract.ApiContractException;
 import com.appbackoffice.api.contract.CanonicalErrorResponse;
 import com.appbackoffice.api.contract.ErrorSeverity;
@@ -12,6 +13,8 @@ import com.appbackoffice.api.job.service.JobService;
 import com.appbackoffice.api.mobile.dto.CheckinConfigResponse;
 import com.appbackoffice.api.mobile.dto.InspectionFinalizedRequest;
 import com.appbackoffice.api.mobile.dto.InspectionFinalizedResponse;
+import com.appbackoffice.api.config.dto.ConfigPackageApplicationStatusRequest;
+import com.appbackoffice.api.config.dto.ConfigPackageApplicationStatusResponse;
 import com.appbackoffice.api.mobile.service.InspectionSubmissionService;
 import com.appbackoffice.api.mobile.service.MobileCheckinConfigService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -46,6 +49,7 @@ public class MobileApiController {
     private final InspectionSubmissionService inspectionSubmissionService;
     private final MobileCheckinConfigService mobileCheckinConfigService;
     private final ConfigPayloadSignatureService configPayloadSignatureService;
+    private final ConfigPackageService configPackageService;
     private final ObjectMapper objectMapper;
 
     public MobileApiController(AuthService authService,
@@ -53,12 +57,14 @@ public class MobileApiController {
                                InspectionSubmissionService inspectionSubmissionService,
                                MobileCheckinConfigService mobileCheckinConfigService,
                                ConfigPayloadSignatureService configPayloadSignatureService,
+                               ConfigPackageService configPackageService,
                                ObjectMapper objectMapper) {
         this.authService = authService;
         this.jobService = jobService;
         this.inspectionSubmissionService = inspectionSubmissionService;
         this.mobileCheckinConfigService = mobileCheckinConfigService;
         this.configPayloadSignatureService = configPayloadSignatureService;
+        this.configPackageService = configPackageService;
         this.objectMapper = objectMapper;
     }
 
@@ -99,6 +105,39 @@ public class MobileApiController {
                 });
 
         return builder.body(response);
+    }
+
+    @PostMapping("/config-packages/application-status")
+    @Operation(
+            summary = "Registra ACK/NACK de aplicacao de pacote operacional (v1)",
+            description = "Permite ao backoffice acompanhar quais dispositivos aplicaram ou rejeitaram a configuracao remota.",
+            responses = {
+                    @ApiResponse(responseCode = "202", description = "Status registrado"),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Requisicao invalida",
+                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = CanonicalErrorResponse.class))
+                    )
+            }
+    )
+    public ResponseEntity<ConfigPackageApplicationStatusResponse> postConfigPackageApplicationStatus(
+            @RequestHeader("X-Tenant-Id") String tenantId,
+            @RequestHeader("X-Correlation-Id") String correlationId,
+            @RequestHeader("X-Actor-Id") String actorId,
+            @RequestHeader("X-Api-Version") String apiVersion,
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+            @Valid @RequestBody ConfigPackageApplicationStatusRequest request
+    ) {
+        RequestContextValidator.requireApiVersion(apiVersion);
+        RequestContextValidator.requireFullContext(tenantId, correlationId, actorId);
+        validateMobileBearerIfPresent(authorizationHeader, tenantId, actorId);
+
+        ConfigPackageApplicationStatusResponse response = configPackageService.recordApplicationStatus(
+                tenantId,
+                actorId,
+                request
+        );
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
     }
 
     @PostMapping("/inspections/finalized")

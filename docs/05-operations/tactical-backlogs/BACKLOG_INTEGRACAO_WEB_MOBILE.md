@@ -5,7 +5,7 @@
 
 # Backlog de Integracao Web-Mobile (Seguranca e Comunicacao Bidirecional)
 
-Atualizado em: 2026-04-08
+Atualizado em: 2026-04-10
 
 ## Objetivo
 Planejar e executar a camada de integracao entre backoffice web e AppMobile com:
@@ -112,7 +112,7 @@ Motivo:
 | 2 | INT-002 | Contratos versionados Web-Mobile | Critica | Em andamento (header obrigatï¿½rio X-Api-Version v1 aplicado em 2026-04-04) | OpenAPI versionada + politica de compatibilidade retroativa + deprecation policy |
 | 3 | INT-003 | Canal seguro de configuracao remota | Critica | Em andamento (baseline funcional entregue em 2026-04-08 com assinatura HMAC emitida/validada e consumo mobile real) | Pacotes assinados, versionados e auditaveis para menus dinamicos/config operacional |
 | 4 | INT-004 | Rollout e rollback de pacotes | Critica | Em andamento (baseline operacional entregue em 2026-04-08 com versionamento de pacote e rollback refletindo no mobile) | Publicacao por tenant, por grupo de apps e rollback em 1 clique com trilha |
-| 5 | INT-005 | ACK/NACK de pacote no mobile | Alta | Pendente | Backoffice enxerga status de aplicacao por dispositivo/app version |
+| 5 | INT-005 | ACK/NACK de pacote no mobile | Alta | Concluido localmente (baseline Compass entregue em 2026-04-10) | Backoffice enxerga status de aplicacao por dispositivo/app version |
 | 6 | INT-006 | Uplink de vistoria com idempotencia | Critica | Em andamento (baseline operacional entregue em 2026-04-08 com API idempotente, dedupe local e sync real) | Recebimento resiliente de vistoria final sem duplicidade por retry offline |
 | 7 | INT-007 | Protocolo de entrega e reconciliacao | Alta | Em andamento (metadata de processo/protocolo devolvida no sync ate 2026-04-08) | Protocolo unico por vistoria com consulta de status fim a fim |
 | 8 | INT-008 | Fila de reprocessamento no backoffice | Alta | Pendente | Mensagens/payloads com erro podem ser reprocessados com controle e auditoria |
@@ -226,6 +226,13 @@ Motivo:
 - INT-009: smoke E2E valida persistencia de eventos operacionais durante config, sync, inspection, valuation e report.
 - INT-018: smoke E2E valida control tower com requests nas ultimas 24h, endpoint mobile rastreado e report pronto para assinatura.
 - Evidencia local: `C:\tools\apache-maven-3.9.14\bin\mvn.cmd "-Dtest=CompassOperationEndToEndIntegrationTest" test` passou com 1 teste; regressao focada `CompassOperationEndToEndIntegrationTest,ValuationReportBackofficeIntegrationTest,OperationsControlTowerIntegrationTest` passou com 3 testes.
+
+## Adendo 2026-04-10 - ACK/NACK de pacote Compass
+- INT-005: backend recebeu tabela canonica de status de aplicacao de pacote por tenant, dispositivo, versao de app, plataforma, pacote e versao de pacote.
+- INT-005: mobile envia ACK `APPLIED` best-effort quando consome configuracao remota assinada com `appliedPackageIds` ou `packageId`; falha no ACK nao bloqueia aplicacao da config.
+- INT-005: backoffice consulta status por tenant e pode filtrar por `packageVersion`, permitindo rastrear quais dispositivos aplicaram o pacote operacional.
+- INT-009/INT-018: ACK/NACK gera evento operacional `mobile.config-package-status`, ficando visivel na trilha de observabilidade e control tower.
+- Evidencia local: `C:\tools\apache-maven-3.9.14\bin\mvn.cmd "-Dtest=MobileAuthJobsIntegrationTest,CompassOperationEndToEndIntegrationTest" test` finalizou com `BUILD SUCCESS`, 6 testes e 0 falhas em 2026-04-10; `C:\src\flutter\bin\flutter.bat test --no-pub test/services/checkin_dynamic_config_service_test.dart` passou com 21 testes; `C:\src\flutter\bin\flutter.bat analyze --no-pub` passou sem issues.
 
 ## Adendo 2026-04-10 - Onboarding White Label
 - Fonte funcional: `docs/03-architecture/09_WHITE_LABEL_ONBOARDING_STRATEGY.md`.

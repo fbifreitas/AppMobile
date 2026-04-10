@@ -473,6 +473,89 @@ void main() {
   );
 
   test(
+    'loadStep2Config sends config package ACK when backend exposes applied package ids',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        'auth_tenant_id': 'tenant-compass',
+        'auth_user_id': '77',
+        'auth_access_token': 'session-token',
+      });
+
+      var ackSeen = false;
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() async => server.close(force: true));
+
+      server.listen((request) async {
+        if (request.method == 'POST') {
+          expect(
+            request.uri.path,
+            '/api/mobile/config-packages/application-status',
+          );
+          expect(request.headers.value('X-Tenant-Id'), 'tenant-compass');
+          expect(request.headers.value('X-Actor-Id'), '77');
+          expect(
+            request.headers.value(HttpHeaders.authorizationHeader),
+            'Bearer session-token',
+          );
+          final body = jsonDecode(await utf8.decoder.bind(request).join());
+          expect(body['packageId'], 'cfg-tenant-compass');
+          expect(body['packageVersion'], 'cfg-compass-v1');
+          expect(body['status'], 'APPLIED');
+          ackSeen = true;
+
+          request.response.statusCode = 202;
+          request.response.headers.contentType = ContentType.json;
+          request.response.write(jsonEncode({'status': 'applied'}));
+          await request.response.close();
+          return;
+        }
+
+        expect(request.method, 'GET');
+        request.response.statusCode = 200;
+        request.response.headers.contentType = ContentType.json;
+        request.response.write(
+          jsonEncode({
+            'version': 'cfg-compass-v1',
+            'appliedPackageIds': <String>['cfg-tenant-compass'],
+            'step2': {
+              'byTipo': {
+                'urbano': {
+                  'tituloTela': 'Config com ACK',
+                  'camposFotos': [
+                    {
+                      'id': 'fachada_ack',
+                      'titulo': 'Fachada ACK',
+                      'icon': 'home_work_outlined',
+                      'obrigatorio': true,
+                      'cameraMacroLocal': 'Rua',
+                      'cameraAmbiente': 'Fachada',
+                    },
+                  ],
+                },
+              },
+            },
+          }),
+        );
+        await request.response.close();
+      });
+
+      final service = CheckinDynamicConfigService(
+        baseUrl: 'http://${server.address.host}:${server.port}',
+        checkinConfigEndpoint: '/api/mobile/checkin-config',
+      );
+      final fallback = CheckinStep2Configs.byTipo(TipoImovel.urbano);
+
+      final result = await service.loadStep2Config(
+        tipo: TipoImovel.urbano,
+        fallback: fallback,
+      );
+
+      expect(result.tituloTela, 'Config com ACK');
+      expect(ackSeen, isTrue);
+    },
+  );
+
+  test(
     'loadStep2Config accepts remote payload with valid hmac signature',
     () async {
       const signingKey = 'tenant-hmac-secret';

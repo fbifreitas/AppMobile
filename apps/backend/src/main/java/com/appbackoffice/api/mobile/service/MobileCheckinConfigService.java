@@ -67,7 +67,8 @@ public class MobileCheckinConfigService {
 
         return new CheckinConfigResponse(
                 buildVersion(resolveResponse.result().appliedPackages(), publishedAt),
-            publishedAtForResponse.toString(),
+                publishedAtForResponse.toString(),
+                resolveResponse.result().appliedPackages().stream().map(ConfigPackageResponse::id).toList(),
                 step1,
                 step2,
                 sections,

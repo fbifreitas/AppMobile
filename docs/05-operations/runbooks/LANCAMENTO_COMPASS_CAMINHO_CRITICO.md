@@ -427,6 +427,14 @@ Garantir que o tenant Compass consiga operar o fluxo de negocio completo ate o l
 - O teste materializa o gate do `Pacote C` sem billing automatico e valida que a operacao completa chega ate laudo pronto para assinatura com rastreabilidade minima.
 - Evidencia local: `C:\tools\apache-maven-3.9.14\bin\mvn.cmd "-Dtest=CompassOperationEndToEndIntegrationTest" test` passou com 1 teste; regressao focada `CompassOperationEndToEndIntegrationTest,ValuationReportBackofficeIntegrationTest,OperationsControlTowerIntegrationTest` passou com 3 testes.
 
+### Nota 2026-04-10 - ACK/NACK de configuracao mobile
+
+- O pacote operacional Compass agora registra status de aplicacao por tenant, dispositivo, plataforma, app version, pacote e versao de pacote.
+- O app mobile envia ACK `APPLIED` de forma best-effort apos consumir configuracao remota assinada; erro no ACK nao bloqueia o uso da configuracao para preservar resiliencia de campo.
+- O backoffice possui consulta de status por tenant e filtro por `packageVersion`, fechando a visibilidade minima exigida para saber quais dispositivos aplicaram o pacote.
+- A trilha de observabilidade registra `mobile.config-package-status`, permitindo correlacionar consumo de config, ACK/NACK e saude operacional.
+- Evidencia local: `C:\tools\apache-maven-3.9.14\bin\mvn.cmd "-Dtest=MobileAuthJobsIntegrationTest,CompassOperationEndToEndIntegrationTest" test` finalizou com `BUILD SUCCESS`, 6 testes e 0 falhas em 2026-04-10; `C:\src\flutter\bin\flutter.bat test --no-pub test/services/checkin_dynamic_config_service_test.dart` passou com 21 testes; `C:\src\flutter\bin\flutter.bat analyze --no-pub` passou sem issues.
+
 ### Dependencia
 - depende do `Pacote A` para tenant, usuarios, licenciamento e auth web
 - depende do `Pacote B` para o app Compass real em campo
