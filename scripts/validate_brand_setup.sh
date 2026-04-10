@@ -120,6 +120,14 @@ REQUIRED_KEYS=(
   "job_status_active_label"
   "job_status_recoverable_label"
   "job_recovery_warning_prefix"
+  "job_loading_label"
+  "job_error_title"
+  "job_empty_label"
+  "job_dev_mode_hint_label"
+  "job_dev_mode_start_label"
+  "job_location_pending_label"
+  "job_no_calculation_label"
+  "job_on_site_label"
   "proposal_swipe_label"
   "proposal_accept_label"
   "proposal_snackbar_accept_success"
@@ -131,6 +139,7 @@ REQUIRED_KEYS=(
   "nav_home_label"
   "nav_jobs_label"
   "nav_agenda_label"
+  "home_greeting_prefix"
 )
 
 if [[ -f "$MANIFEST_FILE" ]]; then

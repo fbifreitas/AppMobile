@@ -1,9 +1,10 @@
-# Hardcode Removal Report — Multi-Brand BL-075 + BL-076 + BL-077
+# Hardcode Removal Report — Multi-Brand BL-075 → BL-078
 
-> Gerado em: 2026-04-09 (BL-075) · Atualizado: 2026-04-10 (BL-076) · Atualizado: 2026-04-10 (BL-077)
+> Gerado em: 2026-04-09 (BL-075) · Atualizado: 2026-04-10 (BL-076) · Atualizado: 2026-04-10 (BL-077) · Atualizado: 2026-04-10 (BL-078)
 > Ciclo: BL-075 — Fechamento da arquitetura multi-brand
 > Ciclo: BL-076 — Fechamento dos gaps remanescentes (InfoRow, nav, range labels, AppColors.primary)
-> Ciclo: BL-077 — Fechamento final (job status labels, geofence radius prefix, recovery warning)
+> Ciclo: BL-077 — Fechamento dos status labels, geofence radius prefix, recovery warning
+> Ciclo: BL-078 — Fechamento real: estados de carregamento/vazio, modo dev, distância, saudação
 
 ---
 
@@ -171,6 +172,38 @@
 | `job_status_recoverable_label` | `'EM RECUPERAÇÃO'` | BL-077 |
 | `job_geofence_radius_prefix` | `'Área:'` *(diferença de marca)* | BL-077 |
 | `job_recovery_warning_prefix` | `'Avaliação interrompida. Última etapa salva:'` *(diferença de marca)* | BL-077 |
+| `job_loading_label` | `'Carregando avaliações...'` *(diferença de marca)* | BL-078 |
+| `job_error_title` | `'Não foi possível carregar as avaliações.'` *(diferença de marca)* | BL-078 |
+| `job_empty_label` | `'Nenhuma avaliação disponível no momento.'` *(diferença de marca)* | BL-078 |
+| `job_dev_mode_hint_label` | igual ao Kaptur | BL-078 |
+| `job_dev_mode_start_label` | `'INICIAR (DEV)'` | BL-078 |
+| `job_location_pending_label` | `'Localização pendente'` | BL-078 |
+| `job_no_calculation_label` | `'Sem cálculo'` | BL-078 |
+| `job_on_site_label` | `'Você está no local'` | BL-078 |
+| `home_greeting_prefix` | `'Olá,'` | BL-078 |
+
+---
+
+## BL-078 — Fechamento real (2026-04-10)
+
+### `lib/widgets/home/jobs_section.dart` — BL-078
+
+| String removida | Localização anterior | Substituição adotada |
+|---|---|---|
+| `'Carregando jobs...'` | `_buildInlineLoadingCard()` hardcoded | `config.copyText('job_loading_label', ...)` em `_JobsSectionWidget.build()` |
+| `'Não foi possível carregar as vistorias.'` | `_buildJobsLoadErrorCard()` hardcoded | `config.copyText('job_error_title', ...)` |
+| `'Nenhuma vistoria disponível no momento.'` | `_buildEmptyJobsCard()` hardcoded | `config.copyText('job_empty_label', ...)` |
+| `'Modo desenvolvedor ativo: fluxo liberado para teste fora do raio.'` | `_RichJobCard.build()` hardcoded | `config.copyText('job_dev_mode_hint_label', ...)` |
+| `'INICIAR (DEV)'` | `_RichJobCard.build()` botão dev hardcoded | `config.copyText('job_dev_mode_start_label', ...)` |
+| `'Localização pendente'` | `_buildDistanceInfo()` sem config | `config.copyText('job_location_pending_label', ...)` — assinatura alterada para `_buildDistanceInfo(ResolvedBrandConfig config)` |
+| `'Sem cálculo'` | `_buildDistanceInfo()` sem config | `config.copyText('job_no_calculation_label', ...)` |
+| `'Você está no local'` | `_buildDistanceInfo()` sem config | `config.copyText('job_on_site_label', ...)` |
+
+### `lib/widgets/home/home_header.dart` — BL-078
+
+| String removida | Localização anterior | Substituição adotada |
+|---|---|---|
+| `'Olá, $firstName!'` | `HomeHeader.build()` linha 57 hardcoded | `'${config.copyText('home_greeting_prefix', defaultValue: 'Olá,')} $firstName!'` |
 
 ---
 
@@ -197,3 +230,10 @@
 - [x] `jobs_section.dart` não contém mensagem de recuperação hardcoded
 - [x] Compass exibe 'Área:' e 'Avaliação interrompida...' em vez dos textos Kaptur
 - [x] `validate_brand_setup.sh` valida todas as 24 chaves obrigatórias
+- [x] `jobs_section.dart` não contém estados de carregamento/vazio hardcoded
+- [x] `jobs_section.dart` não contém strings de modo dev hardcoded
+- [x] `jobs_section.dart` não contém labels de distância hardcoded (`_buildDistanceInfo` recebe config)
+- [x] `home_header.dart` não contém saudação hardcoded
+- [x] Compass exibe linguagem corporativa em loading/error/empty de jobs
+- [x] `validate_brand_setup.sh` expandido para 33 chaves obrigatórias
+- [x] `BRAND_SETUP_AND_RELEASE_FLOW.md` lista exatamente as 33 chaves do contrato

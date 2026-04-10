@@ -12,6 +12,11 @@ import 'remote_brand_overrides.dart';
 class BrandConfigResolver {
   const BrandConfigResolver._();
 
+  /// Limite arquitetural: override remoto pode alterar apenas textos, labels
+  /// e flags leves de UI. Não altera: applicationId, bundle identifier,
+  /// nome do app no SO, app icon nativo, splash nativa nem qualquer
+  /// propriedade de flavor/build — esses são imutáveis em runtime.
+  ///
   /// Produz a configuração resolvida final.
   ///
   /// Se [overrides] for null ou [RemoteBrandOverrides.empty], retorna
