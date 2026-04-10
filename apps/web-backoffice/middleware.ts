@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { AUTH_SESSION_COOKIE } from "./app/lib/auth_session";
 
 function isProtectedPath(pathname: string): boolean {
-  return pathname.startsWith("/backoffice/platform") || pathname.startsWith("/backoffice/users");
+  return pathname.startsWith("/backoffice");
 }
 
 export function middleware(request: NextRequest) {
