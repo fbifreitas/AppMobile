@@ -4,20 +4,19 @@ import { callBackendInspectionsApi } from "../../../lib/inspections_backend_clie
 
 export function GET(
   request: NextRequest,
-  context: { params: Promise<{ inspectionId: string }> }
+  context: { params: { inspectionId: string } }
 ) {
   const session = readAuthSession(request);
   if (!session) {
     return unauthorizedJson();
   }
 
-  return context.params
-    .then(({ inspectionId }) => {
-      const query = new URLSearchParams({ tenantId: session.tenantId });
-      return callBackendInspectionsApi(inspectionId, {
-        headers: buildAuthenticatedHeaders(session, "inspection-detail")
-      }, query);
-    })
+  const { inspectionId } = context.params;
+  const query = new URLSearchParams({ tenantId: session.tenantId });
+
+  return callBackendInspectionsApi(inspectionId, {
+    headers: buildAuthenticatedHeaders(session, "inspection-detail")
+  }, query)
     .then(({ status, payload }) => NextResponse.json(payload, { status }))
     .catch(() =>
       NextResponse.json(

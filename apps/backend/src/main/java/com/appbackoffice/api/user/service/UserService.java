@@ -168,6 +168,8 @@ public class UserService {
         User user = new User(tenantId, req.email(), req.nome(), req.tipo(), role, UserSource.WEB_CREATED);
         user.setCpf(req.cpf());
         user.setCnpj(req.cnpj());
+        user.setBirthDate(req.birthDate());
+        user.setPhone(req.phone());
         user.setExternalId(req.externalId());
         User saved = userRepository.save(user);
         userLifecycleService.initializeApproved(saved);
@@ -215,6 +217,8 @@ public class UserService {
             User user = new User(tenantId, req.email(), req.nome(), req.tipo(), role, UserSource.AD_IMPORT);
             user.setCpf(req.cpf());
             user.setCnpj(req.cnpj());
+            user.setBirthDate(req.birthDate());
+            user.setPhone(req.phone());
             user.setExternalId(req.externalId());
             User saved = userRepository.save(user);
             userLifecycleService.initializeApproved(saved);

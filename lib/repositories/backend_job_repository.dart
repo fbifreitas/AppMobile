@@ -92,11 +92,24 @@ class BackendJobRepository implements JobRepository {
     final id = map['id']?.toString() ?? '';
     final caseId = map['caseId']?.toString();
     final title = map['title']?.toString().trim();
+    final propertyAddress = map['propertyAddress']?.toString().trim();
+    final propertyLatitude = _doubleOrNull(map['propertyLatitude']);
+    final propertyLongitude = _doubleOrNull(map['propertyLongitude']);
+    final inspectionType = map['inspectionType']?.toString().trim();
     return Job(
       id: id,
       titulo: title == null || title.isEmpty ? 'Job $id' : title,
-      endereco: 'Endereco pendente de detalhe operacional',
+      endereco:
+          propertyAddress == null || propertyAddress.isEmpty
+              ? 'Endereco pendente de detalhe operacional'
+              : propertyAddress,
+      latitude: propertyLatitude,
+      longitude: propertyLongitude,
+      deadlineAt: _dateTimeOrNull(map['deadlineAt']),
+      createdAt: _dateTimeOrNull(map['createdAt']),
       status: _statusFromBackend(map['status']?.toString()),
+      tipoImovel:
+          inspectionType == null || inspectionType.isEmpty ? null : inspectionType,
       idExterno: caseId == null || caseId.isEmpty ? null : caseId,
     );
   }
@@ -118,6 +131,17 @@ class BackendJobRepository implements JobRepository {
       default:
         return JobStatus.novo;
     }
+  }
+
+  double? _doubleOrNull(Object? value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '');
+  }
+
+  DateTime? _dateTimeOrNull(Object? value) {
+    final raw = value?.toString().trim() ?? '';
+    if (raw.isEmpty) return null;
+    return DateTime.tryParse(raw)?.toLocal();
   }
 }
 

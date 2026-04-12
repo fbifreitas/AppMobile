@@ -7,3 +7,15 @@ class TechnicalCheckRequirementInput {
     required this.fulfilled,
   });
 }
+
+class TechnicalCoverageRequirementInput {
+  final String title;
+  final String subtipo;
+  final String? elemento;
+
+  const TechnicalCoverageRequirementInput({
+    required this.title,
+    required this.subtipo,
+    this.elemento,
+  });
+}

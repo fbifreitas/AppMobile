@@ -1,10 +1,10 @@
-> [NOTA DE ESCOPO - OPERACIONAL ATIVO]
+﻿> [NOTA DE ESCOPO - OPERACIONAL ATIVO]
 > Este e um documento operacional ativo.
 > Este documento nao substitui a direcao arquitetural V2 corporativa do repositorio.
 > Deve ser lido em conjunto com README.md, GEMINI.md, .github/copilot-instructions.md e os documentos ativos da V2 em docs/.
 > Para release, versionamento, PR e promocao para `main`, a fonte oficial agora e `docs/05-operations/runbooks/FLUXO_OFICIAL_DE_RELEASE.md`.
 
-# Ponto de Restauração — Setup Ambiente Local Web
+# Ponto de RestauraÃ§Ã£o â€” Setup Ambiente Local Web
 
 ## Uso rapido deste runbook
 
@@ -18,31 +18,31 @@
   4. `npm --prefix apps/web-backoffice run build`
 
 **Criado em:** 2026-04-01  
-**Sessão de referência:** Setup completo de ambiente de desenvolvimento local (Node 20, Java 21, Maven, Docker Desktop)  
+**SessÃ£o de referÃªncia:** Setup completo de ambiente de desenvolvimento local (Node 20, Java 21, Maven, Docker Desktop)  
 **Status atual:** Docker engine em processo de start com dados migrados para D:
 
 ---
 
 ## 1. Estado do Ambiente (April 1, 2026)
 
-### Máquina
-- CPU: Intel i5-3230M (3ª geração, 2 núcleos / 4 threads)
+### MÃ¡quina
+- CPU: Intel i5-3230M (3Âª geraÃ§Ã£o, 2 nÃºcleos / 4 threads)
 - RAM: 8 GB
-- C: ~6.4 GB livre (após reboot)
+- C: ~6.4 GB livre (apÃ³s reboot)
 - D: ~62 GB livre
 - OS: Windows 10/11 64-bit com WSL2
 
 ### Ferramentas Instaladas
 
-| Ferramenta | Versão | Local de Instalação |
+| Ferramenta | VersÃ£o | Local de InstalaÃ§Ã£o |
 |---|---|---|
 | NVM for Windows | 1.2.2 | `C:\Users\fbifr\AppData\Local\nvm\` |
-| Node.js | 20.19.5 (LTS) | via NVM → `C:\nvm4w\nodejs\` |
+| Node.js | 20.19.5 (LTS) | via NVM â†’ `C:\nvm4w\nodejs\` |
 | Java JDK | 21.0.10.7 (Microsoft OpenJDK) | `C:\Program Files\Microsoft\jdk-21.0.10.7-hotspot\` |
 | Apache Maven | 3.9.9 | `C:\tools\apache-maven-3.9.9\` |
 | Docker Desktop | 4.28.0 | `C:\Program Files\Docker\Docker\` |
 
-### Variáveis de Ambiente (User scope — persistentes)
+### VariÃ¡veis de Ambiente (User scope â€” persistentes)
 
 ```powershell
 JAVA_HOME     = C:\Program Files\Microsoft\jdk-21.0.10.7-hotspot
@@ -59,25 +59,25 @@ C:\Program Files\Docker\Docker\resources\bin
 C:\nvm4w\nodejs  (gerenciado pelo NVM)
 ```
 
-### Validação das ferramentas (última execução confirmada)
+### ValidaÃ§Ã£o das ferramentas (Ãºltima execuÃ§Ã£o confirmada)
 ```
-node --version   → v20.19.5  ✅
-npm --version    → 10.x      ✅
-java --version   → 21.0.10   ✅
-mvn --version    → 3.9.9     ✅
-docker version   → 25.0.3    ✅ (após engine subir)
+node --version   â†’ v20.19.5  âœ…
+npm --version    â†’ 10.x      âœ…
+java --version   â†’ 21.0.10   âœ…
+mvn --version    â†’ 3.9.9     âœ…
+docker version   â†’ 25.0.3    âœ… (apÃ³s engine subir)
 ```
 
 ---
 
-## 2. Configuração do Docker Desktop
+## 2. ConfiguraÃ§Ã£o do Docker Desktop
 
-### Localização dos dados WSL
-- **Diretório migrado para:** `D:\DockerData\DockerDesktopWSL\`
+### LocalizaÃ§Ã£o dos dados WSL
+- **DiretÃ³rio migrado para:** `D:\DockerData\DockerDesktopWSL\`
 - **Arquivo de disco:** `D:\DockerData\DockerDesktopWSL\data\ext4.vhdx` (~2.7 GB)
-- **Configuração salva em:** `%LOCALAPPDATA%\Docker\settings-store.json`
+- **ConfiguraÃ§Ã£o salva em:** `%LOCALAPPDATA%\Docker\settings-store.json`
   - Chave: `"customWslDistroDir": "D:\\DockerData\\DockerDesktopWSL"`
-- **Memória alocada:** 2048 MB
+- **MemÃ³ria alocada:** 2048 MB
 - **CPUs alocados:** 4
 - **Disco total:** 65536 MB (64 GB em D:)
 
@@ -86,19 +86,19 @@ docker version   → 25.0.3    ✅ (após engine subir)
 - `docker-desktop-data` WSL distro: presente em D: com ext4.vhdx criado
 - `docker-desktop` WSL distro: sendo recriada no novo local
 
-### Histórico de problemas Docker desta sessão
-1. **EXT4 corruption** em `docker-desktop-data` antigo (device sde, IO failure) → resolvido pela migração para D:
-2. **C: com 1.7 GB livre** → após reboot liberou para 6.4 GB + migração de dados para D:
-3. **`docker-desktop` WSL distro ausente** → resolvido pela mudança de diretório + restart
-4. **Engine terminando após 38s** → causado pelo diretório D: ainda vazio no primeiro start
+### HistÃ³rico de problemas Docker desta sessÃ£o
+1. **EXT4 corruption** em `docker-desktop-data` antigo (device sde, IO failure) â†’ resolvido pela migraÃ§Ã£o para D:
+2. **C: com 1.7 GB livre** â†’ apÃ³s reboot liberou para 6.4 GB + migraÃ§Ã£o de dados para D:
+3. **`docker-desktop` WSL distro ausente** â†’ resolvido pela mudanÃ§a de diretÃ³rio + restart
+4. **Engine terminando apÃ³s 38s** â†’ causado pelo diretÃ³rio D: ainda vazio no primeiro start
 
 ---
 
-## 3. Arquivos Criados/Modificados nesta Sessão
+## 3. Arquivos Criados/Modificados nesta SessÃ£o
 
 ### Novos arquivos criados
 
-| Arquivo | Propósito |
+| Arquivo | PropÃ³sito |
 |---|---|
 | `infra/scripts/start_local_stack.ps1` | Launcher seguro da stack local sem senhas em arquivo |
 | `apps/web-backoffice/.dockerignore` | Reduz contexto de build (evita enviar node_modules, .next) |
@@ -106,20 +106,20 @@ docker version   → 25.0.3    ✅ (após engine subir)
 
 ### Arquivos modificados
 
-| Arquivo | Mudança |
+| Arquivo | MudanÃ§a |
 |---|---|
-| `infra/.env` | Senhas substituídas por `__SET_VIA_ENV_OR_VAULT__` |
+| `infra/.env` | Senhas substituÃ­das por `__SET_VIA_ENV_OR_VAULT__` |
 | `infra.env` (raiz) | Idem |
-| `apps/backend/Dockerfile` | Flags `-q` → `-B` no mvn para output confiável em hardware limitado |
+| `apps/backend/Dockerfile` | Flags `-q` â†’ `-B` no mvn para output confiÃ¡vel em hardware limitado |
 | `docs/05-operations/tactical-backlogs/BACKLOG_BACKOFFICE_WEB.md` | Adicionados BOW-054 a BOW-064 |
 | `docs/05-operations/tactical-backlogs/BACKLOG_INTEGRACAO_WEB_MOBILE.md` | Adicionados INT-025 a INT-029 |
-| `docs/05-operations/agent-onboarding/AGENTE_LICOES_APRENDIDAS.md` | Adicionadas 2 lições (secrets + dockerignore) |
+| `docs/05-operations/agent-onboarding/AGENTE_LICOES_APRENDIDAS.md` | Adicionadas 2 liÃ§Ãµes (secrets + dockerignore) |
 
 ---
 
-## 4. Como Subir a Stack Local (após Docker estável)
+## 4. Como Subir a Stack Local (apÃ³s Docker estÃ¡vel)
 
-### Pré-requisito: definir senhas via variável de ambiente de sessão
+### PrÃ©-requisito: definir senhas via variÃ¡vel de ambiente de sessÃ£o
 ```powershell
 $env:POSTGRES_PASSWORD = 'sua_senha_postgres'
 $env:REDIS_PASSWORD    = 'sua_senha_redis'
@@ -132,11 +132,11 @@ powershell -ExecutionPolicy Bypass -File .\infra\scripts\start_local_stack.ps1 -
 ```
 
 O script:
-1. Lê variáveis não-secretas de `infra/.env`
-2. Resolve `POSTGRES_PASSWORD` e `REDIS_PASSWORD` de: env var → Get-Secret vault → prompt seguro
+1. LÃª variÃ¡veis nÃ£o-secretas de `infra/.env`
+2. Resolve `POSTGRES_PASSWORD` e `REDIS_PASSWORD` de: env var â†’ Get-Secret vault â†’ prompt seguro
 3. Executa `docker compose up -d` na pasta `infra/`
 
-### Validar saúde da stack
+### Validar saÃºde da stack
 ```powershell
 docker compose -f infra/docker-compose.yml ps
 ```
@@ -158,17 +158,17 @@ Observacao: no compose atual, apenas o proxy expoe portas no host (80/443).
 cd apps/web-backoffice
 npm install
 npm run dev
-# → http://localhost:3000
+# â†’ http://localhost:3000
 ```
 
 ### Backend (Spring Boot)
 ```powershell
 cd apps/backend
 mvn -B spring-boot:run
-# → http://localhost:8080/actuator/health
+# â†’ http://localhost:8080/actuator/health
 ```
 
-### Build de validação (CI local)
+### Build de validaÃ§Ã£o (CI local)
 ```powershell
 # Frontend
 cd apps/web-backoffice
@@ -183,55 +183,55 @@ mvn -B -DskipTests package
 
 ---
 
-## 6. Backlog Aberto (próximas entregas prioritárias)
+## 6. Backlog Aberto (prÃ³ximas entregas prioritÃ¡rias)
 
-| ID | Título | Status |
+| ID | TÃ­tulo | Status |
 |---|---|---|
 | BOW-054 | Canonical Domain v1 (Demand/Case/Job/Inspection/Report) | Pendente |
-| BOW-056 | OpenAPI v1 com política formal de compatibilidade | Pendente |
-| BOW-058 | tenant + correlationId obrigatório em toda request | Pendente |
-| BOW-060 | Padrão de idempotency key por operação crítica | Pendente |
-| BOW-064 | Estratégia de vault de secrets (dev/stage/prod) | Pendente |
+| BOW-056 | OpenAPI v1 com polÃ­tica formal de compatibilidade | Pendente |
+| BOW-058 | tenant + correlationId obrigatÃ³rio em toda request | Pendente |
+| BOW-060 | PadrÃ£o de idempotency key por operaÃ§Ã£o crÃ­tica | Pendente |
+| BOW-064 | EstratÃ©gia de vault de secrets (dev/stage/prod) | Pendente |
 | INT-025 | Gate formal de versionamento API/Evento no CI | Pendente |
 | INT-026 | Contrato de eventos v1 (schema + registro) | Pendente |
 
 ---
 
-## 7. Pendências que NÃO foram commitadas ainda
+## 7. PendÃªncias que NÃƒO foram commitadas ainda
 
-Os seguintes arquivos foram criados/modificados nesta sessão mas **NÃO foram para o repositório Git**:
+Os seguintes arquivos foram criados/modificados nesta sessÃ£o mas **NÃƒO foram para o repositÃ³rio Git**:
 
 - `infra/scripts/start_local_stack.ps1`
 - `apps/web-backoffice/.dockerignore`
 - `apps/backend/.dockerignore`
-- `apps/backend/Dockerfile` (alteração de flags mvn)
+- `apps/backend/Dockerfile` (alteraÃ§Ã£o de flags mvn)
 - `infra/.env` (senhas removidas)
 - `infra.env` (senhas removidas)
 - `docs/05-operations/tactical-backlogs/BACKLOG_BACKOFFICE_WEB.md` (BOW-054 a BOW-064)
 - `docs/05-operations/tactical-backlogs/BACKLOG_INTEGRACAO_WEB_MOBILE.md` (INT-025 a INT-029)
-- `docs/05-operations/agent-onboarding/AGENTE_LICOES_APRENDIDAS.md` (2 lições novas)
+- `docs/05-operations/agent-onboarding/AGENTE_LICOES_APRENDIDAS.md` (2 liÃ§Ãµes novas)
 - `docs/05-operations/runbooks/PONTO_RESTAURACAO_AMBIENTE_LOCAL.md` (este arquivo)
 
 **Commit pendente sugerido:**
 ```
-feat: setup local web stack — env seguro, dockerignore, hardening Dockerfile, backlog BOW-054/064 e INT-025/029
+feat: setup local web stack â€” env seguro, dockerignore, hardening Dockerfile, backlog BOW-054/064 e INT-025/029
 ```
 
 ---
 
-## 8. Para Retomar Esta Sessão em Novo Chat
+## 8. Para Retomar Esta SessÃ£o em Novo Chat
 
-Copie e cole no início do novo chat:
+Copie e cole no inÃ­cio do novo chat:
 
-> "Estou retomando o setup do ambiente local web. Leia `docs/05-operations/runbooks/PONTO_RESTAURACAO_AMBIENTE_LOCAL.md` e `docs/05-operations/agent-onboarding/AGENTE_LICOES_APRENDIDAS.md` para ter contexto completo. Preciso: (1) confirmar que Docker está rodando, (2) subir a stack com `start_local_stack.ps1`, (3) validar health checks e (4) commitar todos os arquivos pendentes listados na seção 7 do documento de restauração."
+> "Estou retomando o setup do ambiente local web. Leia `docs/05-operations/runbooks/PONTO_RESTAURACAO_AMBIENTE_LOCAL.md` e `docs/05-operations/agent-onboarding/AGENTE_LICOES_APRENDIDAS.md` para ter contexto completo. Preciso: (1) confirmar que Docker estÃ¡ rodando, (2) subir a stack com `start_local_stack.ps1`, (3) validar health checks e (4) commitar todos os arquivos pendentes listados na seÃ§Ã£o 7 do documento de restauraÃ§Ã£o."
 
 ---
 
 ## 9. Regras de Trabalho Compartilhadas (Onboarding de Novo Agente)
 
-Este bloco consolida as regras operacionais definidas nesta parceria. Qualquer novo agente deve seguir na ordem abaixo antes de executar mudanças.
+Este bloco consolida as regras operacionais definidas nesta parceria. Qualquer novo agente deve seguir na ordem abaixo antes de executar mudanÃ§as.
 
-### 9.1 Regras mandatórias
+### 9.1 Regras mandatÃ³rias
 1. Ler o projeto e o contexto completo antes de alterar codigo.
 2. Tratar `docs/05-operations/tactical-backlogs/BACKLOG_FUNCIONALIDADES.md` como fonte oficial do backlog macro.
 3. Atualizar backlog/documentacao de rastreabilidade em toda demanda.
@@ -314,7 +314,7 @@ Use este prompt no inicio de uma nova sessao/agente:
   - `pubspec.yaml` atualizado para `1.2.23+42`.
   - `docs/internal-portal/mkdocs.yml` atualizado com `docs_dir: .`.
 - Proximo passo: reenviar commit para novo ciclo de validacao no GitHub Actions.
-- Backend e camada de integracao protegem o dominio interno por ACL/normalizacao e expõem contratos versionados para app e web.
+- Backend e camada de integracao protegem o dominio interno por ACL/normalizacao e expÃµem contratos versionados para app e web.
 
 ### 10.4 Dominio canonico (linguagem comum)
 - Entidades centrais: Demand, Case, Job, Inspection, Report.
@@ -391,25 +391,25 @@ Use este checklist no inicio de qualquer nova sessao para confirmar que nada cri
 
 ### Checkpoint 2026-04-03 (BOW-120 backend base)
 - Feito:
-  - Criada migration `V007__job_domain.sql` com fundação persistente do domínio `Demand → Case → Job → Assignment → Timeline`.
-  - Criada migration `V008__integration_demands_case_job_refs.sql` para persistir vínculo entre Integration Hub e agregado `Case/Job`.
-  - Criada migration `V009__inspection_submissions.sql` para persistir submissões mobile com idempotência e `protocolId` real.
-  - Implementadas entidades/repositories do módulo `job`, state machine do Job e serviços de criação, despacho, aceite, cancelamento e timeline.
+  - Criada migration `V007__job_domain.sql` com fundaÃ§Ã£o persistente do domÃ­nio `Demand â†’ Case â†’ Job â†’ Assignment â†’ Timeline`.
+  - Criada migration `V008__integration_demands_case_job_refs.sql` para persistir vÃ­nculo entre Integration Hub e agregado `Case/Job`.
+  - Criada migration `V009__inspection_submissions.sql` para persistir submissÃµes mobile com idempotÃªncia e `protocolId` real.
+  - Implementadas entidades/repositories do mÃ³dulo `job`, state machine do Job e serviÃ§os de criaÃ§Ã£o, despacho, aceite, cancelamento e timeline.
   - Publicadas APIs backend `POST /cases`, `GET /jobs`, `GET /jobs/{id}`, `GET /jobs/{id}/timeline`, `POST /jobs/{id}/assign`, `POST /jobs/{id}/accept`, `POST /jobs/{id}/cancel`.
-  - `IntegrationDemandService` passou a criar `Case` e `Job` automaticamente para novas demands e retornar `caseId/jobId` no contrato da integração.
-  - `GET /api/mobile/checkin-config` passou a resolver configuração real via `ConfigPackageService.resolveForMobile`, com versão efetiva e fallback padrão quando não há pacote ativo.
-  - `MobileApiController` passou a expor `GET /api/mobile/jobs` com leitura real de jobs por usuário atribuído, com filtro obrigatório por tenant.
-  - `POST /api/mobile/inspections/finalized` passou a persistir submissões reais e mover o `Job` para `SUBMITTED` via transições internas `ACCEPTED → IN_EXECUTION → FIELD_COMPLETED → SUBMITTED`.
-  - Versão incrementada para `1.2.26+45` e pacote publicado em homolog no commit `f22d1bd` da branch `homolog/bl-accordion-dedup-fix`.
-  - Ajuste operacional de CI aplicado em seguida: versão avançada para `1.2.26+46` para atender o gate de homologação após commit documental (`1978a85`).
-  - Validação executada com `mvn -B -DforkCount=0 "-Dtest=com.appbackoffice.api.job.CaseJobDomainIntegrationTest" test`, `mvn -B -DforkCount=0 "-Dtest=com.appbackoffice.api.integration.IntegrationDemandIntegrationTest" test`, `mvn -B -DforkCount=0 "-Dtest=com.appbackoffice.api.mobile.InspectionSubmissionIntegrationTest" test`, `mvn -B -DforkCount=0 "-Dtest=com.appbackoffice.api.mobile.MobileCheckinConfigIntegrationTest" test` e `mvn -B -DforkCount=0 "-Dtest=com.appbackoffice.api.mobile.MobileApiControllerContractErrorTest" test`.
+  - `IntegrationDemandService` passou a criar `Case` e `Job` automaticamente para novas demands e retornar `caseId/jobId` no contrato da integraÃ§Ã£o.
+  - `GET /api/mobile/checkin-config` passou a resolver configuraÃ§Ã£o real via `ConfigPackageService.resolveForMobile`, com versÃ£o efetiva e fallback padrÃ£o quando nÃ£o hÃ¡ pacote ativo.
+  - `MobileApiController` passou a expor `GET /api/mobile/jobs` com leitura real de jobs por usuÃ¡rio atribuÃ­do, com filtro obrigatÃ³rio por tenant.
+  - `POST /api/mobile/inspections/finalized` passou a persistir submissÃµes reais e mover o `Job` para `SUBMITTED` via transiÃ§Ãµes internas `ACCEPTED â†’ IN_EXECUTION â†’ FIELD_COMPLETED â†’ SUBMITTED`.
+  - VersÃ£o incrementada para `1.2.26+45` e pacote publicado em homolog no commit `f22d1bd` da branch `homolog/bl-accordion-dedup-fix`.
+  - Ajuste operacional de CI aplicado em seguida: versÃ£o avanÃ§ada para `1.2.26+46` para atender o gate de homologaÃ§Ã£o apÃ³s commit documental (`1978a85`).
+  - ValidaÃ§Ã£o executada com `mvn -B -DforkCount=0 "-Dtest=com.appbackoffice.api.job.CaseJobDomainIntegrationTest" test`, `mvn -B -DforkCount=0 "-Dtest=com.appbackoffice.api.integration.IntegrationDemandIntegrationTest" test`, `mvn -B -DforkCount=0 "-Dtest=com.appbackoffice.api.mobile.InspectionSubmissionIntegrationTest" test`, `mvn -B -DforkCount=0 "-Dtest=com.appbackoffice.api.mobile.MobileCheckinConfigIntegrationTest" test` e `mvn -B -DforkCount=0 "-Dtest=com.appbackoffice.api.mobile.MobileApiControllerContractErrorTest" test`.
 - Estado atual:
-  - BOW-120/BOW-121/BOW-122 estão parcialmente entregues no backend; base persistente, ligação `Demand → Case → Job`, config mobile real e submissão mobile real estão prontos.
-  - Ainda faltam modelar `Inspection` explicitamente no domínio, publicar `sections` NBR completas e conectar web/mobile completo aos novos dados reais.
-- Próxima ação:
-  - Monitorar workflow CI/CD da homologação até confirmação de distribuição; após isso, evoluir BOW-121 para `sections` NBR canônicas e abrir BOW-123 sobre os novos dados persistidos de jobs/inspeções.
+  - BOW-120/BOW-121/BOW-122 estÃ£o parcialmente entregues no backend; base persistente, ligaÃ§Ã£o `Demand â†’ Case â†’ Job`, config mobile real e submissÃ£o mobile real estÃ£o prontos.
+  - Ainda faltam modelar `Inspection` explicitamente no domÃ­nio, publicar `sections` NBR completas e conectar web/mobile completo aos novos dados reais.
+- PrÃ³xima aÃ§Ã£o:
+  - Monitorar workflow CI/CD da homologaÃ§Ã£o atÃ© confirmaÃ§Ã£o de distribuiÃ§Ã£o; apÃ³s isso, evoluir BOW-121 para `sections` NBR canÃ´nicas e abrir BOW-123 sobre os novos dados persistidos de jobs/inspeÃ§Ãµes.
 
-### Checkpoint 2026-04-03 (merge para main — BOW-104/105/110/111 entregues)
+### Checkpoint 2026-04-03 (merge para main â€” BOW-104/105/110/111 entregues)
 - Feito:
   - Consolidado pacote backend com RBAC por escopo, policy engine, Integration Hub ACL e expansao pratica do contrato de erro canonico.
   - Consolidado pacote web-backoffice com rotas Next.js para config/users, telas operacionais e testes Node para policy/config targeting.
@@ -420,7 +420,7 @@ Use este checklist no inicio de qualquer nova sessao para confirmar que nada cri
   - Protecao de branch restaurada para `required_approving_review_count=1`.
   - Branches `main` e `homolog/bl-accordion-dedup-fix` equalizadas (ambas em `8f47753`).
 - Estado atual:
-  - `origin/main` em `8f47753` — todos os pacotes BOW-104/105/110/111 entregues e publicados.
+  - `origin/main` em `8f47753` â€” todos os pacotes BOW-104/105/110/111 entregues e publicados.
   - Ambiente limpo, sem pendencias de git.
 - Proxima acao:
   - Iniciar BOW-120: entidades canonicas de Case/Job, migracao Flyway, maquina de estado e APIs base.
@@ -505,72 +505,72 @@ Use este checklist no inicio de qualquer nova sessao para confirmar que nada cri
   - Portal interno implantado em `docs/internal-portal` com pipeline `.github/workflows/internal_docs_ci.yml`.
 - Estado atual:
   - Backend compila com artefato gerado (`api-0.1.0.jar`).
-  - Build local do portal nao validado por ausencia de Python no host; validacao ocorrerá via CI.
+  - Build local do portal nao validado por ausencia de Python no host; validacao ocorrerÃ¡ via CI.
 - Proxima acao:
   - Implementar gate de compatibilidade de contrato em CI (INT-025).
-  - Publicar exemplos de contrato e catalogo canônico de erros.
+  - Publicar exemplos de contrato e catalogo canÃ´nico de erros.
 
 ### Checkpoint 2026-04-01 (INT-025 gate inicial)
 - Feito:
   - Workflow de backend atualizado com job `openapi-compatibility-gate` para PRs.
   - Script `openapi_breaking_check.py` adicionado em `.github/scripts`.
-  - Gate compara OpenAPI da PR com OpenAPI da branch `main` e falha se detectar remoções/quebras básicas.
+  - Gate compara OpenAPI da PR com OpenAPI da branch `main` e falha se detectar remoÃ§Ãµes/quebras bÃ¡sicas.
 - Estado atual:
   - Gate inicial de breaking change em CI implementado.
-  - Validação local do script Python não executada por ausência de Python no host Windows; validação ocorrerá no runner Linux do GitHub Actions.
+  - ValidaÃ§Ã£o local do script Python nÃ£o executada por ausÃªncia de Python no host Windows; validaÃ§Ã£o ocorrerÃ¡ no runner Linux do GitHub Actions.
 - Proxima acao:
-  - Expandir regra de breaking change (headers obrigatórios, enums e exemplos).
-  - Publicar catálogo canônico de erros (INT-028) e alinhamento com OpenAPI v1.
+  - Expandir regra de breaking change (headers obrigatÃ³rios, enums e exemplos).
+  - Publicar catÃ¡logo canÃ´nico de erros (INT-028) e alinhamento com OpenAPI v1.
 
 ### Checkpoint 2026-04-01 (INT-028 fundacao v1)
 - Feito:
-  - Contrato canônico de erro implementado no backend (`CanonicalErrorResponse`) com `code`, `severity`, `message`, `guidance`, `correlationId` e `path`.
-  - Handler global de exceções adicionado para padronizar respostas de erro (`ApiExceptionHandler`).
-  - Endpoints críticos mobile v1 atualizados para retornar códigos padronizados (`CTX_MISSING_HEADER`, `IDEMPOTENCY_KEY_REQUIRED`, `REQ_VALIDATION_FAILED`).
-  - OpenAPI v1 atualizado para referenciar explicitamente o envelope canônico de erro nos responses 4xx dos endpoints críticos.
+  - Contrato canÃ´nico de erro implementado no backend (`CanonicalErrorResponse`) com `code`, `severity`, `message`, `guidance`, `correlationId` e `path`.
+  - Handler global de exceÃ§Ãµes adicionado para padronizar respostas de erro (`ApiExceptionHandler`).
+  - Endpoints crÃ­ticos mobile v1 atualizados para retornar cÃ³digos padronizados (`CTX_MISSING_HEADER`, `IDEMPOTENCY_KEY_REQUIRED`, `REQ_VALIDATION_FAILED`).
+  - OpenAPI v1 atualizado para referenciar explicitamente o envelope canÃ´nico de erro nos responses 4xx dos endpoints crÃ­ticos.
 - Estado atual:
-  - INT-028 avançou para `Em andamento (fundação v1 aplicada nos endpoints mobile críticos)`.
-  - Catálogo canônico já ativo para os contratos v1 de `checkin-config` e `inspections/finalized`.
+  - INT-028 avanÃ§ou para `Em andamento (fundaÃ§Ã£o v1 aplicada nos endpoints mobile crÃ­ticos)`.
+  - CatÃ¡logo canÃ´nico jÃ¡ ativo para os contratos v1 de `checkin-config` e `inspections/finalized`.
 - Proxima acao:
-  - Expandir o catálogo para demais endpoints do backend e publicar tabela oficial de códigos por domínio.
-  - Incluir validação semântica adicional no gate OpenAPI para checar regressão de envelope de erro.
+  - Expandir o catÃ¡logo para demais endpoints do backend e publicar tabela oficial de cÃ³digos por domÃ­nio.
+  - Incluir validaÃ§Ã£o semÃ¢ntica adicional no gate OpenAPI para checar regressÃ£o de envelope de erro.
 
 ### Checkpoint 2026-04-01 (INT-028 TDD red-green)
 - Feito:
-  - Criados testes WebMvc de contrato canônico de erro para endpoints mobile críticos (`MobileApiControllerContractErrorTest`).
-  - Fase red confirmada: 2 testes falharam com HTTP 500 para ausência de headers obrigatórios.
-  - Correção aplicada no handler global para `MissingRequestHeaderException`, mapeando erros para HTTP 400 com códigos canônicos.
-  - Fase green confirmada inicialmente com 3 testes e, em seguida, cobertura ampliada para 6 testes com cenários adicionais de header em branco e contexto ausente no POST.
+  - Criados testes WebMvc de contrato canÃ´nico de erro para endpoints mobile crÃ­ticos (`MobileApiControllerContractErrorTest`).
+  - Fase red confirmada: 2 testes falharam com HTTP 500 para ausÃªncia de headers obrigatÃ³rios.
+  - CorreÃ§Ã£o aplicada no handler global para `MissingRequestHeaderException`, mapeando erros para HTTP 400 com cÃ³digos canÃ´nicos.
+  - Fase green confirmada inicialmente com 3 testes e, em seguida, cobertura ampliada para 6 testes com cenÃ¡rios adicionais de header em branco e contexto ausente no POST.
 - Estado atual:
   - Cobertura TDD ampliada de contrato de erro estabelecida para `checkin-config` e `inspections/finalized`.
 - Proxima acao:
-  - Evoluir o gate OpenAPI/CI para validar também semântica do envelope canônico de erro, além de estrutura.
+  - Evoluir o gate OpenAPI/CI para validar tambÃ©m semÃ¢ntica do envelope canÃ´nico de erro, alÃ©m de estrutura.
 
-### Checkpoint 2026-04-01 (INT-025 gate semântico de erro canônico)
+### Checkpoint 2026-04-01 (INT-025 gate semÃ¢ntico de erro canÃ´nico)
 - Feito:
-  - Script `.github/scripts/openapi_breaking_check.py` evoluído para validar semântica de contrato de erro além de remoções estruturais.
-  - Nova regra no gate: se um response 4xx da base (`main`) referencia `CanonicalErrorResponse`, a PR deve manter a mesma referência no mesmo endpoint/status.
-  - Nova regra no gate: impedir remoção de campos `required` do schema `CanonicalErrorResponse` e de valores de enum em `ErrorSeverity`.
+  - Script `.github/scripts/openapi_breaking_check.py` evoluÃ­do para validar semÃ¢ntica de contrato de erro alÃ©m de remoÃ§Ãµes estruturais.
+  - Nova regra no gate: se um response 4xx da base (`main`) referencia `CanonicalErrorResponse`, a PR deve manter a mesma referÃªncia no mesmo endpoint/status.
+  - Nova regra no gate: impedir remoÃ§Ã£o de campos `required` do schema `CanonicalErrorResponse` e de valores de enum em `ErrorSeverity`.
 - Estado atual:
-  - INT-025 avançou de gate estrutural para gate estrutural + semântico no domínio de erro canônico.
+  - INT-025 avanÃ§ou de gate estrutural para gate estrutural + semÃ¢ntico no domÃ­nio de erro canÃ´nico.
 - Proxima acao:
-  - Expandir semântica para validar regressão de headers/contexto obrigatórios e vínculos por domínio (INT-026/INT-027).
+  - Expandir semÃ¢ntica para validar regressÃ£o de headers/contexto obrigatÃ³rios e vÃ­nculos por domÃ­nio (INT-026/INT-027).
 
 ### Checkpoint 2026-04-01 (INT-025 hardening + testes do gate)
 - Feito:
-  - Corrigido parser de operações no script `.github/scripts/openapi_breaking_check.py` para considerar apenas métodos HTTP válidos (`get/post/put/delete/patch/...`), evitando tratar chaves não-operacionais de `paths` como operações.
-  - Criada suíte de testes unitários do script em `.github/scripts/test_openapi_breaking_check.py` cobrindo: remoção de operação, manutenção de `CanonicalErrorResponse` em 4xx, remoção de required canônico, remoção de enum `ErrorSeverity` e ignorar chaves não-HTTP.
-  - Workflow `.github/workflows/backend_ci.yml` atualizado para executar a suíte do gate (`python3 .github/scripts/test_openapi_breaking_check.py -v`) antes da comparação OpenAPI.
+  - Corrigido parser de operaÃ§Ãµes no script `.github/scripts/openapi_breaking_check.py` para considerar apenas mÃ©todos HTTP vÃ¡lidos (`get/post/put/delete/patch/...`), evitando tratar chaves nÃ£o-operacionais de `paths` como operaÃ§Ãµes.
+  - Criada suÃ­te de testes unitÃ¡rios do script em `.github/scripts/test_openapi_breaking_check.py` cobrindo: remoÃ§Ã£o de operaÃ§Ã£o, manutenÃ§Ã£o de `CanonicalErrorResponse` em 4xx, remoÃ§Ã£o de required canÃ´nico, remoÃ§Ã£o de enum `ErrorSeverity` e ignorar chaves nÃ£o-HTTP.
+  - Workflow `.github/workflows/backend_ci.yml` atualizado para executar a suÃ­te do gate (`python3 .github/scripts/test_openapi_breaking_check.py -v`) antes da comparaÃ§Ã£o OpenAPI.
 - Estado atual:
   - Gate INT-025 ficou mais robusto contra falso positivo/negativo estrutural e agora tem cobertura automatizada do comportamento central.
 - Proxima acao:
-  - Executar a suíte em runner CI (ambiente com Python disponível) e incluir execução explícita desses testes no workflow para bloquear regressão do próprio script.
+  - Executar a suÃ­te em runner CI (ambiente com Python disponÃ­vel) e incluir execuÃ§Ã£o explÃ­cita desses testes no workflow para bloquear regressÃ£o do prÃ³prio script.
 
 ### Checkpoint 2026-04-02 (INT-025 com ponte INT-026/027)
 - Feito:
-  - Python 3.12 instalado localmente para validação de testes do gate sem depender apenas do CI.
-  - Script `.github/scripts/openapi_breaking_check.py` evoluído para bloquear remoção de headers obrigatórios por operação com regra orientada pela base (`main`).
-  - Suíte de testes ampliada para 8 casos, incluindo regressão de header obrigatório removido e caso de header opcional removido sem bloqueio.
+  - Python 3.12 instalado localmente para validaÃ§Ã£o de testes do gate sem depender apenas do CI.
+  - Script `.github/scripts/openapi_breaking_check.py` evoluÃ­do para bloquear remoÃ§Ã£o de headers obrigatÃ³rios por operaÃ§Ã£o com regra orientada pela base (`main`).
+  - SuÃ­te de testes ampliada para 8 casos, incluindo regressÃ£o de header obrigatÃ³rio removido e caso de header opcional removido sem bloqueio.
 
 ### Checkpoint 2026-04-02 (stack local recuperada apos falha de auth na API)
 - Feito:
@@ -746,7 +746,7 @@ Use este checklist no inicio de qualquer nova sessao para confirmar que nada cri
 - Feito:
   - Rotas do web-backoffice para configuracao (`/api/config/packages`, `/api/config/packages/approve`, `/api/config/packages/rollback`, `/api/config/resolve`, `/api/config/audit`) migradas do store em memoria para consumo do backend Java em `/api/backoffice/config/*`.
   - Criado client compartilhado em `apps/web-backoffice/app/lib/config_backend_client.ts` com suporte a `BACKOFFICE_CONFIG_API_BASE_URL` (fallback local para `http://localhost/api/backoffice/config`).
-  - Contrato de resposta mantido compatível com o painel atual (incluindo `metadata` no resolve e `limit` aplicado no layer web para auditoria).
+  - Contrato de resposta mantido compatÃ­vel com o painel atual (incluindo `metadata` no resolve e `limit` aplicado no layer web para auditoria).
   - Validacoes executadas com sucesso no web-backoffice:
     - `npm --prefix apps/web-backoffice run lint`
     - `npm --prefix apps/web-backoffice test`
@@ -775,23 +775,23 @@ Use este checklist no inicio de qualquer nova sessao para confirmar que nada cri
 
 ### Checkpoint 2026-04-02 (hardening tenant-scoped + contratos HTTP web)
 - Feito:
-  - Backend endurecido no módulo de configuração com lookup repository escopado por tenant (`findByIdAndTenantId`) durante approve/rollback.
-  - Service de configuração ajustado para resolver pacote diretamente por `packageId + tenantId`, removendo dependência de validação tardia de ownership após carga por `id`.
-  - Suite de contratos do web-backoffice ampliada com cenários de erro para rotas de approve/rollback:
+  - Backend endurecido no mÃ³dulo de configuraÃ§Ã£o com lookup repository escopado por tenant (`findByIdAndTenantId`) durante approve/rollback.
+  - Service de configuraÃ§Ã£o ajustado para resolver pacote diretamente por `packageId + tenantId`, removendo dependÃªncia de validaÃ§Ã£o tardia de ownership apÃ³s carga por `id`.
+  - Suite de contratos do web-backoffice ampliada com cenÃ¡rios de erro para rotas de approve/rollback:
     - `400` quando `tenantId` ausente,
-    - `403` para perfil sem permissão,
-    - `404` propagado do backend em pacote não encontrado.
-  - Validações automatizadas executadas com sucesso:
+    - `403` para perfil sem permissÃ£o,
+    - `404` propagado do backend em pacote nÃ£o encontrado.
+  - ValidaÃ§Ãµes automatizadas executadas com sucesso:
     - `mvn -B -f apps/backend/pom.xml -Dtest=ConfigPackageLifecycleIntegrationTest -DforkCount=0 test` (3 testes, 0 falhas)
     - `mvn -B -f apps/backend/pom.xml -DforkCount=0 test` (11 testes, 0 falhas)
     - `npm --prefix apps/web-backoffice run lint`
     - `npm --prefix apps/web-backoffice test` (12 testes, 0 falhas)
     - `npm --prefix apps/web-backoffice run build`
 - Estado atual:
-  - Tenant guard de mutações sensíveis ficou mais robusto no backend e com cobertura de contrato HTTP no web para erros críticos de contexto e autorização.
-  - Base pronta para expansão do enforcement de contexto mínimo (`tenantId/correlationId`) para demais endpoints.
+  - Tenant guard de mutaÃ§Ãµes sensÃ­veis ficou mais robusto no backend e com cobertura de contrato HTTP no web para erros crÃ­ticos de contexto e autorizaÃ§Ã£o.
+  - Base pronta para expansÃ£o do enforcement de contexto mÃ­nimo (`tenantId/correlationId`) para demais endpoints.
 - Proxima acao:
-  - Expandir BOW-058/INT-026 para validar também `correlationId` no backend e propagar o contexto de forma padronizada nas rotas críticas restantes.
+  - Expandir BOW-058/INT-026 para validar tambÃ©m `correlationId` no backend e propagar o contexto de forma padronizada nas rotas crÃ­ticas restantes.
 
 ### Checkpoint 2026-04-02 (promocao para main e equalizacao)
 - Feito:
@@ -811,22 +811,22 @@ Use este checklist no inicio de qualquer nova sessao para confirmar que nada cri
 ### Checkpoint 2026-04-02 (OpenAPI backend validado com H2)
 - Feito:
   - `apps/backend/pom.xml` ajustado para incluir `h2` em escopo de teste, destravando o `@SpringBootTest` com profile `test`.
-  - Dependência OpenAPI do backend migrada para `springdoc-openapi-starter-webmvc-api` com publicação do Swagger UI via WebJar, preservando o endpoint público `GET /api/swagger` por redirecionamento explícito.
+  - DependÃªncia OpenAPI do backend migrada para `springdoc-openapi-starter-webmvc-api` com publicaÃ§Ã£o do Swagger UI via WebJar, preservando o endpoint pÃºblico `GET /api/swagger` por redirecionamento explÃ­cito.
   - Criado `OpenApiContractIntegrationTest` para validar o endpoint `GET /api/openapi/v1` contra o contrato efetivamente publicado.
-  - `CanonicalErrorResponse` passou a expor os campos canônicos como `required` no OpenAPI e `ErrorSeverity` passou a ser publicado como schema reutilizável (`enumAsRef = true`).
-  - Suíte alvo do backend validada localmente com sucesso: `BackofficeApiApplicationTests`, `OpenApiContractIntegrationTest` e `MobileApiControllerContractErrorTest`.
+  - `CanonicalErrorResponse` passou a expor os campos canÃ´nicos como `required` no OpenAPI e `ErrorSeverity` passou a ser publicado como schema reutilizÃ¡vel (`enumAsRef = true`).
+  - SuÃ­te alvo do backend validada localmente com sucesso: `BackofficeApiApplicationTests`, `OpenApiContractIntegrationTest` e `MobileApiControllerContractErrorTest`.
 - Estado atual:
-  - O backend sobe localmente em profile `test` com H2 e o endpoint OpenAPI v1 está validado por teste de integração.
-  - `GET /api/swagger` foi mantido como alias estável, agora desacoplado do auto-config problemático do UI do `springdoc`.
+  - O backend sobe localmente em profile `test` com H2 e o endpoint OpenAPI v1 estÃ¡ validado por teste de integraÃ§Ã£o.
+  - `GET /api/swagger` foi mantido como alias estÃ¡vel, agora desacoplado do auto-config problemÃ¡tico do UI do `springdoc`.
 - Proxima acao:
   - Executar `backend_ci.yml` em PR para validar o mesmo comportamento no runner Linux.
-  - Avaliar se vale adicionar teste específico para o redirect de `GET /api/swagger` além do teste do JSON OpenAPI.
+  - Avaliar se vale adicionar teste especÃ­fico para o redirect de `GET /api/swagger` alÃ©m do teste do JSON OpenAPI.
 
 ---
 
 ### Checkpoint 2026-04-03 (documentacao mestre unificada importada)
 - Feito:
-  - ZIP `DOCS_MESTRE_FINAL_UNIFICADO.zip` extraído e estrutura copiada para `docs/` do repositório.
+  - ZIP `DOCS_MESTRE_FINAL_UNIFICADO.zip` extraÃ­do e estrutura copiada para `docs/` do repositÃ³rio.
   - Pastas importadas: `00-overview`, `01-executive`, `02-product`, `03-architecture`, `04-engineering`, `05-operations`, `06-analysis-and-design`, `07-diagrams`.
   - Total: 38 arquivos .md + diagramas .puml/.mmd + imagens .png.
   - `copilot-instructions.md` atualizado com secao "Documentacao mestre" listando os 13 documentos canonicos obrigatorios de consulta.
@@ -838,7 +838,8 @@ Use este checklist no inicio de qualquer nova sessao para confirmar que nada cri
   - Visao estrategica: `docs/01-executive/05_VISAO_ESTRATEGICA_E_ESTATIOS.md`
   - Blueprint: `docs/03-architecture/01_CORPORATE_BLUEPRINT.md`
   - Modelo canonico: `docs/03-architecture/07_CORPORATE_CANONICAL_MODEL.md`
-  - Tenant/white-label e fronteiras: `docs/03-architecture/06_TENANT_AND_WHITE_LABEL_MODEL.md`
+  - Tenant transversal e ecossistema de plataforma: `docs/03-architecture/10_PLATFORM_ECOSYSTEM_AND_TENANT_MODEL.md`
+  - Canal mobile white-label e branding/distribuicao: `docs/03-architecture/08_BRAND_AND_DISTRIBUTION_MODEL.md`
   - Decisoes V2: `docs/06-analysis-design/01_DECISION_LOG_V2.md`
   - Personas: `docs/02-product/01_PERSONAS_E_PAPEIS.md`
   - Regras de negocio: `docs/06-analysis-design/01_DECISION_LOG_V2.md`
@@ -846,7 +847,7 @@ Use este checklist no inicio de qualquer nova sessao para confirmar que nada cri
   - Fazer commit desta documentacao para garantir que CI/CD e outros agentes tenham acesso imediato.
   - Retomar planejamento de implementacao a partir de `docs/05-operations/02_PLANO_IMPLEMENTACAO_90_DIAS.md` como guia de proximos passos.
 
-_Documento de restauração mantido pelo agente (Copilot) como ponto de continuidade operacional._
+_Documento de restauraÃ§Ã£o mantido pelo agente (Copilot) como ponto de continuidade operacional._
 
 ### Checkpoint 2026-04-02 (BOW-003/BOW-053 - gestao de usuarios web+mobile)
 - Feito:
@@ -884,13 +885,13 @@ _Documento de restauração mantido pelo agente (Copilot) como ponto de continui
     3. administracao da plataforma (platform scope).
   - A evolucao de auth/RBAC deve preservar essa hierarquia como requisito de seguranca obrigatorio.
   - Fonte de verdade para interpretacao de niveis de acesso: modelo de dominio IAM/white label e personas de negocio (Tenant, OrganizationUnit, Membership, IdentityBinding; operacao, gestor e administracao de plataforma).
-  - Exemplos pontuais de conversa nao substituem a estrategia canônica documentada.
+  - Exemplos pontuais de conversa nao substituem a estrategia canÃ´nica documentada.
 - Impacto imediato no backlog:
   - BOW-002 e BOW-033 passam a explicitar a diferenca entre administracao por empresa e administracao global da plataforma.
 - Proxima acao:
   - Materializar essa segregacao na matriz de permissao backend-first com claims de escopo e validacoes por dominio sensivel (users, onboarding, configuracao).
 
-### Checkpoint 2026-04-03 (backlog 4 ondas gerado — guia de desenvolvimento completo)
+### Checkpoint 2026-04-03 (backlog 4 ondas gerado â€” guia de desenvolvimento completo)
 - O que foi feito:
   - Lidos e consolidados todos os documentos canonicos importados na sessao anterior (docs/00-overview a docs/06-analysis-and-design).
   - Auditados 58 arquivos Java do backend e 9 arquivos TSX do web-backoffice.
@@ -899,15 +900,15 @@ _Documento de restauração mantido pelo agente (Copilot) como ponto de continui
   - BACKLOG_FUNCIONALIDADES.md atualizado com sequenciamento corrigido de BL-031 (depende de BOW-100/101/102).
 - Estado atual:
   - Backlog principal: 24 cards detalhados na Onda 1 (BOW-100 a BOW-151), 8 cards na Onda 2, 4 planejados na Onda 3, 4 visao na Onda 4.
-  - Dependência critica identificada: BOW-100 (Tenant+Membership) bloqueia tudo. Deve ser o primeiro card implementado.
+  - DependÃªncia critica identificada: BOW-100 (Tenant+Membership) bloqueia tudo. Deve ser o primeiro card implementado.
   - Codigo existente com divida: User.java (sem FK tenantId real), ConfigPackage (sem FK tenant), MobileApiController (stubs sem persistencia).
   - Nenhum dos 5 bounded contexts ausentes (Job Lifecycle, Field Ops, Valuation, Reporting, Settlement) tem codigo no backend.
 - Proxima acao:
   - Iniciar BOW-100: criar Tenant + OrganizationUnit + Membership com migrations Flyway em identity_db.
-  - Seguir sequencia obrigatoria: BOW-100 → BOW-101 → BOW-102 → BOW-103 → BOW-104 → BOW-105 → BOW-110.
+  - Seguir sequencia obrigatoria: BOW-100 â†’ BOW-101 â†’ BOW-102 â†’ BOW-103 â†’ BOW-104 â†’ BOW-105 â†’ BOW-110.
   - Nao iniciar BL-031 (auth mobile) antes de BOW-102 estar funcional com GET /auth/me retornando tenant context.
 
-### Checkpoint 2026-04-03 (retomada de desenvolvimento — BOW-100 parcial implementado)
+### Checkpoint 2026-04-03 (retomada de desenvolvimento â€” BOW-100 parcial implementado)
 - O que foi feito:
   - Implementado novo modulo `identity` no backend com entidades: `Tenant`, `OrganizationUnit`, `Membership`.
   - Implementados enums de dominio: `TenantStatus`, `OrganizationUnitType`, `MembershipRole`, `MembershipStatus`.
@@ -915,19 +916,19 @@ _Documento de restauração mantido pelo agente (Copilot) como ponto de continui
   - Implementado teste de integracao `IdentityTenantMembershipIntegrationTest` validando isolamento por tenant e consulta por `user + tenant`.
   - Ajustado teste para evitar `LazyInitializationException` e evitar contaminacao da suite por FK residual.
 - Estado atual:
-  - Suite backend verde apos mudanca (todos os relatórios surefire com `failures=0` e `errors=0`).
-  - BOW-100 avançou para "Em andamento (parcial)" no backlog.
+  - Suite backend verde apos mudanca (todos os relatÃ³rios surefire com `failures=0` e `errors=0`).
+  - BOW-100 avanÃ§ou para "Em andamento (parcial)" no backlog.
   - Ainda nao ha migrations Flyway no projeto; o backend segue semversao de schema por SQL versionado.
 - Proxima acao:
   - Concluir BOW-100 com introducao de Flyway e migrations `V002..V006`.
   - Iniciar BOW-101 com retrofit de `User` para vinculo real com `Tenant` e remocao progressiva de papel na entidade de identidade.
 
-### Checkpoint 2026-04-03 (BOW-101 iniciado — UserLifecycle separado)
+### Checkpoint 2026-04-03 (BOW-101 iniciado â€” UserLifecycle separado)
 - O que foi feito:
   - Criada entidade `UserLifecycle` com repository dedicado para separar ciclo de aprovacao da identidade em `User`.
   - Criado enum `UserLifecycleStatus` com estados `PENDING_APPROVAL`, `APPROVED`, `REJECTED`.
   - `UserService` atualizado para escrever transicoes no lifecycle em create (mobile/web/import), approve e reject.
-  - `UserResponse` ampliado com `lifecycleStatus` para rastrear status do agregado novo durante migração.
+  - `UserResponse` ampliado com `lifecycleStatus` para rastrear status do agregado novo durante migraÃ§Ã£o.
   - Criado teste `UserLifecycleTransitionIntegrationTest` validando transicao APPROVED e REJECTED no lifecycle.
 - Estado atual:
   - Suite backend segue verde (failures/errors = 0 em todas as suites surefire).
@@ -935,25 +936,25 @@ _Documento de restauração mantido pelo agente (Copilot) como ponto de continui
   - Compatibilidade mantida: `User.status` e `User.role` ainda existem temporariamente para nao quebrar contratos existentes.
 - Proxima acao:
   - Migrar responsabilidade de role para `Membership` e iniciar desuso de `User.role`.
-  - Preparar FK real de tenant em `users` com migração (junto de Flyway no fechamento de BOW-100/BOW-101).
+  - Preparar FK real de tenant em `users` com migraÃ§Ã£o (junto de Flyway no fechamento de BOW-100/BOW-101).
 
-### Checkpoint 2026-04-03 (BOW-101 continuacao — dual-write de Membership)
+### Checkpoint 2026-04-03 (BOW-101 continuacao â€” dual-write de Membership)
 - O que foi feito:
   - `UserService` atualizado para gravar `Membership` em dual-write nas trilhas de create mobile, create web, import AD, approve e reject.
   - Introduzido mapeamento transicional `UserRole -> MembershipRole` para manter compatibilidade com contratos existentes.
-  - Ajustada criacao incremental de tenant no fluxo para suportar persistencia de membership durante a migração.
+  - Ajustada criacao incremental de tenant no fluxo para suportar persistencia de membership durante a migraÃ§Ã£o.
   - Teste `UserLifecycleTransitionIntegrationTest` ampliado para validar estado de membership (`ACTIVE`/`REVOKED`) junto do lifecycle.
   - `UserManagementLifecycleIntegrationTest` ajustado para limpeza ordenada de `memberships` antes de `users` e evitar quebra por FK em suites sequenciais.
 - Estado atual:
   - Escrita de autorizacao em `Membership` ativa sem quebra dos endpoints existentes.
-  - `User.role` permanece temporariamente para compatibilidade de leitura e auditoria durante transição.
+  - `User.role` permanece temporariamente para compatibilidade de leitura e auditoria durante transiÃ§Ã£o.
 - Proxima acao:
   - Migrar leituras/autorizacao para `Membership` como fonte principal e iniciar deprecacao de leituras por `User.role`.
   - Fechar card com migracao de FK real `users.tenant_id -> tenants.id` e limpeza dos campos legados.
 
-### Checkpoint 2026-04-03 (BOW-101 continuacao — leitura de role via Membership)
+### Checkpoint 2026-04-03 (BOW-101 continuacao â€” leitura de role via Membership)
 - O que foi feito:
-  - `UserService` ajustado para resolver role efetiva por `Membership` nas consultas (`findAll`, `findByStatus`, `findPending`, `findUserById`), preservando fallback temporário para `User.role`.
+  - `UserService` ajustado para resolver role efetiva por `Membership` nas consultas (`findAll`, `findByStatus`, `findPending`, `findUserById`), preservando fallback temporÃ¡rio para `User.role`.
   - Fluxos de `approve`/`reject` passaram a reutilizar role efetiva resolvida para transicao de status da membership.
   - Novo teste de integracao em `UserManagementLifecycleIntegrationTest` valida precedencia de role da membership no `GET /api/users/{id}`.
 - Estado atual:
@@ -963,59 +964,59 @@ _Documento de restauração mantido pelo agente (Copilot) como ponto de continui
   - Remover fallback para `User.role` apos fechamento de migracao de dados legados.
   - Concluir BOW-101 com migracao de FK real `users.tenant_id -> tenants.id`.
 
-### Checkpoint 2026-04-03 (BOW-101 continuacao — backfill automatico de membership legado)
+### Checkpoint 2026-04-03 (BOW-101 continuacao â€” backfill automatico de membership legado)
 - O que foi feito:
   - `UserService` passou a criar `Membership` automaticamente para usuarios legados sem vinculo quando consultados.
   - Regra de backfill aplica role/status derivando de `User.role` e `User.status` apenas no momento da migracao incremental.
   - Novo teste `shouldBackfillMembershipForLegacyUserWithoutMembership` adicionado em `UserManagementLifecycleIntegrationTest` validando criacao de membership e role retornada no endpoint.
 - Estado: Supersedido pelo checkpoint abaixo (BOW-101 concluido).
 
-### Checkpoint 2026-04-03 (BOW-101 CONCLUIDO — Flyway + FK + User.role @Transient)
+### Checkpoint 2026-04-03 (BOW-101 CONCLUIDO â€” Flyway + FK + User.role @Transient)
 - O que foi feito:
-  - Flyway introduzido: `flyway-core` adicionado ao pom.xml; Spring Boot autoconfigura migrações de `db/migration`.
+  - Flyway introduzido: `flyway-core` adicionado ao pom.xml; Spring Boot autoconfigura migraÃ§Ãµes de `db/migration`.
   - V001: schema inicial completo (8 tabelas, sem FK em users.tenant_id).
-  - V002: FK real `users.tenant_id → tenants.id` via ALTER TABLE.
+  - V002: FK real `users.tenant_id â†’ tenants.id` via ALTER TABLE.
   - V003: DROP COLUMN role da tabela users (campo migrado para memberships).
-  - `User.role` alterado de `@Column @Enumerated` para `@Transient` — persiste só em memória para projeção de role efetiva.
-  - `backfillLegacyMembership`: com role=null (transient), usa FIELD_OPERATOR como padrão (via toMembershipRole(null)).
-  - `UserService.createFromWeb` audit: usa req.role() string diretamente (não mais saved.getRole()).
+  - `User.role` alterado de `@Column @Enumerated` para `@Transient` â€” persiste sÃ³ em memÃ³ria para projeÃ§Ã£o de role efetiva.
+  - `backfillLegacyMembership`: com role=null (transient), usa FIELD_OPERATOR como padrÃ£o (via toMembershipRole(null)).
+  - `UserService.createFromWeb` audit: usa req.role() string diretamente (nÃ£o mais saved.getRole()).
   - `application.yml` (prod): ddl-auto=none (Flyway gerencia schema).
   - `application-test.yml`: H2 com MODE=PostgreSQL, ddl-auto=none, Flyway ativo.
-  - Todos os testes que criavam User diretamente via new User() atualizados para ter o tenant pré-existente (@BeforeEach).
-  - Testes de backfill atualizados: role legado default = FIELD_OPERATOR (não AUDITOR), status = SUSPENDED.
+  - Todos os testes que criavam User diretamente via new User() atualizados para ter o tenant prÃ©-existente (@BeforeEach).
+  - Testes de backfill atualizados: role legado default = FIELD_OPERATOR (nÃ£o AUDITOR), status = SUSPENDED.
 - Estado atual:
-  - BOW-101 concluído. User.role removida da persistência. FK users.tenant_id aplicada.
+  - BOW-101 concluÃ­do. User.role removida da persistÃªncia. FK users.tenant_id aplicada.
   - Suite: 30 testes, 0 falhas, 0 erros.
 - Proxima acao:
   - Iniciar BOW-102 (JWT auth backend).
 
 ---
 
-### Checkpoint 2026-04-03 (BOW-102 + BOW-103 CONCLUIDOS — Auth module + IdP Adapter)
+### Checkpoint 2026-04-03 (BOW-102 + BOW-103 CONCLUIDOS â€” Auth module + IdP Adapter)
 - O que foi feito:
-  - **V004** (Flyway): tabelas `user_credentials` (FK → users, tenants) e `sessions` (FK → users, tenants) criadas.
-  - **V005** (Flyway): tabela `identity_bindings` (FK → users, tenants; UNIQUE por provider_type+provider_sub+tenant) criada.
-  - **Módulo auth** criado em `apps/backend/src/main/java/com/appbackoffice/api/auth/` (27 arquivos):
+  - **V004** (Flyway): tabelas `user_credentials` (FK â†’ users, tenants) e `sessions` (FK â†’ users, tenants) criadas.
+  - **V005** (Flyway): tabela `identity_bindings` (FK â†’ users, tenants; UNIQUE por provider_type+provider_sub+tenant) criada.
+  - **MÃ³dulo auth** criado em `apps/backend/src/main/java/com/appbackoffice/api/auth/` (27 arquivos):
     - Entidades: `UserCredentialEntity`, `SessionEntity`, `IdentityBindingEntity`, `IdentityProviderType`
-    - Repositórios JPA: `UserCredentialRepository`, `SessionRepository`, `IdentityBindingRepository`
+    - RepositÃ³rios JPA: `UserCredentialRepository`, `SessionRepository`, `IdentityBindingRepository`
     - Providers (BOW-103): interface `IdentityProvider` + `InternalIdentityProvider` + `AuthenticationRequest` + `AuthenticatedIdentity`
-    - Serviços: `AuthService`, `JwtTokenService`, `JwtPrincipal`, `LoginAttemptStore`, `LoginAttemptStatus`, `TokenRevocationStore`, `RedisResilientLoginAttemptStore`, `RedisResilientTokenRevocationStore`, `PermissionCatalog`
+    - ServiÃ§os: `AuthService`, `JwtTokenService`, `JwtPrincipal`, `LoginAttemptStore`, `LoginAttemptStatus`, `TokenRevocationStore`, `RedisResilientLoginAttemptStore`, `RedisResilientTokenRevocationStore`, `PermissionCatalog`
     - Controller + DTOs para `/api/auth/login`, `/api/auth/refresh`, `/api/auth/logout`, `/api/auth/me`
-  - **jjwt 0.12.6** adicionado ao pom.xml para geração/validação de JWT.
+  - **jjwt 0.12.6** adicionado ao pom.xml para geraÃ§Ã£o/validaÃ§Ã£o de JWT.
   - **spring-security-crypto** adicionado para BCrypt.
-  - **Redis stores resilientes**: fallback gracioso quando Redis indisponível (caches locais).
-  - **AuthIntegrationTest**: 4 testes (login, refresh, logout, me, lockout) — todos passando.
-  - **Correção FK cleanup**: 3 testes antigos (`IdentityTenantMembershipIntegrationTest`, `UserLifecycleTransitionIntegrationTest`, `UserManagementLifecycleIntegrationTest`) atualizados para limpar `sessions → identityBindings → userCredentials` antes de deletar `users`.
+  - **Redis stores resilientes**: fallback gracioso quando Redis indisponÃ­vel (caches locais).
+  - **AuthIntegrationTest**: 4 testes (login, refresh, logout, me, lockout) â€” todos passando.
+  - **CorreÃ§Ã£o FK cleanup**: 3 testes antigos (`IdentityTenantMembershipIntegrationTest`, `UserLifecycleTransitionIntegrationTest`, `UserManagementLifecycleIntegrationTest`) atualizados para limpar `sessions â†’ identityBindings â†’ userCredentials` antes de deletar `users`.
 - Estado atual:
-  - BOW-102 e BOW-103 concluídos.
+  - BOW-102 e BOW-103 concluÃ­dos.
   - Suite completa: 10 classes, 34 testes, 0 falhas, 0 erros.
-  - Migrations Flyway: V001–V005 ativas.
+  - Migrations Flyway: V001â€“V005 ativas.
 - Proxima acao:
-  - Iniciar BOW-104 (RBAC por escopo: platform × tenant × operacional × campo).
+  - Iniciar BOW-104 (RBAC por escopo: platform Ã— tenant Ã— operacional Ã— campo).
 
 ---
 
-### Checkpoint 2026-04-03 (BOW-104 + BOW-105 + BOW-110 + BOW-111 CONCLUIDOS — Seguranca RBAC + Policy + Integration Hub)
+### Checkpoint 2026-04-03 (BOW-104 + BOW-105 + BOW-110 + BOW-111 CONCLUIDOS â€” Seguranca RBAC + Policy + Integration Hub)
 - O que foi feito:
   - **BOW-104 (RBAC por escopo)**:
     - Criada annotation `@RequiresTenantRole`.
@@ -1035,21 +1036,21 @@ _Documento de restauração mantido pelo agente (Copilot) como ponto de continui
       - `GET /api/integration/demands/{externalId}?tenantId=`
     - Publicacao de evento simulada via `LogIntegrationEventPublisher` (`DemandCreated`).
     - Testes de integracao adicionados: `IntegrationDemandIntegrationTest` (valido, invalido, duplicado).
-  - **BOW-111 (erro canônico expandido)**:
+  - **BOW-111 (erro canÃ´nico expandido)**:
     - Novos cenarios de autorizacao (`AUTH_FORBIDDEN`, `TENANT_CONTEXT_MISMATCH`) entregues no envelope `CanonicalErrorResponse` via `ApiContractException`.
-    - Cobertura de contrato para 403 canônico validada.
+    - Cobertura de contrato para 403 canÃ´nico validada.
   - Ajustes de estabilidade dos testes:
     - Ordem de cleanup em `IntegrationDemandIntegrationTest` atualizada para deletar dependentes antes de `tenants`.
     - `ConfigPackageLifecycleIntegrationTest` ajustado para incluir `X-Actor-Role` nas mutacoes protegidas.
 - Estado atual:
-  - BOW-104, BOW-105, BOW-110 e BOW-111 concluídos.
+  - BOW-104, BOW-105, BOW-110 e BOW-111 concluÃ­dos.
   - Backend: `mvn -B -f apps/backend/pom.xml -DforkCount=0 test` verde.
   - Suite completa backend: **38 testes, 0 falhas, 0 erros**.
-  - Migrations Flyway ativas: V001–V006.
+  - Migrations Flyway ativas: V001â€“V006.
 - Proxima acao:
-  - Iniciar BOW-120 (modelo canônico de domínio: Case/Job/Assignment).
+  - Iniciar BOW-120 (modelo canÃ´nico de domÃ­nio: Case/Job/Assignment).
 
-### Checkpoint 2026-04-03 (promocao homolog -> main — PR #9)
+### Checkpoint 2026-04-03 (promocao homolog -> main â€” PR #9)
 - O que foi feito:
   - PR `#9` criado de `homolog/bl-accordion-dedup-fix` para `main` com pacote BOW-120/BOW-121/BOW-122.
   - Merge para `main` concluido no mesmo ciclo, com esteiras principais monitoradas ate conclusao.
@@ -1064,100 +1065,101 @@ _Documento de restauração mantido pelo agente (Copilot) como ponto de continui
 - Proxima acao:
   - Na proxima promocao para `main`, executar obrigatoriamente o procedimento de excecao controlada com evidencia de ajuste e restore da protecao no mesmo checkpoint.
 
-### Checkpoint 2026-04-03 (pacote grande — Fase A incrementos 1 e 2)
+### Checkpoint 2026-04-03 (pacote grande â€” Fase A incrementos 1 e 2)
 - O que foi feito:
-  - Criada migration `V010__checkin_sections.sql` com modelo canônico NBR de seções de check-in (`checkin_sections`).
+  - Criada migration `V010__checkin_sections.sql` com modelo canÃ´nico NBR de seÃ§Ãµes de check-in (`checkin_sections`).
   - Criadas `CheckinSectionEntity` e `CheckinSectionRepository` no backend.
-  - `GET /api/mobile/checkin-config` evoluído para retornar `publishedAt` e `sections[]` canônicas (com fallback default), mantendo `step1/step2` por retrocompatibilidade.
-  - Criada migration `V011__inspections.sql` com agregado explícito `inspections` ligado a submissão e job.
+  - `GET /api/mobile/checkin-config` evoluÃ­do para retornar `publishedAt` e `sections[]` canÃ´nicas (com fallback default), mantendo `step1/step2` por retrocompatibilidade.
+  - Criada migration `V011__inspections.sql` com agregado explÃ­cito `inspections` ligado a submissÃ£o e job.
   - Criadas `InspectionEntity` e `InspectionRepository`.
-  - `InspectionSubmissionService` atualizado para persistir `Inspection` explícita e responder status `SUBMITTED` no retorno mobile.
+  - `InspectionSubmissionService` atualizado para persistir `Inspection` explÃ­cita e responder status `SUBMITTED` no retorno mobile.
   - Testes ajustados:
     - `MobileCheckinConfigIntegrationTest` cobrindo `publishedAt` + `sections[]`.
-    - `InspectionSubmissionIntegrationTest` cobrindo persistência do agregado `Inspection` + idempotência.
+    - `InspectionSubmissionIntegrationTest` cobrindo persistÃªncia do agregado `Inspection` + idempotÃªncia.
 - Estado atual:
   - Flyway backend em `V011`.
   - Incrementos da Fase A validados com sucesso em teste focado backend (`4 testes, 0 falhas`).
-  - BOW-121 e BOW-122 avançaram com persistência/modelo explícito; BOW-123 ainda pendente.
-- Próxima ação:
+  - BOW-121 e BOW-122 avanÃ§aram com persistÃªncia/modelo explÃ­cito; BOW-123 ainda pendente.
+- PrÃ³xima aÃ§Ã£o:
   - Iniciar BOW-123 no `apps/web-backoffice`: rota `/backoffice/inspections` com lista, filtros e indicadores operacionais em cima de dados reais de `inspections`.
 
-### Checkpoint 2026-04-03 (pacote grande — BOW-123 incremento inicial web)
+### Checkpoint 2026-04-03 (pacote grande â€” BOW-123 incremento inicial web)
 - O que foi feito:
   - Criado backend `InspectionBackofficeController` com endpoints `GET /api/backoffice/inspections` e `GET /api/backoffice/inspections/{id}`.
-  - Criado `InspectionBackofficeService` com filtros por status, janela temporal e vistoriador, além de detalhe técnico do payload persistido.
+  - Criado `InspectionBackofficeService` com filtros por status, janela temporal e vistoriador, alÃ©m de detalhe tÃ©cnico do payload persistido.
   - Criadas rotas Next.js `/api/inspections` e `/api/inspections/[inspectionId]` para bridge com o backend.
-  - Criada página `apps/web-backoffice/app/backoffice/inspections/page.tsx` com cards-resumo, filtros, tabela e painel de detalhe técnico.
+  - Criada pÃ¡gina `apps/web-backoffice/app/backoffice/inspections/page.tsx` com cards-resumo, filtros, tabela e painel de detalhe tÃ©cnico.
   - Dashboard inicial atualizado com atalho para o novo painel de vistorias recebidas.
   - Warning de `useEffect` corrigido; `npm --prefix apps/web-backoffice run lint` voltou limpo.
   - `npm --prefix apps/web-backoffice test` executado com sucesso: 14 testes, 0 falhas.
 - Estado atual:
   - BOW-123 saiu de pendente para incremento funcional inicial entregue.
   - Backend focado segue verde (`MobileCheckinConfigIntegrationTest` + `InspectionSubmissionIntegrationTest` = 4 testes, 0 falhas).
-  - `next build` do web-backoffice ficou pendurado neste ambiente local sem erro explícito; requer nova checagem isolada antes do pacote de homologação.
-- Próxima ação:
-  - Fechar BOW-123 com paginação navegável/indicadores operacionais mais ricos e revalidar `npm --prefix apps/web-backoffice run build` de forma determinística antes da publicação em homolog.
+  - `next build` do web-backoffice ficou pendurado neste ambiente local sem erro explÃ­cito; requer nova checagem isolada antes do pacote de homologaÃ§Ã£o.
+- PrÃ³xima aÃ§Ã£o:
+  - Fechar BOW-123 com paginaÃ§Ã£o navegÃ¡vel/indicadores operacionais mais ricos e revalidar `npm --prefix apps/web-backoffice run build` de forma determinÃ­stica antes da publicaÃ§Ã£o em homolog.
 
-### Checkpoint 2026-04-03 (pacote grande — BOW-123 paginação + testes)
+### Checkpoint 2026-04-03 (pacote grande â€” BOW-123 paginaÃ§Ã£o + testes)
 - O que foi feito:
-  - `InspectionBackofficeService` ajustado para paginação ordenada por `submittedAt desc, id desc`.
-  - Painel web de inspections atualizado com paginação navegável (`page/size`) e cards-resumo mais próximos do critério operacional.
-  - Novo teste backend `InspectionBackofficeIntegrationTest` cobrindo listagem paginada e detalhe técnico.
-  - Novo teste web `inspections_api_routes.test.ts` cobrindo propagação de query params e detalhe via rotas Next.js.
-  - Suíte backend focada validada: 6 testes, 0 falhas (`InspectionBackofficeIntegrationTest`, `InspectionSubmissionIntegrationTest`, `MobileCheckinConfigIntegrationTest`).
-  - Suíte web validada: `npm --prefix apps/web-backoffice test` com 16 testes verdes e `npm --prefix apps/web-backoffice run lint` limpo.
+  - `InspectionBackofficeService` ajustado para paginaÃ§Ã£o ordenada por `submittedAt desc, id desc`.
+  - Painel web de inspections atualizado com paginaÃ§Ã£o navegÃ¡vel (`page/size`) e cards-resumo mais prÃ³ximos do critÃ©rio operacional.
+  - Novo teste backend `InspectionBackofficeIntegrationTest` cobrindo listagem paginada e detalhe tÃ©cnico.
+  - Novo teste web `inspections_api_routes.test.ts` cobrindo propagaÃ§Ã£o de query params e detalhe via rotas Next.js.
+  - SuÃ­te backend focada validada: 6 testes, 0 falhas (`InspectionBackofficeIntegrationTest`, `InspectionSubmissionIntegrationTest`, `MobileCheckinConfigIntegrationTest`).
+  - SuÃ­te web validada: `npm --prefix apps/web-backoffice test` com 16 testes verdes e `npm --prefix apps/web-backoffice run lint` limpo.
 - Estado atual:
-  - BOW-123 avançou para um painel funcional com paginação inicial e cobertura automatizada básica.
-  - Build de produção do web-backoffice segue em verificação isolada com log (`apps/web-backoffice/.next-build.log`) para confirmar se o travamento anterior era apenas ausência de output no terminal.
-- Próxima ação:
-  - Ler o resultado do build em background, eliminar a pendência operacional do `next build` e então decidir se seguimos para fechamento de métricas/intake ou já preparamos rodada de homologação do pacote.
+  - BOW-123 avanÃ§ou para um painel funcional com paginaÃ§Ã£o inicial e cobertura automatizada bÃ¡sica.
+  - Build de produÃ§Ã£o do web-backoffice segue em verificaÃ§Ã£o isolada com log (`apps/web-backoffice/.next-build.log`) para confirmar se o travamento anterior era apenas ausÃªncia de output no terminal.
+- PrÃ³xima aÃ§Ã£o:
+  - Ler o resultado do build em background, eliminar a pendÃªncia operacional do `next build` e entÃ£o decidir se seguimos para fechamento de mÃ©tricas/intake ou jÃ¡ preparamos rodada de homologaÃ§Ã£o do pacote.
 
-### Checkpoint 2026-04-03 (pacote grande — bloqueio operacional do next build)
+### Checkpoint 2026-04-03 (pacote grande â€” bloqueio operacional do next build)
 - O que foi feito:
-  - Removida dependência de fonte remota em `apps/web-backoffice/app/layout.tsx` (remoção de `next/font/google`) e substituída por pilhas locais em `apps/web-backoffice/app/globals.css`.
-  - Build do Next testado em múltiplos modos (`next build`, `next build --debug`, `next build --no-lint`) com limpeza de cache `.next` e tempo de observação estendido (15 minutos).
-  - Reinstalação limpa de dependências web executada para descartar corrupção local de `node_modules`.
-  - Pós-reinstalação, testes quebraram por `ERR_MODULE_NOT_FOUND: get-tsconfig` no loader do `tsx`; ajuste aplicado adicionando `get-tsconfig` como `devDependency` direta em `apps/web-backoffice/package.json`.
-  - Validação funcional restaurada: `npm --prefix apps/web-backoffice test` (16 verdes) e `npm --prefix apps/web-backoffice run lint` (sem erros).
+  - Removida dependÃªncia de fonte remota em `apps/web-backoffice/app/layout.tsx` (remoÃ§Ã£o de `next/font/google`) e substituÃ­da por pilhas locais em `apps/web-backoffice/app/globals.css`.
+  - Build do Next testado em mÃºltiplos modos (`next build`, `next build --debug`, `next build --no-lint`) com limpeza de cache `.next` e tempo de observaÃ§Ã£o estendido (15 minutos).
+  - ReinstalaÃ§Ã£o limpa de dependÃªncias web executada para descartar corrupÃ§Ã£o local de `node_modules`.
+  - PÃ³s-reinstalaÃ§Ã£o, testes quebraram por `ERR_MODULE_NOT_FOUND: get-tsconfig` no loader do `tsx`; ajuste aplicado adicionando `get-tsconfig` como `devDependency` direta em `apps/web-backoffice/package.json`.
+  - ValidaÃ§Ã£o funcional restaurada: `npm --prefix apps/web-backoffice test` (16 verdes) e `npm --prefix apps/web-backoffice run lint` (sem erros).
 - Estado atual:
-  - O travamento do `npm --prefix apps/web-backoffice run build` persiste no ambiente Windows local, sem saída adicional após o banner `▲ Next.js 14.2.33`.
-  - Não há erro de código reportado por lint/test nas alterações do pacote BOW-121/BOW-122/BOW-123.
-  - O pacote está funcional para backend/web em testes e lint, com pendência específica no build de produção do Next neste ambiente.
-- Próxima ação:
-  - Abrir trilha de diagnóstico de ambiente para o build do Next (comparar execução em shell limpo e/ou runner Linux CI) e decidir, com base no resultado, se o gate de homologação do pacote será bloqueado por build local ou delegado para validação no CI web.
+  - O travamento do `npm --prefix apps/web-backoffice run build` persiste no ambiente Windows local, sem saÃ­da adicional apÃ³s o banner `â–² Next.js 14.2.33`.
+  - NÃ£o hÃ¡ erro de cÃ³digo reportado por lint/test nas alteraÃ§Ãµes do pacote BOW-121/BOW-122/BOW-123.
+  - O pacote estÃ¡ funcional para backend/web em testes e lint, com pendÃªncia especÃ­fica no build de produÃ§Ã£o do Next neste ambiente.
+- PrÃ³xima aÃ§Ã£o:
+  - Abrir trilha de diagnÃ³stico de ambiente para o build do Next (comparar execuÃ§Ã£o em shell limpo e/ou runner Linux CI) e decidir, com base no resultado, se o gate de homologaÃ§Ã£o do pacote serÃ¡ bloqueado por build local ou delegado para validaÃ§Ã£o no CI web.
 
-  ### Checkpoint 2026-04-03 (pacote grande — validação completa do pacote)
+  ### Checkpoint 2026-04-03 (pacote grande â€” validaÃ§Ã£o completa do pacote)
   - O que foi feito:
     - Diagnosticado e resolvido o travamento do `npm run build` do web-backoffice: causa raiz era `output: "standalone"` no `next.config.mjs` que bloqueia o file-tracing no Windows.
     - `next.config.mjs` ajustado para ativar `output: "standalone"` apenas quando `CI=1` ou `NEXT_BUILD_STANDALONE=1`, preservando modo standalone para Docker/CI e desbloqueando builds locais.
     - `npm --prefix apps/web-backoffice run build` concluiu com sucesso: 21 rotas compiladas, 0 erros, 0 warnings.
-    - Suíte backend completa revalidada: 53 testes, 0 falhas, 0 erros (todas as 17 classes).
-    - Suíte web revalidada: 16 testes, 0 falhas; lint limpo; build verde.
+    - SuÃ­te backend completa revalidada: 53 testes, 0 falhas, 0 erros (todas as 17 classes).
+    - SuÃ­te web revalidada: 16 testes, 0 falhas; lint limpo; build verde.
     - Dockerfile/CI devem passar `NEXT_BUILD_STANDALONE=1` para ativar modo standalone no pipeline.
   - Estado atual:
-    - Pacote BOW-121/BOW-122/BOW-123 — todas as validações passando.
-    - Backend: Flyway V001→V011, 17 classes de teste, 53 testes verdes.
-    - Web: 16 testes, lint e build de produção verdes.
-    - Mudanças uncommitted prontas para homologação.
-  - Próxima ação:
-    - Incrementar versão em `pubspec.yaml` (se aplicável ao Flutter), verificar `pubspec.yaml` do app mobile.
-    - Criar branch `homolog/bow-121-122-123` e fazer commit+push para acionar pipeline de homologação.
+    - Pacote BOW-121/BOW-122/BOW-123 â€” todas as validaÃ§Ãµes passando.
+    - Backend: Flyway V001â†’V011, 17 classes de teste, 53 testes verdes.
+    - Web: 16 testes, lint e build de produÃ§Ã£o verdes.
+    - MudanÃ§as uncommitted prontas para homologaÃ§Ã£o.
+  - PrÃ³xima aÃ§Ã£o:
+    - Incrementar versÃ£o em `pubspec.yaml` (se aplicÃ¡vel ao Flutter), verificar `pubspec.yaml` do app mobile.
+    - Criar branch `homolog/bow-121-122-123` e fazer commit+push para acionar pipeline de homologaÃ§Ã£o.
 
-### Checkpoint 2026-04-03 (promocao homolog -> main — PR #10)
+### Checkpoint 2026-04-03 (promocao homolog -> main â€” PR #10)
 - O que foi feito:
   - PR `#10` criada de `homolog/bow-121-122-123` para `main` com o pacote grande BOW-121/BOW-122/BOW-123.
-  - Exceção controlada aplicada conforme regra de mantenedor único:
+  - ExceÃ§Ã£o controlada aplicada conforme regra de mantenedor Ãºnico:
     - `required_approving_review_count` reduzido temporariamente de `1` para `0`.
     - Merge normal da PR executado (sem `--admin`) gerando commit `a19382bdbe2e8d800322918fdf744c47eebd65c5`.
-    - Proteção restaurada imediatamente para `required_approving_review_count = 1`.
+    - ProteÃ§Ã£o restaurada imediatamente para `required_approving_review_count = 1`.
   - Versionamento aplicado no app: `pubspec.yaml` atualizado para `1.2.27+47`.
 - Estado atual:
   - `main` atualizado com o pacote BOW-121/BOW-122/BOW-123 via PR #10.
-  - Pipelines pós-merge concluídas com sucesso: `Android CI`, `Backend CI`, `Web CI`, `Internal Docs CI`, `Backend Deploy`, `Web Deploy`.
-  - `Android Distribution` do merge em `main` concluída com sucesso (`run 23954252296`).
-- Próxima ação:
-  - Aguardar confirmação explícita de recebimento do e-mail do Firebase App Distribution para encerrar formalmente o ciclo de release.
+  - Pipelines pÃ³s-merge concluÃ­das com sucesso: `Android CI`, `Backend CI`, `Web CI`, `Internal Docs CI`, `Backend Deploy`, `Web Deploy`.
+  - `Android Distribution` do merge em `main` concluÃ­da com sucesso (`run 23954252296`).
+- PrÃ³xima aÃ§Ã£o:
+  - Aguardar confirmaÃ§Ã£o explÃ­cita de recebimento do e-mail do Firebase App Distribution para encerrar formalmente o ciclo de release.
 
 ### Encerramento do ciclo (2026-04-03)
-- Confirmação recebida do usuário: e-mail do Firebase App Distribution recebido.
+- ConfirmaÃ§Ã£o recebida do usuÃ¡rio: e-mail do Firebase App Distribution recebido.
 - Status final do ciclo: **ENCERRADO**.
+

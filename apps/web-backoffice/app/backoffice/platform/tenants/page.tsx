@@ -57,6 +57,27 @@ type TenantListResponse = {
   items: TenantSummary[];
 };
 
+type CreateTenantForm = {
+  tenantId: string;
+  slug: string;
+  displayName: string;
+  status: string;
+};
+
+function normalizeAppToken(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '.')
+    .replace(/^\.+|\.+$/g, '')
+    .replace(/\.{2,}/g, '.');
+}
+
+function buildDefaultApplicationId(seed: string): string {
+  const normalized = normalizeAppToken(seed);
+  return normalized ? `br.com.${normalized}` : '';
+}
+
 const applicationTemplate: TenantApplication = {
   tenantId: '',
   appCode: '',
@@ -91,6 +112,12 @@ const adminHandoffTemplate: TenantAdminHandoff = {
 
 export default function PlatformTenantsPage() {
   const [items, setItems] = useState<TenantSummary[]>([]);
+  const [createTenantForm, setCreateTenantForm] = useState<CreateTenantForm>({
+    tenantId: 'tenant-compass',
+    slug: 'compass',
+    displayName: 'Compass',
+    status: 'ACTIVE',
+  });
   const [selectedTenantId, setSelectedTenantId] = useState('');
   const [application, setApplication] = useState<TenantApplication>(applicationTemplate);
   const [license, setLicense] = useState<TenantLicense>(licenseTemplate);
@@ -129,6 +156,7 @@ export default function PlatformTenantsPage() {
   }, []);
 
   const applyTenantSelection = useCallback(async (item: TenantSummary) => {
+    const applicationSeed = item.application?.appCode || item.slug || item.tenantId;
     setSelectedTenantId(item.tenantId);
     setApplication({
       ...applicationTemplate,
@@ -136,8 +164,8 @@ export default function PlatformTenantsPage() {
       appCode: item.application?.appCode || item.slug,
       brandName: item.application?.brandName || item.displayName,
       displayName: item.application?.displayName || item.displayName,
-      applicationId: item.application?.applicationId || '',
-      bundleId: item.application?.bundleId || '',
+      applicationId: item.application?.applicationId || buildDefaultApplicationId(applicationSeed),
+      bundleId: item.application?.bundleId || buildDefaultApplicationId(applicationSeed),
       firebaseAppId: item.application?.firebaseAppId || '',
       distributionChannel: item.application?.distributionChannel || 'firebase',
       distributionGroup: item.application?.distributionGroup || '',
@@ -201,23 +229,70 @@ export default function PlatformTenantsPage() {
 
   async function saveApplication() {
     if (!selectedTenantId) return;
+    const payload = {
+      ...application,
+      appCode: application.appCode.trim(),
+      brandName: application.brandName.trim(),
+      displayName: application.displayName.trim(),
+      applicationId: application.applicationId.trim(),
+      bundleId: application.bundleId.trim(),
+      firebaseAppId: application.firebaseAppId?.trim() || '',
+      distributionChannel: application.distributionChannel?.trim() || '',
+      distributionGroup: application.distributionGroup?.trim() || '',
+      status: application.status.trim(),
+    };
+
+    if (!payload.appCode || !payload.brandName || !payload.displayName || !payload.applicationId || !payload.bundleId || !payload.status) {
+      setError('Preencha App code, Brand, Display name, Application ID, Bundle ID e Status antes de salvar.');
+      setMessage(null);
+      return;
+    }
+
     setSaving(true);
     setError(null);
     setMessage(null);
     try {
-      const response = await fetch(`/api/platform/tenants/${selectedTenantId}/application`, {
+      const response: Response = await fetch(`/api/platform/tenants/${selectedTenantId}/application`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(application),
+        body: JSON.stringify(payload),
       });
-      const payload = await response.json();
+      const responseBody = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error || payload.message || 'Falha ao salvar app/marca');
+        throw new Error(responseBody.error || responseBody.message || 'Falha ao salvar app/marca');
       }
+      setApplication((current) => ({
+        ...current,
+        ...responseBody,
+      }));
       setMessage('Aplicativo/marca atualizado.');
       await loadTenants();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Falha ao salvar app/marca');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function createTenant() {
+    setSaving(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const response = await fetch('/api/platform/tenants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(createTenantForm),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || payload.message || 'Falha ao criar tenant');
+      }
+      setSelectedTenantId(createTenantForm.tenantId);
+      setMessage('Tenant criado para iniciar o onboarding da empresa.');
+      await loadTenants();
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Falha ao criar tenant');
     } finally {
       setSaving(false);
     }
@@ -296,6 +371,24 @@ export default function PlatformTenantsPage() {
 
       <section style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.4fr', gap: 24 }}>
         <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 16, background: '#fff' }}>
+          <div style={{ border: '1px solid #d1d5db', borderRadius: 10, padding: 12, marginBottom: 16 }}>
+            <h2 style={{ marginTop: 0 }}>Criar tenant</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
+              <label>Tenant ID<input value={createTenantForm.tenantId} onChange={(e) => setCreateTenantForm({ ...createTenantForm, tenantId: e.target.value })} /></label>
+              <label>Slug<input value={createTenantForm.slug} onChange={(e) => setCreateTenantForm({ ...createTenantForm, slug: e.target.value })} /></label>
+              <label>Display name<input value={createTenantForm.displayName} onChange={(e) => setCreateTenantForm({ ...createTenantForm, displayName: e.target.value })} /></label>
+              <label>Status
+                <select value={createTenantForm.status} onChange={(e) => setCreateTenantForm({ ...createTenantForm, status: e.target.value })}>
+                  <option value="ACTIVE">ACTIVE</option>
+                  <option value="INACTIVE">INACTIVE</option>
+                </select>
+              </label>
+            </div>
+            <button onClick={() => void createTenant()} disabled={saving} style={{ marginTop: 12 }}>
+              Criar tenant
+            </button>
+          </div>
+
           <h2 style={{ marginTop: 0 }}>Tenants</h2>
           {loading ? <p>Carregando...</p> : null}
           <div style={{ display: 'grid', gap: 12 }}>
@@ -334,8 +427,8 @@ export default function PlatformTenantsPage() {
               <label>App code<input value={application.appCode} onChange={(e) => setApplication({ ...application, appCode: e.target.value })} /></label>
               <label>Brand<input value={application.brandName} onChange={(e) => setApplication({ ...application, brandName: e.target.value })} /></label>
               <label>Display name<input value={application.displayName} onChange={(e) => setApplication({ ...application, displayName: e.target.value })} /></label>
-              <label>Application ID<input value={application.applicationId} onChange={(e) => setApplication({ ...application, applicationId: e.target.value })} /></label>
-              <label>Bundle ID<input value={application.bundleId} onChange={(e) => setApplication({ ...application, bundleId: e.target.value })} /></label>
+              <label>Application ID<input value={application.applicationId} onChange={(e) => setApplication({ ...application, applicationId: e.target.value })} placeholder="br.com.compass" /></label>
+              <label>Bundle ID<input value={application.bundleId} onChange={(e) => setApplication({ ...application, bundleId: e.target.value })} placeholder="br.com.compass" /></label>
               <label>Firebase app<input value={application.firebaseAppId || ''} onChange={(e) => setApplication({ ...application, firebaseAppId: e.target.value })} /></label>
               <label>Canal<input value={application.distributionChannel || ''} onChange={(e) => setApplication({ ...application, distributionChannel: e.target.value })} /></label>
               <label>Grupo<input value={application.distributionGroup || ''} onChange={(e) => setApplication({ ...application, distributionGroup: e.target.value })} /></label>

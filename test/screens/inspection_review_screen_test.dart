@@ -654,8 +654,8 @@ void main() {
 
       expect(find.text('Fotos Capturadas'), findsOneWidget);
       expect(
-        find.textContaining('1 pend\u00EAncia(s) de classifica\u00E7\u00E3o'),
-        findsOneWidget,
+        find.textContaining('pend\u00EAncia(s) de classifica\u00E7\u00E3o'),
+        findsNothing,
       );
     },
   );

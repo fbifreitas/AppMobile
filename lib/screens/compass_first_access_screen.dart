@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../branding/brand_provider.dart';
@@ -113,7 +114,7 @@ class _CompassFirstAccessScreenState extends State<CompassFirstAccessScreen> {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Use os dados ja cadastrados pela empresa. CPF e data de nascimento localizam seu cadastro; a ativacao exige codigo OTP enviado ao contato cadastrado.',
+                'Use os dados ja cadastrados pela empresa. Vamos localizar seu cadastro e enviar um codigo de confirmacao para o seu contato salvo.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: BrandTokens.textSecondary, height: 1.35),
               ),
@@ -147,7 +148,10 @@ class _CompassFirstAccessScreenState extends State<CompassFirstAccessScreen> {
           TextFormField(
             key: const Key('compass_first_access_birth_date_field'),
             controller: _birthDateController,
-            keyboardType: TextInputType.datetime,
+            keyboardType: TextInputType.number,
+            inputFormatters: const <TextInputFormatter>[
+              _BirthDateTextInputFormatter(),
+            ],
             decoration: const InputDecoration(
               labelText: 'Data de nascimento',
               hintText: 'dd/mm/aaaa',
@@ -201,13 +205,53 @@ class _CompassFirstAccessScreenState extends State<CompassFirstAccessScreen> {
             textAlign: TextAlign.center,
             style: const TextStyle(color: BrandTokens.textSecondary),
           ),
+          if (_challenge!.debugOtp != null) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amber.shade200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Codigo de teste do ambiente local',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: BrandTokens.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _challenge!.debugOtp!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 4,
+                      color: BrandTokens.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Use esse codigo apenas para o teste funcional local.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: BrandTokens.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 18),
           TextFormField(
             key: const Key('compass_first_access_otp_field'),
             controller: _otpController,
             keyboardType: TextInputType.number,
             decoration: const InputDecoration(
-              labelText: 'Codigo OTP',
+              labelText: 'Codigo de confirmacao',
               prefixIcon: Icon(Icons.pin_outlined),
               border: OutlineInputBorder(),
             ),
@@ -250,9 +294,18 @@ class _CompassFirstAccessScreenState extends State<CompassFirstAccessScreen> {
                   )
                 : const Text('Ativar e entrar'),
           ),
+          const SizedBox(height: 8),
+          OutlinedButton(
+            onPressed: _loading ? null : _start,
+            child: const Text('Reenviar codigo'),
+          ),
           TextButton(
             onPressed: _loading ? null : () => setState(() => _challenge = null),
             child: const Text('Corrigir meus dados'),
+          ),
+          TextButton(
+            onPressed: _loading ? null : _showHelp,
+            child: const Text('Nao recebi o codigo'),
           ),
         ],
       ),
@@ -264,11 +317,11 @@ class _CompassFirstAccessScreenState extends State<CompassFirstAccessScreen> {
   }
 
   String _normalizeBirthDate(String value) {
-    final parts = value.trim().split('/');
-    if (parts.length != 3) return '';
-    final day = int.tryParse(parts[0]);
-    final month = int.tryParse(parts[1]);
-    final year = int.tryParse(parts[2]);
+    final digits = value.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.length != 8) return '';
+    final day = int.tryParse(digits.substring(0, 2));
+    final month = int.tryParse(digits.substring(2, 4));
+    final year = int.tryParse(digits.substring(4, 8));
     if (day == null || month == null || year == null) return '';
     if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900) {
       return '';
@@ -280,6 +333,76 @@ class _CompassFirstAccessScreenState extends State<CompassFirstAccessScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(error.toString())),
+    );
+  }
+
+  void _showHelp() {
+    if (!mounted) return;
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: const [
+                Text(
+                  'Como encontrar o codigo',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: BrandTokens.textPrimary,
+                  ),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  '1. Verifique o telefone ou e-mail mostrado acima.',
+                  style: TextStyle(color: BrandTokens.textSecondary),
+                ),
+                SizedBox(height: 6),
+                Text(
+                  '2. Se o codigo nao chegou, toque em "Reenviar codigo".',
+                  style: TextStyle(color: BrandTokens.textSecondary),
+                ),
+                SizedBox(height: 6),
+                Text(
+                  '3. Se o problema continuar, procure o administrador da sua empresa para confirmar o contato cadastrado.',
+                  style: TextStyle(color: BrandTokens.textSecondary),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _BirthDateTextInputFormatter extends TextInputFormatter {
+  const _BirthDateTextInputFormatter();
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digits = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final limited = digits.length > 8 ? digits.substring(0, 8) : digits;
+
+    final buffer = StringBuffer();
+    for (var index = 0; index < limited.length; index++) {
+      if (index == 2 || index == 4) {
+        buffer.write('/');
+      }
+      buffer.write(limited[index]);
+    }
+
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }

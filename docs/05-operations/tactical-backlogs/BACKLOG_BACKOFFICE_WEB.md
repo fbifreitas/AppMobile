@@ -12,7 +12,8 @@ Atualizado em: 2026-04-08
 > - Foundations e core: `docs/03-architecture/02_PLATFORM_CORE_AND_SHARED_FOUNDATIONS.md`
 > - Modelo canÃ´nico corporativo: `docs/03-architecture/07_CORPORATE_CANONICAL_MODEL.md`
 > - Domain pack inspection: `docs/03-architecture/03_DOMAIN_PACK_INSPECTION.md`
-> - Tenant e white-label: `docs/03-architecture/06_TENANT_AND_WHITE_LABEL_MODEL.md`
+> - Ecossistema de plataforma e tenant transversal: `docs/03-architecture/10_PLATFORM_ECOSYSTEM_AND_TENANT_MODEL.md`
+> - Canal mobile white-label: `docs/03-architecture/08_BRAND_AND_DISTRIBUTION_MODEL.md`
 > - Guardrails de engenharia: `docs/04-engineering/01_ENGINEERING_GUARDRAILS.md`
 > - DecisÃµes V2: `docs/06-analysis-design/01_DECISION_LOG_V2.md`
 > - PortfÃ³lio e roadmap corporativo: `docs/02-product/01_PORTFOLIO_VIEW.md` e `docs/02-product/02_ROADMAP_CORPORATE_AND_DOMAINS.md`
@@ -272,7 +273,7 @@ GET  /auth/me           â†’ retorna User + Membership ativa + permissions d
 - Interceptor HTTP que renova token automaticamente antes do call principal
 
 **ReferÃªncias:**
-- `docs/03-architecture/06_TENANT_AND_WHITE_LABEL_MODEL.md` â€” governanÃ§a de identidade e escopo por tenant
+- `docs/03-architecture/10_PLATFORM_ECOSYSTEM_AND_TENANT_MODEL.md` â€” governanca de tenant, brand e escopo transversal de plataforma
 - `docs/06-analysis-design/01_DECISION_LOG_V2.md` â€” decisÃµes de transiÃ§Ã£o e governanÃ§a arquitetural
 
 **CritÃ©rio de pronto:**
@@ -998,3 +999,4 @@ Papel do pacote:
 - BOW-150 avancou de correlation path basico para baseline operacional real: requests relevantes agora geram eventos persistidos com `correlationId`, `traceId`, status e latencia para a control tower.
 - O backend passou a expor agregados unificados de observabilidade, alerta, retention e continuidade em `/api/backoffice/operations/control-tower`, reduzindo dependencia de leitura manual de logs brutos.
 - O restante de BOW-150 deixa de ser ausencia de superficie operacional e passa a ser evolucao incremental de instrumentacao/telemetria mais profunda.
+

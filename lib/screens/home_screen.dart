@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../branding/brand_provider.dart';
@@ -15,6 +16,7 @@ import '../services/inspection_sync_queue_service.dart';
 import '../services/location_service.dart';
 import '../services/map_service.dart';
 import '../state/app_state.dart';
+import '../state/auth_state.dart';
 import '../widgets/home/home_header.dart';
 import '../widgets/home/jobs_section.dart';
 import '../widgets/home/proposals_section.dart';
@@ -41,6 +43,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       const HomeBootstrapService();
   final InspectionSyncQueueService _syncQueueService =
       const InspectionSyncQueueService();
+  final ImagePicker _imagePicker = ImagePicker();
 
   bool _bootstrapped = false;
   bool _refreshingLocation = false;
@@ -100,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     InspectionSyncQueueFlushResult flushResult,
   ) {
     for (final reference in flushResult.syncedReferences) {
-      appState.atualizarReferenciasExternasJob(
+      appState.marcarJobSincronizado(
         jobId: reference.jobId,
         idExterno: reference.externalId,
         protocoloExterno: reference.protocolId ?? reference.processNumber,
@@ -265,6 +268,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _appNavigationCoordinator.openNotifications(context);
   }
 
+  Future<void> _captureUserPhoto() async {
+    final photo = await _imagePicker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 85,
+      maxWidth: 1280,
+    );
+
+    if (photo == null || !mounted) return;
+
+    await context.read<AppState>().updateUserPhoto(photo.path);
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Foto de perfil atualizada.')),
+    );
+  }
+
   void _openSettings() {
     _appNavigationCoordinator.openSettings(context);
   }
@@ -276,8 +296,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
+    final authState = context.watch<AuthState?>();
     final config = BrandProvider.configOf(context);
     final flags = config.featureFlags;
+    final firstName = _resolveFirstName(
+      authState?.userNome,
+      appState.usuarioNomeCompleto,
+    );
 
     final tabBodies = <Widget>[
       RefreshIndicator(
@@ -286,9 +311,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           padding: const EdgeInsets.all(18),
           children: [
             HomeHeader(
-              firstName: appState.primeiroNome,
+              firstName: firstName,
               unreadMessages: appState.mensagensNaoLidas,
               photoPath: appState.userPhotoPath,
+              onPhotoTap: _captureUserPhoto,
               onNotificationsTap: _openNotifications,
               onSettingsTap: _openSettings,
               onHubTap: _openOperationalHub,
@@ -373,5 +399,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       ),
       body: SafeArea(child: tabBodies[_currentTabIndex]),
     );
+  }
+
+  String _resolveFirstName(String? sessionName, String fallbackName) {
+    final normalizedSessionName = sessionName?.trim() ?? '';
+    if (normalizedSessionName.isNotEmpty) {
+      return normalizedSessionName.split(RegExp(r'\s+')).first;
+    }
+    return fallbackName.trim().isEmpty
+        ? 'Usuario'
+        : fallbackName.trim().split(RegExp(r'\s+')).first;
   }
 }

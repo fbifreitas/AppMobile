@@ -80,7 +80,10 @@ void main() {
           safeArea.minimum == const EdgeInsets.fromLTRB(16, 8, 16, 16),
     );
     expect(bottomBarSafeArea.length, 1);
-    expect(find.widgetWithText(FilledButton, 'Conceder permissoes e continuar'), findsOneWidget);
+    expect(
+      find.widgetWithText(FilledButton, 'Validar permissoes e continuar'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('completes auth permissions onboarding when all are granted', (
@@ -101,13 +104,15 @@ void main() {
       ),
     );
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Conceder permissoes e continuar'));
+    await tester.tap(
+      find.widgetWithText(FilledButton, 'Validar permissoes e continuar'),
+    );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
 
     expect(authState.permissionsOnboardingCompleted, isTrue);
     expect(
-      find.text('Permissoes essenciais concedidas com sucesso.'),
+      find.text('Permissoes essenciais conferidas com sucesso.'),
       findsOneWidget,
     );
   });

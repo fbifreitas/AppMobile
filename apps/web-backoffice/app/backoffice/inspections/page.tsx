@@ -41,6 +41,15 @@ type InspectionDetail = {
   payload: unknown;
 };
 
+async function extractErrorMessage(response: Response, fallback: string): Promise<string> {
+  try {
+    const payload = await response.json() as { error?: string; message?: string };
+    return payload.error || payload.message || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export default function BackofficeInspectionsPage() {
   const [items, setItems] = useState<InspectionItem[]>([]);
   const [status, setStatus] = useState<string>('');
@@ -66,7 +75,7 @@ export default function BackofficeInspectionsPage() {
     setError(null);
 
     try {
-      const params = new URLSearchParams({ tenantId: 'tenant-default', page: String(page), size: String(size) });
+      const params = new URLSearchParams({ page: String(page), size: String(size) });
       if (status.trim()) params.set('status', status.trim().toUpperCase());
       if (from.trim()) params.set('from', new Date(from).toISOString());
       if (to.trim()) params.set('to', new Date(to).toISOString());
@@ -74,7 +83,7 @@ export default function BackofficeInspectionsPage() {
 
       const response = await fetch(`/api/inspections?${params.toString()}`);
       if (!response.ok) {
-        throw new Error(`Falha ao consultar inspections (${response.status})`);
+        throw new Error(await extractErrorMessage(response, `Falha ao consultar inspections (${response.status})`));
       }
 
       const data: InspectionListResponse = await response.json();
@@ -98,9 +107,9 @@ export default function BackofficeInspectionsPage() {
     setError(null);
 
     try {
-      const response = await fetch(`/api/inspections/${inspectionId}?tenantId=tenant-default`);
+      const response = await fetch(`/api/inspections/${inspectionId}`);
       if (!response.ok) {
-        throw new Error(`Falha ao consultar detalhe (${response.status})`);
+        throw new Error(await extractErrorMessage(response, `Falha ao consultar detalhe (${response.status})`));
       }
       const data: InspectionDetail = await response.json();
       setSelected(data);

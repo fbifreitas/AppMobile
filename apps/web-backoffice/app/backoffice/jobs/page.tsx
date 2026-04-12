@@ -221,6 +221,37 @@ export default function BackofficeJobsPage() {
     }
   }, [actorId, cancelReason, loadJobs, refreshCurrentSelection, selected, tenantId]);
 
+  const handleAccept = useCallback(async () => {
+    if (!selected) {
+      return;
+    }
+
+    setActionLoading(true);
+    setError(null);
+
+    try {
+      const params = new URLSearchParams({
+        tenantId: tenantId.trim() || DEFAULT_TENANT,
+        actorId: assignUserId.trim() || String(selected.assignedTo ?? "")
+      });
+
+      const response = await fetch(`/api/jobs/${selected.id}/accept?${params.toString()}`, {
+        method: 'POST'
+      });
+
+      if (!response.ok) {
+        throw new Error(`Falha ao aceitar job (${response.status})`);
+      }
+
+      await loadJobs();
+      await refreshCurrentSelection();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Erro inesperado ao aceitar job');
+    } finally {
+      setActionLoading(false);
+    }
+  }, [assignUserId, loadJobs, refreshCurrentSelection, selected, tenantId]);
+
   useEffect(() => {
     loadJobs();
   }, [loadJobs]);
@@ -363,6 +394,7 @@ export default function BackofficeJobsPage() {
                   <input value={assignUserId} onChange={(event) => setAssignUserId(event.target.value)} placeholder="Ex: 42" />
                 </label>
                 <button type="button" disabled={actionLoading} onClick={handleAssign}>Assign</button>
+                <button type="button" disabled={actionLoading || selected.assignedTo == null} onClick={handleAccept}>Aceitar job</button>
               </div>
 
               <div className="ops-inline-form">

@@ -11,10 +11,11 @@
 /// - splash nativa
 /// - nome do app no sistema operacional
 ///
-/// Override remoto PODE alterar apenas:
-/// - [proposalsBlockEnabled] (habilitar/desabilitar bloco de propostas na home)
-/// - [financialSummaryEnabled] (mostrar/ocultar resumo financeiro)
-/// - [marketplaceCopyEnabled] (copy de marketplace vs. corporativo)
+  /// Override remoto PODE alterar apenas:
+  /// - [proposalsBlockEnabled] (habilitar/desabilitar bloco de propostas na home)
+  /// - [financialSummaryEnabled] (mostrar/ocultar resumo financeiro)
+  /// - [marketplaceCopyEnabled] (copy de marketplace vs. corporativo)
+  /// - [geofenceRequired] (exigir ou nao geofence para iniciar a inspeção)
 class BrandFeatureFlags {
   /// Habilita o módulo de propostas (aceite de demandas externas).
   /// Quando false, [proposalsBlockEnabled] é forçado para false.
@@ -62,7 +63,7 @@ class BrandFeatureFlags {
   static const BrandFeatureFlags compass = BrandFeatureFlags(
     proposalsEnabled: false,
     proposalsBlockEnabled: false,
-    geofenceRequired: true,
+    geofenceRequired: false,
     swipeRequired: false,
     financialSummaryEnabled: false,
     marketplaceCopyEnabled: false,
@@ -74,7 +75,7 @@ class BrandFeatureFlags {
     return BrandFeatureFlags(
       proposalsEnabled: proposalsEnabled,
       proposalsBlockEnabled: overrides['proposalsBlockEnabled'] ?? proposalsBlockEnabled,
-      geofenceRequired: geofenceRequired,
+      geofenceRequired: overrides['geofenceRequired'] ?? geofenceRequired,
       swipeRequired: swipeRequired,
       financialSummaryEnabled: overrides['financialSummaryEnabled'] ?? financialSummaryEnabled,
       marketplaceCopyEnabled: overrides['marketplaceCopyEnabled'] ?? marketplaceCopyEnabled,

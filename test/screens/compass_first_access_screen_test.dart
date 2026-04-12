@@ -53,6 +53,7 @@ class _FakeFirstAccessService extends MobileBackendAuthService {
       challengeId: 'challenge-1',
       deliveryHint: 'Codigo enviado ao telefone cadastrado final 1234.',
       expiresInSeconds: 600,
+      debugOtp: '123456',
     );
   }
 
@@ -115,7 +116,7 @@ void main() {
     );
     await tester.enterText(
       find.byKey(const Key('compass_first_access_birth_date_field')),
-      '20/05/1990',
+      '20051990',
     );
     await tester.enterText(
       find.byKey(const Key('compass_first_access_identifier_field')),
@@ -128,6 +129,8 @@ void main() {
       find.text('Codigo enviado ao telefone cadastrado final 1234.'),
       findsOneWidget,
     );
+    expect(find.text('Codigo de teste do ambiente local'), findsOneWidget);
+    expect(find.text('123456'), findsWidgets);
 
     await tester.enterText(
       find.byKey(const Key('compass_first_access_otp_field')),
@@ -137,6 +140,9 @@ void main() {
       find.byKey(const Key('compass_first_access_password_field')),
       'Compass@123',
     );
+    await tester.ensureVisible(
+      find.byKey(const Key('compass_first_access_complete_button')),
+    );
     await tester.tap(
       find.byKey(const Key('compass_first_access_complete_button')),
     );
@@ -145,5 +151,54 @@ void main() {
     expect(authState.status, AppAuthStatus.active);
     expect(await prefs.getString('auth_user_email'), 'operador@compass.test');
     expect(await prefs.getString('auth_tenant_id'), 'tenant-compass');
+  });
+
+  testWidgets('shows help guidance during otp step', (tester) async {
+    final prefs = _MemoryPreferencesRepository();
+    final authState = AuthState(prefs);
+    final config = BrandConfigResolver.resolve(
+      compassManifest,
+      overrides: RemoteBrandOverrides.empty,
+    );
+
+    await tester.pumpWidget(
+      BrandProvider(
+        config: config,
+        child: ChangeNotifierProvider<AuthState>.value(
+          value: authState,
+          child: const MaterialApp(
+            home: CompassFirstAccessScreen(
+              authService: _FakeFirstAccessService(),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('compass_first_access_cpf_field')),
+      '123.456.789-01',
+    );
+    await tester.enterText(
+      find.byKey(const Key('compass_first_access_birth_date_field')),
+      '20051990',
+    );
+    await tester.enterText(
+      find.byKey(const Key('compass_first_access_identifier_field')),
+      'COMPASS-001',
+    );
+    await tester.tap(find.byKey(const Key('compass_first_access_start_button')));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Nao recebi o codigo'));
+    await tester.tap(find.text('Nao recebi o codigo'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Como encontrar o codigo'), findsOneWidget);
+    expect(
+      find.text('2. Se o codigo nao chegou, toque em "Reenviar codigo".'),
+      findsOneWidget,
+    );
   });
 }

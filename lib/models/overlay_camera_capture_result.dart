@@ -15,6 +15,7 @@ class OverlayCameraCaptureResult {
   final double longitude;
   final double accuracy;
   final bool classificationConfirmed;
+  final List<String> applicableClassificationLevels;
   final bool learningPersisted;
   final bool usedSuggestion;
   final String? suggestionSummary;
@@ -33,6 +34,7 @@ class OverlayCameraCaptureResult {
     this.material,
     this.estado,
     this.classificationConfirmed = false,
+    this.applicableClassificationLevels = const <String>[],
     this.learningPersisted = false,
     this.usedSuggestion = false,
     this.suggestionSummary,
@@ -70,6 +72,7 @@ class OverlayCameraCaptureResult {
     double? longitude,
     double? accuracy,
     bool? classificationConfirmed,
+    List<String>? applicableClassificationLevels,
     bool? learningPersisted,
     bool? usedSuggestion,
     String? suggestionSummary,
@@ -89,6 +92,8 @@ class OverlayCameraCaptureResult {
       accuracy: accuracy ?? this.accuracy,
       classificationConfirmed:
           classificationConfirmed ?? this.classificationConfirmed,
+      applicableClassificationLevels:
+          applicableClassificationLevels ?? this.applicableClassificationLevels,
       learningPersisted: learningPersisted ?? this.learningPersisted,
       usedSuggestion: usedSuggestion ?? this.usedSuggestion,
       suggestionSummary: suggestionSummary ?? this.suggestionSummary,
@@ -121,6 +126,7 @@ class OverlayCameraCaptureResult {
       'longitude': longitude,
       'accuracy': accuracy,
       'classificationConfirmed': classificationConfirmed,
+      'applicableClassificationLevels': applicableClassificationLevels,
       'learningPersisted': learningPersisted,
       'usedSuggestion': usedSuggestion,
       'suggestionSummary': suggestionSummary,
@@ -144,6 +150,14 @@ class OverlayCameraCaptureResult {
       return false;
     }
 
+    List<String> parseStringList(dynamic value) {
+      if (value is! List) return const <String>[];
+      return value
+          .map((item) => '$item'.trim())
+          .where((item) => item.isNotEmpty)
+          .toList();
+    }
+
     return OverlayCameraCaptureResult(
       filePath: map['filePath']?.toString() ?? '',
       ambiente: FlowSelection.fromMap(map).targetItem ?? map['ambiente']?.toString() ?? '',
@@ -158,6 +172,9 @@ class OverlayCameraCaptureResult {
       longitude: parseDouble(map['longitude']),
       accuracy: parseDouble(map['accuracy']),
       classificationConfirmed: parseBool(map['classificationConfirmed']),
+      applicableClassificationLevels: parseStringList(
+        map['applicableClassificationLevels'],
+      ),
       learningPersisted: parseBool(map['learningPersisted']),
       usedSuggestion: parseBool(map['usedSuggestion']),
       suggestionSummary: map['suggestionSummary']?.toString(),

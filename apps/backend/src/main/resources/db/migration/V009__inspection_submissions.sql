@@ -7,7 +7,7 @@ CREATE TABLE inspection_submissions (
     idempotency_key VARCHAR(255) NOT NULL,
     protocol_id     VARCHAR(80)  NOT NULL,
     status          VARCHAR(40)  NOT NULL,
-    payload_json    CLOB         NOT NULL,
+    payload_json    TEXT         NOT NULL,
     submitted_at    TIMESTAMP    NOT NULL,
     CONSTRAINT pk_inspection_submissions PRIMARY KEY (id),
     CONSTRAINT uq_inspection_submissions_idempotency UNIQUE (tenant_id, idempotency_key),

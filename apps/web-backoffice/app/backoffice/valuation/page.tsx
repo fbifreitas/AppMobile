@@ -31,7 +31,14 @@ type ValuationProcessDetail = ValuationProcessItem & {
   latestIntakeValidation?: IntakeValidation | null;
 };
 
-const tenantId = 'tenant-default';
+async function extractErrorMessage(response: Response, fallback: string): Promise<string> {
+  try {
+    const payload = await response.json() as { error?: string; message?: string };
+    return payload.error || payload.message || fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 export default function BackofficeValuationPage() {
   const [items, setItems] = useState<ValuationProcessItem[]>([]);
@@ -53,14 +60,14 @@ export default function BackofficeValuationPage() {
     setError(null);
 
     try {
-      const params = new URLSearchParams({ tenantId });
+      const params = new URLSearchParams();
       if (statusFilter.trim()) {
         params.set('status', statusFilter.trim());
       }
 
       const response = await fetch(`/api/valuation/processes?${params.toString()}`);
       if (!response.ok) {
-        throw new Error(`Failed to load valuation processes (${response.status})`);
+        throw new Error(await extractErrorMessage(response, `Failed to load valuation processes (${response.status})`));
       }
 
       const payload: ValuationProcessListResponse = await response.json();
@@ -83,9 +90,9 @@ export default function BackofficeValuationPage() {
     setError(null);
 
     try {
-      const response = await fetch(`/api/valuation/processes/${processId}?tenantId=${tenantId}`);
+      const response = await fetch(`/api/valuation/processes/${processId}`);
       if (!response.ok) {
-        throw new Error(`Failed to load valuation process detail (${response.status})`);
+        throw new Error(await extractErrorMessage(response, `Failed to load valuation process detail (${response.status})`));
       }
 
       const payload: ValuationProcessDetail = await response.json();
@@ -114,7 +121,7 @@ export default function BackofficeValuationPage() {
         throw new Error('Inspection ID must be a positive number');
       }
 
-      const response = await fetch(`/api/valuation/processes?tenantId=${tenantId}`, {
+      const response = await fetch('/api/valuation/processes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -128,7 +135,7 @@ export default function BackofficeValuationPage() {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to create valuation process (${response.status})`);
+        throw new Error(await extractErrorMessage(response, `Failed to create valuation process (${response.status})`));
       }
 
       const payload: ValuationProcessDetail = await response.json();
@@ -154,7 +161,7 @@ export default function BackofficeValuationPage() {
 
     try {
       const parsedIssues = JSON.parse(validationIssues);
-      const response = await fetch(`/api/valuation/processes/${selected.id}/validate-intake?tenantId=${tenantId}`, {
+      const response = await fetch(`/api/valuation/processes/${selected.id}/validate-intake`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -168,7 +175,7 @@ export default function BackofficeValuationPage() {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to validate intake (${response.status})`);
+        throw new Error(await extractErrorMessage(response, `Failed to validate intake (${response.status})`));
       }
 
       setMessage(`Intake ${validationResult.toLowerCase()} for process ${selected.id}`);

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-const DEFAULT_BACKEND_CONFIG_BASE_URL = "http://localhost/api/backoffice/config";
+const DEFAULT_BACKEND_CONFIG_BASE_URL = "http://localhost:8080/api/backoffice/config";
 
 function buildCorrelationId(): string {
   return `cfg-${randomUUID()}`;
@@ -8,7 +8,16 @@ function buildCorrelationId(): string {
 
 function getBackendBaseUrl(): string {
   const configured = process.env.BACKOFFICE_CONFIG_API_BASE_URL?.trim();
-  return configured && configured.length > 0 ? configured : DEFAULT_BACKEND_CONFIG_BASE_URL;
+  if (configured && configured.length > 0) {
+    return configured;
+  }
+
+  const backendBase = process.env.BACKEND_API_URL?.trim();
+  if (backendBase && backendBase.length > 0) {
+    return `${backendBase.replace(/\/$/, "")}/api/backoffice/config`;
+  }
+
+  return DEFAULT_BACKEND_CONFIG_BASE_URL;
 }
 
 export function buildBackendConfigUrl(path: string, query?: URLSearchParams): string {

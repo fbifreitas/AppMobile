@@ -463,6 +463,16 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
         elemento: sel.targetQualifier,
         material: _domainAdapter.inspectionMaterialOf(sel),
         estado: sel.targetCondition,
+        applicableClassificationLevels: _selectorSections
+            .where(
+              (section) =>
+                  (section.levelId == 'elemento' ||
+                      section.levelId == 'material' ||
+                      section.levelId == 'estado') &&
+                  section.values.isNotEmpty,
+            )
+            .map((section) => section.levelId)
+            .toList(),
         capturedAt: DateTime.now(),
         position: position,
         predictionSummary: _predictionSummary,

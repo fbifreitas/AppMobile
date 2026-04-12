@@ -21,9 +21,9 @@ Definir o menor conjunto viavel para colocar a Compass em producao usando o prod
 ## Leitura arquitetural aplicada
 
 Fontes consideradas:
-- `.tmp_docs_v3/docs_v3_package/docs/03-architecture/06_BRAND_AND_DISTRIBUTION_MODEL.md`
-- `.tmp_docs_v3/docs_v3_package/docs/03-architecture/01_CORPORATE_BLUEPRINT.md`
-- `.tmp_docs_v3/docs_v3_package/docs/03-architecture/02_PLATFORM_CORE_AND_SHARED_FOUNDATIONS.md`
+- `docs/03-architecture/08_BRAND_AND_DISTRIBUTION_MODEL.md`
+- `docs/03-architecture/10_PLATFORM_ECOSYSTEM_AND_TENANT_MODEL.md`
+- `docs/03-architecture/02_PLATFORM_CORE_AND_SHARED_FOUNDATIONS.md`
 
 Conclusao aplicada ao caso Compass:
 1. Compass nao deve entrar como tenant dentro do mesmo app final da Kaptu.
@@ -346,6 +346,7 @@ Materializar o app Compass como app por marca, separado da Kaptu, com autenticac
 ### Nota 2026-04-10 - Login mobile Compass
 
 - O login backend-first do app mobile deve ser ativado no build Compass com `--dart-define=APP_API_BASE_URL=<backend>` e `--dart-define=APP_TENANT_ID=tenant-compass`.
+- Em ambiente local via `http://localhost`, o proxy deve encaminhar `/auth/*` e `/api/mobile/*` para o backend Java; se isso nao existir, o app recebe HTML da web e o primeiro acesso falha antes do OTP.
 - Sem `APP_API_BASE_URL`, o app preserva o fluxo mock local para desenvolvimento, mas isso nao satisfaz o gate de homologacao do Pacote B.
 - O primeiro acesso de usuario provisionado pelo backoffice deve autenticar no backend e, se ainda nao tiver permissao/onboarding concluido, cair na tela dedicada de permissoes antes da Home.
 - O onboarding de permissoes possui teste de auditoria nativa para AndroidManifest/Info.plist, evitando que Compass seja distribuido sem declaracoes exigidas por camera, localizacao, microfone e reconhecimento de fala.
@@ -374,6 +375,9 @@ Materializar o app Compass como app por marca, separado da Kaptu, com autenticac
 - O flavor Compass deixou de reutilizar o onboarding PJ/Kaptur quando o usuario cai em estado de onboarding: agora o destino e a tela dedicada `Primeiro acesso`.
 - O login Compass passou a expor CTA dedicado de primeiro acesso e o backend recebeu os endpoints `/auth/first-access/start` e `/auth/first-access/complete`.
 - O lookup usa CPF + data de nascimento + identificador adicional apenas para localizar o cadastro pre-provisionado; a autenticacao final exige OTP e criacao de senha.
+- A entrada de data de nascimento deve aceitar digitacao numerica simples no Android e aplicar a mascara `dd/mm/aaaa` no proprio app, sem depender da disponibilidade de `/` no teclado.
+- A etapa de codigo deve usar linguagem leiga no app Compass: `codigo de confirmacao`, destino mascarado, CTA de `Reenviar codigo` e ajuda de recuperacao.
+- No ambiente funcional local de caixa preta, o backend pode devolver `debugOtp` apenas para destravar o E2E; essa exposicao nao deve existir em homologacao publica ou producao.
 - Cadastro inexistente responde sem enumeracao e a sessao ja e emitida ao concluir o primeiro acesso com sucesso.
 - Evidencia local: `flutter test --no-pub test/screens/compass_first_access_screen_test.dart` passou no terminal nativo; backend compilou com `mvn -q -f apps/backend/pom.xml -DskipTests compile` e a compilacao de testes voltou a gerar `AuthIntegrationTest.class`.
 
@@ -542,3 +546,10 @@ O minimo viavel correto e:
 4. seat licensing basico por usuario
 5. fluxo operacional fim a fim
 6. go-live auditavel
+
+## Registro operacional - 2026-04-12
+
+- `BUG-E2E-COMPASS-089`
+- Contexto: a inspection finalizada ja aparece em `/backoffice/inspections`, mas ao abrir o detalhe do valuation em `/backoffice/valuation` a tela retorna `Failed to load valuation process detail (500)`.
+- Impacto: o caminho critico segue bloqueado apos a entrada da inspection no backoffice, impedindo validar intake e gerar o laudo do engenheiro.
+- Acao seguinte: corrigir o detalhe de valuation no backend/web e retomar o E2E a partir da inspection ja integrada.

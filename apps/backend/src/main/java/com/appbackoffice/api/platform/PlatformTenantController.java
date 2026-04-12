@@ -2,10 +2,12 @@ package com.appbackoffice.api.platform;
 
 import com.appbackoffice.api.contract.RequestContextValidator;
 import com.appbackoffice.api.identity.entity.MembershipRole;
+import com.appbackoffice.api.platform.dto.CreateTenantRequest;
 import com.appbackoffice.api.platform.dto.TenantApplicationResponse;
 import com.appbackoffice.api.platform.dto.TenantAdminHandoffResponse;
 import com.appbackoffice.api.platform.dto.TenantLicenseResponse;
 import com.appbackoffice.api.platform.dto.TenantPlatformListResponse;
+import com.appbackoffice.api.platform.dto.TenantPlatformSummaryResponse;
 import com.appbackoffice.api.platform.dto.UpsertTenantAdminHandoffRequest;
 import com.appbackoffice.api.platform.dto.UpsertTenantApplicationRequest;
 import com.appbackoffice.api.platform.dto.UpsertTenantLicenseRequest;
@@ -14,6 +16,7 @@ import com.appbackoffice.api.security.RequiresTenantRole;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -30,6 +33,13 @@ public class PlatformTenantController {
 
     public PlatformTenantController(PlatformTenantService platformTenantService) {
         this.platformTenantService = platformTenantService;
+    }
+
+    @PostMapping
+    public TenantPlatformSummaryResponse create(@RequestHeader("X-Correlation-Id") String correlationId,
+                                                @Valid @RequestBody CreateTenantRequest request) {
+        RequestContextValidator.requireCorrelationId(correlationId);
+        return platformTenantService.createTenant(request);
     }
 
     @GetMapping

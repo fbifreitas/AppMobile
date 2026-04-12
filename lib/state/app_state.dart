@@ -16,11 +16,14 @@ class AppState extends ChangeNotifier {
     this.repository, [
     PreferencesRepository? preferencesRepository,
     LocationService? locationService,
+    bool seedMockHomeData = true,
   ]) : preferencesRepository =
            preferencesRepository ?? const SharedPreferencesRepository(),
        locationService = locationService ?? const LocationService() {
     _loadPreferences();
-    _initMockData();
+    if (seedMockHomeData) {
+      _initMockData();
+    }
   }
 
   static const _devModeKey = 'developer_mode_enabled';
@@ -44,9 +47,8 @@ class AppState extends ChangeNotifier {
   double? residenciaLat = -23.5614;
   double? residenciaLng = -46.6559;
 
-  String enderecoBase =
-      'Apartamento - Condominio Spazio Belem, Av. Alvaro Ramos, 760 Apto 102, Fabio Freitas (Prop.)';
-  String usuarioNomeCompleto = 'Fabio Freitas';
+  String enderecoBase = '';
+  String usuarioNomeCompleto = '';
 
   DateTime? ultimoCheckin;
 
@@ -136,8 +138,11 @@ class AppState extends ChangeNotifier {
       );
       jobs = List<Job>.from(result);
       prioritizeRecoveryJob();
+      _rebuildOperationalFeedsFromJobs();
     } catch (_) {
       jobs = [];
+      agendaItems = [];
+      mensagens = [];
       jobsLoadError =
           'Nao foi possivel carregar as vistorias no momento. Tente novamente.';
     } finally {
@@ -265,8 +270,42 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void marcarJobSincronizado({
+    required String jobId,
+    String? idExterno,
+    String? protocoloExterno,
+  }) {
+    final normalizedJobId = jobId.trim();
+    if (normalizedJobId.isEmpty) return;
+
+    final targetJob = jobs.cast<Job?>().firstWhere(
+      (job) => job?.id == normalizedJobId,
+      orElse: () => null,
+    );
+    if (targetJob == null) return;
+
+    final normalizedExternalId = idExterno?.trim();
+    final normalizedProtocol = protocoloExterno?.trim();
+
+    if (normalizedExternalId != null && normalizedExternalId.isNotEmpty) {
+      targetJob.idExterno = normalizedExternalId;
+    }
+    if (normalizedProtocol != null && normalizedProtocol.isNotEmpty) {
+      targetJob.protocoloExterno = normalizedProtocol;
+    }
+
+    targetJob.status = JobStatus.finalizado;
+    if (jobAtual?.id == normalizedJobId) {
+      jobAtual = null;
+    }
+    _rebuildOperationalFeedsFromJobs();
+    clearInspectionRecovery();
+    notifyListeners();
+  }
+
   void adicionarJob(Job job) {
     jobs = List.of(jobs)..add(job);
+    _rebuildOperationalFeedsFromJobs();
     notifyListeners();
   }
 
@@ -279,6 +318,7 @@ class AppState extends ChangeNotifier {
       );
     }
     currentJob?.status = JobStatus.finalizado;
+    _rebuildOperationalFeedsFromJobs();
     await clearInspectionRecovery();
     jobAtual = null;
     notifyListeners();
@@ -641,6 +681,10 @@ class AppState extends ChangeNotifier {
   void _initMockData() {
     final now = DateTime.now();
 
+    enderecoBase =
+        'Apartamento - Condominio Spazio Belem, Av. Alvaro Ramos, 760 Apto 102, Fabio Freitas (Prop.)';
+    usuarioNomeCompleto = 'Fabio Freitas';
+
     mensagens = [
       AppMessage(
         id: 'msg-001',
@@ -694,5 +738,111 @@ class AppState extends ChangeNotifier {
         status: AgendaItemStatus.confirmado,
       ),
     ];
+  }
+
+  void _rebuildOperationalFeedsFromJobs() {
+    final readStateByMessageId = <String, bool>{
+      for (final message in mensagens) message.id: message.lida,
+    };
+
+    agendaItems = jobs
+        .where((job) => job.deadlineAt != null)
+        .map(
+          (job) => AgendaItem(
+            id: 'agenda-job-${job.id}',
+            data: job.deadlineAt!,
+            titulo: job.titulo,
+            endereco: job.endereco,
+            jobId: job.id,
+            status: _agendaStatusFromJob(job.status),
+          ),
+        )
+        .toList()
+      ..sort((a, b) => a.data.compareTo(b.data));
+
+    mensagens = jobs
+        .map((job) => _messageFromJob(job, readStateByMessageId))
+        .whereType<AppMessage>()
+        .toList()
+      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+  }
+
+  AgendaItemStatus _agendaStatusFromJob(JobStatus status) {
+    switch (status) {
+      case JobStatus.aceito:
+      case JobStatus.novo:
+      case JobStatus.emPreparacao:
+        return AgendaItemStatus.agendado;
+      case JobStatus.emAndamento:
+        return AgendaItemStatus.confirmado;
+      case JobStatus.finalizado:
+      case JobStatus.encerrado:
+        return AgendaItemStatus.concluido;
+      case JobStatus.recusado:
+      case JobStatus.cancelado:
+        return AgendaItemStatus.cancelado;
+    }
+  }
+
+  AppMessage? _messageFromJob(Job job, Map<String, bool> readStateByMessageId) {
+    final timestamp = job.deadlineAt ?? job.createdAt;
+    if (timestamp == null) {
+      return null;
+    }
+
+    final messageId = 'job-message-${job.id}-${job.status.name}-${timestamp.toIso8601String()}';
+    final title = _messageTitleFromJob(job);
+    final body = _messageBodyFromJob(job, timestamp);
+
+    return AppMessage(
+      id: messageId,
+      titulo: title,
+      corpo: body,
+      jobId: job.id,
+      timestamp: timestamp,
+      lida: readStateByMessageId[messageId] ?? false,
+    );
+  }
+
+  String _messageTitleFromJob(Job job) {
+    switch (job.status) {
+      case JobStatus.aceito:
+        return 'Job agendado';
+      case JobStatus.emPreparacao:
+        return 'Job em preparacao';
+      case JobStatus.emAndamento:
+        return 'Vistoria em andamento';
+      case JobStatus.finalizado:
+      case JobStatus.encerrado:
+        return 'Vistoria concluida';
+      case JobStatus.recusado:
+      case JobStatus.cancelado:
+        return 'Job cancelado';
+      case JobStatus.novo:
+        return 'Novo job disponivel';
+    }
+  }
+
+  String _messageBodyFromJob(Job job, DateTime timestamp) {
+    final day = timestamp.day.toString().padLeft(2, '0');
+    final month = timestamp.month.toString().padLeft(2, '0');
+    final hour = timestamp.hour.toString().padLeft(2, '0');
+    final minute = timestamp.minute.toString().padLeft(2, '0');
+    final scheduleText = '$day/$month as $hour:$minute';
+
+    switch (job.status) {
+      case JobStatus.aceito:
+      case JobStatus.novo:
+      case JobStatus.emPreparacao:
+        return '${job.titulo} agendado para $scheduleText em ${job.endereco}.';
+      case JobStatus.emAndamento:
+        return '${job.titulo} esta em andamento. Local: ${job.endereco}.';
+      case JobStatus.finalizado:
+      case JobStatus.encerrado:
+        return '${job.titulo} foi concluido e saiu da fila ativa.';
+      case JobStatus.recusado:
+      case JobStatus.cancelado:
+        return '${job.titulo} foi marcado como cancelado.';
+    }
   }
 }

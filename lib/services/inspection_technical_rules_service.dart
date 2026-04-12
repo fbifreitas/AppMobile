@@ -9,6 +9,7 @@ class InspectionTechnicalRulesService {
     required String tipoImovel,
     required List<TechnicalEvidenceInput> evidences,
     required List<TechnicalCheckRequirementInput> requirements,
+    required List<TechnicalCoverageRequirementInput> coverageRequirements,
   }) {
     final results = <TechnicalRuleResult>[];
 
@@ -17,8 +18,9 @@ class InspectionTechnicalRulesService {
         results.add(
           TechnicalRuleResult(
             id: 'checkin_${requirement.title}',
-            title: 'Item obrigatório do check-in pendente',
-            description: '${requirement.title} precisa ser registrado antes do fechamento técnico.',
+            title: 'Item obrigatorio do check-in pendente',
+            description:
+                '${requirement.title} precisa ser registrado antes do fechamento tecnico.',
             severity: TechnicalRuleSeverity.blocking,
             stage: TechnicalRuleStage.checkin,
           ),
@@ -28,20 +30,34 @@ class InspectionTechnicalRulesService {
 
     final grouped = <String, List<TechnicalEvidenceInput>>{};
     for (final evidence in evidences) {
-      final key = evidence.subtipo.trim().isEmpty ? 'Sem subtipo' : evidence.subtipo.trim();
+      final key =
+          evidence.subtipo.trim().isEmpty ? 'Sem subtipo' : evidence.subtipo.trim();
       grouped.putIfAbsent(key, () => <TechnicalEvidenceInput>[]).add(evidence);
     }
 
-    final minimumCoverage = _minimumCoverageByTipo(tipoImovel);
-    for (final entry in minimumCoverage.entries) {
-      final captured = grouped[entry.key]?.length ?? 0;
-      if (captured < entry.value) {
+    for (final requirement in coverageRequirements) {
+      final items =
+          grouped[requirement.subtipo]?.toList() ??
+          const <TechnicalEvidenceInput>[];
+      final requiredElement = requirement.elemento?.trim();
+      final hasCoverage = items.any((item) {
+        if (requiredElement == null || requiredElement.isEmpty) {
+          return true;
+        }
+        return (item.elemento?.trim() ?? '') == requiredElement;
+      });
+
+      if (!hasCoverage) {
         results.add(
           TechnicalRuleResult(
-            id: 'coverage_${entry.key}',
-            title: 'Cobertura mínima insuficiente',
-            description: '${entry.key} requer no mínimo ${entry.value} evidência(s) para aderência técnica.',
-            subtipo: entry.key,
+            id:
+                'coverage_${requirement.subtipo}_${requiredElement == null || requiredElement.isEmpty ? 'any' : requiredElement}',
+            title: 'Cobertura minima insuficiente',
+            description:
+                requiredElement == null || requiredElement.isEmpty
+                    ? '${requirement.title} precisa ter ao menos uma evidencia registrada.'
+                    : '${requirement.title} precisa ter ao menos uma evidencia registrada com $requiredElement.',
+            subtipo: requirement.subtipo,
             severity: TechnicalRuleSeverity.blocking,
             stage: TechnicalRuleStage.capture,
           ),
@@ -53,13 +69,15 @@ class InspectionTechnicalRulesService {
       final subtipo = entry.key;
       final items = entry.value;
 
-      final fullyClassified = items.where((item) => item.isFullyClassified).length;
+      final fullyClassified =
+          items.where((item) => item.isFullyClassified).length;
       if (fullyClassified == 0) {
         results.add(
           TechnicalRuleResult(
             id: 'audit_$subtipo',
             title: 'Subtipo sem cobertura classificada',
-            description: '$subtipo precisa ter ao menos uma foto com elemento, material e estado classificados.',
+            description:
+                '$subtipo precisa ter ao menos uma foto com classificacao completa para o contexto capturado.',
             subtipo: subtipo,
             severity: TechnicalRuleSeverity.blocking,
             stage: TechnicalRuleStage.review,
@@ -70,12 +88,13 @@ class InspectionTechnicalRulesService {
       for (var index = 0; index < items.length; index++) {
         final item = items[index];
 
-        if (!item.hasElemento) {
+        if (item.requiresElemento && !item.hasElemento) {
           results.add(
             TechnicalRuleResult(
               id: 'missing_element_${subtipo}_$index',
               title: 'Foto sem elemento definido',
-              description: 'Há evidência em $subtipo sem definição do elemento fotografado.',
+              description:
+                  'Ha evidencia em $subtipo sem definicao do elemento fotografado.',
               subtipo: subtipo,
               severity: TechnicalRuleSeverity.advisory,
               stage: TechnicalRuleStage.review,
@@ -84,12 +103,13 @@ class InspectionTechnicalRulesService {
           );
         }
 
-        if (item.hasElemento && !item.hasMaterial) {
+        if (item.requiresMaterial && item.hasElemento && !item.hasMaterial) {
           results.add(
             TechnicalRuleResult(
               id: 'missing_material_${subtipo}_$index',
-              title: 'Material não informado',
-              description: 'Há evidência em $subtipo com elemento definido, mas sem material.',
+              title: 'Material nao informado',
+              description:
+                  'Ha evidencia em $subtipo com elemento definido, mas sem material.',
               subtipo: subtipo,
               severity: TechnicalRuleSeverity.advisory,
               stage: TechnicalRuleStage.review,
@@ -98,12 +118,13 @@ class InspectionTechnicalRulesService {
           );
         }
 
-        if (item.hasElemento && !item.hasEstado) {
+        if (item.requiresEstado && item.hasElemento && !item.hasEstado) {
           results.add(
             TechnicalRuleResult(
               id: 'missing_state_${subtipo}_$index',
-              title: 'Estado de conservação não informado',
-              description: 'Há evidência em $subtipo com elemento definido, mas sem estado de conservação.',
+              title: 'Estado de conservacao nao informado',
+              description:
+                  'Ha evidencia em $subtipo com elemento definido, mas sem estado de conservacao.',
               subtipo: subtipo,
               severity: TechnicalRuleSeverity.advisory,
               stage: TechnicalRuleStage.review,
@@ -116,8 +137,9 @@ class InspectionTechnicalRulesService {
           results.add(
             TechnicalRuleResult(
               id: 'other_subtype_$index',
-              title: 'Subtipo fora do catálogo principal',
-              description: 'Evidência registrada em subtipo alternativo. Recomendado justificar tecnicamente.',
+              title: 'Subtipo fora do catalogo principal',
+              description:
+                  'Evidencia registrada em subtipo alternativo. Recomendado justificar tecnicamente.',
               subtipo: subtipo,
               severity: TechnicalRuleSeverity.advisory,
               stage: TechnicalRuleStage.finalization,
@@ -129,36 +151,5 @@ class InspectionTechnicalRulesService {
     }
 
     return results;
-  }
-
-  Map<String, int> _minimumCoverageByTipo(String tipoImovel) {
-    switch (tipoImovel.toLowerCase()) {
-      case 'rural':
-        return const <String, int>{
-          'Acesso principal': 1,
-          'Entrada da propriedade': 1,
-          'Identificação / referência': 1,
-        };
-      case 'comercial':
-        return const <String, int>{
-          'Fachada': 1,
-          'Logradouro': 1,
-          'Acesso principal': 1,
-        };
-      case 'industrial':
-        return const <String, int>{
-          'Acesso principal': 1,
-          'Fachada / portaria': 1,
-          'Número / identificação': 1,
-        };
-      case 'urbano':
-      default:
-        return const <String, int>{
-          'Fachada': 1,
-          'Logradouro': 1,
-          'Acesso ao imóvel': 1,
-          'Entorno': 1,
-        };
-    }
   }
 }

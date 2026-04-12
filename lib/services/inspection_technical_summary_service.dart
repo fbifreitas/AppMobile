@@ -12,6 +12,7 @@ class InspectionTechnicalSummaryService {
     required String tipoImovel,
     required List<TechnicalEvidenceInput> evidences,
     required List<TechnicalCheckRequirementInput> requirements,
+    required List<TechnicalCoverageRequirementInput> coverageRequirements,
   }) {
     final rulesService = const InspectionTechnicalRulesService();
     final auditService = const InspectionClassificationAuditService();
@@ -20,12 +21,15 @@ class InspectionTechnicalSummaryService {
       tipoImovel: tipoImovel,
       evidences: evidences,
       requirements: requirements,
+      coverageRequirements: coverageRequirements,
     );
     final audits = auditService.build(evidences);
 
     final totalSubtipos = audits.length;
-    final subtiposComCobertura = audits.where((item) => item.totalFotos > 0).length;
-    final fullyClassified = audits.fold<int>(0, (sum, item) => sum + item.fullyClassified);
+    final subtiposComCobertura =
+        audits.where((item) => item.totalFotos > 0).length;
+    final fullyClassified =
+        audits.fold<int>(0, (sum, item) => sum + item.fullyClassified);
     final totalFotos = evidences.length;
 
     final completionPercent = totalFotos == 0

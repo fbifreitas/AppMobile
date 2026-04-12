@@ -8,8 +8,10 @@ import com.appbackoffice.api.identity.entity.Membership;
 import com.appbackoffice.api.identity.entity.MembershipRole;
 import com.appbackoffice.api.identity.entity.MembershipStatus;
 import com.appbackoffice.api.identity.entity.Tenant;
+import com.appbackoffice.api.identity.entity.TenantStatus;
 import com.appbackoffice.api.identity.repository.TenantRepository;
 import com.appbackoffice.api.identity.repository.MembershipRepository;
+import com.appbackoffice.api.platform.dto.CreateTenantRequest;
 import com.appbackoffice.api.platform.dto.TenantAdminHandoffResponse;
 import com.appbackoffice.api.platform.dto.TenantApplicationResponse;
 import com.appbackoffice.api.platform.dto.TenantLicenseResponse;
@@ -83,6 +85,10 @@ public class PlatformTenantService {
                 .filter(tenant -> matchesQuery(tenant, q))
                 .toList();
 
+        if (tenants.isEmpty()) {
+            return new TenantPlatformListResponse(Instant.now(), 0, List.of());
+        }
+
         List<String> tenantIds = tenants.stream().map(Tenant::getId).toList();
         Map<String, TenantApplicationEntity> applications = tenantApplicationRepository.findByTenantIdIn(tenantIds).stream()
                 .collect(Collectors.toMap(TenantApplicationEntity::getTenantId, Function.identity()));
@@ -101,6 +107,51 @@ public class PlatformTenantService {
                 .toList();
 
         return new TenantPlatformListResponse(Instant.now(), items.size(), items);
+    }
+
+    @Transactional
+    public TenantPlatformSummaryResponse createTenant(CreateTenantRequest request) {
+        String tenantId = normalizeRequired(request.tenantId(), "tenantId");
+        String slug = normalizeRequired(request.slug(), "slug");
+        String displayName = normalizeRequired(request.displayName(), "displayName");
+
+        if (tenantRepository.existsById(tenantId)) {
+            throw new ApiContractException(
+                    HttpStatus.CONFLICT,
+                    "TENANT_ALREADY_EXISTS",
+                    "Tenant ja existe",
+                    ErrorSeverity.ERROR,
+                    "Use um tenantId inedito para criar uma nova empresa.",
+                    "tenantId=" + tenantId
+            );
+        }
+
+        tenantRepository.findBySlug(slug).ifPresent(existing -> {
+            throw new ApiContractException(
+                    HttpStatus.CONFLICT,
+                    "TENANT_SLUG_ALREADY_EXISTS",
+                    "Slug do tenant ja existe",
+                    ErrorSeverity.ERROR,
+                    "Use um slug inedito para criar uma nova empresa.",
+                    "slug=" + slug
+            );
+        });
+
+        Tenant created = tenantRepository.save(new Tenant(
+                tenantId,
+                slug,
+                displayName,
+                parseTenantStatus(request.status())
+        ));
+
+        return new TenantPlatformSummaryResponse(
+                created.getId(),
+                created.getSlug(),
+                created.getDisplayName(),
+                created.getStatus().name(),
+                null,
+                tenantLicensingService.toResponse(created.getId(), null)
+        );
     }
 
     @Transactional(readOnly = true)
@@ -178,6 +229,8 @@ public class PlatformTenantService {
                                 request.tipo(),
                                 request.cpf(),
                                 request.cnpj(),
+                                null,
+                                null,
                                 UserRole.ADMIN.name(),
                                 request.externalId()
                         )
@@ -219,6 +272,24 @@ public class PlatformTenantService {
         return tenant.getId().toLowerCase(Locale.ROOT).contains(normalized)
                 || tenant.getSlug().toLowerCase(Locale.ROOT).contains(normalized)
                 || tenant.getDisplayName().toLowerCase(Locale.ROOT).contains(normalized);
+    }
+
+    private TenantStatus parseTenantStatus(String value) {
+        if (!StringUtils.hasText(value)) {
+            return TenantStatus.ACTIVE;
+        }
+        try {
+            return TenantStatus.valueOf(value.trim().toUpperCase(Locale.ROOT));
+        } catch (Exception ex) {
+            throw new ApiContractException(
+                    HttpStatus.BAD_REQUEST,
+                    "TENANT_STATUS_INVALID",
+                    "Status de tenant invalido",
+                    ErrorSeverity.ERROR,
+                    "Use ACTIVE ou INACTIVE.",
+                    "value=" + value
+            );
+        }
     }
 
     private TenantApplicationResponse toApplicationResponse(TenantApplicationEntity entity) {
@@ -277,6 +348,21 @@ public class PlatformTenantService {
     private String trimToNull(String value) {
         String trimmed = trim(value);
         return StringUtils.hasText(trimmed) ? trimmed : null;
+    }
+
+    private String normalizeRequired(String value, String field) {
+        String trimmed = trim(value);
+        if (!StringUtils.hasText(trimmed)) {
+            throw new ApiContractException(
+                    HttpStatus.BAD_REQUEST,
+                    "TENANT_REQUIRED_FIELD",
+                    field + " e obrigatorio",
+                    ErrorSeverity.ERROR,
+                    "Preencha os campos obrigatorios do tenant antes de continuar.",
+                    "field=" + field
+            );
+        }
+        return trimmed;
     }
 
     private User ensureAdminUser(String tenantId, User existing, UpsertTenantAdminHandoffRequest request) {

@@ -8,7 +8,7 @@ CREATE TABLE checkin_sections (
     mandatory          BOOLEAN      NOT NULL,
     photo_min          INT          NOT NULL,
     photo_max          INT          NOT NULL,
-    desired_items_json CLOB         NOT NULL,
+    desired_items_json TEXT         NOT NULL,
     sort_order         INT          NOT NULL,
     active             BOOLEAN      NOT NULL,
     created_at         TIMESTAMP    NOT NULL,

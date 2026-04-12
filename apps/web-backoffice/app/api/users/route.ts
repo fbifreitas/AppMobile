@@ -1,19 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { buildAuthenticatedHeaders, readAuthSession, unauthorizedJson } from '../../lib/auth_session';
 
 export const dynamic = 'force-dynamic';
 
 const BACKEND_BASE_URL = process.env.BACKEND_API_URL || 'http://localhost:8080';
 
-function buildHeaders(request: NextRequest): HeadersInit {
-  return {
-    'X-Tenant-Id': request.headers.get('X-Tenant-Id') || 'tenant-default',
-    'X-Correlation-Id': request.headers.get('X-Correlation-Id') || `web-users-${Date.now()}`,
-    'X-Actor-Id': request.headers.get('X-Actor-Id') || 'backoffice-operator',
-    'Content-Type': 'application/json',
-  };
-}
-
 export async function GET(request: NextRequest) {
+  const session = readAuthSession(request);
+  if (!session) {
+    return unauthorizedJson();
+  }
+
   try {
     const url = new URL('/api/users', BACKEND_BASE_URL);
     const status = request.nextUrl.searchParams.get('status');
@@ -23,7 +20,7 @@ export async function GET(request: NextRequest) {
 
     const response = await fetch(url.toString(), {
       method: 'GET',
-      headers: buildHeaders(request),
+      headers: buildAuthenticatedHeaders(session, 'web-users-list'),
     });
 
     const body = await response.json();
@@ -39,13 +36,18 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const session = readAuthSession(request);
+  if (!session) {
+    return unauthorizedJson();
+  }
+
   try {
     const payload = await request.json();
     const url = new URL('/api/users', BACKEND_BASE_URL);
 
     const response = await fetch(url.toString(), {
       method: 'POST',
-      headers: buildHeaders(request),
+      headers: buildAuthenticatedHeaders(session, 'web-users-create'),
       body: JSON.stringify(payload),
     });
 

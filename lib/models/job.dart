@@ -6,6 +6,8 @@ class Job {
   String endereco;
   double? latitude;
   double? longitude;
+  DateTime? deadlineAt;
+  DateTime? createdAt;
   JobStatus status;
   String nomeCliente;
   String? telefoneCliente;
@@ -26,6 +28,8 @@ class Job {
     required this.endereco,
     this.latitude,
     this.longitude,
+    this.deadlineAt,
+    this.createdAt,
     this.status = JobStatus.novo,
     this.nomeCliente = '',
     this.telefoneCliente,

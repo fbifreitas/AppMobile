@@ -46,6 +46,8 @@ void main() {
             create: (_) => AppState(
               FakeJobRepository(),
               const SharedPreferencesRepository(),
+              null,
+              false,
             ),
           ),
           ChangeNotifierProvider(create: (_) => InspectionState()),

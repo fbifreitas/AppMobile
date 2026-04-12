@@ -32,6 +32,12 @@ public class InspectionCase {
     @Column(name = "property_address", nullable = false)
     private String propertyAddress;
 
+    @Column(name = "property_latitude")
+    private Double propertyLatitude;
+
+    @Column(name = "property_longitude")
+    private Double propertyLongitude;
+
     @Column(name = "inspection_type", nullable = false)
     private String inspectionType;
 
@@ -49,10 +55,13 @@ public class InspectionCase {
     }
 
     public InspectionCase(String tenantId, String number, String propertyAddress,
+                          Double propertyLatitude, Double propertyLongitude,
                           String inspectionType, Instant deadline) {
         this.tenantId = tenantId;
         this.number = number;
         this.propertyAddress = propertyAddress;
+        this.propertyLatitude = propertyLatitude;
+        this.propertyLongitude = propertyLongitude;
         this.inspectionType = inspectionType;
         this.deadline = deadline;
         this.status = CaseStatus.OPEN;
@@ -70,6 +79,8 @@ public class InspectionCase {
     public String getTenantId() { return tenantId; }
     public String getNumber() { return number; }
     public String getPropertyAddress() { return propertyAddress; }
+    public Double getPropertyLatitude() { return propertyLatitude; }
+    public Double getPropertyLongitude() { return propertyLongitude; }
     public String getInspectionType() { return inspectionType; }
     public Instant getDeadline() { return deadline; }
     public CaseStatus getStatus() { return status; }
