@@ -65,6 +65,13 @@ class InspectionCameraSelectorSectionService {
           if (current.subjectContext == null) {
             continue;
           }
+          final ambienteValues = <String>[
+            ...ambientes,
+            if (current.targetItem != null &&
+                current.targetItem!.trim().isNotEmpty &&
+                !ambientes.contains(current.targetItem))
+              current.targetItem!,
+          ];
           sections.add(
             InspectionCameraSelectorSection(
               levelId: levelId,
@@ -72,10 +79,10 @@ class InspectionCameraSelectorSectionService {
                 levelId: levelId,
                 labelsByLevel: labelsByLevel,
               ),
-              values: ambientes,
+              values: ambienteValues,
               selected: current.targetItem,
               allowVoiceSelection:
-                  current.targetItem != null && ambientes.isNotEmpty,
+                  current.targetItem != null && ambienteValues.isNotEmpty,
               allowDuplicate:
                   current.targetItem != null &&
                   current.targetItem!.trim().isNotEmpty,
@@ -91,6 +98,13 @@ class InspectionCameraSelectorSectionService {
           if (current.targetItem == null || elementos.isEmpty) {
             continue;
           }
+          final elementoValues = <String>[
+            ...elementos,
+            if (current.targetQualifier != null &&
+                current.targetQualifier!.trim().isNotEmpty &&
+                !elementos.contains(current.targetQualifier))
+              current.targetQualifier!,
+          ];
           sections.add(
             InspectionCameraSelectorSection(
               levelId: levelId,
@@ -98,7 +112,7 @@ class InspectionCameraSelectorSectionService {
                 levelId: levelId,
                 labelsByLevel: labelsByLevel,
               ),
-              values: elementos,
+              values: elementoValues,
               selected: current.targetQualifier,
             ),
           );
@@ -107,6 +121,13 @@ class InspectionCameraSelectorSectionService {
           if (current.targetQualifier == null || materiais.isEmpty) {
             continue;
           }
+          final materialValues = <String>[
+            ...materiais,
+            if (selectedMaterial != null &&
+                selectedMaterial.trim().isNotEmpty &&
+                !materiais.contains(selectedMaterial))
+              selectedMaterial,
+          ];
           sections.add(
             InspectionCameraSelectorSection(
               levelId: levelId,
@@ -114,7 +135,7 @@ class InspectionCameraSelectorSectionService {
                 levelId: levelId,
                 labelsByLevel: labelsByLevel,
               ),
-              values: materiais,
+              values: materialValues,
               selected: selectedMaterial,
             ),
           );
@@ -131,7 +152,13 @@ class InspectionCameraSelectorSectionService {
                 levelId: levelId,
                 labelsByLevel: labelsByLevel,
               ),
-              values: estados,
+              values: <String>[
+                ...estados,
+                if (current.targetCondition != null &&
+                    current.targetCondition!.trim().isNotEmpty &&
+                    !estados.contains(current.targetCondition))
+                  current.targetCondition!,
+              ],
               selected: current.targetCondition,
             ),
           );

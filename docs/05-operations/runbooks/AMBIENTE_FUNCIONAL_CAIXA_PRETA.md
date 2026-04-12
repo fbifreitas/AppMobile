@@ -75,7 +75,7 @@ Ele precisa ter, no minimo:
 - Docker Desktop instalado e funcionando
 - PowerShell
 - portas `80`, `443`, `3000`, `8080`, `5432` e `6379` sem conflito relevante
-- segredos locais provisionados por variavel de ambiente, `Get-Secret` ou prompt seguro
+- cofre local operacional via `Get-Secret`; para teste funcional de caixa preta este e o caminho padrao de segredos
 
 ### Para ambiente em VPS
 
@@ -127,11 +127,11 @@ Revise pelo menos estes campos em `infra/.env`:
 
 Observacao:
 - nao grave segredos reais no arquivo versionado
-- o script local resolve segredos por env, cofre ou prompt
+- para teste funcional de caixa preta, trate o cofre local como obrigatorio; variavel de sessao ou prompt seguro ficam como fallback tecnico, nao como caminho principal
 
 ### Passo 2. Provisionar segredos locais
 
-Opcao recomendada no Windows:
+Opcao obrigatoria para este teste funcional no Windows:
 - PowerShell SecretManagement + SecretStore
 
 Segredos minimos esperados pelo script local:
@@ -139,6 +139,7 @@ Segredos minimos esperados pelo script local:
 - `AppMobile/RedisPassword`
 - `AppMobile/JwtSecret`
 - `AppMobile/IntegrationConfigSigningHmacKey`
+- `AppMobile/PlatformBootstrapAdminPassword` quando `PLATFORM_BOOTSTRAP_ENABLED=true`
 
 ### Passo 3. Subir a stack local
 
@@ -150,6 +151,37 @@ Esse script:
 - carrega `infra/.env`
 - resolve segredos
 - sobe `proxy`, `web`, `api`, `db` e `cache`
+- injeta as variaveis `COMPOSE_PLATFORM_BOOTSTRAP_*` so na sessao do script quando o bootstrap da plataforma estiver completo
+- habilita `AUTH_FIRST_ACCESS_EXPOSE_DEBUG_OTP=true` apenas na sessao local usada para o ambiente funcional de caixa preta
+- usa `docker compose up --force-recreate` para garantir que mudancas de flags/segredos de ambiente entrem de fato nos containers ja existentes
+- nao forca rebuild das imagens; depois de alterar codigo do `web`, `api` ou `proxy`, execute `docker compose -f infra\docker-compose.yml build <servico>` antes de subir a stack
+
+Compatibilidade da stack local:
+- o banco oficial do ambiente funcional local deve permanecer em `postgres:15-alpine` no [`infra/docker-compose.yml`](C:\src\AppMobile\infra\docker-compose.yml)
+- o backend precisa manter `org.flywaydb:flyway-database-postgresql` no classpath para bootstrap com PostgreSQL real
+- migrations SQL usadas no bootstrap PostgreSQL local devem usar tipos compatíveis com Postgres, como `TEXT` no lugar de `CLOB`
+
+- o proxy local em [`infra/nginx/nginx.conf`](C:\src\AppMobile\infra\nginx\nginx.conf) deve encaminhar `/api/actuator/*` para o backend Java e o restante de `/api/*` para o Next.js, preservando as rotas `app/api/*` do backoffice web
+- o proxy local em [`infra/nginx/nginx.conf`](C:\src\AppMobile\infra\nginx\nginx.conf) tambem deve encaminhar `/auth/*` e `/api/mobile/*` para o backend Java, porque esses contratos sao usados diretamente pelo app mobile Compass quando `APP_API_BASE_URL` aponta para `http://localhost`
+- o bootstrap correto do caminho de plataforma usa `PLATFORM_BOOTSTRAP_ENABLED=true` no `.env`, tenant inicial `tenant-platform` e credencial do `PLATFORM_ADMIN` resolvida por segredo em `PLATFORM_BOOTSTRAP_ADMIN_PASSWORD`
+- o container `api` so deve receber bootstrap de plataforma pelas variaveis `COMPOSE_PLATFORM_BOOTSTRAP_*` injetadas pelo [`start_local_stack.ps1`](C:\src\AppMobile\infra\scripts\start_local_stack.ps1); rodar `docker compose up` direto pode subir a stack, mas nao deve ser usado para inicializar o `PLATFORM_ADMIN`
+- no container `web`, o backend interno deve apontar para `http://api:8080` e `http://api:8080/api`, nunca para `localhost:8080`
+
+Registro operacional local em 2026-04-11:
+- `BUG-E2E-COMPASS-003`: bootstrap local quebrava por incompatibilidade Flyway/PostgreSQL; corrigido com suporte PostgreSQL no Flyway e baseline local em `postgres:15-alpine`
+- `BUG-E2E-COMPASS-006`: migrations usavam `CLOB`, incompatível com PostgreSQL real; corrigido para `TEXT`
+- `BUG-E2E-COMPASS-008`: proxy local encaminhava todo `/api/*` para o backend Java e bloqueava as rotas `app/api/*` do backoffice web; corrigido separando `/api/actuator/*` para backend e mantendo o restante de `/api/*` no Next.js
+- `BUG-E2E-COMPASS-009`: a primeira correcao do proxy local quebrou `GET /api/actuator/health` por reescrita incorreta de caminho; corrigido encaminhando `/api/actuator/*` para `/actuator/*` no backend Java
+- `BUG-E2E-COMPASS-010`: ambiente limpo nao tinha `PLATFORM_ADMIN` nem credenciais para iniciar o login correto da plataforma; corrigido com bootstrap configuravel de `PLATFORM_ADMIN`
+- `BUG-E2E-COMPASS-011`: superficie de plataforma nao permitia criar tenant do zero; corrigido com criacao de tenant pela propria trilha de plataforma
+- `BUG-E2E-COMPASS-012`: container `web` tentava acessar backend em `localhost:8080`, quebrando login e proxies `app/api/*`; corrigido para usar `api:8080` dentro da rede Docker
+- `BUG-E2E-COMPASS-013`: `docker compose up` direto podia recriar a `api` com `PLATFORM_BOOTSTRAP_ENABLED=true` e sem a senha secreta do bootstrap, derrubando o container; corrigido isolando o bootstrap nas variaveis `COMPOSE_PLATFORM_BOOTSTRAP_*` e validando o segredo antes de subir a stack
+- `BUG-E2E-COMPASS-024`: o proxy local nao expunha `/auth/*` nem `/api/mobile/*` para o backend, fazendo o app mobile receber HTML da web no lugar de JSON do contrato de autenticacao; corrigido no `nginx`
+- `BUG-E2E-COMPASS-025`: o cliente mobile de autenticacao explodia com `FormatException` quando recebia HTML/resposta invalida; corrigido com mensagem operacional clara para URL/proxy errado
+- `BUG-E2E-COMPASS-023`: o campo `Data de nascimento` no Android exigia `dd/mm/aaaa`, mas o teclado numerico nao oferecia `/`; corrigido com mascara automatica por digitos no app mobile
+- `BUG-E2E-COMPASS-027`: ambiente funcional local nao oferecia forma operacional de recuperar o codigo de primeiro acesso; corrigido expondo `debugOtp` apenas na stack local iniciada pelo `start_local_stack.ps1`
+- `BUG-E2E-COMPASS-028`: etapa de codigo no mobile usava jargao `OTP` e nao orientava usuario leigo; corrigido com linguagem simples, CTA de reenvio e ajuda contextual
+- `BUG-E2E-COMPASS-038`: o `start_local_stack.ps1` nao recriava containers existentes, entao flags locais como bootstrap da plataforma e `debugOtp` podiam nao entrar na `api`; corrigido com `docker compose up --force-recreate`
 
 ### Passo 4. Verificar containers
 
@@ -328,6 +360,7 @@ Tambem e necessario:
 Regras praticas:
 - para validacao de fluxo candidato, usar o build vindo de `Android Homologation`
 - para validacao local tecnica, usar build local apenas se a URL da API estiver coerente com o ambiente
+- no ambiente local de caixa preta, a etapa `Primeiro acesso` do Compass exibe um bloco `Codigo de teste do ambiente local` quando o backend devolver `debugOtp`; isso existe apenas para destravar o E2E local e nao representa o comportamento esperado em producao
 
 ## Parte 6 - Troubleshooting Rapido
 

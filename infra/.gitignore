@@ -1,3 +1,4 @@
 .env
+.env.compose.local
 nginx/certs/
 data/

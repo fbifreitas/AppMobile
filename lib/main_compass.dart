@@ -45,6 +45,8 @@ void main() {
                 (_) => AppState(
                   BackendJobRepository(fallbackRepository: FakeJobRepository()),
                   const SharedPreferencesRepository(),
+                  null,
+                  false,
                 ),
           ),
           ChangeNotifierProvider(create: (_) => InspectionState()),

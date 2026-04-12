@@ -58,7 +58,7 @@ test("jobs route propaga filtros e cabecalhos obrigatorios", async () => {
 
     assert.equal(response.status, 200);
     assert.equal(payload.totalElements, 1);
-    assert.match(capturedUrl, /\/api\/jobs\?/);
+    assert.match(capturedUrl, /\/jobs\?/);
     assert.match(capturedUrl, /status=OFFERED/);
     assert.match(capturedUrl, /page=1/);
     assert.match(capturedUrl, /size=10/);
@@ -115,7 +115,7 @@ test("job detail route propaga id do job", async () => {
 
     assert.equal(response.status, 200);
     assert.equal(payload.id, 9);
-    assert.match(capturedUrl, /\/api\/jobs\/9$/);
+    assert.match(capturedUrl, /\/jobs\/9$/);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -143,7 +143,7 @@ test("job timeline route consulta timeline do backend", async () => {
 
     assert.equal(response.status, 200);
     assert.equal(payload.jobId, 9);
-    assert.match(capturedUrl, /\/api\/jobs\/9\/timeline$/);
+    assert.match(capturedUrl, /\/jobs\/9\/timeline$/);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -152,8 +152,10 @@ test("job timeline route consulta timeline do backend", async () => {
 test("job assign route envia payload ao backend", async () => {
   const originalFetch = globalThis.fetch;
   let capturedBody = "";
+  let capturedUrl = "";
 
-  globalThis.fetch = async (_, init) => {
+  globalThis.fetch = async (input, init) => {
+    capturedUrl = String(input);
     capturedBody = String(init?.body);
     return makeJsonResponse(200, { id: 15, assignedTo: 44, status: "OFFERED" });
   };
@@ -174,6 +176,7 @@ test("job assign route envia payload ao backend", async () => {
 
     assert.equal(response.status, 200);
     assert.equal(payload.assignedTo, 44);
+    assert.match(capturedUrl, /\/jobs\/15\/assign$/);
     assert.match(capturedBody, /"userId":44/);
   } finally {
     globalThis.fetch = originalFetch;
@@ -183,8 +186,10 @@ test("job assign route envia payload ao backend", async () => {
 test("job cancel route aceita motivo opcional", async () => {
   const originalFetch = globalThis.fetch;
   let capturedBody = "";
+  let capturedUrl = "";
 
-  globalThis.fetch = async (_, init) => {
+  globalThis.fetch = async (input, init) => {
+    capturedUrl = String(input);
     capturedBody = String(init?.body);
     return makeJsonResponse(200, { id: 15, status: "CLOSED" });
   };
@@ -205,6 +210,7 @@ test("job cancel route aceita motivo opcional", async () => {
 
     assert.equal(response.status, 200);
     assert.equal(payload.status, "CLOSED");
+    assert.match(capturedUrl, /\/jobs\/15\/cancel$/);
     assert.match(capturedBody, /cliente desistiu/);
   } finally {
     globalThis.fetch = originalFetch;
@@ -214,8 +220,10 @@ test("job cancel route aceita motivo opcional", async () => {
 test("cases route envia criacao minima ao backend", async () => {
   const originalFetch = globalThis.fetch;
   let capturedBody = "";
+  let capturedUrl = "";
 
-  globalThis.fetch = async (_, init) => {
+  globalThis.fetch = async (input, init) => {
+    capturedUrl = String(input);
     capturedBody = String(init?.body);
     return makeJsonResponse(201, {
       caseId: 100,
@@ -245,6 +253,7 @@ test("cases route envia criacao minima ao backend", async () => {
 
     assert.equal(response.status, 201);
     assert.equal(payload.caseId, 100);
+    assert.match(capturedUrl, /\/cases$/);
     assert.match(capturedBody, /CASE-2026-001/);
     assert.match(capturedBody, /Vistoria inicial/);
   } finally {

@@ -28,6 +28,8 @@ export default function BackofficeCasesPage() {
   const [actorId, setActorId] = useState(DEFAULT_ACTOR);
   const [number, setNumber] = useState('');
   const [propertyAddress, setPropertyAddress] = useState('');
+  const [propertyLatitude, setPropertyLatitude] = useState('');
+  const [propertyLongitude, setPropertyLongitude] = useState('');
   const [inspectionType, setInspectionType] = useState('ENTRY');
   const [deadline, setDeadline] = useState('');
   const [jobTitle, setJobTitle] = useState('');
@@ -54,6 +56,8 @@ export default function BackofficeCasesPage() {
         body: JSON.stringify({
           number: number.trim(),
           propertyAddress: propertyAddress.trim(),
+          propertyLatitude: propertyLatitude.trim() ? Number(propertyLatitude) : null,
+          propertyLongitude: propertyLongitude.trim() ? Number(propertyLongitude) : null,
           inspectionType,
           deadline: deadline ? new Date(deadline).toISOString() : null,
           jobTitle: jobTitle.trim()
@@ -68,6 +72,8 @@ export default function BackofficeCasesPage() {
       setCreatedCases((current) => [data, ...current].slice(0, 5));
       setNumber('');
       setPropertyAddress('');
+      setPropertyLatitude('');
+      setPropertyLongitude('');
       setJobTitle('');
       setDeadline('');
     } catch (requestError) {
@@ -118,6 +124,14 @@ export default function BackofficeCasesPage() {
             <label>
               Endereco do imovel
               <input value={propertyAddress} onChange={(event) => setPropertyAddress(event.target.value)} required placeholder="Rua Exemplo, 100 - Centro" />
+            </label>
+            <label>
+              Latitude do imovel
+              <input value={propertyLatitude} onChange={(event) => setPropertyLatitude(event.target.value)} placeholder="-23.550520" />
+            </label>
+            <label>
+              Longitude do imovel
+              <input value={propertyLongitude} onChange={(event) => setPropertyLongitude(event.target.value)} placeholder="-46.633308" />
             </label>
             <label>
               Tipo de vistoria

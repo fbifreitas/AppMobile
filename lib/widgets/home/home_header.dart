@@ -12,6 +12,7 @@ class HomeHeader extends StatelessWidget {
     required this.firstName,
     required this.unreadMessages,
     required this.photoPath,
+    required this.onPhotoTap,
     required this.onNotificationsTap,
     required this.onSettingsTap,
     required this.onHubTap,
@@ -22,6 +23,7 @@ class HomeHeader extends StatelessWidget {
   final String firstName;
   final int unreadMessages;
   final String? photoPath;
+  final VoidCallback onPhotoTap;
   final VoidCallback onNotificationsTap;
   final VoidCallback onSettingsTap;
   final VoidCallback onHubTap;
@@ -48,7 +50,11 @@ class HomeHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _HeaderAvatar(photoPath: photoPath, tokens: tokens),
+        _HeaderAvatar(
+          photoPath: photoPath,
+          tokens: tokens,
+          onTap: onPhotoTap,
+        ),
         const SizedBox(width: 10),
         Expanded(
           child: Column(
@@ -115,43 +121,74 @@ class HomeHeader extends StatelessWidget {
 }
 
 class _HeaderAvatar extends StatelessWidget {
-  const _HeaderAvatar({this.photoPath, required this.tokens});
+  const _HeaderAvatar({
+    this.photoPath,
+    required this.tokens,
+    required this.onTap,
+  });
 
   static const _avatarUrl = 'https://i.pravatar.cc/150?img=3';
   final String? photoPath;
   final BrandTokens tokens;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final hasLocal = photoPath != null && photoPath!.trim().isNotEmpty;
-    return ClipOval(
-      child: SizedBox(
-        width: 42,
-        height: 42,
-        child:
-            hasLocal && !kIsWeb
-                ? Image.file(
-                  File(photoPath!),
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _fallbackAvatar(),
-                )
-                : Image.network(
-                  _avatarUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _fallbackAvatar(),
-                  loadingBuilder: (context, child, progress) {
-                    if (progress == null) return child;
-                    return Container(
-                      color: tokens.primaryLight,
-                      alignment: Alignment.center,
-                      child: const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+    return GestureDetector(
+      onTap: onTap,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          ClipOval(
+            child: SizedBox(
+              width: 42,
+              height: 42,
+              child:
+                  hasLocal && !kIsWeb
+                      ? Image.file(
+                        File(photoPath!),
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _fallbackAvatar(),
+                      )
+                      : Image.network(
+                        _avatarUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _fallbackAvatar(),
+                        loadingBuilder: (context, child, progress) {
+                          if (progress == null) return child;
+                          return Container(
+                            color: tokens.primaryLight,
+                            alignment: Alignment.center,
+                            child: const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
+            ),
+          ),
+          Positioned(
+            right: -2,
+            bottom: -2,
+            child: Container(
+              width: 18,
+              height: 18,
+              decoration: BoxDecoration(
+                color: tokens.primary,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 1.5),
+              ),
+              child: const Icon(
+                Icons.photo_camera_outlined,
+                size: 10,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,4 +1,5 @@
 import OperationalStatusPanel from "./components/operational_status_panel";
+import LogoutButton from "./components/logout_button";
 
 export default function HomePage() {
   return (
@@ -20,6 +21,7 @@ export default function HomePage() {
           <a className="cta" href="/health">
             Verificar health endpoint
           </a>
+          <LogoutButton />
           <a className="ghost" href="https://localhost/api/actuator/health">
             Validar API local
           </a>

@@ -107,6 +107,8 @@ public class IntegrationDemandService {
                 buildCaseNumber(request.externalId()),
                 formatAddress(request.propertyAddress().street(), request.propertyAddress().city(), request.propertyAddress().state(), request.propertyAddress().zipCode()),
                 request.inspectionType(),
+                null,
+                null,
                 request.requestedDeadline(),
                 buildJobTitle(request.externalId(), request.inspectionType())
         );
@@ -123,6 +125,8 @@ public class IntegrationDemandService {
                         addressNode.path("zipCode").asText("")
                 ),
                 entity.getInspectionType(),
+                null,
+                null,
                 entity.getRequestedDeadline(),
                 buildJobTitle(entity.getExternalId(), entity.getInspectionType())
         );

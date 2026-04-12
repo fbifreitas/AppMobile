@@ -110,7 +110,7 @@ class AuthState extends ChangeNotifier {
         false;
     if (_authGateway.isConfigured && _shouldRefreshAccessToken()) {
       try {
-        await _refreshBackendSession();
+        await _refreshBackendSession().timeout(const Duration(seconds: 8));
       } catch (_) {
         await _clearSessionLocally();
       }
@@ -167,6 +167,10 @@ class AuthState extends ChangeNotifier {
   Future<void> applyBackendSession(MobileAuthSession session) async {
     await _ensureLoaded();
     _userEmail = session.email;
+    _userNome = session.nome?.trim();
+    _userTipo = session.tipo?.trim();
+    _userCpf = session.cpf?.trim();
+    _userCnpj = session.cnpj?.trim();
     _tenantId = session.tenantId;
     _userId = session.userId.toString();
     _accessToken = session.accessToken;
@@ -178,6 +182,10 @@ class AuthState extends ChangeNotifier {
 
     await _preferencesRepository.setString(_statusKey, _status.name);
     await _preferencesRepository.setString(_userEmailKey, _userEmail!);
+    await _setOrRemoveString(_userNomeKey, _userNome);
+    await _setOrRemoveString(_userTipoKey, _userTipo);
+    await _setOrRemoveString(_userCpfKey, _userCpf);
+    await _setOrRemoveString(_userCnpjKey, _userCnpj);
     await _preferencesRepository.setString(_tenantIdKey, _tenantId!);
     await _preferencesRepository.setString(_userIdKey, _userId!);
     await _preferencesRepository.setString(_accessTokenKey, _accessToken!);
@@ -194,6 +202,15 @@ class AuthState extends ChangeNotifier {
       _membershipStatusKey,
       _membershipStatus!,
     );
+  }
+
+  Future<void> _setOrRemoveString(String key, String? value) async {
+    final normalized = value?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      await _preferencesRepository.remove(key);
+      return;
+    }
+    await _preferencesRepository.setString(key, normalized);
   }
 
   bool _shouldRefreshAccessToken() {

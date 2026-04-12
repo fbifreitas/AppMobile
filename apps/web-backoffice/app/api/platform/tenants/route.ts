@@ -35,3 +35,30 @@ export function GET(request: NextRequest) {
     .then(({ status: responseStatus, payload }) => NextResponse.json(payload, { status: responseStatus }))
     .catch(() => NextResponse.json({ error: "Failed to query platform tenants" }, { status: 502 }));
 }
+
+export async function POST(request: NextRequest) {
+  const session = readAuthSession(request);
+  if (!session) {
+    return unauthorizedJson();
+  }
+  const forbidden = requirePlatformAdmin(session);
+  if (forbidden) {
+    return forbidden;
+  }
+
+  const body = await request.text();
+
+  return callBackendOperationsApi("backoffice/platform/tenants", {
+    method: "POST",
+    headers: buildAuthenticatedHeaders(session, "platform-tenants-create", {
+      "X-Actor-Role": "platform_admin"
+    }),
+    body
+  }, undefined, {
+    tenantId: session.tenantId,
+    actorId: String(session.userId),
+    correlationPrefix: "platform-tenants-create"
+  })
+    .then(({ status: responseStatus, payload }) => NextResponse.json(payload, { status: responseStatus }))
+    .catch(() => NextResponse.json({ error: "Failed to create platform tenant" }, { status: 502 }));
+}

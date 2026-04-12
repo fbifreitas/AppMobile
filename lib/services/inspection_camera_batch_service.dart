@@ -35,6 +35,7 @@ class InspectionCameraBatchService {
     String? elemento,
     String? material,
     String? estado,
+    List<String> applicableClassificationLevels = const <String>[],
     String? predictionSummary,
     String? contextSuggestionSummary,
   }) {
@@ -57,6 +58,20 @@ class InspectionCameraBatchService {
       latitude: position.latitude,
       longitude: position.longitude,
       accuracy: position.accuracy,
+      classificationConfirmed: applicableClassificationLevels.isEmpty
+          ? true
+          : applicableClassificationLevels.every((level) {
+              switch (level) {
+                case 'elemento':
+                  return elemento != null && elemento.trim().isNotEmpty;
+                case 'material':
+                  return material != null && material.trim().isNotEmpty;
+                case 'estado':
+                  return estado != null && estado.trim().isNotEmpty;
+              }
+              return true;
+            }),
+      applicableClassificationLevels: applicableClassificationLevels,
       usedSuggestion: usedSuggestion,
       suggestionSummary: predictionSummary ?? contextSuggestionSummary,
     );

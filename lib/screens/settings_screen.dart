@@ -1,8 +1,5 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 
@@ -20,17 +17,12 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   static const int _developerModeTapThreshold = 7;
 
-  late TextEditingController _nomeController;
-  final ImagePicker _imagePicker = ImagePicker();
-
   int _versionTapCount = 0;
   String _appVersion = 'vcarregando...';
 
   @override
   void initState() {
     super.initState();
-    final appState = context.read<AppState>();
-    _nomeController = TextEditingController(text: appState.usuarioNomeCompleto);
     _loadAppVersion();
   }
 
@@ -48,15 +40,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _appVersion = 'Versão indisponível';
+        _appVersion = 'Versao indisponivel';
       });
     }
-  }
-
-  @override
-  void dispose() {
-    _nomeController.dispose();
-    super.dispose();
   }
 
   Future<void> _handleDeveloperModeHiddenTap() async {
@@ -103,43 +89,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('A ferramenta do desenvolvedor já está habilitada.'),
+        content: Text('A ferramenta do desenvolvedor ja esta habilitada.'),
       ),
     );
-  }
-
-  Future<void> _saveSettings() async {
-    final appState = context.read<AppState>();
-    appState.setUsuarioNomeCompleto(_nomeController.text.trim());
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Configurações atualizadas.')));
-  }
-
-  Future<void> _captureUserPhoto() async {
-    final photo = await _imagePicker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 85,
-      maxWidth: 1280,
-    );
-
-    if (photo == null) return;
-    if (!mounted) return;
-
-    await context.read<AppState>().updateUserPhoto(photo.path);
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Foto de perfil atualizada.')));
   }
 
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
+    final authState = Provider.of<AuthState?>(context);
+    final displayName = authState?.userNome?.trim().isNotEmpty == true
+        ? authState!.userNome!.trim()
+        : appState.usuarioNomeCompleto.trim();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Configurações')),
+      appBar: AppBar(title: const Text('Configuracoes')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -160,39 +124,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _nomeController,
-            decoration: const InputDecoration(
-              labelText: 'Nome completo do usuário',
-              border: OutlineInputBorder(),
+          if ((authState?.userEmail?.trim().isNotEmpty ?? false)) ...[
+            _InfoRow(
+              icon: Icons.person_outline,
+              label: 'Nome completo',
+              value: displayName.isEmpty ? 'Nao informado' : displayName,
             ),
-          ),
+            const SizedBox(height: 12),
+            _InfoRow(
+              icon: Icons.email_outlined,
+              label: 'E-mail',
+              value: authState!.userEmail!,
+            ),
+          ],
+          if ((authState?.tenantId?.trim().isNotEmpty ?? false)) ...[
+            const SizedBox(height: 8),
+            _InfoRow(
+              icon: Icons.apartment_outlined,
+              label: 'Empresa',
+              value: authState!.tenantId!,
+            ),
+          ],
           const SizedBox(height: 12),
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: Colors.grey.shade200,
-                backgroundImage:
-                    !kIsWeb && (appState.userPhotoPath?.isNotEmpty ?? false)
-                        ? FileImage(File(appState.userPhotoPath!))
-                        : null,
-                child:
-                    (kIsWeb || !(appState.userPhotoPath?.isNotEmpty ?? false))
-                        ? const Icon(Icons.person, color: Colors.grey)
-                        : null,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _captureUserPhoto,
-                  icon: const Icon(Icons.photo_camera_outlined),
-                  label: const Text('Atualizar foto (câmera)'),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
           OutlinedButton.icon(
             onPressed: () {
               Navigator.of(context).push<void>(
@@ -216,7 +169,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               contentPadding: EdgeInsets.zero,
               title: const Text('Habilitar ferramenta do desenvolvedor'),
               subtitle: const Text(
-                'Controla a exibição do ícone do hub técnico na Home.',
+                'Controla a exibicao do icone do hub tecnico na Home.',
               ),
               value: appState.developerModeEnabled,
               onChanged: (value) async {
@@ -231,7 +184,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               contentPadding: EdgeInsets.zero,
               title: const Text('Permitir iniciar longe do local'),
               subtitle: const Text(
-                'Quando desligado, o botão de vistoria depende da distância real até o imóvel.',
+                'Quando desligado, o botao de vistoria depende da distancia real ate o imovel.',
               ),
               value: appState.permitirIniciarLonge,
               onChanged: (value) async {
@@ -239,18 +192,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
             ),
           ],
-          FilledButton(
-            onPressed: _saveSettings,
-            child: const Text('Salvar configurações'),
-          ),
           const SizedBox(height: 8),
           OutlinedButton.icon(
             onPressed: () async {
-              final authState = context.read<AuthState>();
+              final authState = Provider.of<AuthState?>(context, listen: false);
               final appState = context.read<AppState>();
               final navigator = Navigator.of(context);
               await appState.resetSessionAfterLogout();
-              await authState.logout();
+              await authState?.logout();
               if (!mounted) return;
               navigator.popUntil((route) => route.isFirst);
             },
@@ -260,6 +209,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 20),
         ],
       ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: Colors.grey.shade700),
+        const SizedBox(width: 8),
+        Text(
+          '$label: ',
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        Expanded(child: Text(value)),
+      ],
     );
   }
 }

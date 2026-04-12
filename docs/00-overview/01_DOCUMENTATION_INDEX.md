@@ -1,8 +1,8 @@
-# DOCUMENTATION INDEX
+﻿# DOCUMENTATION INDEX
 
 ## Purpose
 
-Esta documentação descreve a V2 do repositório, agora orientado a uma plataforma multi-domínio, multi-tenant e white-label.
+Esta documentacao descreve o repositorio como plataforma multi-dominio, multi-tenant e multi-canal, com o mobile white-label como uma capacidade importante, mas nao como a definicao inteira do sistema.
 
 ## Reading order
 
@@ -14,39 +14,42 @@ Esta documentação descreve a V2 do repositório, agora orientado a uma platafo
 6. `03-architecture/03_DOMAIN_PACK_INSPECTION.md`
 7. `03-architecture/04_DOMAIN_PACK_WELLNESS.md`
 8. `03-architecture/05_DOMAIN_PACK_CHURCH.md`
-9. `03-architecture/06_TENANT_AND_WHITE_LABEL_MODEL.md`
-10. `03-architecture/07_CORPORATE_CANONICAL_MODEL.md`
-11. `04-engineering/03_SHORT_PATH_TRANSITION_PLAN.md`
-12. `05-operations/01_OPERATING_MODEL.md`
-13. `05-operations/AGENT_OPERATING_SYSTEM.md`
-14. `05-operations/SOURCE_OF_TRUTH_MATRIX.md`
-15. `05-operations/TASK_BRIEF_TEMPLATE.md`
-16. `05-operations/DONE_CHECKLIST_BY_WORK_TYPE.md`
-17. `05-operations/WHEN_TO_STOP_AND_ASK.md`
-18. `99-legacy/LEGACY_MIGRATION_MAP.md`
+9. `03-architecture/07_CORPORATE_CANONICAL_MODEL.md`
+10. `03-architecture/10_PLATFORM_ECOSYSTEM_AND_TENANT_MODEL.md`
+11. `03-architecture/11_PLATFORM_CHANNELS_AND_CAPABILITY_BOUNDARIES.md`
+12. `03-architecture/12_PLATFORM_MATURITY_AND_ALIGNMENT_MATRIX.md`
+13. `03-architecture/08_BRAND_AND_DISTRIBUTION_MODEL.md`
+14. `03-architecture/09_WHITE_LABEL_ONBOARDING_STRATEGY.md`
+15. `04-engineering/03_SHORT_PATH_TRANSITION_PLAN.md`
+16. `05-operations/01_OPERATING_MODEL.md`
+17. `05-operations/AGENT_OPERATING_SYSTEM.md`
+18. `05-operations/SOURCE_OF_TRUTH_MATRIX.md`
+19. `05-operations/TASK_BRIEF_TEMPLATE.md`
+20. `05-operations/DONE_CHECKLIST_BY_WORK_TYPE.md`
+21. `05-operations/WHEN_TO_STOP_AND_ASK.md`
+22. `99-legacy/LEGACY_MIGRATION_MAP.md`
 
 ## Core ideas
 
-- o repositório não representa mais apenas um produto vertical de vistoria
-- inspection continua como domínio estratégico e primeiro domain pack
-- wellness e church passam a ser domínios de primeira classe
-- o Platform Core deve permanecer agnóstico a domínio
-- Shared Foundations concentram capacidades compartilháveis de negócio
-- white-label e tenant são capacidades estruturais, não detalhes de interface
+- o repositorio nao representa apenas um produto vertical de vistoria
+- inspection continua como dominio estrategico e primeiro domain pack
+- wellness e church passam a ser dominios de primeira classe
+- o Platform Core deve permanecer agnostico a dominio
+- Shared Foundations concentram capacidades compartilhaveis de negocio
+- tenant e ecossistema de plataforma sao conceitos transversais
+- white-label mobile continua como canal/capacidade estrutural, nao como definicao inteira da plataforma
 
 ## Active sections
 
-- `00-overview`: visão geral e mudança de direção
+- `00-overview`: visao geral e mudanca de direcao
 - `01-executive`: posicionamento corporativo
-- `02-product`: portfólio e roadmap
-- `03-architecture`: blueprint corporativo e domínios
-- `04-engineering`: guardrails, estrutura-alvo, plano de transição e brand setup
-  - `BRAND_SETUP_AND_RELEASE_FLOW.md` — arquitetura multi-brand, flavors, scripts, limites de override
-  - `iOS_FLAVOR_SETUP_GUIDE.md` — setup iOS por marca
-- `05-operations`: operação corrente ativa (runbooks, setup, onboarding, governança de backlog e backlogs táticos)
-- `06-analysis-design`: decisões arquiteturais (log ativo em `01_DECISION_LOG.md`)
-- `07-diagrams`: índice de diagramas e imagens
-- `99-legacy`: mapa de documentos legados e arquivos históricos
+- `02-product`: portfolio e roadmap
+- `03-architecture`: blueprint corporativo, tenant transversal, canais e dominios
+- `04-engineering`: guardrails, estrutura-alvo, plano de transicao e brand setup
+- `05-operations`: operacao corrente ativa
+- `06-analysis-design`: decisoes arquiteturais
+- `07-diagrams`: indice de diagramas e imagens
+- `99-legacy`: mapa de documentos legados e arquivos historicos
 
 ## Daily usage shortcut
 

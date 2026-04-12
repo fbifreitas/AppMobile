@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { NextRequest } from "next/server";
-import { GET as listTenants } from "../app/api/platform/tenants/route";
+import { GET as listTenants, POST as createTenant } from "../app/api/platform/tenants/route";
 import { PUT as putAdminHandoff } from "../app/api/platform/tenants/[tenantId]/admin-handoff/route";
 import { PUT as putApplication } from "../app/api/platform/tenants/[tenantId]/application/route";
 import { PUT as putLicense } from "../app/api/platform/tenants/[tenantId]/license/route";
@@ -89,6 +89,42 @@ test("platform tenant routes reject non platform admin session before proxying",
     assert.equal(response.status, 403);
     assert.equal(payload.error, "PLATFORM_ADMIN role required");
     assert.equal(called, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("platform tenant create route proxies POST payload", async () => {
+  const originalFetch = globalThis.fetch;
+  let capturedMethod = "";
+  let capturedBody = "";
+
+  globalThis.fetch = async (_input, init) => {
+    capturedMethod = String(init?.method);
+    capturedBody = String(init?.body);
+    return makeJsonResponse(200, { tenantId: "tenant-nova-empresa", slug: "nova-empresa" });
+  };
+
+  try {
+    const request = new NextRequest("http://localhost/api/platform/tenants", {
+      method: "POST",
+      headers: {
+        cookie: sessionCookie()
+      },
+      body: JSON.stringify({
+        tenantId: "tenant-nova-empresa",
+        slug: "nova-empresa",
+        displayName: "Nova Empresa",
+        status: "ACTIVE"
+      })
+    });
+    const response = await createTenant(request);
+    const payload = (await response.json()) as { tenantId: string; slug: string };
+
+    assert.equal(response.status, 200);
+    assert.equal(payload.tenantId, "tenant-nova-empresa");
+    assert.equal(capturedMethod, "POST");
+    assert.match(capturedBody, /nova-empresa/);
   } finally {
     globalThis.fetch = originalFetch;
   }

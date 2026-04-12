@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ jobId: string }> }
+  context: { params: { jobId: string } }
 ) {
   const session = readAuthSession(request);
   if (!session) {
@@ -15,9 +15,8 @@ export async function POST(
 
   try {
     const payload = await request.json().catch(() => ({}));
-    const { jobId } = await context.params;
     const response = await callBackendOperationsApi(
-      `jobs/${jobId}/cancel`,
+      `jobs/${context.params.jobId}/cancel`,
       {
         method: "POST",
         headers: buildAuthenticatedHeaders(session, "job-cancel"),

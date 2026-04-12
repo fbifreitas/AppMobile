@@ -8,7 +8,7 @@ CREATE TABLE inspections (
     idempotency_key    VARCHAR(255) NOT NULL,
     protocol_id        VARCHAR(80)  NOT NULL,
     status             VARCHAR(40)  NOT NULL,
-    payload_json       CLOB         NOT NULL,
+    payload_json       TEXT         NOT NULL,
     submitted_at       TIMESTAMP    NOT NULL,
     updated_at         TIMESTAMP    NOT NULL,
     CONSTRAINT pk_inspections PRIMARY KEY (id),

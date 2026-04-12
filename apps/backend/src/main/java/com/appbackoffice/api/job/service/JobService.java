@@ -9,12 +9,16 @@ import com.appbackoffice.api.job.dto.JobSummaryResponse;
 import com.appbackoffice.api.job.dto.JobTimelineResponse;
 import com.appbackoffice.api.job.entity.Assignment;
 import com.appbackoffice.api.job.entity.AssignmentResponse;
+import com.appbackoffice.api.job.entity.InspectionCase;
 import com.appbackoffice.api.job.entity.Job;
 import com.appbackoffice.api.job.entity.JobStatus;
 import com.appbackoffice.api.job.entity.JobTimelineEntry;
 import com.appbackoffice.api.job.repository.AssignmentRepository;
+import com.appbackoffice.api.job.repository.CaseRepository;
 import com.appbackoffice.api.job.repository.JobRepository;
 import com.appbackoffice.api.job.repository.JobTimelineRepository;
+import com.appbackoffice.api.platform.entity.TenantApplicationEntity;
+import com.appbackoffice.api.platform.repository.TenantApplicationRepository;
 import com.appbackoffice.api.user.repository.UserRepository;
 import com.appbackoffice.api.user.entity.User;
 import com.appbackoffice.api.user.entity.UserStatus;
@@ -26,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class JobService {
@@ -34,6 +39,8 @@ public class JobService {
     private final AssignmentRepository assignmentRepository;
     private final JobTimelineRepository timelineRepository;
     private final JobStateMachine stateMachine;
+    private final CaseRepository caseRepository;
+    private final TenantApplicationRepository tenantApplicationRepository;
     private final UserRepository userRepository;
     private final TenantGuardService tenantGuardService;
 
@@ -41,12 +48,16 @@ public class JobService {
                       AssignmentRepository assignmentRepository,
                       JobTimelineRepository timelineRepository,
                       JobStateMachine stateMachine,
+                      CaseRepository caseRepository,
+                      TenantApplicationRepository tenantApplicationRepository,
                       UserRepository userRepository,
                       TenantGuardService tenantGuardService) {
         this.jobRepository = jobRepository;
         this.assignmentRepository = assignmentRepository;
         this.timelineRepository = timelineRepository;
         this.stateMachine = stateMachine;
+        this.caseRepository = caseRepository;
+        this.tenantApplicationRepository = tenantApplicationRepository;
         this.userRepository = userRepository;
         this.tenantGuardService = tenantGuardService;
     }
@@ -87,16 +98,20 @@ public class JobService {
         Job job = requireJobInTenant(tenantId, jobId);
         requireAssignableUserInTenant(tenantId, request.userId());
         JobStatus from = job.getStatus();
-        stateMachine.validateTransition(from, JobStatus.OFFERED);
+        JobStatus nextStatus = resolveDispatchStatus(tenantId);
+        stateMachine.validateTransition(from, nextStatus);
 
         Assignment assignment = new Assignment(jobId, request.userId(), tenantId);
+        if (nextStatus == JobStatus.ACCEPTED) {
+            assignment.respond(AssignmentResponse.ACCEPTED);
+        }
         assignmentRepository.save(assignment);
 
-        job.setStatus(JobStatus.OFFERED);
+        job.setStatus(nextStatus);
         job.setAssignedTo(request.userId());
         jobRepository.save(job);
 
-        recordTimeline(job, from, JobStatus.OFFERED, actorId, null);
+        recordTimeline(job, from, nextStatus, actorId, dispatchReason(nextStatus));
         return toSummary(job);
     }
 
@@ -295,9 +310,18 @@ public class JobService {
     }
 
     private JobSummaryResponse toSummary(Job job) {
+        InspectionCase inspectionCase = caseRepository.findByTenantIdAndId(job.getTenantId(), job.getCaseId())
+                .orElse(null);
         return new JobSummaryResponse(
                 job.getId(), job.getCaseId(), job.getTenantId(), job.getTitle(),
-                job.getStatus().name(), job.getAssignedTo(), job.getDeadlineAt(), job.getCreatedAt()
+                job.getStatus().name(),
+                job.getAssignedTo(),
+                inspectionCase != null ? inspectionCase.getPropertyAddress() : null,
+                inspectionCase != null ? inspectionCase.getPropertyLatitude() : null,
+                inspectionCase != null ? inspectionCase.getPropertyLongitude() : null,
+                inspectionCase != null ? inspectionCase.getInspectionType() : null,
+                job.getDeadlineAt(),
+                job.getCreatedAt()
         );
     }
 
@@ -312,5 +336,33 @@ public class JobService {
                 job.getStatus().name(), job.getAssignedTo(), job.getDeadlineAt(),
                 job.getCreatedAt(), job.getUpdatedAt(), infos
         );
+    }
+
+    private JobStatus resolveDispatchStatus(String tenantId) {
+        TenantApplicationEntity application = tenantApplicationRepository.findByTenantId(tenantId).orElse(null);
+        if (application == null) {
+            return JobStatus.OFFERED;
+        }
+
+        String appCode = normalize(application.getAppCode());
+        String brandName = normalize(application.getBrandName());
+        if ("compass".equals(appCode) || "compass".equals(brandName)) {
+            return JobStatus.ACCEPTED;
+        }
+        return JobStatus.OFFERED;
+    }
+
+    private String dispatchReason(JobStatus nextStatus) {
+        if (nextStatus == JobStatus.ACCEPTED) {
+            return "Direct assignment accepted by dispatch policy";
+        }
+        return null;
+    }
+
+    private String normalize(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.trim().toLowerCase(Locale.ROOT);
     }
 }

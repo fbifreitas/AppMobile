@@ -23,7 +23,14 @@ type ReportDetail = ReportItem & {
   content: unknown;
 };
 
-const tenantId = 'tenant-default';
+async function extractErrorMessage(response: Response, fallback: string): Promise<string> {
+  try {
+    const payload = await response.json() as { error?: string; message?: string };
+    return payload.error || payload.message || fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 export default function BackofficeReportsPage() {
   const [items, setItems] = useState<ReportItem[]>([]);
@@ -43,14 +50,14 @@ export default function BackofficeReportsPage() {
     setError(null);
 
     try {
-      const params = new URLSearchParams({ tenantId });
+      const params = new URLSearchParams();
       if (statusFilter.trim()) {
         params.set('status', statusFilter.trim());
       }
 
       const response = await fetch(`/api/reports?${params.toString()}`);
       if (!response.ok) {
-        throw new Error(`Failed to load reports (${response.status})`);
+        throw new Error(await extractErrorMessage(response, `Failed to load reports (${response.status})`));
       }
 
       const payload: ReportListResponse = await response.json();
@@ -73,9 +80,9 @@ export default function BackofficeReportsPage() {
     setError(null);
 
     try {
-      const response = await fetch(`/api/reports/${reportId}?tenantId=${tenantId}`);
+      const response = await fetch(`/api/reports/${reportId}`);
       if (!response.ok) {
-        throw new Error(`Failed to load report detail (${response.status})`);
+        throw new Error(await extractErrorMessage(response, `Failed to load report detail (${response.status})`));
       }
 
       const payload: ReportDetail = await response.json();
@@ -102,7 +109,7 @@ export default function BackofficeReportsPage() {
         throw new Error('Valuation process ID must be a positive number');
       }
 
-      const response = await fetch(`/api/reports/generate/${valuationProcessId}?tenantId=${tenantId}`, {
+      const response = await fetch(`/api/reports/generate/${valuationProcessId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -112,7 +119,7 @@ export default function BackofficeReportsPage() {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to generate report (${response.status})`);
+        throw new Error(await extractErrorMessage(response, `Failed to generate report (${response.status})`));
       }
 
       const payload: ReportDetail = await response.json();
@@ -137,7 +144,7 @@ export default function BackofficeReportsPage() {
     setMessage(null);
 
     try {
-      const response = await fetch(`/api/reports/${selected.id}/review?tenantId=${tenantId}`, {
+      const response = await fetch(`/api/reports/${selected.id}/review`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -150,7 +157,7 @@ export default function BackofficeReportsPage() {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to review report (${response.status})`);
+        throw new Error(await extractErrorMessage(response, `Failed to review report (${response.status})`));
       }
 
       setMessage(`Report ${selected.id} reviewed with action ${reviewAction}`);

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -10,6 +11,10 @@ class MobileAuthSession {
     required this.userId,
     required this.tenantId,
     required this.email,
+    this.nome,
+    this.tipo,
+    this.cpf,
+    this.cnpj,
     required this.userStatus,
     required this.membershipRole,
     required this.membershipStatus,
@@ -23,6 +28,10 @@ class MobileAuthSession {
   final int userId;
   final String tenantId;
   final String email;
+  final String? nome;
+  final String? tipo;
+  final String? cpf;
+  final String? cnpj;
   final String userStatus;
   final String membershipRole;
   final String membershipStatus;
@@ -48,11 +57,13 @@ class MobileFirstAccessChallenge {
     required this.challengeId,
     required this.deliveryHint,
     required this.expiresInSeconds,
+    this.debugOtp,
   });
 
   final String challengeId;
   final String deliveryHint;
   final int expiresInSeconds;
+  final String? debugOtp;
 }
 
 abstract class MobileAuthGateway {
@@ -81,6 +92,7 @@ class MobileBackendAuthService implements MobileAuthGateway {
 
   final String? _baseUrlOverride;
   final HttpClient Function()? _httpClientFactory;
+  static const Duration _requestTimeout = Duration(seconds: 8);
 
   String get _resolvedBaseUrl => (_baseUrlOverride ?? _baseUrl).trim();
 
@@ -94,15 +106,17 @@ class MobileBackendAuthService implements MobileAuthGateway {
     required String password,
     required String deviceInfo,
   }) async {
-    final tokens = await _postJson('/auth/login', {
+    final tokens = await _withTimeout(_postJson('/auth/login', {
       'tenantId': tenantId,
       'email': email,
       'password': password,
       'deviceInfo': deviceInfo,
-    });
+    }));
 
     final accessToken = _requireString(tokens, 'accessToken');
-    final me = await _getJson('/auth/me', authorization: 'Bearer $accessToken');
+    final me = await _withTimeout(
+      _getJson('/auth/me', authorization: 'Bearer $accessToken'),
+    );
 
     return MobileAuthSession(
       accessToken: accessToken,
@@ -112,6 +126,10 @@ class MobileBackendAuthService implements MobileAuthGateway {
       userId: _intOrDefault(me, 'userId', 0),
       tenantId: _requireString(me, 'tenantId'),
       email: _requireString(me, 'email'),
+      nome: _nullableString(me, 'nome'),
+      tipo: _nullableString(me, 'tipo'),
+      cpf: _nullableString(me, 'cpf'),
+      cnpj: _nullableString(me, 'cnpj'),
       userStatus: _stringOrDefault(me, 'userStatus', 'APPROVED'),
       membershipRole: _stringOrDefault(me, 'membershipRole', 'FIELD_OPERATOR'),
       membershipStatus: _stringOrDefault(me, 'membershipStatus', 'ACTIVE'),
@@ -123,15 +141,15 @@ class MobileBackendAuthService implements MobileAuthGateway {
 
   @override
   Future<MobileAuthTokens> refresh({required String refreshToken}) async {
-    final tokens = await _postJson('/auth/refresh', {
+    final tokens = await _withTimeout(_postJson('/auth/refresh', {
       'refreshToken': refreshToken,
-    });
+    }));
     return _tokensFromJson(tokens);
   }
 
   @override
   Future<void> logout({required String refreshToken}) async {
-    await _postJson('/auth/logout', {'refreshToken': refreshToken});
+    await _withTimeout(_postJson('/auth/logout', {'refreshToken': refreshToken}));
   }
 
   Future<MobileFirstAccessChallenge> startFirstAccess({
@@ -140,12 +158,12 @@ class MobileBackendAuthService implements MobileAuthGateway {
     required String birthDate,
     required String identifier,
   }) async {
-    final response = await _postJson('/auth/first-access/start', {
+    final response = await _withTimeout(_postJson('/auth/first-access/start', {
       'tenantId': tenantId,
       'cpf': cpf,
       'birthDate': birthDate,
       'identifier': identifier,
-    });
+    }));
     return MobileFirstAccessChallenge(
       challengeId: _requireString(response, 'challengeId'),
       deliveryHint: _stringOrDefault(
@@ -154,6 +172,7 @@ class MobileBackendAuthService implements MobileAuthGateway {
         'Se os dados estiverem corretos, enviaremos um codigo ao contato cadastrado.',
       ),
       expiresInSeconds: _intOrDefault(response, 'expiresInSeconds', 600),
+      debugOtp: _nullableString(response, 'debugOtp'),
     );
   }
 
@@ -164,16 +183,18 @@ class MobileBackendAuthService implements MobileAuthGateway {
     required String newPassword,
     required String deviceInfo,
   }) async {
-    final tokens = await _postJson('/auth/first-access/complete', {
+    final tokens = await _withTimeout(_postJson('/auth/first-access/complete', {
       'tenantId': tenantId,
       'challengeId': challengeId,
       'otp': otp,
       'newPassword': newPassword,
       'deviceInfo': deviceInfo,
-    });
+    }));
 
     final accessToken = _requireString(tokens, 'accessToken');
-    final me = await _getJson('/auth/me', authorization: 'Bearer $accessToken');
+    final me = await _withTimeout(
+      _getJson('/auth/me', authorization: 'Bearer $accessToken'),
+    );
 
     return MobileAuthSession(
       accessToken: accessToken,
@@ -183,6 +204,10 @@ class MobileBackendAuthService implements MobileAuthGateway {
       userId: _intOrDefault(me, 'userId', 0),
       tenantId: _requireString(me, 'tenantId'),
       email: _requireString(me, 'email'),
+      nome: _nullableString(me, 'nome'),
+      tipo: _nullableString(me, 'tipo'),
+      cpf: _nullableString(me, 'cpf'),
+      cnpj: _nullableString(me, 'cnpj'),
       userStatus: _stringOrDefault(me, 'userStatus', 'APPROVED'),
       membershipRole: _stringOrDefault(me, 'membershipRole', 'FIELD_OPERATOR'),
       membershipStatus: _stringOrDefault(me, 'membershipStatus', 'ACTIVE'),
@@ -237,10 +262,25 @@ class MobileBackendAuthService implements MobileAuthGateway {
     HttpClientResponse response,
   ) async {
     final raw = await utf8.decoder.bind(response).join();
-    final decoded =
-        raw.isEmpty
-            ? <String, dynamic>{}
-            : jsonDecode(raw) as Map<String, dynamic>;
+    final contentType = response.headers.contentType?.mimeType ?? '';
+    final decoded = _tryDecodeJson(raw);
+
+    if (decoded == null) {
+      final looksLikeHtml =
+          contentType.contains('text/html') ||
+          raw.trimLeft().startsWith('<!DOCTYPE html') ||
+          raw.trimLeft().startsWith('<html');
+      if (looksLikeHtml) {
+        throw MobileAuthException(
+          'Resposta inesperada do servidor. Verifique a URL da API do app ou o proxy local.',
+          response.statusCode >= 400 ? response.statusCode : 502,
+        );
+      }
+      throw MobileAuthException(
+        'Resposta invalida do servidor durante autenticacao.',
+        response.statusCode >= 400 ? response.statusCode : 502,
+      );
+    }
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final message =
@@ -277,6 +317,27 @@ class MobileBackendAuthService implements MobileAuthGateway {
     return int.tryParse(value?.toString() ?? '') ?? defaultValue;
   }
 
+  String? _nullableString(Map<String, dynamic> map, String key) {
+    final value = map[key]?.toString().trim();
+    if (value == null || value.isEmpty) {
+      return null;
+    }
+    return value;
+  }
+
+  Map<String, dynamic>? _tryDecodeJson(String raw) {
+    if (raw.trim().isEmpty) return <String, dynamic>{};
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      }
+      return <String, dynamic>{'data': decoded};
+    } on FormatException {
+      return null;
+    }
+  }
+
   MobileAuthTokens _tokensFromJson(Map<String, dynamic> map) {
     return MobileAuthTokens(
       accessToken: _requireString(map, 'accessToken'),
@@ -284,6 +345,27 @@ class MobileBackendAuthService implements MobileAuthGateway {
       tokenType: _stringOrDefault(map, 'tokenType', 'Bearer'),
       expiresInSeconds: _intOrDefault(map, 'expiresInSeconds', 0),
     );
+  }
+
+  Future<T> _withTimeout<T>(Future<T> future) async {
+    try {
+      return await future.timeout(_requestTimeout);
+    } on TimeoutException {
+      throw const MobileAuthException(
+        'Tempo de resposta excedido ao falar com o servidor.',
+        504,
+      );
+    } on SocketException {
+      throw const MobileAuthException(
+        'Nao foi possivel conectar ao servidor.',
+        503,
+      );
+    } on HttpException {
+      throw const MobileAuthException(
+        'Falha de comunicacao com o servidor.',
+        502,
+      );
+    }
   }
 }
 

@@ -43,6 +43,7 @@ class InspectionReviewEditableCapture {
   String? elemento;
   String? material;
   String? estado;
+  List<String> applicableClassificationLevels;
   DateTime capturedAt;
   InspectionReviewPhotoStatus status;
 
@@ -55,6 +56,7 @@ class InspectionReviewEditableCapture {
     required this.elemento,
     required this.material,
     required this.estado,
+    required this.applicableClassificationLevels,
     required this.capturedAt,
     required this.status,
   });
@@ -63,9 +65,12 @@ class InspectionReviewEditableCapture {
     OverlayCameraCaptureResult capture,
   ) {
     final hasCompleteClassification =
-        (capture.elemento?.trim().isNotEmpty ?? false) &&
-        (capture.material?.trim().isNotEmpty ?? false) &&
-        (capture.estado?.trim().isNotEmpty ?? false);
+        _hasRequiredClassification(
+          requiredLevels: capture.applicableClassificationLevels,
+          elemento: capture.elemento,
+          material: capture.material,
+          estado: capture.estado,
+        );
     final hasAnyClassification =
         (capture.elemento?.trim().isNotEmpty ?? false) ||
         (capture.material?.trim().isNotEmpty ?? false) ||
@@ -80,9 +85,10 @@ class InspectionReviewEditableCapture {
       elemento: capture.elemento,
       material: capture.material,
       estado: capture.estado,
+      applicableClassificationLevels: capture.applicableClassificationLevels,
       capturedAt: capture.capturedAt,
       status:
-          hasCompleteClassification
+          capture.classificationConfirmed || hasCompleteClassification
               ? InspectionReviewPhotoStatus.classified
               : hasAnyClassification
               ? InspectionReviewPhotoStatus.suggested
@@ -143,10 +149,12 @@ class InspectionReviewEditableCapture {
   }
 
   void recalculateStatus({bool forceClassified = false}) {
-    final hasCompleteClassification =
-        (elemento?.trim().isNotEmpty ?? false) &&
-        (material?.trim().isNotEmpty ?? false) &&
-        (estado?.trim().isNotEmpty ?? false);
+    final hasCompleteClassification = _hasRequiredClassification(
+      requiredLevels: applicableClassificationLevels,
+      elemento: elemento,
+      material: material,
+      estado: estado,
+    );
     final hasAnyClassification =
         (elemento?.trim().isNotEmpty ?? false) ||
         (material?.trim().isNotEmpty ?? false) ||
@@ -163,6 +171,22 @@ class InspectionReviewEditableCapture {
     } else {
       status = InspectionReviewPhotoStatus.pending;
     }
+  }
+
+  static bool _hasRequiredClassification({
+    required List<String> requiredLevels,
+    required String? elemento,
+    required String? material,
+    required String? estado,
+  }) {
+    final requiredSet = requiredLevels.toSet();
+    final requireElemento = requiredSet.contains('elemento');
+    final requireMaterial = requiredSet.contains('material');
+    final requireEstado = requiredSet.contains('estado');
+
+    return (!requireElemento || (elemento?.trim().isNotEmpty ?? false)) &&
+        (!requireMaterial || (material?.trim().isNotEmpty ?? false)) &&
+        (!requireEstado || (estado?.trim().isNotEmpty ?? false));
   }
 }
 

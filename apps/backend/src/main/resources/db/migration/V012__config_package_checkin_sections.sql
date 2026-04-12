@@ -1,2 +1,2 @@
 ALTER TABLE config_packages
-    ADD COLUMN checkin_sections_json CLOB;
+    ADD COLUMN checkin_sections_json TEXT;

@@ -59,10 +59,6 @@ export default function UsersPage() {
       const query = status === 'ALL' ? '' : `?status=${status}`;
       const response = await fetch(`/api/users${query}`, {
         method: 'GET',
-        headers: {
-          'X-Tenant-Id': 'tenant-default',
-          'X-Correlation-Id': `web-users-list-${Date.now()}`,
-        },
       });
 
       if (!response.ok) {
@@ -74,10 +70,6 @@ export default function UsersPage() {
 
       const onboardingResponse = await fetch('/api/users/onboarding-statuses', {
         method: 'GET',
-        headers: {
-          'X-Tenant-Id': 'tenant-default',
-          'X-Correlation-Id': `web-users-onboarding-${Date.now()}`,
-        },
       });
 
       if (onboardingResponse.ok) {
@@ -164,6 +156,7 @@ export default function UsersPage() {
           <table>
             <thead>
               <tr>
+                <th>ID</th>
                 <th>Nome</th>
                 <th>Email</th>
                 <th>Role</th>
@@ -176,6 +169,7 @@ export default function UsersPage() {
             <tbody>
               {users.map((user) => (
                 <tr key={user.id}>
+                  <td>{user.id}</td>
                   <td>
                     <strong>{user.nome}</strong>
                     <small>{user.tipo}</small>
@@ -201,7 +195,7 @@ export default function UsersPage() {
               ))}
               {users.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="empty-row">Nenhum usuário encontrado para este filtro.</td>
+                  <td colSpan={8} className="empty-row">Nenhum usuário encontrado para este filtro.</td>
                 </tr>
               ) : null}
             </tbody>

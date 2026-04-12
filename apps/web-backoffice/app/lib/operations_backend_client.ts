@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 const DEFAULT_BACKEND_OPERATIONS_BASE_URL = "http://localhost:8080/api";
+const ROOT_OPERATION_RESOURCES = ["cases", "jobs"];
 
 type RequestContext = {
   tenantId?: string;
@@ -22,9 +23,24 @@ function getBackendBaseUrl(): string {
       : DEFAULT_BACKEND_OPERATIONS_BASE_URL;
 }
 
+function usesRootOperationsBase(path: string): boolean {
+  const normalizedPath = path.startsWith("/") ? path.slice(1) : path;
+  return ROOT_OPERATION_RESOURCES.some(
+    (resource) =>
+      normalizedPath === resource || normalizedPath.startsWith(`${resource}/`)
+  );
+}
+
 export function buildBackendOperationsUrl(path: string, query?: URLSearchParams): string {
   const normalizedPath = path.startsWith("/") ? path.slice(1) : path;
-  const url = new URL(normalizedPath, `${getBackendBaseUrl().replace(/\/$/, "")}/`);
+  const configuredApiBase = getBackendBaseUrl().replace(/\/$/, "");
+  const rootBase = configuredApiBase.endsWith("/api")
+    ? configuredApiBase.slice(0, -4)
+    : configuredApiBase;
+  const selectedBase = usesRootOperationsBase(normalizedPath)
+    ? `${rootBase}/`
+    : `${configuredApiBase}/`;
+  const url = new URL(normalizedPath, selectedBase);
 
   if (query) {
     url.search = query.toString();

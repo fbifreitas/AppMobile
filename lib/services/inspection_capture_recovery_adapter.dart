@@ -86,6 +86,64 @@ class InspectionCaptureRecoveryAdapter {
     ];
   }
 
+  List<OverlayCameraCaptureResult> resolveReviewCaptures({
+    required List<OverlayCameraCaptureResult> currentCaptures,
+    required Map<String, dynamic> inspectionRecoveryPayload,
+  }) {
+    final mergedCaptures = mergeReviewCaptures(
+      currentCaptures: currentCaptures,
+      inspectionRecoveryPayload: inspectionRecoveryPayload,
+    );
+
+    final reviewPayload = inspectionRecoveryPayload['review'];
+    if (reviewPayload is! Map) {
+      return mergedCaptures;
+    }
+
+    final reviewedRaw = reviewPayload['capturesRevisadas'];
+    if (reviewedRaw is! List) {
+      return mergedCaptures;
+    }
+
+    final reviewedByPath = <String, Map<String, dynamic>>{};
+    for (final raw in reviewedRaw) {
+      if (raw is! Map) continue;
+      final map = Map<String, dynamic>.from(
+        raw.map((key, value) => MapEntry('$key', value)),
+      );
+      final filePath = '${map['filePath'] ?? ''}'.trim();
+      if (filePath.isEmpty) continue;
+      reviewedByPath[filePath] = map;
+    }
+
+    if (reviewedByPath.isEmpty) {
+      return mergedCaptures;
+    }
+
+    return mergedCaptures.map((capture) {
+      final reviewed = reviewedByPath[capture.filePath];
+      if (reviewed == null) {
+        return capture;
+      }
+
+      final selection = FlowSelection.fromMap(reviewed);
+      final isComplete = reviewed['isComplete'] == true;
+
+      return capture.copyWith(
+        macroLocal: selection.subjectContext ?? capture.macroLocal,
+        ambiente: selection.targetItem ?? capture.ambiente,
+        ambienteBase: selection.targetItemBase ?? capture.ambienteBase,
+        ambienteInstanceIndex:
+            selection.targetItemInstanceIndex ?? capture.ambienteInstanceIndex,
+        elemento: selection.targetQualifier,
+        material:
+            selection.attributeText('inspection.material') ?? capture.material,
+        estado: selection.targetCondition,
+        classificationConfirmed: isComplete || capture.classificationConfirmed,
+      );
+    }).toList();
+  }
+
   bool hasPersistedPhotos({
     required Map<String, dynamic> step2Payload,
     required Map<String, dynamic> inspectionRecoveryPayload,

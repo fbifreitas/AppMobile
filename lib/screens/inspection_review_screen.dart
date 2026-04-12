@@ -107,10 +107,17 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   @override
   void initState() {
     super.initState();
+    final appState = Provider.of<AppState>(context, listen: false);
+    final resolvedCaptures = _captureRecoveryAdapter.resolveReviewCaptures(
+      currentCaptures: widget.captures,
+      inspectionRecoveryPayload: appState.inspectionRecoveryPayload,
+    );
+    _capturesCurrent = List.of(resolvedCaptures);
     _items =
-        widget.captures.map(InspectionReviewEditableCapture.fromCapture).toList();
+        resolvedCaptures
+            .map(InspectionReviewEditableCapture.fromCapture)
+            .toList();
     _hydrateReviewedItemsFromRecovery();
-    _capturesCurrent = List.of(widget.captures);
     _capturedAccordionExpanded = _items.any(
       (item) => (item.ambienteInstanceIndex ?? 1) > 1,
     );
@@ -218,6 +225,41 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
           },
         )
         .toList();
+  }
+
+  void _syncCaptureFromItem(
+    InspectionReviewEditableCapture item, {
+    bool classificationConfirmed = false,
+  }) {
+    final index = _capturesCurrent.indexWhere(
+      (capture) => capture.filePath == item.filePath,
+    );
+    if (index < 0) return;
+
+    _capturesCurrent[index] = _capturesCurrent[index].copyWith(
+      macroLocal: item.macroLocal,
+      ambiente: item.ambiente,
+      ambienteBase: item.ambienteBase,
+      ambienteInstanceIndex: item.ambienteInstanceIndex,
+      elemento: item.elemento,
+      material: item.material,
+      estado: item.estado,
+      classificationConfirmed:
+          classificationConfirmed ||
+          item.status == InspectionReviewPhotoStatus.classified,
+    );
+  }
+
+  void _syncCapturesFromItems(
+    Iterable<InspectionReviewEditableCapture> items, {
+    bool classificationConfirmed = false,
+  }) {
+    for (final item in items) {
+      _syncCaptureFromItem(
+        item,
+        classificationConfirmed: classificationConfirmed,
+      );
+    }
   }
 
   Map<String, dynamic> _buildStep2PayloadFromCaptures(
@@ -345,6 +387,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       tipoImovel: _resolvedTipoImovel().label,
       evidences: _buildTechnicalEvidenceInputs(),
       requirements: _buildTechnicalRequirementInputs(checkinStatuses),
+      coverageRequirements: _buildTechnicalCoverageRequirements(),
     );
 
     return PopScope(
@@ -647,6 +690,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
             estado: item.estado,
             observacao: null,
             filePath: item.filePath,
+            applicableClassificationLevels: item.applicableClassificationLevels,
           ),
         )
         .toList();
@@ -660,6 +704,22 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
           (item) => TechnicalCheckRequirementInput(
             title: item.field.titulo,
             fulfilled: item.isDone,
+          ),
+        )
+        .toList();
+  }
+
+  List<TechnicalCoverageRequirementInput> _buildTechnicalCoverageRequirements() {
+    final appState = Provider.of<AppState>(context, listen: false);
+    final config = _resolveStep2ConfigForTipo(_resolvedTipoImovel(), appState);
+
+    return config.camposFotos
+        .where((field) => field.obrigatorio)
+        .map(
+          (field) => TechnicalCoverageRequirementInput(
+            title: field.titulo,
+            subtipo: field.cameraAmbiente,
+            elemento: field.cameraElementoInicial,
           ),
         )
         .toList();
@@ -1351,6 +1411,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         item.copyClassificationFrom(source);
         item.recalculateStatus(forceClassified: true);
       }
+      _syncCapturesFromItems(group.items, classificationConfirmed: true);
     });
     _persistReviewState();
   }
@@ -1360,6 +1421,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       for (final item in group.items) {
         if (item.status == InspectionReviewPhotoStatus.suggested) {
           item.recalculateStatus(forceClassified: true);
+          _syncCaptureFromItem(item, classificationConfirmed: true);
         }
       }
     });
@@ -1375,6 +1437,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         item.copyClassificationFrom(source);
         item.recalculateStatus(forceClassified: true);
       }
+      _syncCapturesFromItems(group.items, classificationConfirmed: true);
     });
     _persistReviewState();
   }
@@ -1394,10 +1457,26 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
         String? material = itemSelection.attributeText('inspection.material');
         String? estado = itemSelection.targetCondition;
         String? ambiente = itemSelection.targetItem;
-        final ambientes = _domainAdapter.environmentOptions();
-        final elementos = _domainAdapter.elementOptions();
-        final materiais = _domainAdapter.materialOptions();
-        final estados = _domainAdapter.stateOptions();
+        final ambientes = _mergeCurrentAndCatalogValues(
+          catalogValues: _domainAdapter.environmentOptions(),
+          currentValues: _items.map((capture) => capture.ambiente),
+          selectedValue: ambiente,
+        );
+        final elementos = _mergeCurrentAndCatalogValues(
+          catalogValues: _domainAdapter.elementOptions(),
+          currentValues: _items.map((capture) => capture.elemento),
+          selectedValue: elemento,
+        );
+        final materiais = _mergeCurrentAndCatalogValues(
+          catalogValues: _domainAdapter.materialOptions(),
+          currentValues: _items.map((capture) => capture.material),
+          selectedValue: material,
+        );
+        final estados = _mergeCurrentAndCatalogValues(
+          catalogValues: _domainAdapter.stateOptions(),
+          currentValues: _items.map((capture) => capture.estado),
+          selectedValue: estado,
+        );
 
         return StatefulBuilder(
           builder: (context, setSheetState) {
@@ -1484,6 +1563,12 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                               ),
                             );
                             item.recalculateStatus();
+                            _syncCaptureFromItem(
+                              item,
+                              classificationConfirmed:
+                                  item.status ==
+                                  InspectionReviewPhotoStatus.classified,
+                            );
                             Navigator.of(sheetContext).pop(true);
                           },
                           child: const Text('Salvar classifica\u00E7\u00E3o'),
@@ -1502,6 +1587,31 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       setState(() {});
       _persistReviewState();
     }
+  }
+
+  List<String> _mergeCurrentAndCatalogValues({
+    required Iterable<String> catalogValues,
+    required Iterable<String?> currentValues,
+    String? selectedValue,
+  }) {
+    final merged = <String>[];
+
+    void addValue(String? value) {
+      final normalized = value?.trim() ?? '';
+      if (normalized.isEmpty) return;
+      if (merged.contains(normalized)) return;
+      merged.add(normalized);
+    }
+
+    for (final value in catalogValues) {
+      addValue(value);
+    }
+    for (final value in currentValues) {
+      addValue(value);
+    }
+    addValue(selectedValue);
+
+    return merged;
   }
 
   Future<void> _finishInspection(BuildContext context, int pendingCount) async {
@@ -1539,13 +1649,19 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
     if (!mounted) return;
 
     String? exportPath;
-    InspectionSyncResult? syncResult;
+    InspectionSyncResult syncResult = const InspectionSyncResult(
+      success: false,
+      message: '',
+    );
+    bool hasSyncResult = false;
     int queuedCount = 0;
     InspectionSyncQueueFlushResult? flushResult;
+    bool finalizedLocallyOnly = false;
     try {
       final payload = _buildInspectionExportPayload(appState);
       exportPath = await _exportService.export(payload);
       syncResult = await _syncService.syncFinalInspection(payload);
+      hasSyncResult = true;
 
       if (syncResult.success) {
         appState.atualizarReferenciasExternasJobAtual(
@@ -1558,16 +1674,26 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
           payload,
           lastError: syncResult.message,
         );
+        finalizedLocallyOnly = true;
+      } else {
+        finalizedLocallyOnly = true;
       }
-    } catch (_) {
-      exportPath = null;
+    } catch (error) {
+      finalizedLocallyOnly = true;
+      syncResult = InspectionSyncResult(
+        success: false,
+        message: 'Falha ao preparar envio final: $error',
+      );
+      hasSyncResult = true;
     }
 
-    await appState.finalizarJob();
+    if (!finalizedLocallyOnly && syncResult.success) {
+      await appState.finalizarJob();
+    }
 
     if (!mounted) return;
     final syncSuffix =
-        syncResult == null
+        !hasSyncResult
             ? ''
             : (syncResult.success
                 ? _buildSyncSuccessMessage(
@@ -1579,10 +1705,13 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
                   queuedCount: queuedCount,
                 ));
 
-    final message =
-        exportPath == null
+    final message = finalizedLocallyOnly
+        ? (exportPath == null
+            ? 'Vistoria salva localmente.$syncSuffix'
+            : 'Vistoria salva localmente. JSON salvo em: $exportPath.$syncSuffix')
+        : (exportPath == null
             ? 'Vistoria finalizada com sucesso.$syncSuffix'
-            : 'Vistoria finalizada com sucesso. JSON salvo em: $exportPath.$syncSuffix';
+            : 'Vistoria finalizada com sucesso. JSON salvo em: $exportPath.$syncSuffix');
     messenger.showSnackBar(SnackBar(content: Text(message)));
     navigator.popUntil((route) => route.isFirst);
   }
@@ -1640,7 +1769,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
             .toList();
 
     return {
-      'exportedAt': DateTime.now().toIso8601String(),
+      'exportedAt': DateTime.now().toUtc().toIso8601String(),
       'job': {
         'id': appState.jobAtual?.id,
         'titulo': appState.jobAtual?.titulo,
@@ -2223,4 +2352,5 @@ extension on _VisualStatus {
     }
   }
 }
+
 

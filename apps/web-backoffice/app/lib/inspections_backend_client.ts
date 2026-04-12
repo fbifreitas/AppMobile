@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-const DEFAULT_BACKEND_INSPECTIONS_BASE_URL = "http://localhost/api/backoffice/inspections";
+const DEFAULT_BACKEND_INSPECTIONS_BASE_URL = "http://localhost:8080/api/backoffice/inspections";
 
 function buildCorrelationId(): string {
   return `insp-${randomUUID()}`;
@@ -8,12 +8,24 @@ function buildCorrelationId(): string {
 
 function getBackendBaseUrl(): string {
   const configured = process.env.BACKOFFICE_INSPECTIONS_API_BASE_URL?.trim();
-  return configured && configured.length > 0 ? configured : DEFAULT_BACKEND_INSPECTIONS_BASE_URL;
+  if (configured && configured.length > 0) {
+    return configured;
+  }
+
+  const backendBase = process.env.BACKEND_API_URL?.trim();
+  if (backendBase && backendBase.length > 0) {
+    return `${backendBase.replace(/\/$/, "")}/api/backoffice/inspections`;
+  }
+
+  return DEFAULT_BACKEND_INSPECTIONS_BASE_URL;
 }
 
 export function buildBackendInspectionsUrl(path: string, query?: URLSearchParams): string {
   const normalizedPath = path.startsWith("/") ? path.slice(1) : path;
-  const url = new URL(normalizedPath, `${getBackendBaseUrl().replace(/\/$/, "")}/`);
+  const baseUrl = getBackendBaseUrl().replace(/\/$/, "");
+  const url = normalizedPath.length > 0
+    ? new URL(normalizedPath, `${baseUrl}/`)
+    : new URL(baseUrl);
 
   if (query) {
     url.search = query.toString();
@@ -43,7 +55,8 @@ export async function callBackendInspectionsApi<T>(
     headers
   });
 
-  const payload = (await response.json()) as T;
+  const responseText = await response.text();
+  const payload = (responseText.length > 0 ? JSON.parse(responseText) : null) as T;
 
   return {
     status: response.status,

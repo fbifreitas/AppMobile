@@ -51,6 +51,8 @@ public class CaseService {
                 tenantId,
                 normalizedCaseNumber,
                 request.propertyAddress(),
+                request.propertyLatitude(),
+                request.propertyLongitude(),
                 request.inspectionType(),
                 request.deadline()
         );

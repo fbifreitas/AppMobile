@@ -37,7 +37,7 @@ class _PermissionsOnboardingScreenState
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Permissoes essenciais concedidas com sucesso.'),
+          content: Text('Permissoes essenciais conferidas com sucesso.'),
         ),
       );
       return;
@@ -46,7 +46,7 @@ class _PermissionsOnboardingScreenState
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text(
-          'Ainda faltam permissoes essenciais. Conceda para continuar.',
+          'Ainda faltam permissoes essenciais. Revise cada item e tente novamente.',
         ),
       ),
     );
@@ -80,7 +80,7 @@ class _PermissionsOnboardingScreenState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Antes de usar o app em campo, conceda as permissoes operacionais obrigatorias.',
+              'Antes de usar o app em campo, valide as permissoes essenciais. Se alguma ja estiver aprovada no Android, vamos apenas confirmar e continuar.',
             ),
             const SizedBox(height: 16),
             _permissionTile(
@@ -106,7 +106,7 @@ class _PermissionsOnboardingScreenState
         minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
         child: SizedBox(
           width: double.infinity,
-          child: FilledButton(
+              child: FilledButton(
             onPressed: _loading ? null : _requestPermissions,
             child: _loading
                 ? const SizedBox(
@@ -117,7 +117,7 @@ class _PermissionsOnboardingScreenState
                       color: Colors.white,
                     ),
                   )
-                : const Text('Conceder permissoes e continuar'),
+                : const Text('Validar permissoes e continuar'),
           ),
         ),
       ),

@@ -10,6 +10,8 @@ interface CreateUserPayload {
   tipo: string;
   cpf?: string;
   cnpj?: string;
+  birthDate?: string;
+  phone?: string;
   role: UserRole;
   externalId?: string;
 }
@@ -21,6 +23,8 @@ export default function CreateUserPage() {
     tipo: 'PJ',
     cpf: '',
     cnpj: '',
+    birthDate: '',
+    phone: '',
     role: 'FIELD_AGENT',
     externalId: '',
   });
@@ -38,7 +42,6 @@ export default function CreateUserPage() {
       const response = await fetch('/api/users', {
         method: 'POST',
         headers: {
-          'X-Tenant-Id': 'tenant-default',
           'X-Correlation-Id': `web-users-create-${Date.now()}`,
           'Content-Type': 'application/json',
         },
@@ -57,6 +60,8 @@ export default function CreateUserPage() {
         tipo: 'PJ',
         cpf: '',
         cnpj: '',
+        birthDate: '',
+        phone: '',
         role: 'FIELD_AGENT',
         externalId: '',
       });
@@ -73,7 +78,7 @@ export default function CreateUserPage() {
         <header>
           <p className="eyebrow">Cadastro web</p>
           <h1>Novo usuário</h1>
-          <p>Usuários cadastrados por este formulário entram como APPROVED com origem WEB_CREATED.</p>
+          <p>Usuários cadastrados por este formulário entram como APPROVED com origem WEB_CREATED. Para validar Primeiro Acesso, preencha CPF, data de nascimento e identificador da empresa.</p>
         </header>
 
         <form onSubmit={onSubmit}>
@@ -140,8 +145,27 @@ export default function CreateUserPage() {
             </label>
           </div>
 
+          <div className="grid-2">
+            <label>
+              Data de nascimento
+              <input
+                type="date"
+                value={payload.birthDate}
+                onChange={(e) => setPayload((prev) => ({ ...prev, birthDate: e.target.value }))}
+              />
+            </label>
+
+            <label>
+              Telefone
+              <input
+                value={payload.phone}
+                onChange={(e) => setPayload((prev) => ({ ...prev, phone: e.target.value }))}
+              />
+            </label>
+          </div>
+
           <label>
-            External ID (opcional)
+            Identificador da empresa / External ID
             <input
               value={payload.externalId}
               onChange={(e) => setPayload((prev) => ({ ...prev, externalId: e.target.value }))}

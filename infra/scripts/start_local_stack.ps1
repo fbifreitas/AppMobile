@@ -1,11 +1,13 @@
 param(
     [object]$Detach = $true,
     [string]$PostgresSecretName = 'AppMobile/PostgresPassword',
-    [string]$RedisSecretName = 'AppMobile/RedisPassword'
+    [string]$RedisSecretName = 'AppMobile/RedisPassword',
+    [string]$PlatformAdminPasswordSecretName = 'AppMobile/PlatformBootstrapAdminPassword'
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+$script:SecretStoreUnlocked = $false
 
 function Convert-ToBoolean {
     param(
@@ -59,16 +61,10 @@ function Resolve-SecretValue {
         [string]$PromptLabel
     )
 
-    $fromEnv = [Environment]::GetEnvironmentVariable($EnvName, 'Process')
-    if ([string]::IsNullOrWhiteSpace($fromEnv)) {
-        $fromEnv = [Environment]::GetEnvironmentVariable($EnvName, 'User')
-    }
-    if (-not [string]::IsNullOrWhiteSpace($fromEnv)) {
-        return $fromEnv
-    }
-
     $getSecret = Get-Command Get-Secret -ErrorAction SilentlyContinue
+    $setSecret = Get-Command Set-Secret -ErrorAction SilentlyContinue
     if ($null -ne $getSecret) {
+        Ensure-SecretStoreUnlocked
         try {
             $vaultValue = Get-Secret -Name $SecretName -AsPlainText -ErrorAction Stop
             if (-not [string]::IsNullOrWhiteSpace($vaultValue)) {
@@ -80,12 +76,162 @@ function Resolve-SecretValue {
     }
 
     $secureValue = Read-Host -AsSecureString -Prompt $PromptLabel
-    return Get-PlainSecretFromSecureString -SecureValue $secureValue
+    $plainValue = Get-PlainSecretFromSecureString -SecureValue $secureValue
+
+    if ([string]::IsNullOrWhiteSpace($plainValue)) {
+        throw "$EnvName nao foi informado."
+    }
+
+    if ($null -ne $setSecret) {
+        try {
+            Set-Secret -Name $SecretName -Secret $secureValue -ErrorAction Stop
+        }
+        catch {
+            throw "Falha ao gravar '$SecretName' no vault local: $($_.Exception.Message)"
+        }
+    }
+    elseif ($null -eq $getSecret) {
+        throw "PowerShell SecretManagement nao esta disponivel. Instale/configure o vault local antes de subir a stack."
+    }
+
+    return $plainValue
+}
+
+function Ensure-SecretStoreUnlocked {
+    if ($script:SecretStoreUnlocked) {
+        return
+    }
+
+    $unlockSecretStore = Get-Command Unlock-SecretStore -ErrorAction SilentlyContinue
+    if ($null -eq $unlockSecretStore) {
+        return
+    }
+
+    try {
+        Unlock-SecretStore -ErrorAction Stop | Out-Null
+        $script:SecretStoreUnlocked = $true
+    }
+    catch {
+        throw "Falha ao desbloquear o Vault LocalStore. Execute Unlock-SecretStore e informe a senha do cofre local."
+    }
+}
+
+function Set-ComposeEnvironmentVariable {
+    param(
+        [string]$Name,
+        [string]$Value
+    )
+
+    [Environment]::SetEnvironmentVariable($Name, $Value, 'Process')
+}
+
+function New-ComposeEnvFile {
+    param(
+        [string]$BaseEnvFile,
+        [string]$OutputPath,
+        [hashtable]$Overrides
+    )
+
+    $values = @{}
+    foreach ($rawLine in Get-Content $BaseEnvFile) {
+        $line = $rawLine.Trim()
+        if ([string]::IsNullOrWhiteSpace($line) -or $line.StartsWith('#')) {
+            continue
+        }
+
+        $parts = $line -split '=', 2
+        if ($parts.Count -ne 2) {
+            continue
+        }
+
+        $values[$parts[0].Trim()] = $parts[1]
+    }
+
+    foreach ($key in $Overrides.Keys) {
+        $values[$key] = [string]$Overrides[$key]
+    }
+
+    $lines = foreach ($key in ($values.Keys | Sort-Object)) {
+        "$key=$($values[$key])"
+    }
+
+    Set-Content -Path $OutputPath -Value $lines -Encoding ASCII
+}
+
+function Invoke-DockerCompose {
+    param(
+        [string]$DockerCli,
+        [string]$InfraRoot,
+        [string]$EnvFilePath,
+        [string[]]$Arguments
+    )
+
+    Push-Location $InfraRoot
+    try {
+        & $DockerCli compose --env-file $EnvFilePath @Arguments
+    }
+    finally {
+        Pop-Location
+    }
+}
+
+function Wait-ForComposeServiceHealth {
+    param(
+        [string]$DockerCli,
+        [string]$InfraRoot,
+        [string]$ServiceName,
+        [int]$TimeoutSeconds = 120
+    )
+
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    do {
+        $containerId = ''
+        Push-Location $InfraRoot
+        try {
+            $containerId = (& $DockerCli compose ps -q $ServiceName | Select-Object -First 1).Trim()
+        }
+        finally {
+            Pop-Location
+        }
+
+        if (-not [string]::IsNullOrWhiteSpace($containerId)) {
+            $status = (& $DockerCli inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' $containerId).Trim()
+            if ($status -eq 'healthy') {
+                return
+            }
+        }
+
+        Start-Sleep -Seconds 2
+    } while ((Get-Date) -lt $deadline)
+
+    throw "Timeout aguardando o servico '$ServiceName' ficar healthy."
+}
+
+function Sync-PostgresUserPassword {
+    param(
+        [string]$DockerCli,
+        [string]$InfraRoot,
+        [string]$PostgresUser,
+        [string]$PostgresPassword
+    )
+
+    $escapedPassword = $PostgresPassword.Replace("'", "''")
+    $escapedUser = $PostgresUser.Replace('"', '""')
+    $sql = "ALTER USER ""$escapedUser"" WITH PASSWORD '$escapedPassword';"
+
+    Push-Location $InfraRoot
+    try {
+        & $DockerCli compose exec -T db psql -U $PostgresUser -d postgres -v ON_ERROR_STOP=1 -c $sql | Out-Null
+    }
+    finally {
+        Pop-Location
+    }
 }
 
 $repoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $infraRoot = Join-Path $repoRoot 'infra'
 $envFile = Join-Path $infraRoot '.env'
+$composeEnvFile = Join-Path $infraRoot '.env.compose.local'
 
 if (-not (Test-Path $envFile)) {
     throw "Arquivo nao encontrado: $envFile"
@@ -105,7 +251,7 @@ Get-Content $envFile | ForEach-Object {
     $name = $parts[0].Trim()
     $value = $parts[1]
 
-    if ($name -in @('POSTGRES_PASSWORD', 'REDIS_PASSWORD')) {
+    if ($name -in @('POSTGRES_PASSWORD', 'REDIS_PASSWORD', 'PLATFORM_BOOTSTRAP_ADMIN_PASSWORD')) {
         return
     }
 
@@ -118,22 +264,87 @@ $redisPassword = Resolve-SecretValue -EnvName 'REDIS_PASSWORD' -SecretName $Redi
 [Environment]::SetEnvironmentVariable('POSTGRES_PASSWORD', $postgresPassword, 'Process')
 [Environment]::SetEnvironmentVariable('REDIS_PASSWORD', $redisPassword, 'Process')
 
+$platformBootstrapEnabled = Convert-ToBoolean -Value ([Environment]::GetEnvironmentVariable('PLATFORM_BOOTSTRAP_ENABLED', 'Process')) -DefaultValue $false
+if ($platformBootstrapEnabled) {
+    $platformTenantId = [Environment]::GetEnvironmentVariable('PLATFORM_BOOTSTRAP_TENANT_ID', 'Process')
+    $platformTenantSlug = [Environment]::GetEnvironmentVariable('PLATFORM_BOOTSTRAP_TENANT_SLUG', 'Process')
+    $platformTenantName = [Environment]::GetEnvironmentVariable('PLATFORM_BOOTSTRAP_TENANT_NAME', 'Process')
+    $platformAdminEmail = [Environment]::GetEnvironmentVariable('PLATFORM_BOOTSTRAP_ADMIN_EMAIL', 'Process')
+    $platformAdminName = [Environment]::GetEnvironmentVariable('PLATFORM_BOOTSTRAP_ADMIN_NAME', 'Process')
+
+    foreach ($requiredValue in @(
+        @{ Name = 'PLATFORM_BOOTSTRAP_TENANT_ID'; Value = $platformTenantId },
+        @{ Name = 'PLATFORM_BOOTSTRAP_TENANT_SLUG'; Value = $platformTenantSlug },
+        @{ Name = 'PLATFORM_BOOTSTRAP_TENANT_NAME'; Value = $platformTenantName },
+        @{ Name = 'PLATFORM_BOOTSTRAP_ADMIN_EMAIL'; Value = $platformAdminEmail },
+        @{ Name = 'PLATFORM_BOOTSTRAP_ADMIN_NAME'; Value = $platformAdminName }
+    )) {
+        if ([string]::IsNullOrWhiteSpace($requiredValue.Value)) {
+            throw "Bootstrap da plataforma habilitado, mas $($requiredValue.Name) nao esta configurado."
+        }
+    }
+
+    $platformAdminPassword = Resolve-SecretValue `
+        -EnvName 'PLATFORM_BOOTSTRAP_ADMIN_PASSWORD' `
+        -SecretName $PlatformAdminPasswordSecretName `
+        -PromptLabel 'Digite a senha do PLATFORM_ADMIN bootstrap do ambiente local'
+
+    if ([string]::IsNullOrWhiteSpace($platformAdminPassword)) {
+        throw 'Bootstrap da plataforma habilitado, mas PLATFORM_BOOTSTRAP_ADMIN_PASSWORD nao foi informado.'
+    }
+
+    Set-ComposeEnvironmentVariable -Name 'COMPOSE_PLATFORM_BOOTSTRAP_ENABLED' -Value 'true'
+    Set-ComposeEnvironmentVariable -Name 'COMPOSE_PLATFORM_BOOTSTRAP_TENANT_ID' -Value $platformTenantId
+    Set-ComposeEnvironmentVariable -Name 'COMPOSE_PLATFORM_BOOTSTRAP_TENANT_SLUG' -Value $platformTenantSlug
+    Set-ComposeEnvironmentVariable -Name 'COMPOSE_PLATFORM_BOOTSTRAP_TENANT_NAME' -Value $platformTenantName
+    Set-ComposeEnvironmentVariable -Name 'COMPOSE_PLATFORM_BOOTSTRAP_ADMIN_EMAIL' -Value $platformAdminEmail
+    Set-ComposeEnvironmentVariable -Name 'COMPOSE_PLATFORM_BOOTSTRAP_ADMIN_NAME' -Value $platformAdminName
+    Set-ComposeEnvironmentVariable -Name 'COMPOSE_PLATFORM_BOOTSTRAP_ADMIN_PASSWORD' -Value $platformAdminPassword
+}
+else {
+    Set-ComposeEnvironmentVariable -Name 'COMPOSE_PLATFORM_BOOTSTRAP_ENABLED' -Value 'false'
+    foreach ($composeEnvName in @(
+        'COMPOSE_PLATFORM_BOOTSTRAP_TENANT_ID',
+        'COMPOSE_PLATFORM_BOOTSTRAP_TENANT_SLUG',
+        'COMPOSE_PLATFORM_BOOTSTRAP_TENANT_NAME',
+        'COMPOSE_PLATFORM_BOOTSTRAP_ADMIN_EMAIL',
+        'COMPOSE_PLATFORM_BOOTSTRAP_ADMIN_NAME',
+        'COMPOSE_PLATFORM_BOOTSTRAP_ADMIN_PASSWORD'
+    )) {
+        Set-ComposeEnvironmentVariable -Name $composeEnvName -Value ''
+    }
+}
+
+Set-ComposeEnvironmentVariable -Name 'COMPOSE_AUTH_FIRST_ACCESS_EXPOSE_DEBUG_OTP' -Value 'true'
+
 $dockerCli = 'docker'
 $dockerCliAbsolute = 'C:\Program Files\Docker\Docker\resources\bin\docker.exe'
 if (Test-Path $dockerCliAbsolute) {
     $dockerCli = $dockerCliAbsolute
 }
 
-$composeArgs = @('compose', 'up')
 $detachEnabled = Convert-ToBoolean -Value $Detach -DefaultValue $true
+$composeUpArgs = @('compose', 'up')
 if ($detachEnabled) {
-    $composeArgs += '-d'
+    $composeUpArgs += '-d'
 }
+$composeUpArgs += '--force-recreate'
 
-Push-Location $infraRoot
-try {
-    & $dockerCli @composeArgs
+$composeOverrides = @{
+    POSTGRES_PASSWORD = $postgresPassword
+    REDIS_PASSWORD = $redisPassword
+    COMPOSE_PLATFORM_BOOTSTRAP_ENABLED = [Environment]::GetEnvironmentVariable('COMPOSE_PLATFORM_BOOTSTRAP_ENABLED', 'Process')
+    COMPOSE_PLATFORM_BOOTSTRAP_TENANT_ID = [Environment]::GetEnvironmentVariable('COMPOSE_PLATFORM_BOOTSTRAP_TENANT_ID', 'Process')
+    COMPOSE_PLATFORM_BOOTSTRAP_TENANT_SLUG = [Environment]::GetEnvironmentVariable('COMPOSE_PLATFORM_BOOTSTRAP_TENANT_SLUG', 'Process')
+    COMPOSE_PLATFORM_BOOTSTRAP_TENANT_NAME = [Environment]::GetEnvironmentVariable('COMPOSE_PLATFORM_BOOTSTRAP_TENANT_NAME', 'Process')
+    COMPOSE_PLATFORM_BOOTSTRAP_ADMIN_EMAIL = [Environment]::GetEnvironmentVariable('COMPOSE_PLATFORM_BOOTSTRAP_ADMIN_EMAIL', 'Process')
+    COMPOSE_PLATFORM_BOOTSTRAP_ADMIN_NAME = [Environment]::GetEnvironmentVariable('COMPOSE_PLATFORM_BOOTSTRAP_ADMIN_NAME', 'Process')
+    COMPOSE_PLATFORM_BOOTSTRAP_ADMIN_PASSWORD = [Environment]::GetEnvironmentVariable('COMPOSE_PLATFORM_BOOTSTRAP_ADMIN_PASSWORD', 'Process')
+    COMPOSE_AUTH_FIRST_ACCESS_EXPOSE_DEBUG_OTP = [Environment]::GetEnvironmentVariable('COMPOSE_AUTH_FIRST_ACCESS_EXPOSE_DEBUG_OTP', 'Process')
 }
-finally {
-    Pop-Location
-}
+New-ComposeEnvFile -BaseEnvFile $envFile -OutputPath $composeEnvFile -Overrides $composeOverrides
+
+Invoke-DockerCompose -DockerCli $dockerCli -InfraRoot $infraRoot -EnvFilePath $composeEnvFile -Arguments @('up', '-d', '--force-recreate', 'db', 'cache', 'web')
+Wait-ForComposeServiceHealth -DockerCli $dockerCli -InfraRoot $infraRoot -ServiceName 'db'
+Sync-PostgresUserPassword -DockerCli $dockerCli -InfraRoot $infraRoot -PostgresUser ([Environment]::GetEnvironmentVariable('POSTGRES_USER', 'Process')) -PostgresPassword $postgresPassword
+Invoke-DockerCompose -DockerCli $dockerCli -InfraRoot $infraRoot -EnvFilePath $composeEnvFile -Arguments @('up', '-d', '--force-recreate', 'api', 'proxy')

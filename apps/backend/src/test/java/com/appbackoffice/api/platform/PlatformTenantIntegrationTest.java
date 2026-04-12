@@ -149,6 +149,57 @@ class PlatformTenantIntegrationTest {
     }
 
     @Test
+    void shouldReturnEmptyPlatformTenantListWhenNoTenantsExist() throws Exception {
+        sessionRepository.deleteAll();
+        identityBindingRepository.deleteAll();
+        userCredentialRepository.deleteAll();
+        membershipRepository.deleteAll();
+        userRepository.deleteAll();
+        tenantApplicationRepository.deleteAll();
+        tenantLicenseRepository.deleteAll();
+        tenantRepository.deleteAll();
+
+        mockMvc.perform(get("/api/backoffice/platform/tenants")
+                        .param("actorRole", "platform_admin")
+                        .header("X-Correlation-Id", "corr-platform-tenants-empty"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(0))
+                .andExpect(jsonPath("$.items").isArray());
+    }
+
+    @Test
+    void shouldReturnUnauthorizedWhenListingPlatformTenantsWithoutAuthorizationContext() throws Exception {
+        mockMvc.perform(get("/api/backoffice/platform/tenants")
+                        .header("X-Correlation-Id", "corr-platform-tenants-unauthorized"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTH_INVALID_TOKEN"));
+    }
+
+    @Test
+    void shouldCreateTenantForPlatformProvisioningFlow() throws Exception {
+        String payload = """
+                {
+                  "tenantId": "tenant-nova-empresa",
+                  "slug": "nova-empresa",
+                  "displayName": "Nova Empresa",
+                  "status": "ACTIVE"
+                }
+                """;
+
+        mockMvc.perform(post("/api/backoffice/platform/tenants")
+                        .param("actorRole", "platform_admin")
+                        .header("X-Correlation-Id", "corr-platform-tenants-create")
+                        .contentType("application/json")
+                        .content(payload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tenantId").value("tenant-nova-empresa"))
+                .andExpect(jsonPath("$.slug").value("nova-empresa"))
+                .andExpect(jsonPath("$.displayName").value("Nova Empresa"))
+                .andExpect(jsonPath("$.tenantStatus").value("ACTIVE"))
+                .andExpect(jsonPath("$.license.consumedSeats").value(0));
+    }
+
+    @Test
     void shouldUpsertApplicationAndLicense() throws Exception {
         String applicationPayload = """
                 {
@@ -199,6 +250,8 @@ class PlatformTenantIntegrationTest {
                 "CLT",
                 null,
                 null,
+                null,
+                null,
                 "operator",
                 null
         );
@@ -206,6 +259,8 @@ class PlatformTenantIntegrationTest {
                 "fourth-seat@compass.com",
                 "Fourth User",
                 "CLT",
+                null,
+                null,
                 null,
                 null,
                 "operator",

@@ -37,6 +37,8 @@ void _runWithBrand({required ResolvedBrandConfig config}) {
             create: (_) => AppState(
               FakeJobRepository(),
               const SharedPreferencesRepository(),
+              null,
+              false,
             ),
           ),
           ChangeNotifierProvider(create: (_) => InspectionState()),

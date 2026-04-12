@@ -9,6 +9,10 @@ public record JobSummaryResponse(
         String title,
         String status,
         Long assignedTo,
+        String propertyAddress,
+        Double propertyLatitude,
+        Double propertyLongitude,
+        String inspectionType,
         Instant deadlineAt,
         Instant createdAt
 ) {

@@ -12,7 +12,7 @@ public class JobStateMachine {
 
     private static final Map<JobStatus, Set<JobStatus>> VALID_TRANSITIONS = Map.of(
             JobStatus.CREATED,               EnumSet.of(JobStatus.ELIGIBLE_FOR_DISPATCH),
-            JobStatus.ELIGIBLE_FOR_DISPATCH, EnumSet.of(JobStatus.OFFERED, JobStatus.CLOSED),
+            JobStatus.ELIGIBLE_FOR_DISPATCH, EnumSet.of(JobStatus.OFFERED, JobStatus.ACCEPTED, JobStatus.CLOSED),
             JobStatus.OFFERED,               EnumSet.of(JobStatus.ACCEPTED, JobStatus.ELIGIBLE_FOR_DISPATCH, JobStatus.CLOSED),
             JobStatus.ACCEPTED,              EnumSet.of(JobStatus.IN_EXECUTION, JobStatus.CLOSED),
             JobStatus.IN_EXECUTION,          EnumSet.of(JobStatus.FIELD_COMPLETED, JobStatus.CLOSED),

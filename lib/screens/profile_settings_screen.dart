@@ -76,7 +76,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: Chip(
-                  label: Text('Vínculo: ${authState.userTipo}'),
+                  label: Text('Vinculo: ${authState.userTipo}'),
                   avatar: const Icon(Icons.badge_outlined, size: 16),
                 ),
               ),
@@ -142,7 +142,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                           color: Colors.white,
                         ),
                       )
-                      : const Text('Salvar alterações'),
+                      : const Text('Salvar alteracoes'),
             ),
           ],
         ),
