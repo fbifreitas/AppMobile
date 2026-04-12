@@ -15,6 +15,11 @@ InspectionReviewEditableCapture _buildCapture({
   String? elemento,
   String? material,
   String? estado,
+  List<String> applicableClassificationLevels = const <String>[
+    'elemento',
+    'material',
+    'estado',
+  ],
 }) {
   return InspectionReviewEditableCapture(
     filePath: filePath,
@@ -25,6 +30,7 @@ InspectionReviewEditableCapture _buildCapture({
     elemento: elemento,
     material: material,
     estado: estado,
+    applicableClassificationLevels: applicableClassificationLevels,
     capturedAt: DateTime(2026, 1, 1),
     status: InspectionReviewPhotoStatus.pending,
   );
@@ -100,6 +106,11 @@ void main() {
         latitude: 0,
         longitude: 0,
         accuracy: 0,
+        applicableClassificationLevels: const <String>[
+          'elemento',
+          'material',
+          'estado',
+        ],
       );
 
       final item = InspectionReviewEditableCapture.fromCapture(capture);
