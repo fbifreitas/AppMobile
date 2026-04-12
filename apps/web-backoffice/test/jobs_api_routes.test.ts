@@ -109,7 +109,7 @@ test("job detail route propaga id do job", async () => {
       }
     });
     const response = await jobDetailGet(request, {
-      params: Promise.resolve({ jobId: "9" })
+      params: { jobId: "9" }
     });
     const payload = (await response.json()) as { id: number };
 
@@ -137,7 +137,7 @@ test("job timeline route consulta timeline do backend", async () => {
       }
     });
     const response = await jobTimelineGet(request, {
-      params: Promise.resolve({ jobId: "9" })
+      params: { jobId: "9" }
     });
     const payload = (await response.json()) as { jobId: number };
 
@@ -170,7 +170,7 @@ test("job assign route envia payload ao backend", async () => {
       }
     });
     const response = await jobAssignPost(request, {
-      params: Promise.resolve({ jobId: "15" })
+      params: { jobId: "15" }
     });
     const payload = (await response.json()) as { assignedTo: number };
 
@@ -204,7 +204,7 @@ test("job cancel route aceita motivo opcional", async () => {
       }
     });
     const response = await jobCancelPost(request, {
-      params: Promise.resolve({ jobId: "15" })
+      params: { jobId: "15" }
     });
     const payload = (await response.json()) as { status: string };
 
