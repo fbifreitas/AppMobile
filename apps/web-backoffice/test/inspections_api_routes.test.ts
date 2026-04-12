@@ -110,7 +110,7 @@ test("inspection detail route propaga detalhe do backend", async () => {
       }
     });
     const response = await inspectionDetailGet(request, {
-      params: Promise.resolve({ inspectionId: "9" })
+      params: { inspectionId: "9" }
     });
     const payload = (await response.json()) as { id: number };
 
