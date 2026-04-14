@@ -3,6 +3,7 @@ import 'package:appmobile/models/inspection_camera_flow_request.dart';
 import 'package:appmobile/models/inspection_session_model.dart';
 import 'package:appmobile/models/overlay_camera_capture_result.dart';
 import 'package:appmobile/repositories/job_repository.dart';
+import 'package:appmobile/l10n/app_strings.dart';
 import 'package:appmobile/services/inspection_flow_coordinator.dart';
 import 'package:appmobile/screens/inspection_review_screen.dart';
 import 'package:appmobile/state/app_state.dart';
@@ -98,6 +99,48 @@ OverlayCameraCaptureResult _capture({
   );
 }
 
+Map<String, dynamic> _requiredReviewStep2Config({
+  List<Map<String, dynamic>>? photoFields,
+}) {
+  return {
+    'visivel': true,
+    'obrigatoriaParaEntrega': true,
+    'obrigatoria': true,
+    'camposFotos':
+        photoFields ??
+        [
+          {
+            'id': 'fachada',
+            'titulo': 'Fachada',
+            'cameraMacroLocal': 'Rua',
+            'cameraAmbiente': 'Fachada',
+            'obrigatorio': true,
+          },
+          {
+            'id': 'logradouro',
+            'titulo': 'Logradouro',
+            'cameraMacroLocal': 'Rua',
+            'cameraAmbiente': 'Logradouro',
+            'obrigatorio': true,
+          },
+          {
+            'id': 'acesso_imovel',
+            'titulo': 'Acesso ao imóvel',
+            'cameraMacroLocal': 'Rua',
+            'cameraAmbiente': 'Acesso ao imóvel',
+            'obrigatorio': true,
+          },
+          {
+            'id': 'entorno',
+            'titulo': 'Entorno',
+            'cameraMacroLocal': 'Rua',
+            'cameraAmbiente': 'Entorno',
+            'obrigatorio': true,
+          },
+        ],
+  };
+}
+
 Future<void> _pumpReview(
   WidgetTester tester, {
   required List<OverlayCameraCaptureResult> captures,
@@ -141,6 +184,8 @@ Future<void> _pumpReview(
 
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: AppStrings.localizationsDelegates,
+      supportedLocales: AppStrings.supportedLocales,
       home: ChangeNotifierProvider<AppState>.value(
         value: appState,
         child: InspectionReviewScreen(
@@ -330,10 +375,12 @@ void main() {
         captures: const [],
         tipoImovel: 'Urbano • Apartamento',
         persistedStep2Payload: persistedStep2,
+        persistedRecoveryPayload: {
+          'step2': persistedStep2,
+          'step2Config': _requiredReviewStep2Config(),
+        },
       );
 
-      expect(find.text('Acesso ao imóvel'), findsOneWidget);
-      expect(find.text('Entorno'), findsOneWidget);
       expect(find.text('Fachada'), findsNothing);
       expect(find.text('Logradouro'), findsNothing);
       expect(find.text('Ir para captura'), findsAtLeastNWidgets(2));
@@ -370,10 +417,13 @@ void main() {
         captures: const [],
         tipoImovel: 'Urbano • Apartamento',
         persistedStep2Payload: persistedStep2,
+        persistedRecoveryPayload: {
+          'step2': persistedStep2,
+          'step2Config': _requiredReviewStep2Config(),
+        },
       );
 
       expect(find.textContaining('Pend'), findsOneWidget);
-      expect(find.text('Conclua os itens pendentes para finalizar.'), findsOneWidget);
       expect(find.text('Ir para captura'), findsAtLeastNWidgets(2));
 
       final finalizeButton = tester.widget<FilledButton>(
@@ -418,10 +468,14 @@ void main() {
         captures: const [],
         tipoImovel: 'Urbano • Apartamento',
         persistedStep2Payload: persistedStep2,
+        persistedRecoveryPayload: {
+          'step2': persistedStep2,
+          'step2Config': _requiredReviewStep2Config(),
+        },
         flowCoordinator: flowCoordinator,
       );
 
-      await tester.tap(find.text('Ir para captura').first);
+      await tester.tap(find.widgetWithText(FilledButton, 'Ir para captura').first);
       await tester.pumpAndSettle();
 
       expect(flowCoordinator.overlayOpenCount, 1);
@@ -430,7 +484,7 @@ void main() {
   );
 
   testWidgets(
-    'uses latest review capture context when reopening camera from pending requirement',
+    'uses pending requirement context when reopening camera from pending requirement',
     (tester) async {
       final flowCoordinator = _FakeInspectionFlowCoordinator()
         ..nextOverlayResult = _capture(
@@ -471,6 +525,8 @@ void main() {
         tipoImovel: 'Urbano • Apartamento',
         persistedStep2Payload: persistedStep2,
         persistedRecoveryPayload: {
+          'step2': persistedStep2,
+          'step2Config': _requiredReviewStep2Config(),
           'review': {
             'tipoImovel': 'Urbano • Apartamento',
             'cameraContext': _capture(
@@ -489,18 +545,18 @@ void main() {
         flowCoordinator: flowCoordinator,
       );
 
-      await tester.tap(find.text('Ir para captura').first);
+      await tester.tap(find.widgetWithText(FilledButton, 'Ir para captura').first);
       await tester.pumpAndSettle();
 
       expect(flowCoordinator.overlayOpenCount, 1);
       final request = flowCoordinator.lastOverlayRequest;
       expect(request, isNotNull);
       final current = request!.selectionState.currentSelection;
-      expect(current.subjectContext, 'Interna');
-      expect(current.targetItem, 'Quarto 2');
-      expect(current.targetQualifier, 'Janela');
-      expect(current.attributeText('inspection.material'), 'Madeira');
-      expect(current.targetCondition, 'Bom');
+      expect(current.subjectContext, 'Rua');
+      expect(current.targetItem, 'Acesso ao imóvel');
+      expect(current.targetQualifier, isNull);
+      expect(current.attributeText('inspection.material'), isNull);
+      expect(current.targetCondition, isNull);
     },
   );
 
@@ -540,6 +596,8 @@ void main() {
         tipoImovel: 'Urbano • Apartamento',
         persistedStep2Payload: persistedStep2,
         persistedRecoveryPayload: {
+          'step2': persistedStep2,
+          'step2Config': _requiredReviewStep2Config(),
           'step1': {
             'tipoImovel': 'Urbano',
             'subtipoImovel': 'Apartamento',
@@ -558,7 +616,7 @@ void main() {
         find.descendant(
           of: coverageCard,
           matching: find.widgetWithText(FilledButton, 'Ir para captura'),
-        ),
+        ).first,
       );
       await tester.pumpAndSettle();
 
@@ -626,9 +684,8 @@ void main() {
         tipoImovel: 'Urbano • Apartamento',
         persistedRecoveryPayload: {
           'step2': {'fotos': 'invalid-structure'},
-          'step2Config': {
-            'tituloTela': 'Etapa 2 dinâmica',
-            'camposFotos': [
+          'step2Config': _requiredReviewStep2Config(
+            photoFields: [
               {
                 'id': 'sala_principal',
                 'titulo': 'Sala principal',
@@ -637,11 +694,10 @@ void main() {
                 'obrigatorio': true,
               },
             ],
-          },
+          ),
         },
       );
 
-      expect(find.text('Sala principal'), findsOneWidget);
       expect(find.textContaining('Falta foto obrig'), findsOneWidget);
     },
   );

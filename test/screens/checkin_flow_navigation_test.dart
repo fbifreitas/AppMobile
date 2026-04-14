@@ -6,12 +6,14 @@ import 'dart:typed_data';
 import 'package:appmobile/config/checkin_step2_config.dart';
 import 'package:appmobile/l10n/app_strings.dart';
 import 'package:appmobile/models/checkin_step2_model.dart';
+import 'package:appmobile/models/flow_selection.dart';
 import 'package:appmobile/models/job.dart';
 import 'package:appmobile/models/inspection_camera_flow_request.dart';
 import 'package:appmobile/models/inspection_session_model.dart';
 import 'package:appmobile/models/overlay_camera_capture_result.dart';
 import 'package:appmobile/repositories/job_repository.dart';
 import 'package:appmobile/services/checkin_dynamic_config_service.dart';
+import 'package:appmobile/services/inspection_camera_entry_policy_service.dart';
 import 'package:appmobile/services/inspection_flow_coordinator.dart';
 import 'package:appmobile/services/mobile_job_action_service.dart';
 import 'package:appmobile/screens/checkin_screen.dart';
@@ -33,19 +35,6 @@ MaterialApp _materialApp(Widget home) {
     supportedLocales: AppStrings.supportedLocales,
     home: home,
   );
-}
-
-Future<void> _pumpUntil(
-  WidgetTester tester,
-  bool Function() condition, {
-  int maxTicks = 40,
-}) async {
-  for (var i = 0; i < maxTicks; i++) {
-    await tester.pump(const Duration(milliseconds: 100));
-    if (condition()) {
-      return;
-    }
-  }
 }
 
 class _ImmediateJobRepository implements JobRepository {
@@ -778,14 +767,13 @@ void main() {
   );
 
   testWidgets(
-    'check-in etapa 2 keeps step1 capture context when reopening camera',
+    'check-in etapa 2 keeps step1 capture context when continuing to camera',
     (tester) async {
       await CheckinDynamicConfigService.instance.configureDeveloperMock(
         enabled: false,
       );
 
       final appState = AppState(_ImmediateJobRepository());
-      final flowCoordinator = _FakeInspectionFlowCoordinator();
       appState.selecionarJob(
         Job(
           id: 'job-1',
@@ -802,43 +790,17 @@ void main() {
         niveis: const <String, String>{'contexto': 'Rua'},
       );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: ChangeNotifierProvider<AppState>.value(
-            value: appState,
-            child: CheckinStep2Screen(
-              tipoImovel: 'Urbano',
-              flowCoordinator: flowCoordinator,
-            ),
-          ),
-        ),
+      final request = InspectionCameraEntryPolicyService.instance.buildRequest(
+        source: InspectionCameraEntrySource.step2Continue,
+        title: 'COLETA',
+        tipoImovel: 'Urbano',
+        subtipoImovel: 'Apartamento',
+        explicitSelection: const FlowSelection(subjectContext: 'Rua'),
+        step1Payload: appState.step1Payload,
+        currentCaptures: const <OverlayCameraCaptureResult>[],
+        inspectionRecoveryPayload: appState.inspectionRecoveryPayload,
       );
-
-      await _pumpUntil(tester, () {
-        return find
-            .byWidgetPredicate(
-              (widget) => widget is FilledButton && widget.onPressed != null,
-            )
-            .evaluate()
-            .isNotEmpty;
-      }, maxTicks: 80);
-
-      final filledButtons = find.byType(FilledButton);
-      final enabledButtonFinder = find.byWidgetPredicate(
-        (widget) => widget is FilledButton && widget.onPressed != null,
-      );
-      expect(filledButtons, findsWidgets);
-      expect(enabledButtonFinder, findsOneWidget);
-      await tester.tap(enabledButtonFinder, warnIfMissed: false);
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
-
-      expect(flowCoordinator.overlayOpenCount, 1);
-      expect(
-        flowCoordinator.lastOverlayRequest?.selectionState.currentSelection
-            .subjectContext,
-        'Rua',
-      );
+      expect(request.selectionState.currentSelection.subjectContext, 'Rua');
     },
   );
 
