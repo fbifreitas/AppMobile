@@ -27,4 +27,12 @@ class InspectionCameraMenuViewState {
     required this.contextSuggestionSummary,
     required this.currentSelection,
   });
+
+  List<String> get captureContexts => macroLocais;
+  List<String> get targetItems => ambientes;
+  List<String> get targetQualifiers => elementos;
+  List<String> get materialAttributes => materiais;
+  List<String> get conditionStates => estados;
+  List<String> get recentTargetItems => recentAmbientes;
+  List<String> get recentTargetQualifiers => recentElementos;
 }

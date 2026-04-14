@@ -36,14 +36,14 @@ public class InspectionBackofficeService {
                                                  String status,
                                                  Instant from,
                                                  Instant to,
-                                                 Long vistoriadorId,
+                                                 Long fieldAgentId,
                                                  int page,
                                                  int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "submittedAt", "id"));
 
         Specification<InspectionEntity> spec = byTenant(tenantId)
                 .and(byStatus(status))
-                .and(byVistoriador(vistoriadorId))
+                .and(byFieldAgent(fieldAgentId))
                 .and(byFrom(from))
                 .and(byTo(to));
 
@@ -74,7 +74,7 @@ public class InspectionBackofficeService {
                 inspection.getSubmissionId(),
                 inspection.getJobId(),
                 inspection.getTenantId(),
-                inspection.getVistoriadorId(),
+                inspection.getFieldAgentId(),
                 inspection.getIdempotencyKey(),
                 inspection.getProtocolId(),
                 inspection.getStatus(),
@@ -88,7 +88,7 @@ public class InspectionBackofficeService {
         return new InspectionBackofficeListResponse.Item(
                 entity.getId(),
                 entity.getJobId(),
-                entity.getVistoriadorId(),
+                entity.getFieldAgentId(),
                 entity.getProtocolId(),
                 entity.getStatus(),
                 entity.getSubmittedAt(),
@@ -115,11 +115,11 @@ public class InspectionBackofficeService {
         return (root, query, cb) -> cb.equal(root.get("status"), status.trim().toUpperCase());
     }
 
-    private Specification<InspectionEntity> byVistoriador(Long vistoriadorId) {
-        if (vistoriadorId == null) {
+    private Specification<InspectionEntity> byFieldAgent(Long fieldAgentId) {
+        if (fieldAgentId == null) {
             return null;
         }
-        return (root, query, cb) -> cb.equal(root.get("vistoriadorId"), vistoriadorId);
+        return (root, query, cb) -> cb.equal(root.get("fieldAgentId"), fieldAgentId);
     }
 
     private Specification<InspectionEntity> byFrom(Instant from) {

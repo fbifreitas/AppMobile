@@ -12,6 +12,7 @@ class VoiceTextField extends StatefulWidget {
   final String? helperText;
   final String? hintText;
   final ValueChanged<String>? onChanged;
+  final FocusNode? focusNode;
 
   const VoiceTextField({
     super.key,
@@ -24,6 +25,7 @@ class VoiceTextField extends StatefulWidget {
     this.helperText,
     this.hintText,
     this.onChanged,
+    this.focusNode,
   });
 
   @override
@@ -56,6 +58,7 @@ class _VoiceTextFieldState extends State<VoiceTextField> {
   Widget build(BuildContext context) {
     return TextFormField(
       controller: widget.controller,
+      focusNode: widget.focusNode,
       minLines: widget.minLines,
       maxLines: widget.maxLines,
       onChanged: widget.onChanged,

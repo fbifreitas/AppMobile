@@ -55,7 +55,9 @@ export async function callBackendOperationsApi<T>(
   query?: URLSearchParams,
   context?: RequestContext
 ): Promise<{ status: number; payload: T }> {
+  const normalizedPath = path.startsWith("/") ? path.slice(1) : path;
   const headers = new Headers(init?.headers ?? {});
+  const resolvedQuery = query ? new URLSearchParams(query) : new URLSearchParams();
 
   if (!headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
@@ -73,7 +75,17 @@ export async function callBackendOperationsApi<T>(
     headers.set("X-Correlation-Id", buildCorrelationId(context?.correlationPrefix));
   }
 
-  const response = await fetch(buildBackendOperationsUrl(path, query), {
+  // Backoffice controllers still require tenantId in the query string on
+  // several read/write endpoints, so centralize the propagation here.
+  if (
+    normalizedPath.startsWith("backoffice/") &&
+    !resolvedQuery.has("tenantId") &&
+    context?.tenantId?.trim()
+  ) {
+    resolvedQuery.set("tenantId", context.tenantId.trim());
+  }
+
+  const response = await fetch(buildBackendOperationsUrl(path, resolvedQuery), {
     cache: "no-store",
     ...init,
     headers

@@ -9,7 +9,7 @@ public record InspectionBackofficeDetailResponse(
         Long submissionId,
         Long jobId,
         String tenantId,
-        Long vistoriadorId,
+        Long fieldAgentId,
         String idempotencyKey,
         String protocolId,
         String status,
@@ -17,4 +17,7 @@ public record InspectionBackofficeDetailResponse(
         Instant updatedAt,
         JsonNode payload
 ) {
+    public Long vistoriadorId() {
+        return fieldAgentId;
+    }
 }

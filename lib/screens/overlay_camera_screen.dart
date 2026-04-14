@@ -4,15 +4,14 @@ import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 
 import '../config/inspection_menu_package.dart';
-import '../models/checkin_step2_model.dart';
 import '../models/flow_selection.dart';
 import '../models/inspection_camera_menu_view_state.dart';
 import '../models/inspection_camera_selector_section.dart';
 import '../models/inspection_menu_intelligence_models.dart';
 import '../models/overlay_camera_capture_result.dart';
+import '../services/inspection_camera_batch_flow_use_case.dart';
 import '../services/inspection_camera_batch_service.dart';
 import '../services/inspection_capture_flow_transition_service.dart';
-import '../services/inspection_capture_recovery_adapter.dart';
 import '../services/inspection_camera_menu_resolver.dart';
 import '../services/inspection_domain_adapter.dart';
 import '../services/inspection_camera_level_presentation_service.dart';
@@ -21,12 +20,16 @@ import '../services/inspection_camera_selector_section_service.dart';
 import '../services/inspection_camera_voice_command_service.dart';
 import '../services/inspection_context_actions_service.dart';
 import '../services/inspection_environment_instance_service.dart';
+import '../services/inspection_recovery_route_service.dart';
+import '../services/inspection_recovery_stage_service.dart';
 import '../services/inspection_menu_service.dart';
 import '../services/inspection_semantic_field_service.dart';
 import '../services/voice_command_catalog_service.dart';
 import '../services/voice_command_parser_service.dart';
 import '../services/voice_input_service.dart';
 import '../state/app_state.dart';
+import '../widgets/camera/overlay_camera_selector_panel.dart';
+import '../widgets/camera/overlay_camera_support_widgets.dart';
 import '../widgets/voice_action_bar.dart';
 import '../widgets/voice_selector_sheet.dart';
 import 'inspection_review_screen.dart';
@@ -101,12 +104,16 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
         environmentInstanceService: _environmentInstanceService,
         contextActionsService: _contextActionsService,
       );
-  final InspectionCaptureRecoveryAdapter _captureRecoveryAdapter =
-      InspectionCaptureRecoveryAdapter.instance;
   static const InspectionDomainAdapter _domainAdapter =
       InspectionDomainAdapter.instance;
   final InspectionCameraBatchService _batchService =
       InspectionCameraBatchService.instance;
+  final InspectionCameraBatchFlowUseCase _batchFlowUseCase =
+      InspectionCameraBatchFlowUseCase.instance;
+  final InspectionRecoveryRouteService _recoveryRouteService =
+      InspectionRecoveryRouteService.instance;
+  final InspectionRecoveryStageService _recoveryStageService =
+      InspectionRecoveryStageService.instance;
   final InspectionCameraPresentationService _presentationService =
       InspectionCameraPresentationService.instance;
   final InspectionCameraVoiceCommandService _voiceCommandService =
@@ -159,7 +166,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   // ── canonical accessors ────────────────────────────────────────────────────
 
   bool get _showMacroLocalSelector =>
-      _flowState.initialSuggestedSelection.subjectContext == null;
+      _cameraLevelOrder.contains('macroLocal') || _macroLocais.isNotEmpty;
 
   bool get _hasAnyCaptures => _captures.isNotEmpty || _hasPreviousPhotos;
 
@@ -282,6 +289,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
 
     final viewState = await _cameraMenuResolver.resolve(
       propertyType: widget.tipoImovel,
+      subtipo: widget.subtipoImovel,
       showMacroLocalSelector: _showMacroLocalSelector,
       initialLoad: initialLoad,
       initialSuggestedSelection: _flowState.initialSuggestedSelection,
@@ -293,6 +301,33 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       _applyResolvedMenuViewState(viewState);
       _loadingMenus = false;
     });
+    await _persistCameraStage();
+  }
+
+  Future<void> _persistCameraStage() async {
+    if (!mounted) return;
+    final appState = Provider.of<AppState>(context, listen: false);
+    final draft = appState.inspectionRecoveryDraft;
+    final jobId = appState.jobAtual?.id;
+    if (jobId == null) return;
+    await appState.setInspectionRecoverySnapshot(
+      _recoveryStageService.camera(
+        jobId: jobId,
+        inspectionRecoveryPayload: appState.inspectionRecoveryPayload,
+        cameraStagePayload: _recoveryRouteService.buildCameraStagePayload(
+          title: widget.title,
+          tipoImovel: widget.tipoImovel,
+          subtipoImovel: widget.subtipoImovel,
+          singleCaptureMode: widget.singleCaptureMode,
+          cameFromCheckinStep1: widget.cameFromCheckinStep1,
+          selection: _flowState.currentSelection,
+        ),
+        step1Payload:
+            draft?.payload['step1'] != null ? appState.step1Payload : const {},
+        step2Payload:
+            draft?.payload['step2'] != null ? appState.step2Payload : const {},
+      ),
+    );
   }
 
   void _applyResolvedMenuViewState(InspectionCameraMenuViewState viewState) {
@@ -504,10 +539,9 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
 
   void _loadPreviousPhotosState() {
     if (!mounted) return;
-    final step2 = Provider.of<AppState>(context, listen: false).step2Payload;
-    if (step2.isEmpty) return;
-    final model = CheckinStep2Model.fromMap(step2);
-    if (model.fotos.values.any((f) => f.hasImage)) {
+    final appState = Provider.of<AppState>(context, listen: false);
+    final hasPersistedPhotos = _batchFlowUseCase.hasPersistedPhotos(appState);
+    if (hasPersistedPhotos) {
       setState(() => _hasPreviousPhotos = true);
     }
   }
@@ -543,12 +577,12 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     if (!mounted) return;
 
     final appState = Provider.of<AppState>(context, listen: false);
-    final mergedCaptures = _captureRecoveryAdapter.mergeReviewCaptures(
+    final mergedCaptures = _batchFlowUseCase.mergeReviewCaptures(
       currentCaptures: _captures,
-      inspectionRecoveryPayload: appState.inspectionRecoveryPayload,
+      appState: appState,
     );
 
-    Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute<void>(
         builder:
@@ -562,26 +596,13 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   }
 
   Future<void> _syncStep2DraftFromBatchCaptures() async {
-    if (!widget.cameFromCheckinStep1 || _captures.isEmpty || !mounted) return;
-
+    if (!mounted) return;
     final appState = Provider.of<AppState>(context, listen: false);
-    final mergedStep2 = _batchService.buildStep2PayloadFromCaptures(
-      existingStep2Payload: appState.step2Payload,
-      inspectionRecoveryPayload: appState.inspectionRecoveryPayload,
+    await _batchFlowUseCase.syncStep2DraftFromBatchCaptures(
+      appState: appState,
       captures: _captures,
       tipoImovel: widget.tipoImovel,
-    );
-
-    final draft = appState.inspectionRecoveryDraft;
-    await appState.setInspectionRecoveryStage(
-      stageKey: draft?.stageKey ?? 'checkin_step1',
-      stageLabel: draft?.stageLabel ?? 'Check-in etapa 1',
-      routeName: draft?.routeName ?? '/checkin',
-      payload: {
-        ...appState.inspectionRecoveryPayload,
-        'step1': appState.step1Payload,
-        'step2': mergedStep2,
-      },
+      cameFromCheckinStep1: widget.cameFromCheckinStep1,
     );
   }
 
@@ -694,84 +715,6 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     );
   }
 
-  List<Widget> _buildCameraSelectors() {
-    final widgets = <Widget>[];
-
-    for (final section in _selectorSections) {
-      switch (section.levelId) {
-        case 'macroLocal':
-          widgets.add(const SizedBox(height: 8));
-          widgets.add(
-            _carouselCard(
-              title: section.title,
-              values: section.values,
-              selected: section.selected,
-              onSelect: _selectSubjectContext,
-            ),
-          );
-          break;
-        case 'ambiente':
-          widgets.add(const SizedBox(height: 8));
-          widgets.add(
-            _ambienteSelectorCard(
-              title: section.title,
-              values: section.values,
-              selected: section.selected,
-              onSelect: _selectTargetItem,
-              onChange:
-                  !section.allowVoiceSelection
-                      ? null
-                      : () => _selectFromVoiceSheet(
-                        title: section.title,
-                        values: section.values,
-                        selected: section.selected,
-                        onSelect: _selectTargetItem,
-                      ),
-              onDuplicate:
-                  !section.allowDuplicate ? null : _duplicateTargetItem,
-              duplicateLabel: section.duplicateLabel ?? 'Novo ambiente',
-            ),
-          );
-          break;
-        case 'elemento':
-          widgets.add(const SizedBox(height: 8));
-          widgets.add(
-            _carouselCard(
-              title: section.title,
-              values: section.values,
-              selected: section.selected,
-              onSelect: _selectTargetQualifier,
-            ),
-          );
-          break;
-        case 'material':
-          widgets.add(const SizedBox(height: 8));
-          widgets.add(
-            _carouselCard(
-              title: section.title,
-              values: section.values,
-              selected: section.selected,
-              onSelect: _selectMaterial,
-            ),
-          );
-          break;
-        case 'estado':
-          widgets.add(const SizedBox(height: 8));
-          widgets.add(
-            _carouselCard(
-              title: section.title,
-              values: section.values,
-              selected: section.selected,
-              onSelect: _selectTargetCondition,
-            ),
-          );
-          break;
-      }
-    }
-
-    return widgets;
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_initializing || _loadingMenus) {
@@ -835,7 +778,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                   children: [
                     Row(
                       children: [
-                        _glassButton(
+                        OverlayCameraGlassButton(
                           icon: Icons.arrow_back_ios_new,
                           onTap: () => Navigator.of(context).pop(),
                         ),
@@ -860,13 +803,13 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                         ),
                         const Spacer(),
                         if (widget.showVoiceActions)
-                          _glassButton(
+                          OverlayCameraGlassButton(
                             icon: Icons.mic_none,
                             onTap: _openVoiceSheet,
                           ),
                         if (widget.showVoiceActions)
                           const SizedBox(width: 8),
-                        _glassButton(
+                        OverlayCameraGlassButton(
                           icon: Icons.checklist_outlined,
                           onTap: presentation.canOpenChecklist ? _finalizeBatch : null,
                         ),
@@ -910,31 +853,60 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                ..._buildCameraSelectors(),
+                                OverlayCameraSelectorPanel(
+                                  sections: _selectorSections,
+                                  onSelectSubjectContext: _selectSubjectContext,
+                                  onSelectTargetItem: _selectTargetItem,
+                                  onDuplicateTargetItem: _duplicateTargetItem,
+                                  onSelectTargetQualifier:
+                                      _selectTargetQualifier,
+                                  onSelectMaterial: _selectMaterial,
+                                  onSelectTargetCondition:
+                                      _selectTargetCondition,
+                                  onVoiceSelection: ({
+                                    required String title,
+                                    required List<String> values,
+                                    required String? selected,
+                                    required Future<void> Function(String value)
+                                    onSelect,
+                                  }) {
+                                    return _selectFromVoiceSheet(
+                                      title: title,
+                                      values: values,
+                                      selected: selected,
+                                      onSelect: onSelect,
+                                    );
+                                  },
+                                ),
                                 if (presentation.showContextSuggestion) ...[
                                   const SizedBox(height: 8),
-                                  _hintCard(_contextSuggestionSummary!),
+                                  OverlayCameraHintCard(
+                                    text: _contextSuggestionSummary!,
+                                  ),
                                 ],
                                 if (presentation.showRecentAmbientes) ...[
                                   const SizedBox(height: 8),
-                                  _quickSuggestionCard(
+                                  OverlayCameraQuickSuggestionCard(
                                     title: 'Locais mais usados nesta Ã¡rea',
                                     values: _recentAmbientes,
                                     selected: _targetItem,
-                                    onSelect: _selectTargetItem,
+                                    onSelect: (value) => _selectTargetItem(value),
                                   ),
                                 ],
                                 if (presentation.showPredictionSuggestion) ...[
                                   const SizedBox(height: 8),
-                                  _hintCard(_predictionSummary!),
+                                  OverlayCameraHintCard(
+                                    text: _predictionSummary!,
+                                  ),
                                 ],
                                 if (presentation.showRecentElementos) ...[
                                   const SizedBox(height: 8),
-                                  _quickSuggestionCard(
+                                  OverlayCameraQuickSuggestionCard(
                                     title: 'Mais usados neste contexto',
                                     values: _recentElementos,
                                     selected: _targetQualifier,
-                                    onSelect: _selectTargetQualifier,
+                                    onSelect: (value) =>
+                                        _selectTargetQualifier(value),
                                   ),
                                 ],
                               ],
@@ -1029,7 +1001,13 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                           ),
                         ),
                         const Spacer(),
-                        _buildFinalizeButton(),
+                        OverlayCameraFinalizeButton(
+                          singleCaptureMode: widget.singleCaptureMode,
+                          hasAnyCaptures: _hasAnyCaptures,
+                          finalizeSubtitle: presentation.finalizeSubtitle,
+                          onFinalize: _finalizeBatch,
+                          onSingleCaptureClose: () => Navigator.of(context).pop(),
+                        ),
                       ],
                     ),
                   ],
@@ -1038,25 +1016,6 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _glassButton({required IconData icon, required VoidCallback? onTap}) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Ink(
-        width: 42,
-        height: 42,
-        decoration: BoxDecoration(
-          color:
-              onTap == null
-                  ? Colors.black.withValues(alpha: 0.20)
-                  : Colors.black.withValues(alpha: 0.45),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Icon(icon, color: Colors.white, size: 20),
       ),
     );
   }
@@ -1076,393 +1035,4 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     );
   }
 
-  Widget _buildFinalizeButton() {
-    final finalizeSubtitle =
-        _captures.isNotEmpty ? '${_captures.length} nova(s)' : 'fotos anteriores';
-
-    if (widget.singleCaptureMode) {
-      return _circleAction(
-        icon: Icons.fact_check_outlined,
-        onTap: () => Navigator.of(context).pop(),
-      );
-    }
-
-    if (!_hasAnyCaptures) {
-      return Container(
-        width: 52,
-        height: 52,
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.20),
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(
-          Icons.fact_check_outlined,
-          color: Colors.white38,
-          size: 22,
-        ),
-      );
-    }
-
-    return GestureDetector(
-      onTap: _finalizeBatch,
-      child: Container(
-        height: 52,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        decoration: BoxDecoration(
-          color: const Color(0xFFE65100),
-          borderRadius: BorderRadius.circular(26),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.deepOrange.withValues(alpha: 0.45),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.fact_check_outlined,
-              color: Colors.white,
-              size: 18,
-            ),
-            const SizedBox(width: 6),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Revisar',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.4,
-                  ),
-                ),
-                Text(
-                  finalizeSubtitle,
-                  style: const TextStyle(color: Colors.white70, fontSize: 9),
-                ),
-              ],
-            ),
-            const SizedBox(width: 4),
-            const Icon(
-              Icons.arrow_forward_ios,
-              color: Colors.white70,
-              size: 12,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _hintCard(String text) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w600,
-          fontSize: 11,
-        ),
-      ),
-    );
-  }
-
-  Widget _quickSuggestionCard({
-    required String title,
-    required List<String> values,
-    required String? selected,
-    required Future<void> Function(String value) onSelect,
-  }) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.45),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: 11,
-              ),
-            ),
-            ...values.map((value) {
-              final active = value == selected;
-              return GestureDetector(
-                onTap: () => onSelect(value),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 160),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color:
-                        active
-                            ? Colors.white
-                            : Colors.white.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Text(
-                    value,
-                    style: TextStyle(
-                      color: active ? Colors.black87 : Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 11,
-                    ),
-                  ),
-                ),
-              );
-            }),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _carouselCard({
-    required String title,
-    required List<String> values,
-    required String? selected,
-    required Future<void> Function(String value) onSelect,
-  }) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.45),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ),
-                  if (values.isNotEmpty)
-                    IconButton(
-                      tooltip: 'Selecionar por voz',
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 28,
-                        minHeight: 28,
-                      ),
-                      icon: const Icon(
-                        Icons.mic_none,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                      onPressed:
-                          () => _selectFromVoiceSheet(
-                            title: title,
-                            values: values,
-                            selected: selected,
-                            onSelect: onSelect,
-                          ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 38,
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                scrollDirection: Axis.horizontal,
-                itemCount: values.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemBuilder: (context, index) {
-                  final value = values[index];
-                  final active = value == selected;
-                  return GestureDetector(
-                    onTap: () => onSelect(value),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 160),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color:
-                            active
-                                ? Colors.white
-                                : Colors.white.withValues(alpha: 0.16),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Center(
-                        child: Text(
-                          value,
-                          style: TextStyle(
-                            color: active ? Colors.black87 : Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _ambienteSelectorCard({
-    required String title,
-    required List<String> values,
-    required String? selected,
-    required Future<void> Function(String value) onSelect,
-    required Future<void> Function()? onChange,
-    required Future<void> Function()? onDuplicate,
-    required String duplicateLabel,
-  }) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.45),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 11,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    FilledButton(
-                      onPressed: onDuplicate,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black87,
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        textStyle: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 11,
-                        ),
-                      ),
-                      child: Text(duplicateLabel),
-                    ),
-                    const SizedBox(width: 8),
-                    OutlinedButton(
-                      onPressed: onChange,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: const BorderSide(color: Colors.white70),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        textStyle: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 11,
-                        ),
-                      ),
-                      child: const Text('Trocar'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 38,
-              child: ListView.separated(
-                key: const ValueKey('camera_ambiente_selector_list'),
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                scrollDirection: Axis.horizontal,
-                itemCount: values.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemBuilder: (context, index) {
-                  final value = values[index];
-                  final active = value == selected;
-                  return GestureDetector(
-                    onTap: () => onSelect(value),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 160),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color:
-                            active
-                                ? Colors.white
-                                : Colors.white.withValues(alpha: 0.16),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Center(
-                        child: Text(
-                          value,
-                          style: TextStyle(
-                            color: active ? Colors.black87 : Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

@@ -21,11 +21,14 @@ public record InspectionBackofficeListResponse(
     public record Item(
             Long id,
             Long jobId,
-            Long vistoriadorId,
+            Long fieldAgentId,
             String protocolId,
             String status,
             Instant submittedAt,
             Instant updatedAt
     ) {
+        public Long vistoriadorId() {
+            return fieldAgentId;
+        }
     }
 }

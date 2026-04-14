@@ -17,6 +17,7 @@ import 'state/app_state.dart';
 import 'state/auth_state.dart';
 import 'state/inspection_state.dart';
 import 'theme/app_theme.dart';
+import 'l10n/app_strings.dart';
 
 /// Entrypoint do flavor **Compass Avaliações**.
 ///
@@ -70,6 +71,17 @@ class _CompassApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: config.appName,
       theme: AppTheme.fromConfig(config),
+      supportedLocales: AppStrings.supportedLocales,
+      localizationsDelegates: AppStrings.localizationsDelegates,
+      localeResolutionCallback: (locale, supportedLocales) {
+        if (locale == null) return const Locale('pt');
+        for (final supported in supportedLocales) {
+          if (supported.languageCode == locale.languageCode) {
+            return supported;
+          }
+        }
+        return const Locale('pt');
+      },
       home: const _AppEntryPoint(),
     );
   }

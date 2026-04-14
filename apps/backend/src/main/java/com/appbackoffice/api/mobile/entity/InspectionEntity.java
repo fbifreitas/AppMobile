@@ -28,8 +28,8 @@ public class InspectionEntity {
     @Column(name = "tenant_id", nullable = false)
     private String tenantId;
 
-    @Column(name = "vistoriador_id", nullable = false)
-    private Long vistoriadorId;
+    @Column(name = "field_agent_id", nullable = false)
+    private Long fieldAgentId;
 
     @Column(name = "idempotency_key", nullable = false)
     private String idempotencyKey;
@@ -81,8 +81,12 @@ public class InspectionEntity {
         return tenantId;
     }
 
+    public Long getFieldAgentId() {
+        return fieldAgentId;
+    }
+
     public Long getVistoriadorId() {
-        return vistoriadorId;
+        return fieldAgentId;
     }
 
     public String getIdempotencyKey() {
@@ -121,8 +125,12 @@ public class InspectionEntity {
         this.tenantId = tenantId;
     }
 
+    public void setFieldAgentId(Long fieldAgentId) {
+        this.fieldAgentId = fieldAgentId;
+    }
+
     public void setVistoriadorId(Long vistoriadorId) {
-        this.vistoriadorId = vistoriadorId;
+        this.fieldAgentId = vistoriadorId;
     }
 
     public void setIdempotencyKey(String idempotencyKey) {

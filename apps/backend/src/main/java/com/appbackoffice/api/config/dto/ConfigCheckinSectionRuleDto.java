@@ -15,4 +15,7 @@ public record ConfigCheckinSectionRuleDto(
         String tipoImovel,
         Integer sortOrder
 ) {
+    public String assetType() {
+        return tipoImovel;
+    }
 }

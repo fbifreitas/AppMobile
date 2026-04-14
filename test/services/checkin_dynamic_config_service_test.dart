@@ -274,6 +274,7 @@ void main() {
 
     expect(serialized['minFotos'], fallback.minFotos);
     expect(serialized['maxFotos'], fallback.maxFotos);
+    expect(serialized['bloqueiaCaptura'], isFalse);
   });
 
   test('parseStep2ConfigMap parses visible and required step2 policy', () {
@@ -285,6 +286,7 @@ void main() {
       raw: <String, dynamic>{
         'visivel': false,
         'obrigatoria': true,
+        'bloqueiaCaptura': false,
         'camposFotos': <Map<String, dynamic>>[
           {
             'id': 'fachada_dynamic',
@@ -300,7 +302,9 @@ void main() {
     );
 
     expect(parsed.visivelNoFluxo, isFalse);
+    expect(parsed.obrigatoriaParaEntrega, isTrue);
     expect(parsed.obrigatoriaNoFluxo, isTrue);
+    expect(parsed.bloqueiaCaptura, isFalse);
   });
 
   test(

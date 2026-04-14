@@ -43,13 +43,19 @@ class InspectionMenuService {
   Future<void> _load() async {
     final documents = await _documentLoader.load(
       assetPath: _assetPath,
+      loadRemoteDocument:
+          CheckinDynamicConfigService.instance.loadResolvedConfigDocument,
       loadDeveloperDocument:
           CheckinDynamicConfigService.instance.loadDeveloperMockDocument,
     );
 
     try {
-      final mergedDocument = _mergeResolver.merge(
+      final baseDocument = _mergeResolver.merge(
         base: documents.assetDocument,
+        override: documents.remoteDocument,
+      );
+      final mergedDocument = _mergeResolver.merge(
+        base: baseDocument,
         override: documents.developerDocument,
       );
       if (mergedDocument != null) {
@@ -237,12 +243,16 @@ class InspectionMenuService {
     return ordered;
   }
 
-  Future<List<String>> getMacroLocals({required String propertyType}) async {
+  Future<List<String>> getMacroLocals({
+    required String propertyType,
+    String? subtipo,
+  }) async {
     await ensureLoaded();
     return _catalogService.macroLocals(
       package: _package,
       usage: _stateStore.usageSnapshot(),
       propertyType: propertyType,
+      subtipo: subtipo,
     );
   }
 
@@ -270,6 +280,12 @@ class InspectionMenuService {
       final id = level.id.trim();
       if (id.isEmpty) continue;
       result.add(id);
+    }
+
+    final hasStep1Contexts =
+        (_package?.step1Config?.contextos.isNotEmpty ?? false);
+    if (hasStep1Contexts && !result.contains('macroLocal')) {
+      result.insert(0, 'macroLocal');
     }
 
     return result.isNotEmpty
@@ -300,6 +316,7 @@ class InspectionMenuService {
 
   Future<List<String>> getAmbientes({
     required String propertyType,
+    String? subtipo,
     required String macroLocal,
   }) async {
     await ensureLoaded();
@@ -307,12 +324,14 @@ class InspectionMenuService {
       package: _package,
       usage: _stateStore.usageSnapshot(),
       propertyType: propertyType,
+      subtipo: subtipo,
       macroLocal: macroLocal,
     );
   }
 
   Future<List<String>> getElementos({
     required String propertyType,
+    String? subtipo,
     required String macroLocal,
     required String ambiente,
   }) async {
@@ -321,6 +340,7 @@ class InspectionMenuService {
       package: _package,
       usage: _stateStore.usageSnapshot(),
       propertyType: propertyType,
+      subtipo: subtipo,
       macroLocal: macroLocal,
       ambiente: ambiente,
     );
@@ -328,6 +348,7 @@ class InspectionMenuService {
 
   Future<List<String>> getMateriais({
     required String propertyType,
+    String? subtipo,
     required String macroLocal,
     required String ambiente,
     required String elemento,
@@ -337,6 +358,7 @@ class InspectionMenuService {
       package: _package,
       usage: _stateStore.usageSnapshot(),
       propertyType: propertyType,
+      subtipo: subtipo,
       macroLocal: macroLocal,
       ambiente: ambiente,
       elemento: elemento,
@@ -345,6 +367,7 @@ class InspectionMenuService {
 
   Future<List<String>> getEstados({
     required String propertyType,
+    String? subtipo,
     required String macroLocal,
     required String ambiente,
     required String elemento,
@@ -354,6 +377,7 @@ class InspectionMenuService {
       package: _package,
       usage: _stateStore.usageSnapshot(),
       propertyType: propertyType,
+      subtipo: subtipo,
       macroLocal: macroLocal,
       ambiente: ambiente,
       elemento: elemento,

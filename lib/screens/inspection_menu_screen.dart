@@ -7,6 +7,7 @@ import '../services/checkin_dynamic_config_service.dart';
 import '../services/inspection_flow_coordinator.dart';
 import '../state/app_state.dart';
 import '../state/inspection_state.dart';
+import '../l10n/app_strings.dart';
 
 class InspectionMenuScreen extends StatelessWidget {
   final InspectionFlowCoordinator flowCoordinator;
@@ -18,6 +19,7 @@ class InspectionMenuScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     return Consumer2<AppState, InspectionState>(
       builder: (context, appState, inspectionState, _) {
         if (inspectionState.isRestoring) {
@@ -30,7 +32,7 @@ class InspectionMenuScreen extends StatelessWidget {
 
         if (session == null) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Vistoria')),
+            appBar: AppBar(title: Text(strings.inspection)),
             body: Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
@@ -41,7 +43,7 @@ class InspectionMenuScreen extends StatelessWidget {
                       subtipoImovel: 'Apartamento',
                     );
                   },
-                  child: const Text('Iniciar Vistoria'),
+                  child: Text(strings.startInspection),
                 ),
               ),
             ),
@@ -52,7 +54,7 @@ class InspectionMenuScreen extends StatelessWidget {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Vistoria'),
+            title: Text(strings.inspection),
             actions: [
               IconButton(
                 tooltip: 'Revisão final',
@@ -70,11 +72,11 @@ class InspectionMenuScreen extends StatelessWidget {
           body: Column(
             children: [
               _HeaderCard(
-                tipoImovel: session.tipoImovel,
-                subtipoImovel: session.subtipoImovel,
+                assetType: session.tipoImovel,
+                assetSubtype: session.subtipoImovel,
                 percent: percent,
-                totalFotos: session.totalCapturedPhotos,
-                obrigatorias: _countCompletedMandatoryFields(
+                totalPhotos: session.totalCapturedPhotos,
+                requiredCompleted: _countCompletedMandatoryFields(
                   session: session,
                   inspectionRecoveryPayload: appState.inspectionRecoveryPayload,
                   step2Payload: appState.step2Payload,
@@ -92,11 +94,11 @@ class InspectionMenuScreen extends StatelessWidget {
                   itemCount: session.ambientes.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
-                    final ambiente = session.ambientes[index];
+                    final environmentProgress = session.ambientes[index];
                     return _EnvironmentCard(
-                      ambiente: ambiente,
+                      environmentProgress: environmentProgress,
                       onOpen: () {
-                        inspectionState.selectEnvironment(ambiente.ambienteId);
+                        inspectionState.selectEnvironment(environmentProgress.ambienteId);
                         flowCoordinator.openCameraFlow(context);
                       },
                     );
@@ -113,7 +115,7 @@ class InspectionMenuScreen extends StatelessWidget {
               );
             },
             icon: const Icon(Icons.assignment_turned_in_outlined),
-            label: const Text('Revisar'),
+            label: Text(strings.review),
           ),
         );
       },
@@ -135,22 +137,22 @@ class InspectionMenuScreen extends StatelessWidget {
 }
 
 class _HeaderCard extends StatelessWidget {
-  final String tipoImovel;
-  final String subtipoImovel;
+  final String assetType;
+  final String assetSubtype;
   final int percent;
-  final int totalFotos;
-  final int obrigatorias;
+  final int totalPhotos;
+  final int requiredCompleted;
   final bool gpsEnabled;
   final InspectionSyncStatus syncStatus;
   final DateTime? lastSavedAt;
   final VoidCallback onToggleGps;
 
   const _HeaderCard({
-    required this.tipoImovel,
-    required this.subtipoImovel,
+    required this.assetType,
+    required this.assetSubtype,
     required this.percent,
-    required this.totalFotos,
-    required this.obrigatorias,
+    required this.totalPhotos,
+    required this.requiredCompleted,
     required this.gpsEnabled,
     required this.syncStatus,
     required this.lastSavedAt,
@@ -181,7 +183,7 @@ class _HeaderCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '$tipoImovel • $subtipoImovel',
+            '$assetType • $assetSubtype',
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
             ),
@@ -190,7 +192,7 @@ class _HeaderCard extends StatelessWidget {
           LinearProgressIndicator(value: percent / 100),
           const SizedBox(height: 8),
           Text(
-            '$percent% concluído • $totalFotos fotos • $obrigatorias mínimas',
+            '$percent% concluído • $totalPhotos fotos • $requiredCompleted mínimas',
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: 8),
@@ -232,21 +234,21 @@ class _HeaderCard extends StatelessWidget {
 }
 
 class _EnvironmentCard extends StatelessWidget {
-  final InspectionEnvironmentProgress ambiente;
+  final InspectionEnvironmentProgress environmentProgress;
   final VoidCallback onOpen;
 
-  const _EnvironmentCard({required this.ambiente, required this.onOpen});
+  const _EnvironmentCard({required this.environmentProgress, required this.onOpen});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final status = _statusLabel(ambiente.status);
+    final status = _statusLabel(environmentProgress.status);
 
     return Semantics(
       button: true,
-      label: 'Abrir ambiente ${ambiente.ambienteNome}',
+      label: 'Abrir ambiente ${environmentProgress.ambienteNome}',
       child: InkWell(
-        key: ValueKey('inspection_environment_${ambiente.ambienteId}'),
+        key: ValueKey('inspection_environment_${environmentProgress.ambienteId}'),
         borderRadius: BorderRadius.circular(18),
         onTap: onOpen,
         child: Container(
@@ -260,7 +262,7 @@ class _EnvironmentCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 24,
-                child: Text(ambiente.ambienteNome.characters.first.toUpperCase()),
+                child: Text(environmentProgress.ambienteNome.characters.first.toUpperCase()),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -268,17 +270,17 @@ class _EnvironmentCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      ambiente.ambienteNome,
+                      environmentProgress.ambienteNome,
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${ambiente.totalFotos}/${ambiente.minFotos} foto(s) mínimas • $status',
+                      '${environmentProgress.totalFotos}/${environmentProgress.minFotos} foto(s) mínimas • $status',
                       style: theme.textTheme.bodySmall,
                     ),
-                    if (ambiente.suggestedAsMissingConfig) ...[
+                    if (environmentProgress.suggestedAsMissingConfig) ...[
                       const SizedBox(height: 4),
                       Text(
                         'Ambiente não configurado',

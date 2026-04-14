@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../branding/brand_provider.dart';
 import '../branding/brand_tokens.dart';
+import '../services/mobile_auth_service.dart';
 import '../state/auth_state.dart';
 import 'compass_first_access_screen.dart';
 import 'onboarding_screen.dart';
@@ -21,6 +22,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _obscureSenha = true;
   bool _loading = false;
+
+  String _errorMessageFor(Object error) {
+    if (error is MobileAuthException) {
+      return error.message;
+    }
+    return 'Nao foi possivel entrar no momento. Tente novamente.';
+  }
 
   @override
   void dispose() {
@@ -41,7 +49,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(error.toString())));
+      ).showSnackBar(SnackBar(content: Text(_errorMessageFor(error))));
     } finally {
       if (mounted) {
         setState(() => _loading = false);

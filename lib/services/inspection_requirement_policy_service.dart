@@ -61,11 +61,11 @@ class InspectionRequirementPolicyService {
     for (final capture in captures.toList().reversed) {
       final sameAmbiente =
           normalizeComparableText(capture.ambienteBaseLabel) ==
-          normalizeComparableText(field.cameraAmbiente);
+          normalizeComparableText(field.evidenceTargetItem);
       final sameElemento =
-          field.cameraElementoInicial == null ||
+          field.evidenceTargetQualifier == null ||
           normalizeComparableText(capture.elemento) ==
-              normalizeComparableText(field.cameraElementoInicial);
+              normalizeComparableText(field.evidenceTargetQualifier);
 
       if (sameAmbiente && sameElemento) {
         return capture;

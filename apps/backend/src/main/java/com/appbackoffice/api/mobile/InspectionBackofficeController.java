@@ -33,12 +33,14 @@ public class InspectionBackofficeController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Instant from,
             @RequestParam(required = false) Instant to,
+            @RequestParam(required = false) Long fieldAgentId,
             @RequestParam(required = false) Long vistoriadorId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
         RequestContextValidator.requireCorrelationId(correlationId);
-        return inspectionBackofficeService.list(tenantId, status, from, to, vistoriadorId, page, size);
+        Long resolvedFieldAgentId = fieldAgentId != null ? fieldAgentId : vistoriadorId;
+        return inspectionBackofficeService.list(tenantId, status, from, to, resolvedFieldAgentId, page, size);
     }
 
     @GetMapping("/{inspectionId}")

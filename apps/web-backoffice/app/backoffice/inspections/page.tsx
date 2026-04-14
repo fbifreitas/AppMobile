@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { resolveUiLanguage, t } from '../../lib/ui_strings';
 
 type InspectionStatus = 'SUBMITTED' | 'RECEIVED';
 
 type InspectionItem = {
   id: number;
   jobId: number;
-  vistoriadorId: number;
+  fieldAgentId: number;
   protocolId: string;
   status: string;
   submittedAt: string;
@@ -32,7 +33,7 @@ type InspectionDetail = {
   submissionId?: number;
   jobId: number;
   tenantId: string;
-  vistoriadorId: number;
+  fieldAgentId: number;
   idempotencyKey: string;
   protocolId: string;
   status: string;
@@ -51,11 +52,12 @@ async function extractErrorMessage(response: Response, fallback: string): Promis
 }
 
 export default function BackofficeInspectionsPage() {
+  const uiLanguage = useMemo(() => resolveUiLanguage(), []);
   const [items, setItems] = useState<InspectionItem[]>([]);
   const [status, setStatus] = useState<string>('');
   const [from, setFrom] = useState<string>('');
   const [to, setTo] = useState<string>('');
-  const [vistoriadorId, setVistoriadorId] = useState<string>('');
+  const [fieldAgentId, setFieldAgentId] = useState<string>('');
   const [page, setPage] = useState<number>(0);
   const [size, setSize] = useState<number>(10);
   const [total, setTotal] = useState<number>(0);
@@ -79,11 +81,16 @@ export default function BackofficeInspectionsPage() {
       if (status.trim()) params.set('status', status.trim().toUpperCase());
       if (from.trim()) params.set('from', new Date(from).toISOString());
       if (to.trim()) params.set('to', new Date(to).toISOString());
-      if (vistoriadorId.trim()) params.set('vistoriadorId', vistoriadorId.trim());
+      if (fieldAgentId.trim()) params.set('fieldAgentId', fieldAgentId.trim());
 
       const response = await fetch(`/api/inspections?${params.toString()}`);
       if (!response.ok) {
-        throw new Error(await extractErrorMessage(response, `Falha ao consultar inspections (${response.status})`));
+        throw new Error(
+          await extractErrorMessage(
+            response,
+            `${t(uiLanguage, 'queryInspectionsFailed')} (${response.status})`,
+          ),
+        );
       }
 
       const data: InspectionListResponse = await response.json();
@@ -96,11 +103,15 @@ export default function BackofficeInspectionsPage() {
         submitted: data.summary?.submitted ?? 0
       });
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'Erro inesperado ao carregar inspections');
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : t(uiLanguage, 'unexpectedLoadInspections'),
+      );
     } finally {
       setLoading(false);
     }
-  }, [from, page, size, status, to, vistoriadorId]);
+  }, [fieldAgentId, from, page, size, status, to, uiLanguage]);
 
   const loadDetail = useCallback(async (inspectionId: number) => {
     setDetailLoading(true);
@@ -109,16 +120,25 @@ export default function BackofficeInspectionsPage() {
     try {
       const response = await fetch(`/api/inspections/${inspectionId}`);
       if (!response.ok) {
-        throw new Error(await extractErrorMessage(response, `Falha ao consultar detalhe (${response.status})`));
+        throw new Error(
+          await extractErrorMessage(
+            response,
+            `${t(uiLanguage, 'queryDetailFailed')} (${response.status})`,
+          ),
+        );
       }
       const data: InspectionDetail = await response.json();
       setSelected(data);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'Erro inesperado ao carregar detalhe');
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : t(uiLanguage, 'unexpectedLoadDetail'),
+      );
     } finally {
       setDetailLoading(false);
     }
-  }, []);
+  }, [uiLanguage]);
 
   useEffect(() => {
     loadInspections();
@@ -148,42 +168,42 @@ export default function BackofficeInspectionsPage() {
       <section className="header">
         <div>
           <p className="eyebrow">BOW-123</p>
-          <h1>Vistorias recebidas</h1>
-          <p className="subtitle">Painel operacional inicial com filtros e detalhe técnico de payload.</p>
+          <h1>{t(uiLanguage, 'inspectionsReceived')}</h1>
+          <p className="subtitle">{t(uiLanguage, 'inspectionsSubtitle')}</p>
         </div>
-        <a className="ghost" href="/">Voltar ao dashboard</a>
+        <a className="ghost" href="/">{t(uiLanguage, 'backToDashboard')}</a>
       </section>
 
       <section className="stats-grid">
-        <article className="stat-card"><span>Total do filtro</span><strong>{summary.total}</strong></article>
-        <article className="stat-card"><span>Recebidas hoje (pagina)</span><strong>{summary.today}</strong></article>
-        <article className="stat-card"><span>Pendentes de intake</span><strong>{summary.received}</strong></article>
-        <article className="stat-card"><span>Sync errors</span><strong>{summary.syncErrors}</strong></article>
+        <article className="stat-card"><span>{t(uiLanguage, 'totalFiltered')}</span><strong>{summary.total}</strong></article>
+        <article className="stat-card"><span>{t(uiLanguage, 'receivedTodayPage')}</span><strong>{summary.today}</strong></article>
+        <article className="stat-card"><span>{t(uiLanguage, 'pendingIntake')}</span><strong>{summary.received}</strong></article>
+        <article className="stat-card"><span>{t(uiLanguage, 'syncErrors')}</span><strong>{summary.syncErrors}</strong></article>
       </section>
 
       <section className="filters">
         <label>
-          Status
+          {t(uiLanguage, 'status')}
           <select value={status} onChange={(event) => setStatus(event.target.value)}>
-            <option value="">Todos</option>
+            <option value="">{uiLanguage === 'en' ? 'All' : 'Todos'}</option>
             <option value="SUBMITTED">SUBMITTED</option>
             <option value="RECEIVED">RECEIVED</option>
           </select>
         </label>
         <label>
-          De
+          {t(uiLanguage, 'from')}
           <input type="datetime-local" value={from} onChange={(event) => setFrom(event.target.value)} />
         </label>
         <label>
-          Até
+          {t(uiLanguage, 'to')}
           <input type="datetime-local" value={to} onChange={(event) => setTo(event.target.value)} />
         </label>
         <label>
-          Vistoriador
-          <input value={vistoriadorId} onChange={(event) => setVistoriadorId(event.target.value)} placeholder="ID" />
+          {t(uiLanguage, 'fieldAgent')}
+          <input value={fieldAgentId} onChange={(event) => setFieldAgentId(event.target.value)} placeholder="ID" />
         </label>
         <label>
-          Tamanho da página
+          {t(uiLanguage, 'pageSize')}
           <select value={size} onChange={(event) => {
             setPage(0);
             setSize(Number(event.target.value));
@@ -193,7 +213,7 @@ export default function BackofficeInspectionsPage() {
             <option value={50}>50</option>
           </select>
         </label>
-        <button type="button" onClick={loadInspections}>Aplicar filtros</button>
+        <button type="button" onClick={loadInspections}>{t(uiLanguage, 'applyFilters')}</button>
       </section>
 
       {error ? <div className="error-box">{error}</div> : null}
@@ -201,28 +221,28 @@ export default function BackofficeInspectionsPage() {
       <section className="content-grid">
         <article className="table-wrap">
           <div className="pagination-bar">
-            <span>Página {pageLabel}</span>
+            <span>{uiLanguage === 'en' ? `Page ${pageLabel}` : `Pagina ${pageLabel}`}</span>
             <div className="pagination-actions">
               <button type="button" disabled={page <= 0 || loading} onClick={() => setPage((current) => Math.max(0, current - 1))}>
-                Anterior
+                {t(uiLanguage, 'previous')}
               </button>
               <button type="button" disabled={loading || page + 1 >= totalPages} onClick={() => setPage((current) => current + 1)}>
-                Próxima
+                {t(uiLanguage, 'next')}
               </button>
             </div>
           </div>
-          {loading ? <p>Carregando inspections...</p> : null}
+          {loading ? <p>{t(uiLanguage, 'loadingInspections')}</p> : null}
           {!loading ? (
             <table>
               <thead>
                 <tr>
                   <th>ID</th>
                   <th>Job</th>
-                  <th>Vistoriador</th>
-                  <th>Protocolo</th>
-                  <th>Status</th>
-                  <th>Submetido em</th>
-                  <th>Ação</th>
+                  <th>{t(uiLanguage, 'fieldAgent')}</th>
+                  <th>{uiLanguage === 'en' ? 'Protocol' : 'Protocolo'}</th>
+                  <th>{t(uiLanguage, 'status')}</th>
+                  <th>{uiLanguage === 'en' ? 'Submitted at' : 'Submetido em'}</th>
+                  <th>{uiLanguage === 'en' ? 'Action' : 'Acao'}</th>
                 </tr>
               </thead>
               <tbody>
@@ -230,18 +250,18 @@ export default function BackofficeInspectionsPage() {
                   <tr key={item.id}>
                     <td>{item.id}</td>
                     <td>{item.jobId}</td>
-                    <td>{item.vistoriadorId}</td>
+                    <td>{item.fieldAgentId}</td>
                     <td>{item.protocolId}</td>
                     <td>{item.status}</td>
-                    <td>{new Date(item.submittedAt).toLocaleString('pt-BR')}</td>
+                    <td>{new Date(item.submittedAt).toLocaleString(uiLanguage === 'en' ? 'en-US' : 'pt-BR')}</td>
                     <td>
-                      <button type="button" onClick={() => loadDetail(item.id)}>Detalhe</button>
+                      <button type="button" onClick={() => loadDetail(item.id)}>{t(uiLanguage, 'detail')}</button>
                     </td>
                   </tr>
                 ))}
                 {items.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="empty-row">Nenhuma inspection encontrada para os filtros atuais.</td>
+                    <td colSpan={7} className="empty-row">{t(uiLanguage, 'noInspectionsForFilters')}</td>
                   </tr>
                 ) : null}
               </tbody>
@@ -250,16 +270,16 @@ export default function BackofficeInspectionsPage() {
         </article>
 
         <article className="detail-wrap">
-          <h2>Detalhe técnico</h2>
-          {detailLoading ? <p>Carregando detalhe...</p> : null}
-          {!detailLoading && !selected ? <p>Selecione uma inspection para visualizar payload completo.</p> : null}
+          <h2>{t(uiLanguage, 'technicalDetail')}</h2>
+          {detailLoading ? <p>{t(uiLanguage, 'loadingDetail')}</p> : null}
+          {!detailLoading && !selected ? <p>{t(uiLanguage, 'selectInspectionForPayload')}</p> : null}
           {!detailLoading && selected ? (
             <>
               <dl>
                 <dt>Inspection ID</dt><dd>{selected.id}</dd>
                 <dt>Job ID</dt><dd>{selected.jobId}</dd>
-                <dt>Protocolo</dt><dd>{selected.protocolId}</dd>
-                <dt>Status</dt><dd>{selected.status}</dd>
+                <dt>{uiLanguage === 'en' ? 'Protocol' : 'Protocolo'}</dt><dd>{selected.protocolId}</dd>
+                <dt>{t(uiLanguage, 'status')}</dt><dd>{selected.status}</dd>
                 <dt>Idempotency</dt><dd>{selected.idempotencyKey}</dd>
               </dl>
               <pre>{JSON.stringify(selected.payload, null, 2)}</pre>

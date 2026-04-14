@@ -135,6 +135,32 @@ class CaseJobDomainIntegrationTest {
     }
 
     @Test
+    void shouldMoveAcceptedJobToAwaitingSchedulingWhenClientIsAbsent() {
+        CreateCaseResponse caseResp = caseService.createCase(TENANT_ID, "admin-1", new CreateCaseRequest(
+                "CASE-003A", "Rua Cliente Ausente, 10", "RESIDENTIAL",
+                null, "Vistoria Cliente Ausente"
+        ));
+        jobService.assignJob(TENANT_ID, caseResp.jobId(), new AssignJobRequest(operatorUserId), "admin-1");
+        jobService.acceptJob(TENANT_ID, caseResp.jobId(), String.valueOf(operatorUserId));
+
+        JobSummaryResponse awaitingScheduling = jobService.requestSchedulingAfterClientAbsent(
+                TENANT_ID,
+                caseResp.jobId(),
+                String.valueOf(operatorUserId),
+                "Cliente ausente confirmado no check-in etapa 1"
+        );
+
+        assertThat(awaitingScheduling.status()).isEqualTo(JobStatus.AWAITING_SCHEDULING.name());
+        assertThat(awaitingScheduling.assignedTo()).isNull();
+
+        JobTimelineResponse timeline = jobService.getTimeline(TENANT_ID, caseResp.jobId());
+        assertThat(timeline.entries()).hasSize(3);
+        assertThat(timeline.entries().get(2).fromStatus()).isEqualTo(JobStatus.ACCEPTED.name());
+        assertThat(timeline.entries().get(2).toStatus()).isEqualTo(JobStatus.AWAITING_SCHEDULING.name());
+        assertThat(timeline.entries().get(2).reason()).contains("Cliente ausente");
+    }
+
+    @Test
     void shouldRecordTimelineEntriesOnEachTransition() {
         CreateCaseResponse caseResp = caseService.createCase(TENANT_ID, "admin-1", new CreateCaseRequest(
                 "CASE-004", "Rua Timeline, 99", "RESIDENTIAL",

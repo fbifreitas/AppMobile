@@ -538,6 +538,9 @@ Refatorar o fluxo de vistoria como alinhamento arquitetural ao V2 da plataforma,
 - Criterio de pronto: widgets deixam de decidir semântica funcional por texto exibido; remoto e fallback usam o mesmo shape lógico
 
 Observacao 2026-04-06 (FECHAMENTO OBRIGATORIO ONDA 3): rodada reaberta para eliminar a última inconsistência pública entre `InspectionFlowCoordinator` e `OverlayCameraScreen`, removendo contrato fragmentado legado da câmera e consolidando labels/surface aliases na mesma chave semântica canônica.
+Observacao 2026-04-12 (ALINHAMENTO CANONICO): o fluxo passa a reconhecer duas estruturas distintas e complementares: `arvore de captura` (check-in etapa 1, câmera, revisão de evidências) e `matriz normativa/operacional` (check-in etapa 2, pendências, bloqueio de entrega). `Etapa 1` permanece obrigatória para abertura da câmera; `Etapa 2` pode ser obrigatória para entrega, mas não deve bloquear a captura. Documento de referência: `docs/05-operations/runbooks/MODELO_CANONICO_FLUXO_CONFIGURAVEL_VISTORIA.md`.
+
+Observacao 2026-04-12 (IMPLEMENTACAO PRATICA): revisao, matching operacional e atalhos de pendencia passaram a trafegar por `subjectContext`, `targetItem` e `targetQualifier`, fechando o milestone `M3` no runtime. Painel operacional: `docs/05-operations/runbooks/PAINEL_MILESTONES_FLUXO_CONFIGURAVEL_VISTORIA.md`.
 
 ### BL-058
 Separar explicitamente o estado inicial sugerido, o estado atual da captura e o último estado utilizado para retomada, mantendo compatibilidade com o payload de recovery existente.
@@ -559,6 +562,8 @@ Separar explicitamente o estado inicial sugerido, o estado atual da captura e o 
 - Criterio de pronto: bootstrap, operação corrente e retomada passam a existir como estados distintos fora da UI; payload novo é aditivo e o legado continua suportado
 
 Observacao 2026-04-06 (FECHAMENTO OBRIGATORIO ONDA 3): revisão reaberta para retirar montagem manual de `resumeContext` e serialização manual de `cameraContext`, centralizando leitura/escrita no adapter de recovery sem quebrar payload legado.
+
+Observacao 2026-04-12 (IMPLEMENTACAO PRATICA): cobertura automatizada valida bootstrap do `step1`, abertura da camera com `step2` obrigatoria apenas para entrega e bloqueio de finalizacao na revisao enquanto a pendencia normativa continuar aberta. Runbook de fechamento: `docs/05-operations/runbooks/VALIDACAO_FINAL_FLUXO_CONFIGURAVEL_VISTORIA.md`.
 
 ### BL-059
 Consolidar a duplicação de ambiente repetido como ação contextual do nível atual, fora da árvore principal, preservando o comportamento operacional `Trocar` e `Novo <ambiente>`.
@@ -719,6 +724,8 @@ Observacao 2026-03-30 (Em andamento): cobertura de regressao da BL-052 foi ampli
 Observacao 2026-03-30 (Em andamento): adicionados testes de widget da camera para validar ordem e visibilidade dinamica dos seletores por nivel/subtipo (`test/screens/overlay_camera_screen_test.dart`), com modo deterministico de dados de teste na tela para evitar dependencia de inicializacao de hardware/servicos no ambiente de teste.
 
 Observacao 2026-04-10 (PARCIAL - Compass Pacote C): smoke E2E de homolog cobre o pacote unificado Compass saindo do backoffice e governando o fluxo mobile ate sync, valuation, report e control tower, mantendo a regra operacional por tenant como fonte unica do percurso.
+
+Observacao 2026-04-12 (IMPLEMENTACAO PRATICA): o pacote unificado ja cobre `step1`, `step2` e `camera` no web guiado, com contrato dinamico persistido no backend e consumido pelo mobile. A regra funcional vigente fica assim: `step1` governa bootstrap da captura; `step2` governa exigencias normativas e bloqueio de entrega; `camera` segue arvore de captura. Artefatos de apoio: `docs/05-operations/runbooks/MODELO_CANONICO_FLUXO_CONFIGURAVEL_VISTORIA.md`, `docs/05-operations/runbooks/PAINEL_MILESTONES_FLUXO_CONFIGURAVEL_VISTORIA.md` e `docs/05-operations/runbooks/VALIDACAO_FINAL_FLUXO_CONFIGURAVEL_VISTORIA.md`.
 
 ---
 

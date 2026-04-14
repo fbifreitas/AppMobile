@@ -126,6 +126,29 @@ class InspectionReviewEditableCapture {
       (material?.trim().isNotEmpty ?? false) ||
       (estado?.trim().isNotEmpty ?? false);
 
+  String? get captureContext => macroLocal;
+  set captureContext(String? value) => macroLocal = value;
+
+  String get targetItem => ambiente;
+  set targetItem(String value) => ambiente = value;
+
+  String? get targetItemBase => ambienteBase;
+  set targetItemBase(String? value) => ambienteBase = value;
+
+  int? get targetItemInstanceIndex => ambienteInstanceIndex;
+  set targetItemInstanceIndex(int? value) => ambienteInstanceIndex = value;
+
+  String? get targetQualifier => elemento;
+  set targetQualifier(String? value) => elemento = value;
+
+  String? get materialAttribute => material;
+  set materialAttribute(String? value) => material = value;
+
+  String? get conditionState => estado;
+  set conditionState(String? value) => estado = value;
+
+  List<String> get classificationLevels => applicableClassificationLevels;
+
   String get hourMinute =>
       '${capturedAt.hour.toString().padLeft(2, '0')}:${capturedAt.minute.toString().padLeft(2, '0')}';
 
@@ -146,6 +169,24 @@ class InspectionReviewEditableCapture {
     material = source.material;
     estado = source.estado;
     macroLocal = source.macroLocal;
+  }
+
+  InspectionReviewEditableCapture clone() {
+    return InspectionReviewEditableCapture(
+      filePath: filePath,
+      macroLocal: macroLocal,
+      ambiente: ambiente,
+      ambienteBase: ambienteBase,
+      ambienteInstanceIndex: ambienteInstanceIndex,
+      elemento: elemento,
+      material: material,
+      estado: estado,
+      applicableClassificationLevels: List<String>.from(
+        applicableClassificationLevels,
+      ),
+      capturedAt: capturedAt,
+      status: status,
+    );
   }
 
   void recalculateStatus({bool forceClassified = false}) {
@@ -204,4 +245,10 @@ class InspectionReviewNodeGroup {
     required this.suggested,
     required this.classified,
   });
+
+  String get groupTitle => title;
+  List<InspectionReviewEditableCapture> get captures => items;
+  int get pendingCount => pending;
+  int get suggestedCount => suggested;
+  int get classifiedCount => classified;
 }

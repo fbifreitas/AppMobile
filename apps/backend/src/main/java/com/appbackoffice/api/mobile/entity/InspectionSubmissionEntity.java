@@ -24,8 +24,8 @@ public class InspectionSubmissionEntity {
     @Column(name = "tenant_id", nullable = false)
     private String tenantId;
 
-    @Column(name = "vistoriador_id", nullable = false)
-    private Long vistoriadorId;
+    @Column(name = "field_agent_id", nullable = false)
+    private Long fieldAgentId;
 
     @Column(name = "idempotency_key", nullable = false)
     private String idempotencyKey;
@@ -52,7 +52,8 @@ public class InspectionSubmissionEntity {
     public Long getId() { return id; }
     public Long getJobId() { return jobId; }
     public String getTenantId() { return tenantId; }
-    public Long getVistoriadorId() { return vistoriadorId; }
+    public Long getFieldAgentId() { return fieldAgentId; }
+    public Long getVistoriadorId() { return fieldAgentId; }
     public String getIdempotencyKey() { return idempotencyKey; }
     public String getProtocolId() { return protocolId; }
     public String getStatus() { return status; }
@@ -61,7 +62,8 @@ public class InspectionSubmissionEntity {
 
     public void setJobId(Long jobId) { this.jobId = jobId; }
     public void setTenantId(String tenantId) { this.tenantId = tenantId; }
-    public void setVistoriadorId(Long vistoriadorId) { this.vistoriadorId = vistoriadorId; }
+    public void setFieldAgentId(Long fieldAgentId) { this.fieldAgentId = fieldAgentId; }
+    public void setVistoriadorId(Long vistoriadorId) { this.fieldAgentId = vistoriadorId; }
     public void setIdempotencyKey(String idempotencyKey) { this.idempotencyKey = idempotencyKey; }
     public void setProtocolId(String protocolId) { this.protocolId = protocolId; }
     public void setStatus(String status) { this.status = status; }

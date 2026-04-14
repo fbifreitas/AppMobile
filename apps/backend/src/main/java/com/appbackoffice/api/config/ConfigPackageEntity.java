@@ -54,8 +54,20 @@ public class ConfigPackageEntity {
     private String appUpdateChannel;
 
     @Lob
-    @Column(columnDefinition = "CLOB")
+    @Column(name = "checkin_sections_json", columnDefinition = "CLOB")
     private String checkinSectionsJson;
+
+    @Lob
+    @Column(name = "step1_json", columnDefinition = "CLOB")
+    private String step1Json;
+
+    @Lob
+    @Column(name = "step2_json", columnDefinition = "CLOB")
+    private String step2Json;
+
+    @Lob
+    @Column(name = "camera_json", columnDefinition = "CLOB")
+    private String cameraJson;
 
     public String getId() {
         return id;
@@ -215,5 +227,29 @@ public class ConfigPackageEntity {
 
     public void setCheckinSectionsJson(String checkinSectionsJson) {
         this.checkinSectionsJson = checkinSectionsJson;
+    }
+
+    public String getStep1Json() {
+        return step1Json;
+    }
+
+    public void setStep1Json(String step1Json) {
+        this.step1Json = step1Json;
+    }
+
+    public String getStep2Json() {
+        return step2Json;
+    }
+
+    public void setStep2Json(String step2Json) {
+        this.step2Json = step2Json;
+    }
+
+    public String getCameraJson() {
+        return cameraJson;
+    }
+
+    public void setCameraJson(String cameraJson) {
+        this.cameraJson = cameraJson;
     }
 }

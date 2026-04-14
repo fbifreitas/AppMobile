@@ -13,6 +13,7 @@ import com.appbackoffice.api.job.service.JobService;
 import com.appbackoffice.api.mobile.dto.CheckinConfigResponse;
 import com.appbackoffice.api.mobile.dto.InspectionFinalizedRequest;
 import com.appbackoffice.api.mobile.dto.InspectionFinalizedResponse;
+import com.appbackoffice.api.mobile.dto.JobClientAbsentRequest;
 import com.appbackoffice.api.config.dto.ConfigPackageApplicationStatusRequest;
 import com.appbackoffice.api.config.dto.ConfigPackageApplicationStatusResponse;
 import com.appbackoffice.api.mobile.service.InspectionSubmissionService;
@@ -30,6 +31,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -84,6 +86,8 @@ public class MobileApiController {
     public ResponseEntity<CheckinConfigResponse> getCheckinConfig(
             @Parameter(description = "Tipo do imovel")
             @RequestParam(required = false) String tipoImovel,
+            @Parameter(description = "Neutral alias for tipoImovel")
+            @RequestParam(required = false) String assetType,
             @RequestHeader("X-Tenant-Id") String tenantId,
             @RequestHeader("X-Correlation-Id") String correlationId,
             @RequestHeader("X-Actor-Id") String actorId,
@@ -94,7 +98,8 @@ public class MobileApiController {
         RequestContextValidator.requireFullContext(tenantId, correlationId, actorId);
         validateMobileBearerIfPresent(authorizationHeader, tenantId, actorId);
 
-        CheckinConfigResponse response = mobileCheckinConfigService.resolve(tenantId, actorId, tipoImovel);
+        String resolvedAssetType = assetType != null && !assetType.isBlank() ? assetType : tipoImovel;
+        CheckinConfigResponse response = mobileCheckinConfigService.resolve(tenantId, actorId, resolvedAssetType);
         ResponseEntity.BodyBuilder builder = ResponseEntity.ok();
 
         configPayloadSignatureService
@@ -213,6 +218,49 @@ public class MobileApiController {
         Long userId = parseUserId(actorId);
         validateMobileBearer(authorizationHeader, tenantId, userId);
         return ResponseEntity.ok(jobService.getMobileJobsForUser(tenantId, userId, status));
+    }
+
+    @PostMapping("/jobs/{jobId}/client-absent")
+    @Operation(
+            summary = "Sinaliza cliente ausente no check-in etapa 1",
+            description = "Move o job para aguardando agendamento e registra a tratativa para o backoffice.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Job atualizado com sucesso"),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Contexto invalido",
+                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = CanonicalErrorResponse.class))
+                    ),
+                    @ApiResponse(
+                            responseCode = "401",
+                            description = "Token invalido ou fora de contexto",
+                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = CanonicalErrorResponse.class))
+                    ),
+                    @ApiResponse(
+                            responseCode = "409",
+                            description = "Estado atual do job nao permite mover para aguardando agendamento",
+                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = CanonicalErrorResponse.class))
+                    )
+            }
+    )
+    public ResponseEntity<JobSummaryResponse> postClientAbsent(
+            @RequestHeader("X-Tenant-Id") String tenantId,
+            @RequestHeader("X-Correlation-Id") String correlationId,
+            @RequestHeader("X-Actor-Id") String actorId,
+            @RequestHeader("X-Api-Version") String apiVersion,
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+            @PathVariable Long jobId,
+            @RequestBody(required = false) JobClientAbsentRequest request
+    ) {
+        RequestContextValidator.requireApiVersion(apiVersion);
+        RequestContextValidator.requireFullContext(tenantId, correlationId, actorId);
+        Long userId = parseUserId(actorId);
+        validateMobileBearer(authorizationHeader, tenantId, userId);
+
+        String reason = request != null ? request.reason() : null;
+        return ResponseEntity.ok(
+                jobService.requestSchedulingAfterClientAbsent(tenantId, jobId, actorId, reason)
+        );
     }
 
     private void validateMobileBearerIfPresent(String authorizationHeader, String tenantId, String actorId) {

@@ -118,6 +118,8 @@ class BackendJobRepository implements JobRepository {
     switch ((rawStatus ?? '').trim().toUpperCase()) {
       case 'ACCEPTED':
         return JobStatus.aceito;
+      case 'AWAITING_SCHEDULING':
+        return JobStatus.aguardandoAgendamento;
       case 'IN_EXECUTION':
       case 'SUBMITTED':
         return JobStatus.emAndamento;

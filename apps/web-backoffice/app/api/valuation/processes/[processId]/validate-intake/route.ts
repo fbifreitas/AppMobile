@@ -4,7 +4,7 @@ import { callBackendOperationsApi } from "../../../../../lib/operations_backend_
 
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ processId: string }> }
+  context: { params: { processId: string } }
 ) {
   const session = readAuthSession(request);
   if (!session) {
@@ -13,7 +13,7 @@ export async function POST(
 
   try {
     const body = await request.json();
-    const { processId } = await context.params;
+    const { processId } = context.params;
     const { status, payload } = await callBackendOperationsApi(
       `backoffice/valuation/processes/${processId}/validate-intake`,
       {
@@ -21,7 +21,7 @@ export async function POST(
         headers: buildAuthenticatedHeaders(session, "intake-validation"),
         body: JSON.stringify(body)
       },
-      undefined,
+      new URLSearchParams({ tenantId: session.tenantId }),
       { tenantId: session.tenantId, actorId: String(session.userId), correlationPrefix: "intake-validation" }
     );
 

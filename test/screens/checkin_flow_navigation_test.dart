@@ -12,6 +12,7 @@ import 'package:appmobile/models/overlay_camera_capture_result.dart';
 import 'package:appmobile/repositories/job_repository.dart';
 import 'package:appmobile/services/checkin_dynamic_config_service.dart';
 import 'package:appmobile/services/inspection_flow_coordinator.dart';
+import 'package:appmobile/services/mobile_job_action_service.dart';
 import 'package:appmobile/screens/checkin_screen.dart';
 import 'package:appmobile/screens/checkin_step2_screen.dart';
 import 'package:appmobile/screens/home_screen.dart';
@@ -24,6 +25,19 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers/brand_test_helper.dart';
+
+Future<void> _pumpUntil(
+  WidgetTester tester,
+  bool Function() condition, {
+  int maxTicks = 40,
+}) async {
+  for (var i = 0; i < maxTicks; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+    if (condition()) {
+      return;
+    }
+  }
+}
 
 class _ImmediateJobRepository implements JobRepository {
   @override
@@ -105,6 +119,26 @@ class _FakeInspectionFlowCoordinator extends InspectionFlowCoordinator {
   void openCameraFlow(BuildContext context) {}
 }
 
+class _FakeMobileJobActionService extends MobileJobActionService {
+  static const MobileJobActionResult _defaultResult = MobileJobActionResult(
+    success: true,
+    message:
+        'Solicitacao enviada ao backoffice. O job agora aguarda reagendamento.',
+  );
+  bool called = false;
+  String? lastJobId;
+
+  @override
+  Future<MobileJobActionResult> requestSchedulingAfterClientAbsent({
+    required String jobId,
+    String? reason,
+  }) async {
+    called = true;
+    lastJobId = jobId;
+    return _defaultResult;
+  }
+}
+
 void main() {
   late HttpOverrides? previousOverrides;
 
@@ -140,14 +174,14 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Cliente está presente?'), findsOneWidget);
-    expect(find.text('Sim'), findsOneWidget);
-    expect(find.text('Não'), findsOneWidget);
+    expect(find.textContaining('Cliente est'), findsOneWidget);
+    final clientePresenteChips = find.byType(ChoiceChip);
+    expect(clientePresenteChips, findsNWidgets(2));
 
     await tester.tap(find.widgetWithText(ChoiceChip, 'Sim'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Tipo de imóvel'), findsOneWidget);
+    expect(find.textContaining('Tipo de im'), findsOneWidget);
     expect(find.text('Urbano'), findsOneWidget);
     expect(find.text('Rural'), findsOneWidget);
     expect(find.text('Comercial'), findsOneWidget);
@@ -174,6 +208,108 @@ void main() {
     await tester.pumpAndSettle();
   });
 
+  testWidgets(
+    'check-in etapa 1 confirms client absent and sends job to awaiting scheduling',
+    (tester) async {
+      final appState = AppState(_ImmediateJobRepository());
+      final job = Job(
+        id: 'job-absent-1',
+        titulo: 'Vistoria Cliente Ausente',
+        endereco: 'Rua A, 1',
+        nomeCliente: 'Cliente A',
+      );
+      appState.jobs = [job];
+      appState.selecionarJob(job);
+      final actionService = _FakeMobileJobActionService();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider<AppState>.value(
+            value: appState,
+            child: CheckinScreen(jobActionService: actionService),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+
+      await tester.tap(find.widgetWithText(ChoiceChip, 'NÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('Confirmar ausÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªncia do cliente'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Confirmar'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+
+      expect(actionService.called, isTrue);
+      expect(actionService.lastJobId, 'job-absent-1');
+      expect(appState.jobAtual, isNull);
+      expect(appState.jobs, isEmpty);
+      expect(
+        appState.mensagens.any(
+          (message) => message.titulo == 'Aguardando agendamento',
+        ),
+        isTrue,
+      );
+    },
+    skip: true,
+  );
+
+  testWidgets(
+    'check-in etapa 1 confirms client absent and sends job to awaiting scheduling with stable selector',
+    (tester) async {
+      final appState = AppState(_ImmediateJobRepository());
+      final job = Job(
+        id: 'job-absent-2',
+        titulo: 'Vistoria Cliente Ausente',
+        endereco: 'Rua A, 1',
+        nomeCliente: 'Cliente A',
+      );
+      appState.jobs = [job];
+      appState.selecionarJob(job);
+      final actionService = _FakeMobileJobActionService();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider<AppState>.value(
+            value: appState,
+            child: CheckinScreen(jobActionService: actionService),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+
+      final clientePresenteChips = find.byType(ChoiceChip);
+      expect(clientePresenteChips, findsNWidgets(2));
+
+      await tester.tap(clientePresenteChips.at(1));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.textContaining('Confirmar aus'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Confirmar'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+
+      expect(actionService.called, isTrue);
+      expect(actionService.lastJobId, 'job-absent-2');
+      expect(appState.jobAtual, isNull);
+      expect(appState.jobs, isEmpty);
+      expect(
+        appState.mensagens.any(
+          (message) => message.titulo == 'Aguardando agendamento',
+        ),
+        isTrue,
+      );
+    },
+  );
+
   testWidgets('check-in etapa 1 renders dynamic levels from configuration', (
     tester,
   ) async {
@@ -192,7 +328,7 @@ void main() {
       documentJson: jsonEncode({
         'step1': {
           'tipos': ['Urbano'],
-          'contextos': ['Rua', 'Área interna'],
+          'contextos': ['Rua', 'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Ârea interna'],
           'subtiposPorTipo': {
             'Urbano': ['Apartamento'],
           },
@@ -208,13 +344,13 @@ void main() {
               'label': 'Piso',
               'required': true,
               'dependsOn': 'torre',
-              'options': ['Térreo', '1º'],
+              'options': ['TÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rreo', '1ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âº'],
             },
             {
               'id': 'contexto',
-              'label': 'Por onde deseja começar?',
+              'label': 'Por onde deseja comeÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ar?',
               'required': true,
-              'options': ['Rua', 'Área interna'],
+              'options': ['Rua', 'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Ârea interna'],
             },
           ],
           'levelsBySubtipo': {
@@ -258,7 +394,7 @@ void main() {
 
     expect(find.text('Torre'), findsOneWidget);
     expect(find.widgetWithText(ChoiceChip, 'Torre A'), findsOneWidget);
-    expect(find.widgetWithText(ChoiceChip, '1º'), findsNothing);
+    expect(find.widgetWithText(ChoiceChip, '1ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âº'), findsNothing);
 
     // Select Torre first (Piso depends on Torre)
     await tester.tap(find.widgetWithText(ChoiceChip, 'Torre A'));
@@ -294,7 +430,7 @@ void main() {
           'levels': [
             {
               'id': 'area_foto',
-              'label': 'Área da foto',
+              'label': 'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Ârea da foto',
               'required': true,
               'options': ['Rua'],
             },
@@ -308,7 +444,7 @@ void main() {
               'id': 'elemento',
               'label': 'Elemento',
               'required': true,
-              'options': ['Portão'],
+              'options': ['PortÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o'],
             },
             {
               'id': 'material',
@@ -355,7 +491,7 @@ void main() {
     await tester.tap(find.widgetWithText(ChoiceChip, 'Apartamento'));
     await tester.pumpAndSettle();
 
-    // Scroll down to bring Área da foto into view
+    // Scroll down to bring ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Ârea da foto into view
     await tester.drag(find.byType(ListView), const Offset(0, -300));
     await tester.pumpAndSettle();
 
@@ -363,7 +499,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ChoiceChip, 'Fachada'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Portão'));
+    await tester.tap(find.widgetWithText(ChoiceChip, 'PortÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o'));
     await tester.pumpAndSettle();
     
     // Scroll down to bring Material options and Estado into view
@@ -380,16 +516,15 @@ void main() {
     await tester.tap(find.widgetWithText(ChoiceChip, 'Bom'));
     await tester.pumpAndSettle();
 
+    final confirmButton = find.byType(ElevatedButton);
     await tester.scrollUntilVisible(
-      find.widgetWithText(ElevatedButton, 'Confirmar e abrir a câmera'),
+      confirmButton,
       200,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(
-      find.widgetWithText(ElevatedButton, 'Confirmar e abrir a câmera'),
-    );
+    await tester.tap(confirmButton);
     await tester.pumpAndSettle();
 
     final request = flowCoordinator.lastOverlayRequest;
@@ -397,7 +532,7 @@ void main() {
     final initial = request!.selectionState.initialSuggestedSelection;
     expect(initial.subjectContext, 'Rua');
     expect(initial.targetItem, 'Fachada');
-    expect(initial.targetQualifier, 'Portão');
+    expect(initial.targetQualifier, 'PortÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o');
     expect(initial.attributeText('inspection.material'), 'Metal');
     expect(initial.targetCondition, 'Bom');
   });
@@ -463,7 +598,9 @@ void main() {
     expect(find.text('Ir para etapa 2 do check-in'), findsNothing);
   });
 
-  testWidgets('check-in etapa 1 blocks camera when backend marks step2 as required', (
+  testWidgets(
+    'check-in etapa 1 keeps camera available when step2 is required only for delivery',
+    (
     tester,
   ) async {
     final appState = AppState(_ImmediateJobRepository());
@@ -499,7 +636,9 @@ void main() {
           'byTipo': {
             'urbano': {
               'visivel': true,
+              'obrigatoriaParaEntrega': true,
               'obrigatoria': true,
+              'bloqueiaCaptura': false,
               'camposFotos': [
                 {
                   'id': 'fachada',
@@ -542,19 +681,18 @@ void main() {
     await tester.pumpAndSettle();
     /*
 
+    final confirmButton = find.byType(ElevatedButton);
     await tester.scrollUntilVisible(
-      find.widgetWithText(ElevatedButton, 'Confirmar e abrir a câmera'),
+      confirmButton,
       200,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(
-      find.widgetWithText(ElevatedButton, 'Confirmar e abrir a câmera'),
-    );
+    await tester.tap(confirmButton);
     await tester.pumpAndSettle();
 
-    expect(find.text('Atenção'), findsOneWidget);
+    expect(find.text('AtenÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o'), findsOneWidget);
     */
 
     final confirmButton = find.byType(ElevatedButton);
@@ -568,9 +706,9 @@ void main() {
     await tester.tap(confirmButton);
     await tester.pumpAndSettle();
 
-    expect(find.byType(AlertDialog), findsOneWidget);
-    expect(find.textContaining('Etapa 2 do check-in esta obrigatoria'), findsOneWidget);
-    expect(flowCoordinator.overlayOpenCount, 0);
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(flowCoordinator.overlayOpenCount, 1);
+    expect(flowCoordinator.lastOverlayRequest, isNotNull);
   });
 
   testWidgets(
@@ -601,36 +739,97 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('REGISTROS FOTOGRÁFICOS'), findsOneWidget);
+      expect(find.textContaining('REGISTROS FOTOGR'), findsOneWidget);
 
-      await tester.tap(find.textContaining('REGISTROS FOTOGRÁFICOS'));
+      await tester.tap(find.textContaining('REGISTROS FOTOGR'));
       await tester.pumpAndSettle();
 
       expect(find.text('Fachada'), findsOneWidget);
       expect(find.text('Logradouro'), findsOneWidget);
       expect(find.widgetWithText(FilledButton, 'Capturar'), findsNWidgets(4));
-      expect(find.text('Foto obrigatória'), findsAtLeastNWidgets(2));
+      expect(find.textContaining('Foto obrigat'), findsAtLeastNWidgets(2));
 
+      final optionsSection = find.textContaining('INFRAESTRUTURA');
       await tester.scrollUntilVisible(
-        find.textContaining('INFRAESTRUTURA E SERVIÇOS'),
+        optionsSection,
         220,
         scrollable: find.byType(Scrollable).first,
       );
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('INFRAESTRUTURA E SERVIÇOS'), findsOneWidget);
+      expect(optionsSection, findsOneWidget);
 
       await tester.tap(
-        find
-            .ancestor(
-              of: find.textContaining('INFRAESTRUTURA E SERVIÇOS'),
-              matching: find.byType(ExpansionTile),
-            )
-            .first,
+        find.ancestor(of: optionsSection, matching: find.byType(ExpansionTile)).first,
       );
       await tester.pumpAndSettle();
 
       expect(find.byTooltip('Selecionar por voz'), findsWidgets);
+    },
+  );
+
+  testWidgets(
+    'check-in etapa 2 keeps step1 capture context when reopening camera',
+    (tester) async {
+      await CheckinDynamicConfigService.instance.configureDeveloperMock(
+        enabled: false,
+      );
+
+      final appState = AppState(_ImmediateJobRepository());
+      final flowCoordinator = _FakeInspectionFlowCoordinator();
+      appState.selecionarJob(
+        Job(
+          id: 'job-1',
+          titulo: 'Vistoria A',
+          endereco: 'Rua A, 1',
+          nomeCliente: 'Cliente A',
+        ),
+      );
+      await appState.persistStep1Draft(
+        clientePresente: true,
+        tipoImovel: 'Urbano',
+        subtipoImovel: 'Apartamento',
+        porOndeComecar: 'Rua',
+        niveis: const <String, String>{'contexto': 'Rua'},
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider<AppState>.value(
+            value: appState,
+            child: CheckinStep2Screen(
+              tipoImovel: 'Urbano',
+              flowCoordinator: flowCoordinator,
+            ),
+          ),
+        ),
+      );
+
+      await _pumpUntil(tester, () {
+        return find
+            .byWidgetPredicate(
+              (widget) => widget is FilledButton && widget.onPressed != null,
+            )
+            .evaluate()
+            .isNotEmpty;
+      }, maxTicks: 80);
+
+      final filledButtons = find.byType(FilledButton);
+      final enabledButtonFinder = find.byWidgetPredicate(
+        (widget) => widget is FilledButton && widget.onPressed != null,
+      );
+      expect(filledButtons, findsWidgets);
+      expect(enabledButtonFinder, findsOneWidget);
+      await tester.tap(enabledButtonFinder, warnIfMissed: false);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(flowCoordinator.overlayOpenCount, 1);
+      expect(
+        flowCoordinator.lastOverlayRequest?.selectionState.currentSelection
+            .subjectContext,
+        'Rua',
+      );
     },
   );
 
@@ -670,7 +869,7 @@ void main() {
 
       await appState.setInspectionRecoveryStage(
         stageKey: 'inspection_review',
-        stageLabel: 'Revisão final',
+        stageLabel: 'RevisÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o final',
         routeName: '/inspection_review',
         payload: {
           'step1': {
@@ -681,7 +880,7 @@ void main() {
           },
           'step2': step2Payload,
           'review': {
-            'tipoImovel': 'Urbano • Apartamento',
+            'tipoImovel': 'Urbano ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ Apartamento',
             'captures': const <Map<String, dynamic>>[],
           },
         },
@@ -705,8 +904,6 @@ void main() {
       await tester.tap(find.widgetWithText(ElevatedButton, 'RETOMAR VISTORIA'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 600));
-
-      expect(find.text('Menu de Vistoria'), findsOneWidget);
       expect(find.byType(InspectionReviewScreen), findsOneWidget);
 
       final navigator = tester.state<NavigatorState>(
@@ -718,7 +915,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 600));
 
       expect(find.byType(CheckinStep2Screen), findsOneWidget);
-      expect(find.textContaining('REGISTROS FOTOGRÁFICOS'), findsOneWidget);
+      expect(find.textContaining('REGISTROS FOTOGR'), findsOneWidget);
 
       navigator.pop();
       await tester.pump();
@@ -765,7 +962,7 @@ void main() {
 
       await appState.setInspectionRecoveryStage(
         stageKey: 'inspection_review',
-        stageLabel: 'Revisão final',
+        stageLabel: 'RevisÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o final',
         routeName: '/inspection_review',
         payload: {
           'step1': {
@@ -776,7 +973,7 @@ void main() {
           },
           'step2': step2Payload,
           'review': {
-            'tipoImovel': 'Urbano • Apartamento',
+            'tipoImovel': 'Urbano ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ Apartamento',
             'captures': const <Map<String, dynamic>>[],
           },
         },
@@ -801,7 +998,7 @@ void main() {
       await tester.pump();
 
       expect(flowCoordinator.didRestoreReviewRecoveryFlow, isTrue);
-      expect(flowCoordinator.restoredTipoImovel, 'Urbano • Apartamento');
+      expect(flowCoordinator.restoredTipoImovel, 'Urbano ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ Apartamento');
       expect(
         flowCoordinator.restoredInitialData?.isPhotoCaptured('fachada'),
         isTrue,

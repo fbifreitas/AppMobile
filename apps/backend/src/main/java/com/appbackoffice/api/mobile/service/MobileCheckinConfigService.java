@@ -13,6 +13,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,36 +34,14 @@ public class MobileCheckinConfigService {
         this.objectMapper = objectMapper;
     }
 
-    public CheckinConfigResponse resolve(String tenantId, String actorId, String tipoImovel) {
+    public CheckinConfigResponse resolve(String tenantId, String actorId, String assetType) {
         ConfigResolveResponse resolveResponse = configPackageService.resolveForMobile(tenantId, actorId, null);
         ConfigRulesDto effective = resolveResponse.result().effective();
 
-        Map<String, Object> step1 = new LinkedHashMap<>();
-        step1.put("tipos", List.of("Urbano", "Rural", "Comercial", "Industrial"));
-        step1.put("subtiposPorTipo", Map.of("Urbano", List.of("Apartamento", "Casa", "Sobrado", "Terreno")));
-        if (tipoImovel != null && !tipoImovel.isBlank()) {
-            step1.put("requestedTipoImovel", tipoImovel);
-        }
-
-        Map<String, Object> step2 = new LinkedHashMap<>();
-        step2.put("camposFotos", List.of("fachada", "logradouro"));
-        step2.put("gruposOpcoes", List.of("infraestrutura_servicos"));
-        step2.put("photoPolicy", Map.of(
-                "min", effective.cameraMinPhotos() != null ? effective.cameraMinPhotos() : 1,
-                "max", effective.cameraMaxPhotos() != null ? effective.cameraMaxPhotos() : 5
-        ));
-        step2.put("featureFlags", Map.of(
-                "enableVoiceCommands", effective.enableVoiceCommands() != null ? effective.enableVoiceCommands() : true,
-                "requireBiometric", effective.requireBiometric() != null ? effective.requireBiometric() : false
-        ));
-        if (effective.theme() != null || effective.appUpdateChannel() != null) {
-            Map<String, Object> presentation = new LinkedHashMap<>();
-            presentation.put("theme", effective.theme());
-            presentation.put("appUpdateChannel", effective.appUpdateChannel());
-            step2.put("presentation", presentation);
-        }
-
-        List<CheckinConfigResponse.CheckinSectionDto> sections = resolveSections(tenantId, tipoImovel, effective);
+        List<CheckinConfigResponse.CheckinSectionDto> sections = resolveSections(tenantId, assetType, effective);
+        Map<String, Object> step1 = buildStep1(effective, assetType);
+        Map<String, Object> step2 = buildStep2(effective, sections);
+        Map<String, Object> camera = buildCamera(effective);
         Instant publishedAt = resolvePublishedAt(resolveResponse.result().appliedPackages(), tenantId, sections.isEmpty());
         Instant publishedAtForResponse = publishedAt.equals(Instant.EPOCH) ? Instant.now() : publishedAt;
 
@@ -71,9 +51,166 @@ public class MobileCheckinConfigService {
                 resolveResponse.result().appliedPackages().stream().map(ConfigPackageResponse::id).toList(),
                 step1,
                 step2,
+                camera,
                 sections,
                 buildNotes(resolveResponse.result().appliedPackages())
         );
+    }
+
+    private Map<String, Object> buildStep1(ConfigRulesDto effective, String assetType) {
+        Map<String, Object> step1 = mutableCopy(effective != null ? effective.step1() : null);
+        if (step1.isEmpty()) {
+            step1.put("tipos", List.of("Urbano", "Rural", "Comercial", "Industrial"));
+
+            Map<String, Object> defaults = new LinkedHashMap<>();
+            defaults.put("Urbano", List.of("Apartamento", "Casa", "Sobrado", "Terreno"));
+            defaults.put("Rural", List.of("Sitio", "Chacara", "Fazenda"));
+            defaults.put("Comercial", List.of("Loja", "Sala comercial", "Galpao"));
+            defaults.put("Industrial", List.of("Fabrica", "Armazem", "Planta industrial"));
+            step1.put("subtiposPorTipo", defaults);
+            step1.put("contextos", List.of("Rua", "Area externa", "Area interna"));
+        }
+        normalizeStep1ContextLevel(step1);
+        aliasStep1Fields(step1);
+        if (assetType != null && !assetType.isBlank()) {
+            step1.put("requestedTipoImovel", assetType);
+            step1.put("requestedAssetType", assetType);
+        }
+        return step1;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void normalizeStep1ContextLevel(Map<String, Object> step1) {
+        Object rawContexts = step1.get("contextos");
+        if (!(rawContexts instanceof List<?> contextList) || contextList.isEmpty()) {
+            return;
+        }
+
+        List<String> contexts = contextList.stream()
+                .map(value -> value != null ? value.toString().trim() : "")
+                .filter(value -> !value.isEmpty())
+                .collect(java.util.stream.Collectors.collectingAndThen(
+                        java.util.stream.Collectors.toCollection(LinkedHashSet::new),
+                        ArrayList::new
+                ));
+
+        if (contexts.isEmpty()) {
+            return;
+        }
+
+        Object rawLevels = step1.get("levels");
+        if (!(rawLevels instanceof List<?> levels)) {
+            return;
+        }
+
+        for (Object levelItem : levels) {
+            if (!(levelItem instanceof Map<?, ?> levelMap)) {
+                continue;
+            }
+            Object rawId = levelMap.get("id");
+            String levelId = rawId != null ? rawId.toString().trim().toLowerCase() : "";
+            if (!"contexto".equals(levelId) && !"macrolocal".equals(levelId) && !"entrypoint".equals(levelId)) {
+                continue;
+            }
+            ((Map<String, Object>) levelMap).put("options", contexts);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void aliasStep1Fields(Map<String, Object> step1) {
+        Object assetTypes = step1.get("tipos");
+        if (assetTypes instanceof List<?>) {
+            step1.putIfAbsent("assetTypes", assetTypes);
+        }
+
+        Object assetSubtypes = step1.get("subtiposPorTipo");
+        if (assetSubtypes instanceof Map<?, ?>) {
+            step1.putIfAbsent("assetSubtypesByType", assetSubtypes);
+        }
+
+        Object entryPoints = step1.get("contextos");
+        if (entryPoints instanceof List<?>) {
+            step1.putIfAbsent("entryPoints", entryPoints);
+        }
+
+        Object rawLevels = step1.get("levels");
+        if (!(rawLevels instanceof List<?> levels)) {
+            return;
+        }
+
+        for (Object levelItem : levels) {
+            if (!(levelItem instanceof Map<?, ?> levelMap)) {
+                continue;
+            }
+            Map<String, Object> mutableLevel = (Map<String, Object>) levelMap;
+            Object rawId = mutableLevel.get("id");
+            String levelId = rawId != null ? rawId.toString().trim() : "";
+            if ("contexto".equalsIgnoreCase(levelId) || "macrolocal".equalsIgnoreCase(levelId)) {
+                mutableLevel.putIfAbsent("canonicalId", "entryPoint");
+            }
+        }
+    }
+
+    private Map<String, Object> buildStep2(
+            ConfigRulesDto effective,
+            List<CheckinConfigResponse.CheckinSectionDto> sections
+    ) {
+        Map<String, Object> step2 = mutableCopy(effective != null ? effective.step2() : null);
+        step2.put("photoPolicy", Map.of(
+                "min", effective != null && effective.cameraMinPhotos() != null ? effective.cameraMinPhotos() : 1,
+                "max", effective != null && effective.cameraMaxPhotos() != null ? effective.cameraMaxPhotos() : 5
+        ));
+        step2.put("featureFlags", Map.of(
+                "enableVoiceCommands", effective != null && effective.enableVoiceCommands() != null ? effective.enableVoiceCommands() : true,
+                "requireBiometric", effective != null && effective.requireBiometric() != null ? effective.requireBiometric() : false
+        ));
+
+        if ((effective != null && effective.theme() != null) || (effective != null && effective.appUpdateChannel() != null)) {
+            Map<String, Object> presentation = new LinkedHashMap<>();
+            presentation.put("theme", effective.theme());
+            presentation.put("appUpdateChannel", effective.appUpdateChannel());
+            step2.put("presentation", presentation);
+        }
+
+        Object byTipo = step2.get("byTipo");
+        if (byTipo instanceof Map<?, ?> byTypeMap) {
+            step2.putIfAbsent("byAssetType", byTypeMap);
+        }
+        step2.putIfAbsent("camposFotos", defaultLegacyPhotoFields(sections));
+        step2.putIfAbsent("gruposOpcoes", new ArrayList<>());
+        step2.putIfAbsent("photoFields", step2.get("camposFotos"));
+        step2.putIfAbsent("optionGroups", step2.get("gruposOpcoes"));
+        return step2;
+    }
+
+    private Map<String, Object> buildCamera(ConfigRulesDto effective) {
+        return mutableCopy(effective != null ? effective.camera() : null);
+    }
+
+    private List<String> defaultLegacyPhotoFields(List<CheckinConfigResponse.CheckinSectionDto> sections) {
+        if (sections == null || sections.isEmpty()) {
+            return List.of("fachada", "logradouro");
+        }
+        return sections.stream().map(CheckinConfigResponse.CheckinSectionDto::key).toList();
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> mutableCopy(Map<String, Object> source) {
+        if (source == null || source.isEmpty()) {
+            return new LinkedHashMap<>();
+        }
+        Map<String, Object> copy = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : source.entrySet()) {
+            Object value = entry.getValue();
+            if (value instanceof Map<?, ?> mapValue) {
+                copy.put(entry.getKey(), mutableCopy((Map<String, Object>) mapValue));
+            } else if (value instanceof List<?> listValue) {
+                copy.put(entry.getKey(), new ArrayList<>(listValue));
+            } else {
+                copy.put(entry.getKey(), value);
+            }
+        }
+        return copy;
     }
 
     private String buildVersion(List<ConfigPackageResponse> appliedPackages, Instant publishedAt) {
@@ -86,9 +223,9 @@ public class MobileCheckinConfigService {
     private List<String> buildNotes(List<ConfigPackageResponse> appliedPackages) {
         if (appliedPackages.isEmpty()) {
             return List.of(
-                    "Compatibilidade v1: campos existentes não serão removidos/renomeados sem nova major.",
-                    "Configuração efetiva padrão aplicada: nenhum pacote ativo encontrado para o tenant/usuário.",
-                    "Tenant e correlationId são obrigatórios para rastreabilidade ponta a ponta."
+                    "Compatibilidade v1: campos existentes nÃ£o serÃ£o removidos/renomeados sem nova major.",
+                    "ConfiguraÃ§Ã£o efetiva padrÃ£o aplicada: nenhum pacote ativo encontrado para o tenant/usuÃ¡rio.",
+                    "Tenant e correlationId sÃ£o obrigatÃ³rios para rastreabilidade ponta a ponta."
             );
         }
 
@@ -98,18 +235,18 @@ public class MobileCheckinConfigService {
                 .toString();
 
         return List.of(
-                "Compatibilidade v1: campos existentes não serão removidos/renomeados sem nova major.",
-                "Configuração efetiva derivada de pacotes ativos: " + appliedIds,
-                "Tenant e correlationId são obrigatórios para rastreabilidade ponta a ponta."
+                "Compatibilidade v1: campos existentes nÃ£o serÃ£o removidos/renomeados sem nova major.",
+                "ConfiguraÃ§Ã£o efetiva derivada de pacotes ativos: " + appliedIds,
+                "Tenant e correlationId sÃ£o obrigatÃ³rios para rastreabilidade ponta a ponta."
         );
     }
 
         private List<CheckinConfigResponse.CheckinSectionDto> resolveSections(
                 String tenantId,
-                String tipoImovel,
+                String assetType,
                 ConfigRulesDto effective
         ) {
-        List<ConfigCheckinSectionRuleDto> packageSections = resolveSectionsFromRules(effective, tipoImovel);
+        List<ConfigCheckinSectionRuleDto> packageSections = resolveSectionsFromRules(effective, assetType);
         if (!packageSections.isEmpty()) {
             return packageSections.stream()
                     .map(section -> new CheckinConfigResponse.CheckinSectionDto(
@@ -129,7 +266,7 @@ public class MobileCheckinConfigService {
             .findByTenantIdAndActiveTrueOrderBySortOrderAscUpdatedAtAsc(tenantId);
 
         List<CheckinSectionEntity> matched = all.stream()
-            .filter(section -> sectionMatchesTipoImovel(section, tipoImovel))
+                .filter(section -> sectionMatchesAssetType(section, assetType))
             .toList();
 
         if (matched.isEmpty()) {
@@ -152,7 +289,7 @@ public class MobileCheckinConfigService {
 
         private List<ConfigCheckinSectionRuleDto> resolveSectionsFromRules(
                 ConfigRulesDto effective,
-                String tipoImovel
+                String assetType
         ) {
         if (effective == null || effective.checkinSections() == null || effective.checkinSections().isEmpty()) {
             return List.of();
@@ -160,7 +297,7 @@ public class MobileCheckinConfigService {
 
         return effective.checkinSections()
                 .stream()
-                .filter(section -> sectionMatchesTipoImovel(section.tipoImovel(), tipoImovel))
+                .filter(section -> sectionMatchesAssetType(section.assetType(), assetType))
                 .sorted((a, b) -> Integer.compare(
                         a.sortOrder() != null ? a.sortOrder() : Integer.MAX_VALUE,
                         b.sortOrder() != null ? b.sortOrder() : Integer.MAX_VALUE
@@ -188,18 +325,18 @@ public class MobileCheckinConfigService {
         return fromPackages.isAfter(fromSections) ? fromPackages : fromSections;
         }
 
-        private boolean sectionMatchesTipoImovel(CheckinSectionEntity section, String tipoImovel) {
-        return sectionMatchesTipoImovel(section.getTipoImovel(), tipoImovel);
+        private boolean sectionMatchesAssetType(CheckinSectionEntity section, String assetType) {
+        return sectionMatchesAssetType(section.getAssetType(), assetType);
         }
 
-        private boolean sectionMatchesTipoImovel(String sectionTipoImovel, String tipoImovel) {
-        if (sectionTipoImovel == null || sectionTipoImovel.isBlank()) {
+        private boolean sectionMatchesAssetType(String sectionAssetType, String assetType) {
+        if (sectionAssetType == null || sectionAssetType.isBlank()) {
             return true;
         }
-        if (tipoImovel == null || tipoImovel.isBlank()) {
+        if (assetType == null || assetType.isBlank()) {
             return false;
         }
-        return sectionTipoImovel.equalsIgnoreCase(tipoImovel);
+        return sectionAssetType.equalsIgnoreCase(assetType);
         }
 
         private List<String> parseDesiredItems(String desiredItemsJson) {

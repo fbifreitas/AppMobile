@@ -4,7 +4,7 @@ import { callBackendOperationsApi } from "../../../../lib/operations_backend_cli
 
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ valuationProcessId: string }> }
+  context: { params: { valuationProcessId: string } }
 ) {
   const session = readAuthSession(request);
   if (!session) {
@@ -13,7 +13,7 @@ export async function POST(
 
   try {
     const body = await request.text();
-    const { valuationProcessId } = await context.params;
+    const { valuationProcessId } = context.params;
     const { status, payload } = await callBackendOperationsApi(
       `backoffice/reports/${valuationProcessId}/generate`,
       {
@@ -21,7 +21,7 @@ export async function POST(
         headers: buildAuthenticatedHeaders(session, "report-generate"),
         body: body.length > 0 ? body : "{}"
       },
-      undefined,
+      new URLSearchParams({ tenantId: session.tenantId }),
       { tenantId: session.tenantId, actorId: String(session.userId), correlationPrefix: "report-generate" }
     );
 

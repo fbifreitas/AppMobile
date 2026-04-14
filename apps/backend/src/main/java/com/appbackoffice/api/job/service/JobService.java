@@ -148,6 +148,38 @@ public class JobService {
     }
 
     @Transactional
+    public JobSummaryResponse requestSchedulingAfterClientAbsent(
+            String tenantId,
+            Long jobId,
+            String actorId,
+            String reason
+    ) {
+        tenantGuardService.requireActiveTenant(tenantId);
+        Job job = requireJobInTenant(tenantId, jobId);
+        requireAssignedActor(job, actorId);
+
+        if (job.getStatus() == JobStatus.AWAITING_SCHEDULING) {
+            return toSummary(job);
+        }
+
+        JobStatus from = job.getStatus();
+        stateMachine.validateTransition(from, JobStatus.AWAITING_SCHEDULING);
+
+        job.setStatus(JobStatus.AWAITING_SCHEDULING);
+        job.setAssignedTo(null);
+        jobRepository.save(job);
+
+        recordTimeline(
+                job,
+                from,
+                JobStatus.AWAITING_SCHEDULING,
+                actorId,
+                normalizeSchedulingReason(reason)
+        );
+        return toSummary(job);
+    }
+
+    @Transactional
     public void submitInspectionFromMobile(String tenantId, Long jobId, String actorId) {
         tenantGuardService.requireActiveTenant(tenantId);
         Job job = requireJobInTenant(tenantId, jobId);
@@ -357,6 +389,14 @@ public class JobService {
             return "Direct assignment accepted by dispatch policy";
         }
         return null;
+    }
+
+    private String normalizeSchedulingReason(String reason) {
+        String normalized = reason == null ? "" : reason.trim();
+        if (!normalized.isEmpty()) {
+            return normalized;
+        }
+        return "Client not present during step 1 check-in. Awaiting scheduling treatment.";
     }
 
     private String normalize(String value) {

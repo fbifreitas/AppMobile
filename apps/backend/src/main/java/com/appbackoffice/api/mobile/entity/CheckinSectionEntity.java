@@ -22,8 +22,8 @@ public class CheckinSectionEntity {
     @Column(name = "tenant_id", nullable = false)
     private String tenantId;
 
-    @Column(name = "tipo_imovel")
-    private String tipoImovel;
+    @Column(name = "asset_type")
+    private String assetType;
 
     @Column(name = "section_key", nullable = false)
     private String sectionKey;
@@ -80,7 +80,11 @@ public class CheckinSectionEntity {
     }
 
     public String getTipoImovel() {
-        return tipoImovel;
+        return assetType;
+    }
+
+    public String getAssetType() {
+        return assetType;
     }
 
     public String getSectionKey() {
@@ -128,7 +132,11 @@ public class CheckinSectionEntity {
     }
 
     public void setTipoImovel(String tipoImovel) {
-        this.tipoImovel = tipoImovel;
+        this.assetType = tipoImovel;
+    }
+
+    public void setAssetType(String assetType) {
+        this.assetType = assetType;
     }
 
     public void setSectionKey(String sectionKey) {

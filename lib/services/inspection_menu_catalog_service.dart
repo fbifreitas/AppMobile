@@ -1,4 +1,5 @@
 import '../config/inspection_menu_package.dart';
+import 'inspection_semantic_field_service.dart';
 import 'inspection_environment_instance_service.dart';
 import 'inspection_menu_ranking_service.dart';
 import 'inspection_taxonomy_service.dart';
@@ -9,6 +10,7 @@ class InspectionMenuCatalogService {
     this.environmentInstanceService =
         InspectionEnvironmentInstanceService.instance,
     this.taxonomyService = InspectionTaxonomyService.instance,
+    this.semanticFieldService = InspectionSemanticFieldService.instance,
   });
 
   static const InspectionMenuCatalogService instance =
@@ -17,15 +19,40 @@ class InspectionMenuCatalogService {
   final InspectionMenuRankingService rankingService;
   final InspectionEnvironmentInstanceService environmentInstanceService;
   final InspectionTaxonomyService taxonomyService;
+  final InspectionSemanticFieldService semanticFieldService;
 
   List<String> macroLocals({
     required InspectionMenuPackage? package,
     required Map<String, dynamic> usage,
     required String propertyType,
+    String? subtipo,
   }) {
     final config = package?.configFor(propertyType);
+    final flatOptions = _flatLevelOptions(config: config, levelId: 'macroLocal');
+    final step1Contexts = package?.step1Config?.contextos ?? const <String>[];
+    final scopedMacroLocals =
+        package?.cameraMacroLocalsFor(
+          propertyType: propertyType,
+          subtipo: subtipo,
+        ) ??
+        const <MacroLocalOption>[];
     final options =
-        config?.macroLocals ?? taxonomyService.fallbackMacroLocals(propertyType);
+        scopedMacroLocals.isNotEmpty
+            ? scopedMacroLocals
+            : flatOptions != null
+            ? flatOptions
+                .map((option) => MacroLocalOption(label: option.label, baseScore: 100))
+                .toList(growable: false)
+            : step1Contexts.isNotEmpty
+            ? step1Contexts
+                .map(
+                  (context) => MacroLocalOption(
+                    label: context,
+                    baseScore: 100,
+                  ),
+                )
+                .toList(growable: false)
+            : taxonomyService.fallbackMacroLocals(propertyType);
     return _rankOptions(
       options: options,
       usage: usage,
@@ -38,16 +65,26 @@ class InspectionMenuCatalogService {
     required InspectionMenuPackage? package,
     required Map<String, dynamic> usage,
     required String propertyType,
+    String? subtipo,
     required String macroLocal,
   }) {
     final config = package?.configFor(propertyType);
+    final flatOptions = _flatLevelOptions(config: config, levelId: 'ambiente');
+    final scopedMacroLocals =
+        package?.cameraMacroLocalsFor(
+          propertyType: propertyType,
+          subtipo: subtipo,
+        ) ??
+        const <MacroLocalOption>[];
     final selectedMacro = _firstWhereOrNull<MacroLocalOption>(
-      config?.macroLocals ?? const <MacroLocalOption>[],
+      scopedMacroLocals,
       (item) => item.label == macroLocal,
     );
     final options =
-        selectedMacro?.ambientes ??
-        taxonomyService.fallbackAmbientes(propertyType, macroLocal);
+        selectedMacro != null
+            ? selectedMacro.ambientes
+            : flatOptions ??
+                taxonomyService.fallbackAmbientes(propertyType, macroLocal);
     return _rankOptions(
       options: options,
       usage: usage,
@@ -60,12 +97,20 @@ class InspectionMenuCatalogService {
     required InspectionMenuPackage? package,
     required Map<String, dynamic> usage,
     required String propertyType,
+    String? subtipo,
     required String macroLocal,
     required String ambiente,
   }) {
     final config = package?.configFor(propertyType);
+    final flatOptions = _flatLevelOptions(config: config, levelId: 'elemento');
+    final scopedMacroLocals =
+        package?.cameraMacroLocalsFor(
+          propertyType: propertyType,
+          subtipo: subtipo,
+        ) ??
+        const <MacroLocalOption>[];
     final selectedMacro = _firstWhereOrNull<MacroLocalOption>(
-      config?.macroLocals ?? const <MacroLocalOption>[],
+      scopedMacroLocals,
       (item) => item.label == macroLocal,
     );
     final selectedAmbiente = _firstWhereOrNull<RankedMenuOption>(
@@ -74,8 +119,10 @@ class InspectionMenuCatalogService {
     );
     final normalizedAmbiente = environmentInstanceService.baseLabelOf(ambiente);
     final options =
-        selectedAmbiente?.elements ??
-        taxonomyService.fallbackElementos(normalizedAmbiente);
+        selectedAmbiente != null
+            ? selectedAmbiente.elements
+            : flatOptions ??
+                taxonomyService.fallbackElementos(normalizedAmbiente);
     return _rankOptions(
       options: options,
       usage: usage,
@@ -89,6 +136,7 @@ class InspectionMenuCatalogService {
     required InspectionMenuPackage? package,
     required Map<String, dynamic> usage,
     required String propertyType,
+    String? subtipo,
     required String macroLocal,
     required String ambiente,
     required String elemento,
@@ -96,12 +144,19 @@ class InspectionMenuCatalogService {
     final selectedElement = _findSelectedElement(
       package: package,
       propertyType: propertyType,
+      subtipo: subtipo,
       macroLocal: macroLocal,
       ambiente: ambiente,
       elemento: elemento,
     );
+    final flatOptions = _flatLevelOptions(
+      config: package?.configFor(propertyType),
+      levelId: 'material',
+    );
     final options =
-        selectedElement?.materials ?? taxonomyService.fallbackMateriais(elemento);
+        selectedElement != null
+            ? selectedElement.materials
+            : flatOptions ?? taxonomyService.fallbackMateriais(elemento);
     return _rankOptions(
       options: options,
       usage: usage,
@@ -115,6 +170,7 @@ class InspectionMenuCatalogService {
     required InspectionMenuPackage? package,
     required Map<String, dynamic> usage,
     required String propertyType,
+    String? subtipo,
     required String macroLocal,
     required String ambiente,
     required String elemento,
@@ -122,12 +178,19 @@ class InspectionMenuCatalogService {
     final selectedElement = _findSelectedElement(
       package: package,
       propertyType: propertyType,
+      subtipo: subtipo,
       macroLocal: macroLocal,
       ambiente: ambiente,
       elemento: elemento,
     );
+    final flatOptions = _flatLevelOptions(
+      config: package?.configFor(propertyType),
+      levelId: 'estado',
+    );
     final options =
-        selectedElement?.states ?? taxonomyService.fallbackEstados();
+        selectedElement != null
+            ? selectedElement.states
+            : flatOptions ?? taxonomyService.fallbackEstados();
     return _rankOptions(
       options: options,
       usage: usage,
@@ -140,13 +203,19 @@ class InspectionMenuCatalogService {
   RankedMenuOption? _findSelectedElement({
     required InspectionMenuPackage? package,
     required String propertyType,
+    String? subtipo,
     required String macroLocal,
     required String ambiente,
     required String elemento,
   }) {
-    final config = package?.configFor(propertyType);
+    final scopedMacroLocals =
+        package?.cameraMacroLocalsFor(
+          propertyType: propertyType,
+          subtipo: subtipo,
+        ) ??
+        const <MacroLocalOption>[];
     final selectedMacro = _firstWhereOrNull<MacroLocalOption>(
-      config?.macroLocals ?? const <MacroLocalOption>[],
+      scopedMacroLocals,
       (item) => item.label == macroLocal,
     );
     final selectedAmbiente = _firstWhereOrNull<RankedMenuOption>(
@@ -189,4 +258,28 @@ class InspectionMenuCatalogService {
   }
 
   String _normalize(String value) => value.trim().toLowerCase();
+
+  List<RankedMenuOption>? _flatLevelOptions({
+    required PropertyTypeCameraConfig? config,
+    required String levelId,
+  }) {
+    if (config == null || config.macroLocals.isNotEmpty) {
+      return null;
+    }
+
+    for (final level in config.levels) {
+      final canonicalId =
+          semanticFieldService.mapCameraLevelId(level.id) ?? level.id.trim();
+      if (_normalize(canonicalId) != _normalize(levelId) ||
+          level.options.isEmpty) {
+        continue;
+      }
+
+      return level.options
+          .map((option) => RankedMenuOption(label: option, baseScore: 100))
+          .toList(growable: false);
+    }
+
+    return null;
+  }
 }

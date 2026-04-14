@@ -130,13 +130,14 @@ test("valuation detail route proxies the process id", async () => {
       }
     });
     const response = await valuationDetailGet(request, {
-      params: Promise.resolve({ processId: "77" })
+      params: { processId: "77" }
     });
     const payload = (await response.json()) as { id: number };
 
     assert.equal(response.status, 200);
     assert.equal(payload.id, 77);
     assert.match(capturedUrl, /valuation\/processes\/77/);
+    assert.match(capturedUrl, /tenantId=tenant-alpha/);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -145,8 +146,10 @@ test("valuation detail route proxies the process id", async () => {
 test("intake validation route proxies body to backend", async () => {
   const originalFetch = globalThis.fetch;
   let capturedBody = "";
+  let capturedUrl = "";
 
-  globalThis.fetch = async (_input, init) => {
+  globalThis.fetch = async (input, init) => {
+    capturedUrl = String(input);
     capturedBody = String(init?.body);
     return makeJsonResponse(200, { id: 77, status: "INTAKE_VALIDATED" });
   };
@@ -161,13 +164,14 @@ test("intake validation route proxies body to backend", async () => {
       }
     });
     const response = await intakeValidationPost(request, {
-      params: Promise.resolve({ processId: "77" })
+      params: { processId: "77" }
     });
     const payload = (await response.json()) as { status: string };
 
     assert.equal(response.status, 200);
     assert.equal(payload.status, "INTAKE_VALIDATED");
     assert.match(capturedBody, /"result":"VALIDATED"/);
+    assert.match(capturedUrl, /tenantId=tenant-alpha/);
   } finally {
     globalThis.fetch = originalFetch;
   }

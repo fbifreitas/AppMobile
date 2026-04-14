@@ -14,8 +14,9 @@ public class JobStateMachine {
             JobStatus.CREATED,               EnumSet.of(JobStatus.ELIGIBLE_FOR_DISPATCH),
             JobStatus.ELIGIBLE_FOR_DISPATCH, EnumSet.of(JobStatus.OFFERED, JobStatus.ACCEPTED, JobStatus.CLOSED),
             JobStatus.OFFERED,               EnumSet.of(JobStatus.ACCEPTED, JobStatus.ELIGIBLE_FOR_DISPATCH, JobStatus.CLOSED),
-            JobStatus.ACCEPTED,              EnumSet.of(JobStatus.IN_EXECUTION, JobStatus.CLOSED),
-            JobStatus.IN_EXECUTION,          EnumSet.of(JobStatus.FIELD_COMPLETED, JobStatus.CLOSED),
+            JobStatus.ACCEPTED,              EnumSet.of(JobStatus.AWAITING_SCHEDULING, JobStatus.IN_EXECUTION, JobStatus.CLOSED),
+            JobStatus.AWAITING_SCHEDULING,   EnumSet.of(JobStatus.OFFERED, JobStatus.ACCEPTED, JobStatus.CLOSED),
+            JobStatus.IN_EXECUTION,          EnumSet.of(JobStatus.AWAITING_SCHEDULING, JobStatus.FIELD_COMPLETED, JobStatus.CLOSED),
             JobStatus.FIELD_COMPLETED,       EnumSet.of(JobStatus.SUBMITTED, JobStatus.CLOSED),
             JobStatus.SUBMITTED,             EnumSet.of(JobStatus.CLOSED),
             JobStatus.CLOSED,                EnumSet.noneOf(JobStatus.class)

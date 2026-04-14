@@ -2,6 +2,16 @@
 
 enum TipoImovel { urbano, rural, comercial, industrial }
 
+typedef AssetType = TipoImovel;
+
+extension AssetTypeExtension on TipoImovel {
+  String get displayName => label;
+
+  static AssetType parse(String value) {
+    return TipoImovelExtension.fromString(value);
+  }
+}
+
 extension TipoImovelExtension on TipoImovel {
   String get label {
     switch (this) {
@@ -33,6 +43,7 @@ class CheckinStep2PhotoFieldConfig {
   final String titulo;
   final IconData icon;
   final bool obrigatorio;
+  // Legacy mapping names kept for compatibility with existing payloads.
   final String cameraMacroLocal;
   final String cameraAmbiente;
   final String? cameraElementoInicial;
@@ -46,6 +57,18 @@ class CheckinStep2PhotoFieldConfig {
     this.cameraElementoInicial,
     this.obrigatorio = false,
   });
+
+  String get evidenceContext => cameraMacroLocal;
+
+  String get evidenceTargetItem => cameraAmbiente;
+
+  String? get evidenceTargetQualifier => cameraElementoInicial;
+
+  String get title => titulo;
+  bool get required => obrigatorio;
+  String get captureContext => cameraMacroLocal;
+  String get targetItem => cameraAmbiente;
+  String? get targetQualifier => cameraElementoInicial;
 }
 
 class CheckinStep2OptionItemConfig {
@@ -58,6 +81,8 @@ class CheckinStep2OptionItemConfig {
 class CheckinStep2OptionGroupConfig {
   final String id;
   final String titulo;
+  final bool visivel;
+  final bool obrigatorio;
   final bool multiplaEscolha;
   final bool permiteObservacao;
   final List<CheckinStep2OptionItemConfig> opcoes;
@@ -66,19 +91,36 @@ class CheckinStep2OptionGroupConfig {
     required this.id,
     required this.titulo,
     required this.opcoes,
+    this.visivel = true,
+    this.obrigatorio = false,
     this.multiplaEscolha = true,
     this.permiteObservacao = false,
   });
+
+  String get title => titulo;
+  bool get visible => visivel;
+  bool get required => obrigatorio;
+  bool get multiSelect => multiplaEscolha;
+  bool get allowsNote => permiteObservacao;
+  List<CheckinStep2OptionItemConfig> get options => opcoes;
 }
 
 class CheckinStep2Config {
   final TipoImovel tipoImovel;
   final String tituloTela;
   final String subtituloTela;
+  final String secaoFotosLabel;
+  final bool secaoFotosVisivel;
+  final bool secaoFotosObrigatoria;
+  final String secaoOpcoesLabel;
+  final bool secaoOpcoesVisivel;
+  final bool secaoOpcoesObrigatoria;
+  final String botaoConfirmarLabel;
   final int minFotos;
   final int? maxFotos;
   final bool visivelNoFluxo;
-  final bool obrigatoriaNoFluxo;
+  final bool obrigatoriaParaEntrega;
+  final bool bloqueiaCaptura;
   final List<CheckinStep2PhotoFieldConfig> camposFotos;
   final List<CheckinStep2OptionGroupConfig> gruposOpcoes;
 
@@ -86,13 +128,39 @@ class CheckinStep2Config {
     required this.tipoImovel,
     required this.tituloTela,
     required this.subtituloTela,
+    this.secaoFotosLabel = 'Registro fotográfico',
+    this.secaoFotosVisivel = true,
+    this.secaoFotosObrigatoria = false,
+    this.secaoOpcoesLabel = 'Infraestrutura e serviços',
+    this.secaoOpcoesVisivel = true,
+    this.secaoOpcoesObrigatoria = false,
+    this.botaoConfirmarLabel = 'Confirmar e abrir a câmera',
     this.minFotos = 0,
     this.maxFotos,
     this.visivelNoFluxo = true,
-    this.obrigatoriaNoFluxo = false,
+    this.obrigatoriaParaEntrega = false,
+    this.bloqueiaCaptura = false,
     required this.camposFotos,
     required this.gruposOpcoes,
   });
+
+  bool get obrigatoriaNoFluxo => obrigatoriaParaEntrega;
+
+  AssetType get assetType => tipoImovel;
+  String get screenTitle => tituloTela;
+  String get screenSubtitle => subtituloTela;
+  String get photoSectionLabel => secaoFotosLabel;
+  bool get photoSectionVisible => secaoFotosVisivel;
+  bool get photoSectionRequired => secaoFotosObrigatoria;
+  String get optionSectionLabel => secaoOpcoesLabel;
+  bool get optionSectionVisible => secaoOpcoesVisivel;
+  bool get optionSectionRequired => secaoOpcoesObrigatoria;
+  String get confirmButtonLabel => botaoConfirmarLabel;
+  bool get flowVisible => visivelNoFluxo;
+  bool get requiredForSubmission => obrigatoriaParaEntrega;
+  bool get blocksCapture => bloqueiaCaptura;
+  List<CheckinStep2PhotoFieldConfig> get photoFields => camposFotos;
+  List<CheckinStep2OptionGroupConfig> get optionGroups => gruposOpcoes;
 }
 
 class CheckinStep2Configs {

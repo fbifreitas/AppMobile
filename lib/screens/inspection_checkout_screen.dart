@@ -5,20 +5,21 @@ import 'inspection_review_screen.dart';
 
 @Deprecated('Use InspectionReviewScreen as the unified final step.')
 class InspectionCheckoutScreen extends StatelessWidget {
-  final List<OverlayCameraCaptureResult> captures;
-  final String tipoImovel;
+  final List<OverlayCameraCaptureResult> captureResults;
+  final String assetType;
 
   const InspectionCheckoutScreen({
     super.key,
-    required this.captures,
-    required this.tipoImovel,
-  });
+    required List<OverlayCameraCaptureResult> captures,
+    required String tipoImovel,
+  }) : captureResults = captures,
+       assetType = tipoImovel;
 
   @override
   Widget build(BuildContext context) {
     return InspectionReviewScreen(
-      captures: captures,
-      tipoImovel: tipoImovel,
+      captures: captureResults,
+      tipoImovel: assetType,
     );
   }
 }

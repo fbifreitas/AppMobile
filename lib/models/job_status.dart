@@ -1,6 +1,7 @@
 enum JobStatus {
   novo,
   aceito,
+  aguardandoAgendamento,
   emPreparacao,
   emAndamento,
   finalizado,
@@ -16,6 +17,8 @@ extension JobStatusExtension on JobStatus {
         return 'Novo';
       case JobStatus.aceito:
         return 'Aceito';
+      case JobStatus.aguardandoAgendamento:
+        return 'Aguardando Agendamento';
       case JobStatus.emPreparacao:
         return 'Em Preparação';
       case JobStatus.emAndamento:
