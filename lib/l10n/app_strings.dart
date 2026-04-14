@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 class AppStrings {
   const AppStrings._(this.locale);
@@ -12,6 +13,9 @@ class AppStrings {
 
   static const localizationsDelegates = <LocalizationsDelegate<dynamic>>[
     AppStringsDelegate(),
+    GlobalMaterialLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
   ];
 
   static AppStrings of(BuildContext context) {
