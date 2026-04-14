@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:appmobile/config/checkin_step2_config.dart';
+import 'package:appmobile/l10n/app_strings.dart';
 import 'package:appmobile/models/checkin_step2_model.dart';
 import 'package:appmobile/models/job.dart';
 import 'package:appmobile/models/inspection_camera_flow_request.dart';
@@ -25,6 +26,14 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers/brand_test_helper.dart';
+
+MaterialApp _materialApp(Widget home) {
+  return MaterialApp(
+    localizationsDelegates: AppStrings.localizationsDelegates,
+    supportedLocales: AppStrings.supportedLocales,
+    home: home,
+  );
+}
 
 Future<void> _pumpUntil(
   WidgetTester tester,
@@ -892,7 +901,7 @@ void main() {
             ChangeNotifierProvider<AppState>.value(value: appState),
             ChangeNotifierProvider(create: (_) => InspectionState()),
           ],
-          child: const MaterialApp(home: HomeScreen()),
+          child: _materialApp(const HomeScreen()),
         )),
       );
 
@@ -985,9 +994,7 @@ void main() {
             ChangeNotifierProvider<AppState>.value(value: appState),
             ChangeNotifierProvider(create: (_) => InspectionState()),
           ],
-          child: MaterialApp(
-            home: HomeScreen(flowCoordinator: flowCoordinator),
-          ),
+          child: _materialApp(HomeScreen(flowCoordinator: flowCoordinator)),
         )),
       );
 
