@@ -74,7 +74,55 @@ class MobileCheckinConfigIntegrationTest {
                                     "cameraMaxPhotos": 7,
                                     "enableVoiceCommands": false,
                                     "requireBiometric": true,
-                                    "theme": "operational"
+                                    "theme": "operational",
+                                    "step1": {
+                                      "tipos": ["Urbano"],
+                                      "subtiposPorTipo": {
+                                        "Urbano": ["Apartamento", "Casa"]
+                                      },
+                                      "contextos": ["Rua", "Area externa"],
+                                      "levels": [
+                                        {
+                                          "id": "contexto",
+                                          "label": "Por onde deseja começar?",
+                                          "required": true,
+                                          "options": ["Rua", "Area externa"]
+                                        }
+                                      ]
+                                    },
+                                    "step2": {
+                                      "byTipo": {
+                                        "RESIDENTIAL": {
+                                          "visivel": true,
+                                          "obrigatoria": false,
+                                          "camposFotos": [
+                                            {
+                                              "id": "fachada",
+                                              "titulo": "Fachada",
+                                              "icon": "home_work_outlined",
+                                              "obrigatorio": true,
+                                              "cameraMacroLocal": "Rua",
+                                              "cameraAmbiente": "Fachada"
+                                            }
+                                          ],
+                                          "gruposOpcoes": []
+                                        }
+                                      }
+                                    },
+                                    "camera": {
+                                      "propertyTypes": {
+                                        "RESIDENTIAL": {
+                                          "levels": [
+                                            {
+                                              "id": "ambiente",
+                                              "label": "Ambiente",
+                                              "required": true,
+                                              "options": ["Fachada"]
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    }
                                   }
                                 }
                                 """))
@@ -126,11 +174,15 @@ class MobileCheckinConfigIntegrationTest {
         assertThat(body.get("version").asText()).startsWith("cfg-");
         assertThat(body.get("publishedAt").asText()).isNotBlank();
         assertThat(body.at("/step1/requestedTipoImovel").asText()).isEqualTo("RESIDENTIAL");
+        assertThat(body.at("/step1/tipos/0").asText()).isEqualTo("Urbano");
+        assertThat(body.at("/step1/subtiposPorTipo/Urbano/0").asText()).isEqualTo("Apartamento");
         assertThat(body.at("/step2/photoPolicy/min").asInt()).isEqualTo(2);
         assertThat(body.at("/step2/photoPolicy/max").asInt()).isEqualTo(7);
         assertThat(body.at("/step2/featureFlags/enableVoiceCommands").asBoolean()).isFalse();
         assertThat(body.at("/step2/featureFlags/requireBiometric").asBoolean()).isTrue();
         assertThat(body.at("/step2/presentation/theme").asText()).isEqualTo("operational");
+        assertThat(body.at("/step2/byTipo/RESIDENTIAL/camposFotos/0/id").asText()).isEqualTo("fachada");
+        assertThat(body.at("/camera/propertyTypes/RESIDENTIAL/levels/0/id").asText()).isEqualTo("ambiente");
         assertThat(body.at("/sections/0/key").asText()).isEqualTo("fachada");
         assertThat(body.at("/sections/0/photos/min").asInt()).isEqualTo(2);
         assertThat(body.at("/sections/0/desiredItems/0").asText()).isEqualTo("orientacao");

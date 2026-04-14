@@ -25,24 +25,11 @@ export default function BackofficeConfigPage() {
         </div>
       </section>
 
-      <section className="ops-grid config-grid">
+      <section className="ops-stack">
         <article className="ops-card">
           <div className="ops-card-header">
             <div>
-              <h2>Central de configuracao</h2>
-              <p>
-                Esta tela concentra o catalogo de pacotes, auditoria recente e simulacao de
-                resolucao efetiva para tenant, role, usuario e dispositivo.
-              </p>
-            </div>
-          </div>
-          <ConfigTargetingPanel />
-        </article>
-
-        <article className="ops-card">
-          <div className="ops-card-header">
-            <div>
-              <h2>Gate operacional</h2>
+              <h2>Gate operacional e dependencias cruzadas</h2>
               <p>Fechamento esperado para considerar FW-004/BOW-121 operacionais.</p>
             </div>
           </div>
@@ -63,6 +50,19 @@ export default function BackofficeConfigPage() {
               <li>`BOW-130`: consumo mobile da configuracao real como caminho principal.</li>
             </ul>
           </section>
+        </article>
+
+        <article className="ops-card">
+          <div className="ops-card-header">
+            <div>
+              <h2>Central de configuracoes</h2>
+              <p>
+                Esta tela concentra o catalogo de pacotes, auditoria recente e simulacao de
+                resolucao efetiva para tenant, role, usuario e dispositivo.
+              </p>
+            </div>
+          </div>
+          <ConfigTargetingPanel />
         </article>
       </section>
     </main>

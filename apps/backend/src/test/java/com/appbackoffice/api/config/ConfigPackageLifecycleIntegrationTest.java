@@ -212,4 +212,196 @@ class ConfigPackageLifecycleIntegrationTest {
         assertThat(approveResult.getResponse().getContentAsString())
                 .contains("Pacote nao encontrado");
     }
+
+    @Test
+    void resolveShouldMergeExpandedDynamicRulesWithUserPrecedence() throws Exception {
+        MvcResult tenantPublishResult = mockMvc.perform(post("/api/backoffice/config/packages")
+                        .header("X-Correlation-Id", CORRELATION_ID)
+                        .header("X-Actor-Role", "COORDINATOR")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "actorId": "operator-web",
+                                  "actorRole": "operator",
+                                  "scope": "tenant",
+                                  "tenantId": "tenant-dynamic-resolve",
+                                  "rules": {
+                                    "step1": {
+                                      "tipos": ["Urbano"],
+                                      "subtiposPorTipo": {
+                                        "Urbano": ["Casa"]
+                                      },
+                                      "contextos": ["Rua"],
+                                      "levels": [
+                                        {
+                                          "id": "contexto",
+                                          "label": "Por onde deseja começar?",
+                                          "required": true,
+                                          "options": ["Rua"]
+                                        }
+                                      ]
+                                    },
+                                    "step2": {
+                                      "byTipo": {
+                                        "RESIDENTIAL": {
+                                          "visivel": true,
+                                          "camposFotos": [
+                                            {
+                                              "id": "fachada",
+                                              "titulo": "Fachada",
+                                              "icon": "home_work_outlined",
+                                              "obrigatorio": true,
+                                              "cameraMacroLocal": "Rua",
+                                              "cameraAmbiente": "Fachada"
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "camera": {
+                                      "propertyTypes": {
+                                        "RESIDENTIAL": {
+                                          "levels": [
+                                            {
+                                              "id": "ambiente",
+                                              "label": "Ambiente",
+                                              "required": true,
+                                              "options": ["Fachada"]
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                                """))
+                .andReturn();
+
+        String tenantPackageId = objectMapper.readTree(tenantPublishResult.getResponse().getContentAsString())
+                .at("/result/created/id")
+                .asText();
+
+        mockMvc.perform(post("/api/backoffice/config/packages/approve")
+                        .header("X-Correlation-Id", CORRELATION_ID)
+                        .header("X-Actor-Role", "TENANT_ADMIN")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "packageId": "%s",
+                                  "tenantId": "tenant-dynamic-resolve",
+                                  "actorId": "approver-web",
+                                  "actorRole": "tenant_admin"
+                                }
+                                """.formatted(tenantPackageId)))
+                .andReturn();
+
+        MvcResult userPublishResult = mockMvc.perform(post("/api/backoffice/config/packages")
+                        .header("X-Correlation-Id", CORRELATION_ID)
+                        .header("X-Actor-Role", "COORDINATOR")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "actorId": "operator-web",
+                                  "actorRole": "operator",
+                                  "scope": "user",
+                                  "tenantId": "tenant-dynamic-resolve",
+                                  "selector": {
+                                    "userId": "user-42"
+                                  },
+                                  "rules": {
+                                    "step1": {
+                                      "contextos": ["Área interna"],
+                                      "levelsBySubtipo": {
+                                        "Urbano": {
+                                          "Casa": [
+                                            {
+                                              "id": "contexto",
+                                              "label": "Fluxo interno",
+                                              "required": true,
+                                              "options": ["Área interna"]
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "step2": {
+                                      "byTipo": {
+                                        "RESIDENTIAL": {
+                                          "obrigatoria": true,
+                                          "gruposOpcoes": [
+                                            {
+                                              "id": "infraestrutura",
+                                              "titulo": "Infraestrutura",
+                                              "opcoes": [
+                                                {
+                                                  "id": "calcada",
+                                                  "label": "Calçada"
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "camera": {
+                                      "propertyTypes": {
+                                        "RESIDENTIAL": {
+                                          "levelsBySubtipo": {
+                                            "casa": [
+                                              {
+                                                "id": "elemento",
+                                                "label": "Elemento",
+                                                "required": true,
+                                                "options": ["Porta"]
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                                """))
+                .andReturn();
+
+        String userPackageId = objectMapper.readTree(userPublishResult.getResponse().getContentAsString())
+                .at("/result/created/id")
+                .asText();
+
+        mockMvc.perform(post("/api/backoffice/config/packages/approve")
+                        .header("X-Correlation-Id", CORRELATION_ID)
+                        .header("X-Actor-Role", "TENANT_ADMIN")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "packageId": "%s",
+                                  "tenantId": "tenant-dynamic-resolve",
+                                  "actorId": "approver-web",
+                                  "actorRole": "tenant_admin"
+                                }
+                                """.formatted(userPackageId)))
+                .andReturn();
+
+        MvcResult resolveResult = mockMvc.perform(get("/api/backoffice/config/resolve")
+                        .header("X-Correlation-Id", CORRELATION_ID)
+                        .queryParam("tenantId", "tenant-dynamic-resolve")
+                        .queryParam("userId", "user-42")
+                        .queryParam("actorRole", "tenant_admin"))
+                .andReturn();
+
+        assertThat(resolveResult.getResponse().getStatus()).isEqualTo(200);
+        JsonNode body = objectMapper.readTree(resolveResult.getResponse().getContentAsString());
+
+        assertThat(body.at("/result/appliedPackages").isArray()).isTrue();
+        assertThat(body.at("/result/appliedPackages").size()).isEqualTo(2);
+        assertThat(body.at("/result/effective/step1/tipos/0").asText()).isEqualTo("Urbano");
+        assertThat(body.at("/result/effective/step1/contextos/0").asText()).isEqualTo("Área interna");
+        assertThat(body.at("/result/effective/step1/levelsBySubtipo/Urbano/Casa/0/id").asText()).isEqualTo("contexto");
+        assertThat(body.at("/result/effective/step2/byTipo/RESIDENTIAL/visivel").asBoolean()).isTrue();
+        assertThat(body.at("/result/effective/step2/byTipo/RESIDENTIAL/obrigatoria").asBoolean()).isTrue();
+        assertThat(body.at("/result/effective/step2/byTipo/RESIDENTIAL/camposFotos/0/id").asText()).isEqualTo("fachada");
+        assertThat(body.at("/result/effective/step2/byTipo/RESIDENTIAL/gruposOpcoes/0/id").asText()).isEqualTo("infraestrutura");
+        assertThat(body.at("/result/effective/camera/propertyTypes/RESIDENTIAL/levels/0/id").asText()).isEqualTo("ambiente");
+        assertThat(body.at("/result/effective/camera/propertyTypes/RESIDENTIAL/levelsBySubtipo/casa/0/id").asText()).isEqualTo("elemento");
+    }
 }

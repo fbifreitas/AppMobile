@@ -138,6 +138,44 @@ class MobileAuthJobsIntegrationTest {
     }
 
     @Test
+    void shouldMoveJobToAwaitingSchedulingWhenClientAbsentIsConfirmedOnMobile() throws Exception {
+        JsonNode loginJson = login("vistoriador.compass@compass.test", PASSWORD);
+        String accessToken = loginJson.get("accessToken").asText();
+        Long jobId = jobRepository.findAll().get(0).getId();
+
+        var absentResult = mockMvc.perform(post("/api/mobile/jobs/{jobId}/client-absent", jobId)
+                        .contentType("application/json")
+                        .header("X-Tenant-Id", TENANT_ID)
+                        .header("X-Correlation-Id", CORRELATION_ID)
+                        .header("X-Actor-Id", String.valueOf(operator.getId()))
+                        .header("X-Api-Version", "v1")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .content("""
+                                {
+                                  "reason": "Cliente ausente confirmado no check-in etapa 1"
+                                }
+                                """))
+                .andReturn();
+
+        assertThat(absentResult.getResponse().getStatus()).isEqualTo(200);
+        JsonNode absentBody = objectMapper.readTree(absentResult.getResponse().getContentAsString());
+        assertThat(absentBody.get("status").asText()).isEqualTo("AWAITING_SCHEDULING");
+        assertThat(absentBody.get("assignedTo").isNull()).isTrue();
+
+        var jobsResult = mockMvc.perform(get("/api/mobile/jobs")
+                        .header("X-Tenant-Id", TENANT_ID)
+                        .header("X-Correlation-Id", CORRELATION_ID)
+                        .header("X-Actor-Id", String.valueOf(operator.getId()))
+                        .header("X-Api-Version", "v1")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andReturn();
+
+        assertThat(jobsResult.getResponse().getStatus()).isEqualTo(200);
+        JsonNode jobsBody = objectMapper.readTree(jobsResult.getResponse().getContentAsString());
+        assertThat(jobsBody).isEmpty();
+    }
+
+    @Test
     void shouldRejectMobileJobsWhenBearerDoesNotMatchActorHeader() throws Exception {
         JsonNode loginJson = login("vistoriador.compass@compass.test", PASSWORD);
         String accessToken = loginJson.get("accessToken").asText();

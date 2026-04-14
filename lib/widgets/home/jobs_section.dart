@@ -93,38 +93,40 @@ class JobsSection extends StatelessWidget {
         const SizedBox(height: 8),
         if (appState.isLoadingJobs)
           _buildInlineLoadingCard(loadingLabel)
-        else if (appState.jobsLoadError != null)
-          _buildJobsLoadErrorCard(appState.jobsLoadError!, errorTitle)
-        else if (activeJobs.isEmpty)
-          _buildEmptyJobsCard(emptyLabel)
-        else
-          ...activeJobs.map(
-            (job) => _RichJobCard(
-              appState: appState,
-              job: job,
-              tokens: tokens,
-              currentLatitude: currentLatitude,
-              currentLongitude: currentLongitude,
-              useDistanceMetrics: useDistanceMetrics,
-              geofenceRequired: geofenceRequired,
-              startLabel: startLabel,
-              resumeLabel: resumeLabel,
-              startBlockedLabel: startBlockedLabel,
-              navigateLabel: navigateLabel,
-              withinRangeLabel: withinRangeLabel,
-              outOfRangeLabel: outOfRangeLabel,
-              onNavigateToJob: () {
-                return onNavigateToJob(
-                  latitude: job.latitude,
-                  longitude: job.longitude,
-                  address: job.endereco,
-                );
-              },
-              onStartInspection: () async {
-                await onStartInspection(job);
-              },
+        else ...[
+          if (appState.jobsLoadError != null)
+            _buildJobsLoadErrorCard(appState.jobsLoadError!, errorTitle),
+          if (activeJobs.isEmpty)
+            _buildEmptyJobsCard(emptyLabel)
+          else
+            ...activeJobs.map(
+              (job) => _RichJobCard(
+                appState: appState,
+                job: job,
+                tokens: tokens,
+                currentLatitude: currentLatitude,
+                currentLongitude: currentLongitude,
+                useDistanceMetrics: useDistanceMetrics,
+                geofenceRequired: geofenceRequired,
+                startLabel: startLabel,
+                resumeLabel: resumeLabel,
+                startBlockedLabel: startBlockedLabel,
+                navigateLabel: navigateLabel,
+                withinRangeLabel: withinRangeLabel,
+                outOfRangeLabel: outOfRangeLabel,
+                onNavigateToJob: () {
+                  return onNavigateToJob(
+                    latitude: job.latitude,
+                    longitude: job.longitude,
+                    address: job.endereco,
+                  );
+                },
+                onStartInspection: () async {
+                  await onStartInspection(job);
+                },
+              ),
             ),
-          ),
+        ],
       ],
     );
   }

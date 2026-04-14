@@ -100,6 +100,32 @@ class OverlayCameraCaptureResult {
     );
   }
 
+  OverlayCameraCaptureResult clearClassification({
+    String? ambiente,
+    String? ambienteBase,
+    int? ambienteInstanceIndex,
+  }) {
+    return OverlayCameraCaptureResult(
+      filePath: filePath,
+      macroLocal: null,
+      ambiente: ambiente ?? this.ambiente,
+      ambienteBase: ambienteBase,
+      ambienteInstanceIndex: ambienteInstanceIndex,
+      elemento: null,
+      material: null,
+      estado: null,
+      capturedAt: capturedAt,
+      latitude: latitude,
+      longitude: longitude,
+      accuracy: accuracy,
+      classificationConfirmed: false,
+      applicableClassificationLevels: applicableClassificationLevels,
+      learningPersisted: learningPersisted,
+      usedSuggestion: false,
+      suggestionSummary: null,
+    );
+  }
+
   bool get hasAnyClassification =>
       (elemento != null && elemento!.trim().isNotEmpty) ||
       (material != null && material!.trim().isNotEmpty) ||
@@ -117,10 +143,26 @@ class OverlayCameraCaptureResult {
     return direct == null || direct.isEmpty ? ambiente : direct;
   }
 
+  String? get captureContext => macroLocal;
+  String get targetItemLabel => ambiente;
+  String? get targetItemBaseLabel => ambienteBase;
+  int? get targetItemIndex => ambienteInstanceIndex;
+  String? get targetQualifierLabel => elemento;
+  String? get materialAttribute => material;
+  String? get conditionState => estado;
+  String get baseTargetItemLabel => ambienteBaseLabel;
+
   Map<String, dynamic> toMap() {
     return {
       'filePath': filePath,
       ...selection.toMap(includeCanonical: true, includeLegacy: true),
+      'captureContext': macroLocal,
+      'targetItemLabel': ambiente,
+      'targetItemBaseLabel': ambienteBase,
+      'targetItemIndex': ambienteInstanceIndex,
+      'targetQualifierLabel': elemento,
+      'materialAttribute': material,
+      'conditionState': estado,
       'capturedAt': capturedAt.toIso8601String(),
       'latitude': latitude,
       'longitude': longitude,
@@ -160,13 +202,21 @@ class OverlayCameraCaptureResult {
 
     return OverlayCameraCaptureResult(
       filePath: map['filePath']?.toString() ?? '',
-      ambiente: FlowSelection.fromMap(map).targetItem ?? map['ambiente']?.toString() ?? '',
+      ambiente:
+          FlowSelection.fromMap(map).targetItem ??
+          map['targetItemLabel']?.toString() ??
+          map['ambiente']?.toString() ??
+          '',
       macroLocal: FlowSelection.fromMap(map).subjectContext,
       ambienteBase: FlowSelection.fromMap(map).targetItemBase,
       ambienteInstanceIndex: FlowSelection.fromMap(map).targetItemInstanceIndex,
       elemento: FlowSelection.fromMap(map).targetQualifier,
-      material: FlowSelection.fromMap(map).attributeText('inspection.material'),
-      estado: FlowSelection.fromMap(map).targetCondition,
+      material:
+          FlowSelection.fromMap(map).attributeText('inspection.material') ??
+          map['materialAttribute']?.toString(),
+      estado:
+          FlowSelection.fromMap(map).targetCondition ??
+          map['conditionState']?.toString(),
       capturedAt: capturedAt,
       latitude: parseDouble(map['latitude']),
       longitude: parseDouble(map['longitude']),

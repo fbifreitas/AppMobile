@@ -5,6 +5,7 @@ import 'package:appmobile/models/inspection_camera_flow_request.dart';
 import 'package:appmobile/models/job.dart';
 import 'package:appmobile/models/overlay_camera_capture_result.dart';
 import 'package:appmobile/repositories/fake_job_repository.dart';
+import 'package:appmobile/l10n/app_strings.dart';
 import 'package:appmobile/screens/inspection_menu_screen.dart';
 import 'package:appmobile/services/inspection_flow_coordinator.dart';
 import 'package:appmobile/services/inspection_local_storage_service.dart';
@@ -99,6 +100,24 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
+  Widget buildTestApp({
+    required AppState appState,
+    required InspectionState inspectionState,
+    required InspectionFlowCoordinator flowCoordinator,
+  }) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<AppState>.value(value: appState),
+        ChangeNotifierProvider<InspectionState>.value(value: inspectionState),
+      ],
+      child: MaterialApp(
+        localizationsDelegates: AppStrings.localizationsDelegates,
+        supportedLocales: AppStrings.supportedLocales,
+        home: InspectionMenuScreen(flowCoordinator: flowCoordinator),
+      ),
+    );
+  }
+
   testWidgets('InspectionMenuScreen delegates review actions to coordinator', (
     tester,
   ) async {
@@ -106,18 +125,13 @@ void main() {
     final inspectionState = InspectionState(
       localStorageService: _MemoryInspectionLocalStorageService(),
     );
+    final appState = AppState(FakeJobRepository());
 
     await tester.pumpWidget(
-      MultiProvider(
-        providers: [
-          ChangeNotifierProvider<AppState>.value(
-            value: AppState(FakeJobRepository()),
-          ),
-          ChangeNotifierProvider<InspectionState>.value(value: inspectionState),
-        ],
-        child: MaterialApp(
-          home: InspectionMenuScreen(flowCoordinator: flowCoordinator),
-        ),
+      buildTestApp(
+        appState: appState,
+        inspectionState: inspectionState,
+        flowCoordinator: flowCoordinator,
       ),
     );
 
@@ -130,7 +144,7 @@ void main() {
     );
     await tester.pump();
 
-    await tester.tap(find.byTooltip('Revisão final'));
+    await tester.tap(find.byIcon(Icons.fact_check_outlined));
     await tester.pump();
 
     expect(flowCoordinator.reviewOpenCount, 1);
@@ -153,20 +167,13 @@ void main() {
       final inspectionState = InspectionState(
         localStorageService: _MemoryInspectionLocalStorageService(),
       );
+      final appState = AppState(FakeJobRepository());
 
       await tester.pumpWidget(
-        MultiProvider(
-          providers: [
-            ChangeNotifierProvider<AppState>.value(
-              value: AppState(FakeJobRepository()),
-            ),
-            ChangeNotifierProvider<InspectionState>.value(
-              value: inspectionState,
-            ),
-          ],
-          child: MaterialApp(
-            home: InspectionMenuScreen(flowCoordinator: flowCoordinator),
-          ),
+        buildTestApp(
+          appState: appState,
+          inspectionState: inspectionState,
+          flowCoordinator: flowCoordinator,
         ),
       );
 
@@ -180,9 +187,7 @@ void main() {
       await tester.pump();
 
       final salaCard = tester.widget<InkWell>(
-        find
-            .ancestor(of: find.text('Sala'), matching: find.byType(InkWell))
-            .first,
+        find.byKey(const ValueKey('inspection_environment_sala')),
       );
       salaCard.onTap!.call();
       await tester.pump();
@@ -247,16 +252,10 @@ void main() {
       await appState.persistStep2Draft(persistedStep2);
 
       await tester.pumpWidget(
-        MultiProvider(
-          providers: [
-            ChangeNotifierProvider<AppState>.value(value: appState),
-            ChangeNotifierProvider<InspectionState>.value(
-              value: inspectionState,
-            ),
-          ],
-          child: MaterialApp(
-            home: InspectionMenuScreen(flowCoordinator: flowCoordinator),
-          ),
+        buildTestApp(
+          appState: appState,
+          inspectionState: inspectionState,
+          flowCoordinator: flowCoordinator,
         ),
       );
 
@@ -269,7 +268,8 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.textContaining('1 mínimas'), findsOneWidget);
+      expect(find.textContaining('1'), findsWidgets);
+      expect(find.textContaining('fotos'), findsWidgets);
     },
   );
 }

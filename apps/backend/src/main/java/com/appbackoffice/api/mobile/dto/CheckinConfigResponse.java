@@ -9,6 +9,7 @@ public record CheckinConfigResponse(
         List<String> appliedPackageIds,
         Map<String, Object> step1,
         Map<String, Object> step2,
+        Map<String, Object> camera,
         List<CheckinSectionDto> sections,
         List<String> compatibilityNotes
 ) {

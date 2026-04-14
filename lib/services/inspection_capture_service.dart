@@ -77,6 +77,26 @@ class InspectionCaptureService {
     );
   }
 
+  Future<PhotoEvidence> captureCameraPhotoEvidence({
+    required InspectionSession session,
+    required String targetItemId,
+    required String targetItemLabel,
+    String? targetQualifierId,
+    String? targetQualifierLabel,
+    String? materialAttribute,
+    String? conditionState,
+  }) {
+    return captureCameraEvidence(
+      session: session,
+      ambienteId: targetItemId,
+      ambienteNome: targetItemLabel,
+      elementoId: targetQualifierId,
+      elementoNome: targetQualifierLabel,
+      material: materialAttribute,
+      estadoConservacao: conditionState,
+    );
+  }
+
   Future<PhotoEvidence> captureCameraEvidence({
     required InspectionSession session,
     required String ambienteId,
@@ -113,6 +133,26 @@ class InspectionCaptureService {
       geoPoint: currentGeo,
       isValidForAudit: true,
       importedFromGallery: false,
+    );
+  }
+
+  Future<PhotoEvidence> pickGalleryPhotoEvidence({
+    required InspectionSession session,
+    required String targetItemId,
+    required String targetItemLabel,
+    String? targetQualifierId,
+    String? targetQualifierLabel,
+    String? materialAttribute,
+    String? conditionState,
+  }) {
+    return pickGalleryEvidence(
+      session: session,
+      ambienteId: targetItemId,
+      ambienteNome: targetItemLabel,
+      elementoId: targetQualifierId,
+      elementoNome: targetQualifierLabel,
+      material: materialAttribute,
+      estadoConservacao: conditionState,
     );
   }
 

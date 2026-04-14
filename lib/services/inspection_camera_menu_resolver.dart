@@ -16,6 +16,7 @@ class InspectionCameraMenuResolver {
 
   Future<InspectionCameraMenuViewState> resolve({
     required String propertyType,
+    String? subtipo,
     required bool showMacroLocalSelector,
     required bool initialLoad,
     required FlowSelection initialSuggestedSelection,
@@ -23,6 +24,7 @@ class InspectionCameraMenuResolver {
   }) async {
     final macroLocals = await _menuService.getMacroLocals(
       propertyType: propertyType,
+      subtipo: subtipo,
     );
 
     String? subjectContext = currentSelection.subjectContext;
@@ -54,6 +56,7 @@ class InspectionCameraMenuResolver {
             ? const <String>[]
             : await _menuService.getAmbientes(
               propertyType: propertyType,
+              subtipo: subtipo,
               macroLocal: subjectContext,
             );
 
@@ -79,8 +82,15 @@ class InspectionCameraMenuResolver {
       targetItem = null;
     }
 
+    final hasExplicitInitialContextOnly =
+        initialSuggestedSelection.subjectContext != null &&
+        initialSuggestedSelection.subjectContext!.trim().isNotEmpty &&
+        (initialSuggestedSelection.targetItem == null ||
+            initialSuggestedSelection.targetItem!.trim().isEmpty);
+
     if ((targetItem == null || targetItem.trim().isEmpty) &&
-        subjectContext != null) {
+        subjectContext != null &&
+        !hasExplicitInitialContextOnly) {
       final suggestedContext = await _menuService.getSuggestedContext(
         propertyType: propertyType,
         macroLocal: subjectContext,
@@ -106,6 +116,7 @@ class InspectionCameraMenuResolver {
             ? const <String>[]
             : await _menuService.getElementos(
               propertyType: propertyType,
+              subtipo: subtipo,
               macroLocal: subjectContext,
               ambiente: targetItem,
             );
@@ -147,6 +158,7 @@ class InspectionCameraMenuResolver {
             ? const <String>[]
             : await _menuService.getMateriais(
               propertyType: propertyType,
+              subtipo: subtipo,
               macroLocal: subjectContext,
               ambiente: targetItem,
               elemento: targetQualifier,
@@ -157,6 +169,7 @@ class InspectionCameraMenuResolver {
             ? const <String>[]
             : await _menuService.getEstados(
               propertyType: propertyType,
+              subtipo: subtipo,
               macroLocal: subjectContext,
               ambiente: targetItem,
               elemento: targetQualifier,
@@ -228,6 +241,24 @@ class InspectionCameraMenuResolver {
               ),
         ),
       ),
+    );
+  }
+
+  Future<InspectionCameraMenuViewState> resolveCanonical({
+    required String assetType,
+    String? assetSubtype,
+    required bool showCaptureContextSelector,
+    required bool initialLoad,
+    required FlowSelection initialSuggestedSelection,
+    required FlowSelection currentSelection,
+  }) {
+    return resolve(
+      propertyType: assetType,
+      subtipo: assetSubtype,
+      showMacroLocalSelector: showCaptureContextSelector,
+      initialLoad: initialLoad,
+      initialSuggestedSelection: initialSuggestedSelection,
+      currentSelection: currentSelection,
     );
   }
 }

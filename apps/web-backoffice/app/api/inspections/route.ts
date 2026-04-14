@@ -11,7 +11,10 @@ export function GET(request: NextRequest) {
   const status = request.nextUrl.searchParams.get("status") ?? undefined;
   const from = request.nextUrl.searchParams.get("from") ?? undefined;
   const to = request.nextUrl.searchParams.get("to") ?? undefined;
-  const vistoriadorId = request.nextUrl.searchParams.get("vistoriadorId") ?? undefined;
+  const fieldAgentId =
+    request.nextUrl.searchParams.get("fieldAgentId") ??
+    request.nextUrl.searchParams.get("vistoriadorId") ??
+    undefined;
   const page = request.nextUrl.searchParams.get("page") ?? "0";
   const size = request.nextUrl.searchParams.get("size") ?? "20";
 
@@ -20,7 +23,7 @@ export function GET(request: NextRequest) {
   if (status) query.set("status", status);
   if (from) query.set("from", from);
   if (to) query.set("to", to);
-  if (vistoriadorId) query.set("vistoriadorId", vistoriadorId);
+  if (fieldAgentId) query.set("fieldAgentId", fieldAgentId);
 
   return callBackendInspectionsApi("", {
     headers: buildAuthenticatedHeaders(session, "inspections-list")

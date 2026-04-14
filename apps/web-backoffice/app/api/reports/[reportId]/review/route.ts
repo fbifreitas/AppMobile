@@ -4,7 +4,7 @@ import { callBackendOperationsApi } from "../../../../lib/operations_backend_cli
 
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ reportId: string }> }
+  context: { params: { reportId: string } }
 ) {
   const session = readAuthSession(request);
   if (!session) {
@@ -13,7 +13,7 @@ export async function POST(
 
   try {
     const body = await request.json();
-    const { reportId } = await context.params;
+    const { reportId } = context.params;
     const { status, payload } = await callBackendOperationsApi(
       `backoffice/reports/${reportId}/review`,
       {
@@ -21,7 +21,7 @@ export async function POST(
         headers: buildAuthenticatedHeaders(session, "report-review"),
         body: JSON.stringify(body)
       },
-      undefined,
+      new URLSearchParams({ tenantId: session.tenantId }),
       { tenantId: session.tenantId, actorId: String(session.userId), correlationPrefix: "report-review" }
     );
 

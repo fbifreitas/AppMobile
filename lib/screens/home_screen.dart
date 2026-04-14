@@ -5,13 +5,12 @@ import 'package:provider/provider.dart';
 import '../branding/brand_provider.dart';
 import '../models/home_location_snapshot.dart';
 import '../models/job.dart';
-import '../models/overlay_camera_capture_result.dart';
-import '../config/checkin_step2_config.dart';
 import '../services/app_navigation_coordinator.dart';
 import '../services/home_bootstrap_service.dart';
 import '../services/home_location_service.dart';
-import '../services/checkin_dynamic_config_service.dart';
 import '../services/inspection_flow_coordinator.dart';
+import '../services/inspection_menu_service.dart';
+import '../services/inspection_start_inspection_use_case.dart';
 import '../services/inspection_sync_queue_service.dart';
 import '../services/location_service.dart';
 import '../services/map_service.dart';
@@ -43,9 +42,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       const HomeBootstrapService();
   final InspectionSyncQueueService _syncQueueService =
       const InspectionSyncQueueService();
+  final InspectionMenuService _inspectionMenuService =
+      InspectionMenuService.instance;
+  final InspectionStartInspectionUseCase _startInspectionUseCase =
+      InspectionStartInspectionUseCase.instance;
   final ImagePicker _imagePicker = ImagePicker();
 
   bool _bootstrapped = false;
+  bool _authDrivenJobsBootstrapQueued = false;
   bool _refreshingLocation = false;
   int _currentTabIndex = 0;
   HomeLocationSnapshot _locationSnapshot = HomeLocationSnapshot.initial();
@@ -70,6 +74,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Future<void> _bootstrap() async {
     final appState = context.read<AppState>();
+    await _inspectionMenuService.reload();
     final flushResult = await _syncQueueService.flush();
     _applySyncedReferences(appState, flushResult);
     if (!mounted) return;
@@ -90,6 +95,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Future<void> _manualRefresh() async {
     final appState = context.read<AppState>();
+    await _inspectionMenuService.reload();
     final flushResult = await _syncQueueService.flush();
     _applySyncedReferences(appState, flushResult);
     if (!mounted) return;
@@ -169,6 +175,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed && _currentTabIndex == 0) {
+      _inspectionMenuService.reload();
       _refreshLocation();
     }
   }
@@ -183,85 +190,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     required AppState appState,
     required Job job,
   }) async {
-    final isRecovery = appState.hasRecoverableInspectionForJob(job.id);
-    final recoveryRoute = appState.inspectionRecoveryDraft?.routeName;
-
-    appState.selecionarJob(job);
-    if (!isRecovery) {
-      await appState.beginInspectionRecovery(job);
-    }
-
-    if (!mounted) return;
-
-    if (isRecovery) {
-      if (recoveryRoute == '/inspection_review') {
-        final reviewPayload = appState.inspectionRecoveryPayload['review'];
-        final tipoImovel =
-            (reviewPayload is Map<String, dynamic>)
-                ? reviewPayload['tipoImovel'] as String?
-                : null;
-        final captures = <OverlayCameraCaptureResult>[];
-
-        if (reviewPayload is Map<String, dynamic>) {
-          final rawCaptures = reviewPayload['captures'];
-          if (rawCaptures is List) {
-            for (final rawCapture in rawCaptures) {
-              if (rawCapture is Map<String, dynamic>) {
-                captures.add(OverlayCameraCaptureResult.fromMap(rawCapture));
-              }
-            }
-          }
-        }
-
-        if (tipoImovel != null) {
-          final initialData =
-              appState.step2Payload.isNotEmpty
-                  ? CheckinDynamicConfigService.instance.restoreStep2Model(
-                    tipo: TipoImovelExtension.fromString(tipoImovel),
-                    step2Payload: appState.step2Payload,
-                  )
-                  : null;
-
-          widget.flowCoordinator.restoreReviewRecoveryFlow(
-            context,
-            tipoImovel: tipoImovel,
-            initialData: initialData,
-            onContinue: (model) async {
-              await appState.persistStep2Draft(model.toMap());
-            },
-            captures: captures,
-          );
-          return;
-        }
-      }
-
-      if (recoveryRoute == '/checkin_step2') {
-        final tipoImovel = appState.step1Payload['tipoImovel'] as String?;
-        final initialData =
-            appState.step2Payload.isNotEmpty
-                ? CheckinDynamicConfigService.instance.restoreStep2Model(
-                  tipo: TipoImovelExtension.fromString(
-                    tipoImovel ?? 'Urbano',
-                  ),
-                  step2Payload: appState.step2Payload,
-                )
-                : null;
-
-        if (tipoImovel != null) {
-          widget.flowCoordinator.restoreCheckinStep2RecoveryFlow(
-            context,
-            tipoImovel: tipoImovel,
-            initialData: initialData,
-            onContinue: (model) async {
-              await appState.persistStep2Draft(model.toMap());
-            },
-          );
-          return;
-        }
-      }
-    }
-
-    widget.flowCoordinator.openCheckin(context);
+    await _startInspectionUseCase.execute(
+      context,
+      appState: appState,
+      job: job,
+      flowCoordinator: widget.flowCoordinator,
+    );
   }
 
   void _openNotifications() {
@@ -297,6 +231,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
     final authState = context.watch<AuthState?>();
+    if ((authState?.status == AppAuthStatus.active) &&
+        (authState?.permissionsOnboardingCompleted ?? false) &&
+        appState.jobs.isEmpty &&
+        !appState.isLoadingJobs &&
+        appState.jobsLoadError == null &&
+        !_authDrivenJobsBootstrapQueued) {
+      _authDrivenJobsBootstrapQueued = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        await context.read<AppState>().carregarJobs();
+        _authDrivenJobsBootstrapQueued = false;
+      });
+    }
     final config = BrandProvider.configOf(context);
     final flags = config.featureFlags;
     final firstName = _resolveFirstName(

@@ -11,8 +11,8 @@ class InspectionTechnicalSummaryService {
   InspectionTechnicalSummary build({
     required String tipoImovel,
     required List<TechnicalEvidenceInput> evidences,
-    required List<TechnicalCheckRequirementInput> requirements,
-    required List<TechnicalCoverageRequirementInput> coverageRequirements,
+    required List<InspectionNormativeRequirementInput> requirements,
+    required List<InspectionCaptureCoverageRequirementInput> coverageRequirements,
   }) {
     final rulesService = const InspectionTechnicalRulesService();
     final auditService = const InspectionClassificationAuditService();

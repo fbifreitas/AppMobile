@@ -4,23 +4,20 @@ import { callBackendOperationsApi } from "../../../lib/operations_backend_client
 
 export function GET(
   request: NextRequest,
-  context: { params: Promise<{ reportId: string }> }
+  context: { params: { reportId: string } }
 ) {
   const session = readAuthSession(request);
   if (!session) {
     return unauthorizedJson();
   }
 
-  return context.params
-    .then(({ reportId }) =>
-      callBackendOperationsApi(
-        `backoffice/reports/${reportId}`,
-        {
-          headers: buildAuthenticatedHeaders(session, "report-detail")
-        },
-        undefined,
-        { tenantId: session.tenantId, actorId: String(session.userId), correlationPrefix: "report-detail" }
-      )
+  return callBackendOperationsApi(
+      `backoffice/reports/${context.params.reportId}`,
+      {
+        headers: buildAuthenticatedHeaders(session, "report-detail")
+      },
+      new URLSearchParams({ tenantId: session.tenantId }),
+      { tenantId: session.tenantId, actorId: String(session.userId), correlationPrefix: "report-detail" }
     )
     .then(({ status, payload }) => NextResponse.json(payload, { status }))
     .catch(() =>

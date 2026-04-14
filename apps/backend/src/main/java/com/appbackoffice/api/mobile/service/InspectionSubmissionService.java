@@ -117,7 +117,7 @@ public class InspectionSubmissionService {
         InspectionSubmissionEntity entity = new InspectionSubmissionEntity();
         entity.setJobId(jobId);
         entity.setTenantId(tenantId);
-        entity.setVistoriadorId(actorUserId);
+        entity.setFieldAgentId(actorUserId);
         entity.setIdempotencyKey(normalizedIdempotencyKey);
         entity.setProtocolId(buildProtocolId());
         entity.setStatus("RECEIVED");
@@ -128,7 +128,7 @@ public class InspectionSubmissionService {
         inspection.setSubmissionId(entity.getId());
         inspection.setJobId(jobId);
         inspection.setTenantId(tenantId);
-        inspection.setVistoriadorId(actorUserId);
+        inspection.setFieldAgentId(actorUserId);
         inspection.setIdempotencyKey(normalizedIdempotencyKey);
         inspection.setProtocolId(entity.getProtocolId());
         inspection.setStatus("SUBMITTED");

@@ -293,11 +293,13 @@ class PropertyTypeCameraConfig {
   final List<MacroLocalOption> macroLocals;
   final List<ConfigLevelDefinition> levels;
   final Map<String, List<ConfigLevelDefinition>> levelsBySubtipo;
+  final Map<String, List<MacroLocalOption>> macroLocalsBySubtipo;
 
   const PropertyTypeCameraConfig({
     required this.macroLocals,
     required this.levels,
     required this.levelsBySubtipo,
+    required this.macroLocalsBySubtipo,
   });
 
   factory PropertyTypeCameraConfig.fromJson(Map<String, dynamic> json) {
@@ -312,7 +314,17 @@ class PropertyTypeCameraConfig {
               .toList(),
       levels: _parseLevelList(json['levels']),
       levelsBySubtipo: _parseSubtypeLevels(json['levelsBySubtipo']),
+      macroLocalsBySubtipo: _parseSubtypeMacroLocals(json['subtypes']),
     );
+  }
+
+  List<MacroLocalOption> macroLocalsForSubtype(String subtipo) {
+    final key = subtipo.trim().toLowerCase();
+    final bySubtype = macroLocalsBySubtipo[key];
+    if (bySubtype != null && bySubtype.isNotEmpty) {
+      return bySubtype;
+    }
+    return macroLocals;
   }
 
   List<ConfigLevelDefinition> levelsForSubtype(String subtipo) {
@@ -460,6 +472,20 @@ class InspectionMenuPackage {
     return propertyTypeConfigs[key];
   }
 
+  List<MacroLocalOption> cameraMacroLocalsFor({
+    required String propertyType,
+    String? subtipo,
+  }) {
+    final config = configFor(propertyType);
+    if (config == null) {
+      return const <MacroLocalOption>[];
+    }
+    if (subtipo == null || subtipo.trim().isEmpty) {
+      return config.macroLocals;
+    }
+    return config.macroLocalsForSubtype(subtipo);
+  }
+
   List<String> orderedPhotoFieldsFor(String propertyType) {
     final key = propertyType.trim().toLowerCase();
     return photoFieldOrder[key] ?? const [];
@@ -499,6 +525,34 @@ Map<String, List<ConfigLevelDefinition>> _parseSubtypeLevels(Object? value) {
     }
   });
 
+  return result;
+}
+
+Map<String, List<MacroLocalOption>> _parseSubtypeMacroLocals(Object? value) {
+  if (value is! List) {
+    return const {};
+  }
+
+  final result = <String, List<MacroLocalOption>>{};
+  for (final item in value) {
+    if (item is! Map) {
+      continue;
+    }
+    final map = Map<String, dynamic>.from(item);
+    final subtype = '${map['subtype'] ?? ''}'.trim().toLowerCase();
+    if (subtype.isEmpty) {
+      continue;
+    }
+    final macroLocals =
+        (map['macroLocals'] as List<dynamic>? ?? const [])
+            .map(
+              (entry) => MacroLocalOption.fromJson(
+                Map<String, dynamic>.from(entry as Map),
+              ),
+            )
+            .toList();
+    result[subtype] = macroLocals;
+  }
   return result;
 }
 

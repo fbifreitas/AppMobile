@@ -293,7 +293,10 @@ export default function BackofficeJobsPage() {
             <option value="ELIGIBLE_FOR_DISPATCH">ELIGIBLE_FOR_DISPATCH</option>
             <option value="OFFERED">OFFERED</option>
             <option value="ACCEPTED">ACCEPTED</option>
-            <option value="IN_PROGRESS">IN_PROGRESS</option>
+            <option value="AWAITING_SCHEDULING">AWAITING_SCHEDULING</option>
+            <option value="IN_EXECUTION">IN_EXECUTION</option>
+            <option value="FIELD_COMPLETED">FIELD_COMPLETED</option>
+            <option value="SUBMITTED">SUBMITTED</option>
             <option value="CLOSED">CLOSED</option>
           </select>
         </label>

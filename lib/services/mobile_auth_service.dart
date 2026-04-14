@@ -350,6 +350,11 @@ class MobileBackendAuthService implements MobileAuthGateway {
   Future<T> _withTimeout<T>(Future<T> future) async {
     try {
       return await future.timeout(_requestTimeout);
+    } on HandshakeException {
+      throw const MobileAuthException(
+        'Nao foi possivel estabelecer conexao segura com o servidor. Tente novamente em alguns instantes.',
+        502,
+      );
     } on TimeoutException {
       throw const MobileAuthException(
         'Tempo de resposta excedido ao falar com o servidor.',

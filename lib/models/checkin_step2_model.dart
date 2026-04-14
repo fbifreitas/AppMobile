@@ -42,13 +42,22 @@ class CheckinStep2PhotoAnswer {
 
   bool get hasImage => imagePath != null && imagePath!.isNotEmpty;
 
+  String get title => titulo;
+  String? get mediaPath => imagePath;
+  GeoPointData? get geoLocation => geoPoint;
+  bool get imported => importedFromGallery;
+
   Map<String, dynamic> toMap() {
     return {
       'fieldId': fieldId,
+      'title': titulo,
       'titulo': titulo,
+      'mediaPath': imagePath,
       'imagePath': imagePath,
       'capturedAt': capturedAt?.toIso8601String(),
+      'geoLocation': geoPoint?.toMap(),
       'geoPoint': geoPoint?.toMap(),
+      'imported': importedFromGallery,
       'importedFromGallery': importedFromGallery,
     };
   }
@@ -56,15 +65,20 @@ class CheckinStep2PhotoAnswer {
   factory CheckinStep2PhotoAnswer.fromMap(Map<String, dynamic> map) {
     return CheckinStep2PhotoAnswer(
       fieldId: map['fieldId'] as String,
-      titulo: map['titulo'] as String,
-      imagePath: map['imagePath'] as String?,
+      titulo: (map['titulo'] ?? map['title']) as String,
+      imagePath: (map['imagePath'] ?? map['mediaPath']) as String?,
       capturedAt: map['capturedAt'] != null
           ? DateTime.tryParse(map['capturedAt'] as String)
           : null,
-      geoPoint: map['geoPoint'] != null
-          ? GeoPointData.fromMap(Map<String, dynamic>.from(map['geoPoint'] as Map))
+      geoPoint: (map['geoPoint'] ?? map['geoLocation']) != null
+          ? GeoPointData.fromMap(
+              Map<String, dynamic>.from(
+                (map['geoPoint'] ?? map['geoLocation']) as Map,
+              ),
+            )
           : null,
-      importedFromGallery: map['importedFromGallery'] as bool? ?? false,
+      importedFromGallery:
+          (map['importedFromGallery'] ?? map['imported']) as bool? ?? false,
     );
   }
 }
@@ -96,6 +110,7 @@ class CheckinStep2GroupAnswer {
     return {
       'groupId': groupId,
       'selectedOptionIds': selectedOptionIds,
+      'note': observacao,
       'observacao': observacao,
     };
   }
@@ -104,9 +119,11 @@ class CheckinStep2GroupAnswer {
     return CheckinStep2GroupAnswer(
       groupId: map['groupId'] as String,
       selectedOptionIds: List<String>.from(map['selectedOptionIds'] ?? []),
-      observacao: map['observacao'] as String? ?? '',
+      observacao: (map['observacao'] ?? map['note']) as String? ?? '',
     );
   }
+
+  String get note => observacao;
 }
 
 class CheckinStep2Model {
@@ -252,24 +269,35 @@ class CheckinStep2Model {
 
   Map<String, dynamic> toMap() {
     return {
+      'assetType': tipoImovel.label,
       'tipoImovel': tipoImovel.label,
+      'photoAnswers': fotos.map((key, value) => MapEntry(key, value.toMap())),
       'fotos': fotos.map((key, value) => MapEntry(key, value.toMap())),
+      'groupAnswers':
+          respostas.map((key, value) => MapEntry(key, value.toMap())),
       'respostas': respostas.map((key, value) => MapEntry(key, value.toMap())),
     };
   }
 
   factory CheckinStep2Model.fromMap(Map<String, dynamic> map) {
-    final tipo = TipoImovelExtension.fromString(map['tipoImovel'] as String? ?? 'Urbano');
+    final tipo = TipoImovelExtension.fromString(
+      (map['tipoImovel'] ?? map['assetType']) as String? ?? 'Urbano',
+    );
 
     return CheckinStep2Model(
       tipoImovel: tipo,
-      fotos: (map['fotos'] as Map<String, dynamic>? ?? {}).map(
+      fotos: ((map['fotos'] ?? map['photoAnswers']) as Map<String, dynamic>? ??
+              {})
+          .map(
         (key, value) => MapEntry(
           key,
           CheckinStep2PhotoAnswer.fromMap(Map<String, dynamic>.from(value)),
         ),
       ),
-      respostas: (map['respostas'] as Map<String, dynamic>? ?? {}).map(
+      respostas:
+          ((map['respostas'] ?? map['groupAnswers']) as Map<String, dynamic>? ??
+                  {})
+              .map(
         (key, value) => MapEntry(
           key,
           CheckinStep2GroupAnswer.fromMap(Map<String, dynamic>.from(value)),
@@ -277,4 +305,8 @@ class CheckinStep2Model {
       ),
     );
   }
+
+  AssetType get assetType => tipoImovel;
+  Map<String, CheckinStep2PhotoAnswer> get photoAnswers => fotos;
+  Map<String, CheckinStep2GroupAnswer> get groupAnswers => respostas;
 }

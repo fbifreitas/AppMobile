@@ -11,12 +11,17 @@ void main() {
 
     final result = await loader.load(
       assetPath: 'ignored.json',
+      loadRemoteDocument:
+          () async => <String, dynamic>{'camera': <String, dynamic>{'v': 3}},
       loadDeveloperDocument:
           () async => <String, dynamic>{'camera': <String, dynamic>{'v': 2}},
     );
 
     expect(result.assetDocument, <String, dynamic>{
       'camera': <String, dynamic>{'v': 1},
+    });
+    expect(result.remoteDocument, <String, dynamic>{
+      'camera': <String, dynamic>{'v': 3},
     });
     expect(result.developerDocument, <String, dynamic>{
       'camera': <String, dynamic>{'v': 2},
@@ -30,10 +35,12 @@ void main() {
 
     final result = await loader.load(
       assetPath: 'ignored.json',
+      loadRemoteDocument: () async => throw Exception('boom'),
       loadDeveloperDocument: () async => throw Exception('boom'),
     );
 
     expect(result.assetDocument, isNull);
+    expect(result.remoteDocument, isNull);
     expect(result.developerDocument, isNull);
   });
 }

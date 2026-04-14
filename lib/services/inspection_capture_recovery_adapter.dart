@@ -172,21 +172,27 @@ class InspectionCaptureRecoveryAdapter {
 
   InspectionCameraFlowRequest buildCameraFlowRequest({
     required String title,
-    required String tipoImovel,
-    required String subtipoImovel,
+    String? tipoImovel,
+    String? assetType,
+    String? subtipoImovel,
+    String? assetSubtype,
     bool singleCaptureMode = false,
     bool cameFromCheckinStep1 = false,
     FlowSelection? initialSelection,
+    bool preferInitialSelection = false,
     required List<OverlayCameraCaptureResult> currentCaptures,
     required Map<String, dynamic> inspectionRecoveryPayload,
   }) {
+    final resolvedAssetType = (assetType ?? tipoImovel ?? '').trim();
+    final resolvedAssetSubtype = (assetSubtype ?? subtipoImovel ?? '').trim();
     return InspectionCameraFlowRequest.bootstrap(
       title: title,
-      tipoImovel: tipoImovel,
-      subtipoImovel: subtipoImovel,
+      tipoImovel: resolvedAssetType,
+      subtipoImovel: resolvedAssetSubtype,
       singleCaptureMode: singleCaptureMode,
       cameFromCheckinStep1: cameFromCheckinStep1,
       initialSelection: initialSelection,
+      preferInitialSelection: preferInitialSelection,
       resumeSelection: resolveResumeSelection(
         currentCaptures: currentCaptures,
         inspectionRecoveryPayload: inspectionRecoveryPayload,
@@ -195,15 +201,18 @@ class InspectionCaptureRecoveryAdapter {
   }
 
   Map<String, dynamic> buildReviewPayload({
-    required String tipoImovel,
+    String? tipoImovel,
+    String? assetType,
     required List<OverlayCameraCaptureResult> currentCaptures,
     required List<Map<String, dynamic>> reviewedCaptures,
     required Map<String, dynamic> inspectionRecoveryPayload,
     Map<String, dynamic>? existingReviewPayload,
   }) {
+    final resolvedAssetType = (assetType ?? tipoImovel ?? '').trim();
     final reviewPayload = <String, dynamic>{
       ...?existingReviewPayload,
-      'tipoImovel': tipoImovel,
+      'assetType': resolvedAssetType,
+      'tipoImovel': resolvedAssetType,
       'captures': currentCaptures.map((capture) => capture.toMap()).toList(),
       'capturesRevisadas': reviewedCaptures,
     };

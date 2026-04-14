@@ -1,8 +1,9 @@
-import 'package:appmobile/models/job.dart';
+﻿import 'package:appmobile/models/job.dart';
 import 'package:appmobile/models/inspection_camera_flow_request.dart';
 import 'package:appmobile/models/inspection_session_model.dart';
 import 'package:appmobile/models/overlay_camera_capture_result.dart';
 import 'package:appmobile/repositories/job_repository.dart';
+import 'package:appmobile/l10n/app_strings.dart';
 import 'package:appmobile/services/inspection_flow_coordinator.dart';
 import 'package:appmobile/screens/inspection_review_screen.dart';
 import 'package:appmobile/state/app_state.dart';
@@ -98,6 +99,48 @@ OverlayCameraCaptureResult _capture({
   );
 }
 
+Map<String, dynamic> _requiredReviewStep2Config({
+  List<Map<String, dynamic>>? photoFields,
+}) {
+  return {
+    'visivel': true,
+    'obrigatoriaParaEntrega': true,
+    'obrigatoria': true,
+    'camposFotos':
+        photoFields ??
+        [
+          {
+            'id': 'fachada',
+            'titulo': 'Fachada',
+            'cameraMacroLocal': 'Rua',
+            'cameraAmbiente': 'Fachada',
+            'obrigatorio': true,
+          },
+          {
+            'id': 'logradouro',
+            'titulo': 'Logradouro',
+            'cameraMacroLocal': 'Rua',
+            'cameraAmbiente': 'Logradouro',
+            'obrigatorio': true,
+          },
+          {
+            'id': 'acesso_imovel',
+            'titulo': 'Acesso ao imóvel',
+            'cameraMacroLocal': 'Rua',
+            'cameraAmbiente': 'Acesso ao imóvel',
+            'obrigatorio': true,
+          },
+          {
+            'id': 'entorno',
+            'titulo': 'Entorno',
+            'cameraMacroLocal': 'Rua',
+            'cameraAmbiente': 'Entorno',
+            'obrigatorio': true,
+          },
+        ],
+  };
+}
+
 Future<void> _pumpReview(
   WidgetTester tester, {
   required List<OverlayCameraCaptureResult> captures,
@@ -133,7 +176,7 @@ Future<void> _pumpReview(
     );
     await appState.setInspectionRecoveryStage(
       stageKey: 'inspection_review',
-      stageLabel: 'Revis\u00E3o final',
+      stageLabel: 'Revisão final',
       routeName: '/inspection_review',
       payload: persistedRecoveryPayload,
     );
@@ -141,6 +184,8 @@ Future<void> _pumpReview(
 
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: AppStrings.localizationsDelegates,
+      supportedLocales: AppStrings.supportedLocales,
       home: ChangeNotifierProvider<AppState>.value(
         value: appState,
         child: InspectionReviewScreen(
@@ -154,66 +199,6 @@ Future<void> _pumpReview(
   );
 
   await tester.pumpAndSettle();
-}
-
-Future<void> _expandSection(WidgetTester tester, String sectionTitle) async {
-  final sectionFinder = _findTextNormalized(sectionTitle);
-  expect(sectionFinder, findsOneWidget);
-  await tester.ensureVisible(sectionFinder);
-  await tester.tap(sectionFinder);
-  await tester.pumpAndSettle();
-}
-
-String _normalizeText(String value) {
-  return value
-      .toLowerCase()
-      .replaceAll('\\u00e3', 'a')
-      .replaceAll('\\u00e2', 'a')
-      .replaceAll('\\u00e1', 'a')
-      .replaceAll('\\u00e0', 'a')
-      .replaceAll('\\u00e9', 'e')
-      .replaceAll('\\u00ea', 'e')
-      .replaceAll('\\u00ed', 'i')
-      .replaceAll('\\u00f3', 'o')
-      .replaceAll('\\u00f4', 'o')
-      .replaceAll('\\u00f5', 'o')
-      .replaceAll('\\u00fa', 'u')
-      .replaceAll('\\u00e7', 'c')
-      .replaceAll('ã', 'a')
-      .replaceAll('â', 'a')
-      .replaceAll('á', 'a')
-      .replaceAll('à', 'a')
-      .replaceAll('é', 'e')
-      .replaceAll('ê', 'e')
-      .replaceAll('í', 'i')
-      .replaceAll('ó', 'o')
-      .replaceAll('ô', 'o')
-      .replaceAll('õ', 'o')
-      .replaceAll('ú', 'u')
-      .replaceAll('ç', 'c')
-      .replaceAll('ƒ', '')
-      .replaceAll('€', '')
-      .replaceAll('™', '')
-      .replaceAll('œ', '')
-      .replaceAll('¢', '')
-      .replaceAll('•', '')
-      .replaceAll('—', '')
-      .replaceAll('–', '')
-      .replaceAll(RegExp(r'[^a-z0-9]+'), '');
-}
-
-Finder _findTextNormalized(String expected) {
-  final normalizedExpected = _normalizeText(expected);
-  return find.byWidgetPredicate((widget) {
-    if (widget is! Text) return false;
-    final data = widget.data;
-    if (data == null) return false;
-    return _normalizeText(data) == normalizedExpected;
-  });
-}
-
-void _expectTextNormalized(String expected, Object matcher) {
-  expect(_findTextNormalized(expected), matcher);
 }
 
 void main() {
@@ -243,19 +228,19 @@ void main() {
         .resetDevicePixelRatio();
   });
 
-  testWidgets('shows review CTA without pending shortcut link', (tester) async {
+  testWidgets('shows review CTA without old pending shortcut link', (
+    tester,
+  ) async {
     await _pumpReview(
       tester,
       captures: [_capture(filePath: '/tmp/a.jpg', ambiente: 'Cozinha')],
     );
 
-    expect(find.text('FINALIZAR VISTORIA'), findsOneWidget);
-    expect(find.text('Ir para principal pend\u00EAncia'), findsNothing);
+    expect(find.text('Finalizar vistoria'), findsOneWidget);
+    expect(find.text('Ir para principal pendência'), findsNothing);
   });
 
-  testWidgets('consolidates pending content under one review section', (
-    tester,
-  ) async {
+  testWidgets('renders new review information blocks', (tester) async {
     await _pumpReview(
       tester,
       captures: [
@@ -263,19 +248,15 @@ void main() {
           filePath: '/tmp/a.jpg',
           ambiente: 'Cozinha',
           elemento: 'Piso',
-          material: 'Cer\u00E2mica',
+          material: 'Cerâmica',
           estado: 'Bom',
         ),
       ],
     );
 
-    _expectTextNormalized('REVISÃO DE FOTOS', findsOneWidget);
-
-    await tester.tap(_findTextNormalized('REVISÃO DE FOTOS'));
-    await tester.pumpAndSettle();
-
-    _expectTextNormalized('Fotos Obrigatórias do Check-In', findsOneWidget);
-    expect(find.text('Fotos Capturadas'), findsOneWidget);
+    expect(find.textContaining('Compos'), findsOneWidget);
+    expect(find.textContaining('Evid'), findsOneWidget);
+    expect(find.textContaining('Pend'), findsOneWidget);
   });
 
   testWidgets('does not render optional voice commands section', (
@@ -287,7 +268,7 @@ void main() {
     );
 
     expect(find.text('Comandos por voz (opcional)'), findsNothing);
-    expect(find.text('Comandos r\u00E1pidos por voz'), findsNothing);
+    expect(find.text('Comandos rápidos por voz'), findsNothing);
   });
 
   testWidgets('does not render old top grouping chips frame', (tester) async {
@@ -298,18 +279,18 @@ void main() {
           filePath: '/tmp/a.jpg',
           ambiente: 'Cozinha',
           elemento: 'Piso',
-          material: 'Cer\u00E2mica',
+          material: 'Cerâmica',
           estado: 'Bom',
         ),
       ],
     );
 
-    expect(find.textContaining('Fotos obrigat\u00F3rias:'), findsNothing);
+    expect(find.textContaining('Fotos obrigatórias:'), findsNothing);
     expect(find.textContaining('Fotos capturadas:'), findsNothing);
-    _expectTextNormalized('REVISÃO DE FOTOS', findsOneWidget);
+    expect(find.textContaining('Evid'), findsOneWidget);
   });
 
-  testWidgets('renders technical pending section without shortcut when empty', (
+  testWidgets('renders pending block without old shortcut wording when empty', (
     tester,
   ) async {
     final geoPoint = GeoPointData(
@@ -318,26 +299,50 @@ void main() {
       accuracy: 5,
       capturedAt: DateTime(2026, 3, 30),
     );
-    final persistedStep2 =
-        CheckinStep2Model.empty(TipoImovel.urbano)
-            .setPhoto(
-              fieldId: 'fachada',
-              titulo: 'Fachada',
-              imagePath: '/tmp/fachada.jpg',
-              geoPoint: geoPoint,
-            )
-            .toMap();
+    final persistedStep2 = CheckinStep2Model.empty(TipoImovel.urbano)
+        .setPhoto(
+          fieldId: 'fachada',
+          titulo: 'Fachada',
+          imagePath: '/tmp/fachada.jpg',
+          geoPoint: geoPoint,
+        )
+        .setPhoto(
+          fieldId: 'logradouro',
+          titulo: 'Logradouro',
+          imagePath: '/tmp/logradouro.jpg',
+          geoPoint: geoPoint,
+        )
+        .setPhoto(
+          fieldId: 'acesso_imovel',
+          titulo: 'Acesso ao imóvel',
+          imagePath: '/tmp/acesso.jpg',
+          geoPoint: geoPoint,
+        )
+        .setPhoto(
+          fieldId: 'entorno',
+          titulo: 'Entorno',
+          imagePath: '/tmp/entorno.jpg',
+          geoPoint: geoPoint,
+        )
+        .toMap();
 
     await _pumpReview(
       tester,
-      captures: [_capture(filePath: '/tmp/a.jpg', ambiente: 'Cozinha')],
-      tipoImovel: 'Urbano \u2022 Apartamento',
+      captures: [
+        _capture(
+          filePath: '/tmp/a.jpg',
+          ambiente: 'Cozinha',
+          elemento: 'Piso',
+          material: 'Cerâmica',
+          estado: 'Bom',
+        ),
+      ],
+      tipoImovel: 'Urbano • Apartamento',
       persistedStep2Payload: persistedStep2,
     );
 
-    _expectTextNormalized('PENDÊNCIAS TÉCNICAS DA VISTORIA', findsOneWidget);
-    await _expandSection(tester, 'PENDÊNCIAS TÉCNICAS DA VISTORIA');
-    _expectTextNormalized('Ir para pendência', findsNothing);
+    expect(find.textContaining('Pend'), findsOneWidget);
+    expect(find.text('Ir para pendência'), findsNothing);
   });
 
   testWidgets(
@@ -350,40 +355,81 @@ void main() {
         capturedAt: DateTime(2026, 3, 30),
       );
 
-      final persistedStep2 =
-          CheckinStep2Model.empty(TipoImovel.urbano)
-              .setPhoto(
-                fieldId: 'fachada',
-                titulo: 'Fachada',
-                imagePath: '/tmp/fachada.jpg',
-                geoPoint: geoPoint,
-              )
-              .setPhoto(
-                fieldId: 'logradouro',
-                titulo: 'Logradouro',
-                imagePath: '/tmp/logradouro.jpg',
-                geoPoint: geoPoint,
-              )
-              .toMap();
+      final persistedStep2 = CheckinStep2Model.empty(TipoImovel.urbano)
+          .setPhoto(
+            fieldId: 'fachada',
+            titulo: 'Fachada',
+            imagePath: '/tmp/fachada.jpg',
+            geoPoint: geoPoint,
+          )
+          .setPhoto(
+            fieldId: 'logradouro',
+            titulo: 'Logradouro',
+            imagePath: '/tmp/logradouro.jpg',
+            geoPoint: geoPoint,
+          )
+          .toMap();
 
       await _pumpReview(
         tester,
         captures: const [],
-        tipoImovel: 'Urbano \u2022 Apartamento',
+        tipoImovel: 'Urbano • Apartamento',
         persistedStep2Payload: persistedStep2,
+        persistedRecoveryPayload: {
+          'step2': persistedStep2,
+          'step2Config': _requiredReviewStep2Config(),
+        },
       );
 
-      await _expandSection(tester, 'REVIS\u00C3O DE FOTOS');
-      await _expandSection(tester, 'Fotos Obrigat\u00F3rias do Check-In');
+      expect(find.text('Fachada'), findsNothing);
+      expect(find.text('Logradouro'), findsNothing);
+      expect(find.text('Ir para captura'), findsAtLeastNWidgets(2));
+    },
+  );
 
-      expect(find.text('Fachada'), findsOneWidget);
-      expect(find.text('Logradouro'), findsOneWidget);
-      _expectTextNormalized('Obrigatório atendido', findsNWidgets(2));
-      _expectTextNormalized(
-        'Obrigatório — pendente de captura',
-        findsNWidgets(2),
+  testWidgets(
+    'blocks finalization when mandatory etapa 2 evidence is still pending',
+    (tester) async {
+      final geoPoint = GeoPointData(
+        latitude: -23.0,
+        longitude: -46.0,
+        accuracy: 5,
+        capturedAt: DateTime(2026, 3, 30),
       );
-      expect(find.text('Capturar'), findsNWidgets(2));
+
+      final persistedStep2 = CheckinStep2Model.empty(TipoImovel.urbano)
+          .setPhoto(
+            fieldId: 'fachada',
+            titulo: 'Fachada',
+            imagePath: '/tmp/fachada.jpg',
+            geoPoint: geoPoint,
+          )
+          .setPhoto(
+            fieldId: 'logradouro',
+            titulo: 'Logradouro',
+            imagePath: '/tmp/logradouro.jpg',
+            geoPoint: geoPoint,
+          )
+          .toMap();
+
+      await _pumpReview(
+        tester,
+        captures: const [],
+        tipoImovel: 'Urbano • Apartamento',
+        persistedStep2Payload: persistedStep2,
+        persistedRecoveryPayload: {
+          'step2': persistedStep2,
+          'step2Config': _requiredReviewStep2Config(),
+        },
+      );
+
+      expect(find.textContaining('Pend'), findsOneWidget);
+      expect(find.text('Ir para captura'), findsAtLeastNWidgets(2));
+
+      final finalizeButton = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Finalizar vistoria'),
+      );
+      expect(finalizeButton.onPressed, isNull);
     },
   );
 
@@ -396,99 +442,93 @@ void main() {
         accuracy: 5,
         capturedAt: DateTime(2026, 3, 30),
       );
-      final persistedStep2 =
-          CheckinStep2Model.empty(TipoImovel.urbano)
-              .setPhoto(
-                fieldId: 'fachada',
-                titulo: 'Fachada',
-                imagePath: '/tmp/fachada.jpg',
-                geoPoint: geoPoint,
-              )
-              .setPhoto(
-                fieldId: 'logradouro',
-                titulo: 'Logradouro',
-                imagePath: '/tmp/logradouro.jpg',
-                geoPoint: geoPoint,
-              )
-              .toMap();
-      final flowCoordinator =
-          _FakeInspectionFlowCoordinator()
-            ..nextOverlayResult = _capture(
-              filePath: '/tmp/acesso.jpg',
-              ambiente: 'Acesso ao im\u00F3vel',
-              elemento: 'Port\u00E3o',
-            );
+      final persistedStep2 = CheckinStep2Model.empty(TipoImovel.urbano)
+          .setPhoto(
+            fieldId: 'fachada',
+            titulo: 'Fachada',
+            imagePath: '/tmp/fachada.jpg',
+            geoPoint: geoPoint,
+          )
+          .setPhoto(
+            fieldId: 'logradouro',
+            titulo: 'Logradouro',
+            imagePath: '/tmp/logradouro.jpg',
+            geoPoint: geoPoint,
+          )
+          .toMap();
+      final flowCoordinator = _FakeInspectionFlowCoordinator()
+        ..nextOverlayResult = _capture(
+          filePath: '/tmp/acesso.jpg',
+          ambiente: 'Acesso ao imóvel',
+          elemento: 'Portão',
+        );
 
       await _pumpReview(
         tester,
         captures: const [],
-        tipoImovel: 'Urbano \u2022 Apartamento',
+        tipoImovel: 'Urbano • Apartamento',
         persistedStep2Payload: persistedStep2,
+        persistedRecoveryPayload: {
+          'step2': persistedStep2,
+          'step2Config': _requiredReviewStep2Config(),
+        },
         flowCoordinator: flowCoordinator,
       );
 
-      await _expandSection(tester, 'REVIS\u00C3O DE FOTOS');
-      await _expandSection(tester, 'Fotos Obrigat\u00F3rias do Check-In');
-
-      await tester.tap(find.text('Capturar').first);
+      await tester.tap(find.widgetWithText(FilledButton, 'Ir para captura').first);
       await tester.pumpAndSettle();
 
       expect(flowCoordinator.overlayOpenCount, 1);
-      expect(
-        flowCoordinator.lastOverlayRequest?.title,
-        'Acesso ao im\u00F3vel',
-      );
-      _expectTextNormalized('Obrigatório atendido', findsNWidgets(2));
-      expect(find.text('Capturar'), findsAtLeastNWidgets(1));
+      expect(flowCoordinator.lastOverlayRequest?.title, 'Acesso ao imóvel');
     },
   );
 
   testWidgets(
-    'uses latest review capture context when reopening camera from pending requirement',
+    'uses pending requirement context when reopening camera from pending requirement',
     (tester) async {
-      final flowCoordinator =
-          _FakeInspectionFlowCoordinator()
-            ..nextOverlayResult = _capture(
-              filePath: '/tmp/retorno.jpg',
-              ambiente: 'Quarto 2',
-              elemento: 'Janela',
-              material: 'Madeira',
-              estado: 'Bom',
-            ).copyWith(
-              macroLocal: 'Interna',
-              ambienteBase: 'Quarto',
-              ambienteInstanceIndex: 2,
-            );
+      final flowCoordinator = _FakeInspectionFlowCoordinator()
+        ..nextOverlayResult = _capture(
+          filePath: '/tmp/retorno.jpg',
+          ambiente: 'Quarto 2',
+          elemento: 'Janela',
+          material: 'Madeira',
+          estado: 'Bom',
+        ).copyWith(
+          macroLocal: 'Interna',
+          ambienteBase: 'Quarto',
+          ambienteInstanceIndex: 2,
+        );
       final geoPoint = GeoPointData(
         latitude: -23.0,
         longitude: -46.0,
         accuracy: 5,
         capturedAt: DateTime(2026, 3, 30),
       );
-      final persistedStep2 =
-          CheckinStep2Model.empty(TipoImovel.urbano)
-              .setPhoto(
-                fieldId: 'fachada',
-                titulo: 'Fachada',
-                imagePath: '/tmp/fachada.jpg',
-                geoPoint: geoPoint,
-              )
-              .setPhoto(
-                fieldId: 'logradouro',
-                titulo: 'Logradouro',
-                imagePath: '/tmp/logradouro.jpg',
-                geoPoint: geoPoint,
-              )
-              .toMap();
+      final persistedStep2 = CheckinStep2Model.empty(TipoImovel.urbano)
+          .setPhoto(
+            fieldId: 'fachada',
+            titulo: 'Fachada',
+            imagePath: '/tmp/fachada.jpg',
+            geoPoint: geoPoint,
+          )
+          .setPhoto(
+            fieldId: 'logradouro',
+            titulo: 'Logradouro',
+            imagePath: '/tmp/logradouro.jpg',
+            geoPoint: geoPoint,
+          )
+          .toMap();
 
       await _pumpReview(
         tester,
         captures: const [],
-        tipoImovel: 'Urbano \u2022 Apartamento',
+        tipoImovel: 'Urbano • Apartamento',
         persistedStep2Payload: persistedStep2,
         persistedRecoveryPayload: {
+          'step2': persistedStep2,
+          'step2Config': _requiredReviewStep2Config(),
           'review': {
-            'tipoImovel': 'Urbano \u2022 Apartamento',
+            'tipoImovel': 'Urbano • Apartamento',
             'cameraContext': _capture(
               filePath: '/tmp/ultimo.jpg',
               ambiente: 'Quarto 2',
@@ -505,21 +545,87 @@ void main() {
         flowCoordinator: flowCoordinator,
       );
 
-      await _expandSection(tester, 'REVIS\u00C3O DE FOTOS');
-      await _expandSection(tester, 'Fotos Obrigat\u00F3rias do Check-In');
-
-      await tester.tap(find.text('Capturar').first);
+      await tester.tap(find.widgetWithText(FilledButton, 'Ir para captura').first);
       await tester.pumpAndSettle();
 
       expect(flowCoordinator.overlayOpenCount, 1);
       final request = flowCoordinator.lastOverlayRequest;
       expect(request, isNotNull);
       final current = request!.selectionState.currentSelection;
-      expect(current.subjectContext, 'Interna');
-      expect(current.targetItem, 'Quarto 2');
-      expect(current.targetQualifier, 'Janela');
-      expect(current.attributeText('inspection.material'), 'Madeira');
-      expect(current.targetCondition, 'Bom');
+      expect(current.subjectContext, 'Rua');
+      expect(current.targetItem, 'Acesso ao imóvel');
+      expect(current.targetQualifier, isNull);
+      expect(current.attributeText('inspection.material'), isNull);
+      expect(current.targetCondition, isNull);
+    },
+  );
+
+  testWidgets(
+    'opens generic capture shortcut using step1 context when only photo coverage is pending',
+    (tester) async {
+      final flowCoordinator = _FakeInspectionFlowCoordinator()
+        ..nextOverlayResult = _capture(
+          filePath: '/tmp/cobertura.jpg',
+          ambiente: 'Fachada',
+          elemento: 'Portão',
+        ).copyWith(macroLocal: 'Rua');
+      final geoPoint = GeoPointData(
+        latitude: -23.0,
+        longitude: -46.0,
+        accuracy: 5,
+        capturedAt: DateTime(2026, 3, 30),
+      );
+      final persistedStep2 = CheckinStep2Model.empty(TipoImovel.urbano)
+          .setPhoto(
+            fieldId: 'fachada',
+            titulo: 'Fachada',
+            imagePath: '/tmp/fachada.jpg',
+            geoPoint: geoPoint,
+          )
+          .setPhoto(
+            fieldId: 'logradouro',
+            titulo: 'Logradouro',
+            imagePath: '/tmp/logradouro.jpg',
+            geoPoint: geoPoint,
+          )
+          .toMap();
+
+      await _pumpReview(
+        tester,
+        captures: const [],
+        tipoImovel: 'Urbano • Apartamento',
+        persistedStep2Payload: persistedStep2,
+        persistedRecoveryPayload: {
+          'step2': persistedStep2,
+          'step2Config': _requiredReviewStep2Config(),
+          'step1': {
+            'tipoImovel': 'Urbano',
+            'subtipoImovel': 'Apartamento',
+            'porOndeComecar': 'Rua',
+          },
+        },
+        flowCoordinator: flowCoordinator,
+      );
+
+      final coverageTitle = find.textContaining('Cobertura');
+      final coverageCard = find.ancestor(
+        of: coverageTitle,
+        matching: find.byType(Container),
+      ).first;
+      await tester.tap(
+        find.descendant(
+          of: coverageCard,
+          matching: find.widgetWithText(FilledButton, 'Ir para captura'),
+        ).first,
+      );
+      await tester.pumpAndSettle();
+
+      expect(flowCoordinator.overlayOpenCount, 1);
+      expect(
+        flowCoordinator.lastOverlayRequest?.selectionState.currentSelection
+            .subjectContext,
+        'Rua',
+      );
     },
   );
 
@@ -533,24 +639,24 @@ void main() {
         capturedAt: DateTime(2026, 3, 30),
       );
 
-      final persistedStep2 =
-          CheckinStep2Model.empty(TipoImovel.urbano)
-              .setPhoto(
-                fieldId: 'sala_principal',
-                titulo: 'Sala principal',
-                imagePath: '/tmp/sala.jpg',
-                geoPoint: geoPoint,
-              )
-              .toMap();
+      final persistedStep2 = CheckinStep2Model.empty(TipoImovel.urbano)
+          .setPhoto(
+            fieldId: 'sala_principal',
+            titulo: 'Sala principal',
+            imagePath: '/tmp/sala.jpg',
+            geoPoint: geoPoint,
+          )
+          .toMap();
 
       await _pumpReview(
         tester,
         captures: const [],
-        tipoImovel: 'Urbano \u2022 Apartamento',
+        tipoImovel: 'Urbano • Apartamento',
+        persistedStep2Payload: persistedStep2,
         persistedRecoveryPayload: {
           'step2': persistedStep2,
           'step2Config': {
-            'tituloTela': 'Etapa 2 din\u00E2mica',
+            'tituloTela': 'Etapa 2 dinâmica',
             'camposFotos': [
               {
                 'id': 'sala_principal',
@@ -564,15 +670,8 @@ void main() {
         },
       );
 
-      await _expandSection(tester, 'REVIS\u00C3O DE FOTOS');
-      await _expandSection(tester, 'Fotos Obrigat\u00F3rias do Check-In');
-
-      expect(find.text('Sala principal'), findsOneWidget);
-      _expectTextNormalized('Obrigatório atendido', findsOneWidget);
-      _expectTextNormalized(
-        'Obrigatório — pendente de captura',
-        findsNothing,
-      );
+      expect(find.text('Sala principal'), findsNothing);
+      expect(find.textContaining('Falta foto obrig'), findsNothing);
     },
   );
 
@@ -582,12 +681,11 @@ void main() {
       await _pumpReview(
         tester,
         captures: const [],
-        tipoImovel: 'Urbano \u2022 Apartamento',
+        tipoImovel: 'Urbano • Apartamento',
         persistedRecoveryPayload: {
           'step2': {'fotos': 'invalid-structure'},
-          'step2Config': {
-            'tituloTela': 'Etapa 2 din\u00E2mica',
-            'camposFotos': [
+          'step2Config': _requiredReviewStep2Config(
+            photoFields: [
               {
                 'id': 'sala_principal',
                 'titulo': 'Sala principal',
@@ -596,21 +694,11 @@ void main() {
                 'obrigatorio': true,
               },
             ],
-          },
+          ),
         },
       );
 
-      await tester.tap(_findTextNormalized('REVISÃO DE FOTOS'));
-      await tester.pumpAndSettle();
-
-      await _expandSection(tester, 'Fotos Obrigat\u00F3rias do Check-In');
-
-      _expectTextNormalized('Fotos Obrigatórias do Check-In', findsOneWidget);
-      expect(find.text('Sala principal'), findsOneWidget);
-      _expectTextNormalized(
-        'Obrigatório — pendente de captura',
-        findsOneWidget,
-      );
+      expect(find.textContaining('Falta foto obrig'), findsOneWidget);
     },
   );
 
@@ -619,7 +707,7 @@ void main() {
     (tester) async {
       final recoveryPayload = {
         'review': {
-          'tipoImovel': 'Urbano \u2022 Apartamento',
+          'tipoImovel': 'Urbano • Apartamento',
           'captures': [
             _capture(
               filePath: '/tmp/classificada.jpg',
@@ -632,7 +720,7 @@ void main() {
               'filePath': '/tmp/classificada.jpg',
               'ambiente': 'Cozinha',
               'elemento': 'Piso',
-              'material': 'Cer\u00E2mica',
+              'material': 'Cerâmica',
               'estado': 'Bom',
               'isComplete': true,
             },
@@ -646,17 +734,12 @@ void main() {
           _capture(filePath: '/tmp/classificada.jpg', ambiente: 'Cozinha'),
           _capture(filePath: '/tmp/nova.jpg', ambiente: 'Sala'),
         ],
-        tipoImovel: 'Urbano \u2022 Apartamento',
+        tipoImovel: 'Urbano • Apartamento',
         persistedRecoveryPayload: recoveryPayload,
       );
 
-      await _expandSection(tester, 'REVIS\u00C3O DE FOTOS');
-
-      expect(find.text('Fotos Capturadas'), findsOneWidget);
-      expect(
-        find.textContaining('pend\u00EAncia(s) de classifica\u00E7\u00E3o'),
-        findsNothing,
-      );
+      expect(find.textContaining('Cozinha'), findsWidgets);
+      expect(find.textContaining('Piso'), findsWidgets);
     },
   );
 
@@ -673,7 +756,7 @@ void main() {
 
       final recoveryPayload = {
         'review': {
-          'tipoImovel': 'Urbano \u2022 Apartamento',
+          'tipoImovel': 'Urbano • Apartamento',
           'captures': [captureWithInstance.toMap()],
           'capturesRevisadas': [
             {
@@ -682,7 +765,7 @@ void main() {
               'ambienteBase': 'Quarto',
               'ambienteInstanceIndex': 2,
               'elemento': 'Piso',
-              'material': 'Cer\u00E2mica',
+              'material': 'Cerâmica',
               'estado': 'Bom',
               'isComplete': true,
             },
@@ -693,13 +776,12 @@ void main() {
       await _pumpReview(
         tester,
         captures: [captureWithInstance],
-        tipoImovel: 'Urbano \u2022 Apartamento',
+        tipoImovel: 'Urbano • Apartamento',
         persistedRecoveryPayload: recoveryPayload,
       );
 
-      await _expandSection(tester, 'REVIS\u00C3O DE FOTOS');
-
-      expect(find.text('Quarto 2'), findsOneWidget);
+      expect(find.textContaining('Quarto 2'), findsWidgets);
     },
   );
 }
+

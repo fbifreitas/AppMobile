@@ -27,11 +27,16 @@ class InspectionCameraFlowRequest {
     bool cameFromCheckinStep1 = false,
     FlowSelection? initialSelection,
     FlowSelection? resumeSelection,
+    bool preferInitialSelection = false,
   }) {
     final suggested = initialSelection ?? FlowSelection.empty;
     final resume = resumeSelection;
     final current =
-        (resume != null && resume.hasAnyValue) ? resume : suggested;
+        preferInitialSelection && suggested.hasAnyValue
+            ? suggested
+            : (resume != null && resume.hasAnyValue)
+            ? resume
+            : suggested;
     return InspectionCameraFlowRequest(
       title: title,
       tipoImovel: tipoImovel,

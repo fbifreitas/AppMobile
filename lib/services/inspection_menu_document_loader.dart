@@ -4,10 +4,12 @@ import 'package:flutter/services.dart' show rootBundle;
 
 class InspectionMenuDocumentSet {
   final Map<String, dynamic>? assetDocument;
+  final Map<String, dynamic>? remoteDocument;
   final Map<String, dynamic>? developerDocument;
 
   const InspectionMenuDocumentSet({
     required this.assetDocument,
+    required this.remoteDocument,
     required this.developerDocument,
   });
 }
@@ -24,9 +26,11 @@ class InspectionMenuDocumentLoader {
 
   Future<InspectionMenuDocumentSet> load({
     required String assetPath,
+    required Future<Map<String, dynamic>?> Function() loadRemoteDocument,
     required Future<Map<String, dynamic>?> Function() loadDeveloperDocument,
   }) async {
     Map<String, dynamic>? assetDocument;
+    Map<String, dynamic>? remoteDocument;
     Map<String, dynamic>? developerDocument;
 
     try {
@@ -39,6 +43,12 @@ class InspectionMenuDocumentLoader {
     }
 
     try {
+      remoteDocument = await loadRemoteDocument();
+    } catch (_) {
+      remoteDocument = null;
+    }
+
+    try {
       developerDocument = await loadDeveloperDocument();
     } catch (_) {
       developerDocument = null;
@@ -46,6 +56,7 @@ class InspectionMenuDocumentLoader {
 
     return InspectionMenuDocumentSet(
       assetDocument: assetDocument,
+      remoteDocument: remoteDocument,
       developerDocument: developerDocument,
     );
   }

@@ -104,7 +104,7 @@ test("report generate route proxies process id and body", async () => {
       }
     });
     const response = await generateReportPost(request, {
-      params: Promise.resolve({ valuationProcessId: "77" })
+      params: { valuationProcessId: "77" }
     });
     const payload = (await response.json()) as { id: number };
 
@@ -112,6 +112,7 @@ test("report generate route proxies process id and body", async () => {
     assert.equal(payload.id, 9);
     assert.equal(capturedMethod, "POST");
     assert.match(capturedUrl, /reports\/77\/generate/);
+    assert.match(capturedUrl, /tenantId=tenant-alpha/);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -133,13 +134,14 @@ test("report detail route proxies the report id", async () => {
       }
     });
     const response = await reportDetailGet(request, {
-      params: Promise.resolve({ reportId: "91" })
+      params: { reportId: "91" }
     });
     const payload = (await response.json()) as { id: number };
 
     assert.equal(response.status, 200);
     assert.equal(payload.id, 91);
     assert.match(capturedUrl, /backoffice\/reports\/91/);
+    assert.match(capturedUrl, /tenantId=tenant-alpha/);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -148,8 +150,10 @@ test("report detail route proxies the report id", async () => {
 test("report review route proxies body to backend", async () => {
   const originalFetch = globalThis.fetch;
   let capturedBody = "";
+  let capturedUrl = "";
 
-  globalThis.fetch = async (_input, init) => {
+  globalThis.fetch = async (input, init) => {
+    capturedUrl = String(input);
     capturedBody = String(init?.body);
     return makeJsonResponse(200, { id: 91, status: "READY_FOR_SIGN" });
   };
@@ -164,13 +168,14 @@ test("report review route proxies body to backend", async () => {
       }
     });
     const response = await reviewReportPost(request, {
-      params: Promise.resolve({ reportId: "91" })
+      params: { reportId: "91" }
     });
     const payload = (await response.json()) as { status: string };
 
     assert.equal(response.status, 200);
     assert.equal(payload.status, "READY_FOR_SIGN");
     assert.match(capturedBody, /"action":"APPROVE"/);
+    assert.match(capturedUrl, /tenantId=tenant-alpha/);
   } finally {
     globalThis.fetch = originalFetch;
   }

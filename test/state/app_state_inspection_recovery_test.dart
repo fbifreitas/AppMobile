@@ -28,7 +28,7 @@ void main() {
 
     expect(appState.inspectionRecoveryDraft, isNotNull);
     expect(appState.inspectionRecoveryDraft!.jobId, 'job-1');
-    expect(appState.inspectionRecoveryDraft!.stageLabel, 'Check-in');
+    expect(appState.inspectionRecoveryDraft!.stageLabel, 'Check-in etapa 1');
   });
 
   test('setInspectionRecoveryStage updates saved stage', () async {
@@ -49,10 +49,10 @@ void main() {
     );
 
     expect(appState.inspectionRecoveryDraft, isNotNull);
-    expect(appState.inspectionRecoveryDraft!.stageKey, 'fotos');
+    expect(appState.inspectionRecoveryDraft!.stageKey, 'camera');
     expect(
       appState.inspectionRecoveryDraft!.stageLabel,
-      'Registro fotográfico',
+      'Câmera',
     );
   });
 

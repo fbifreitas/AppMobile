@@ -21,8 +21,13 @@
 17. docs/04-engineering/01_ENGINEERING_GUARDRAILS.md
 18. docs/04-engineering/02_REPO_TARGET_STRUCTURE.md
 19. docs/04-engineering/03_SHORT_PATH_TRANSITION_PLAN.md
-20. docs/BACKLOG_V2_PRIORIDADES.md
-21. docs/05-operations/01_OPERATING_MODEL.md
+20. docs/04-engineering/04_LANGUAGE_AND_DOMAIN_NORMALIZATION_PLAN.md
+21. docs/04-engineering/05_STYLE_GUIDE_LANGUAGE_AND_NAMING.md
+22. docs/04-engineering/06_DATA_DICTIONARY_DOMAIN_TERMS.md
+23. docs/04-engineering/07_LANGUAGE_MIGRATION_DASHBOARD.md
+24. GLOSSARY.md
+25. docs/BACKLOG_V2_PRIORIDADES.md
+26. docs/05-operations/01_OPERATING_MODEL.md
 
 ## Regra geral
 

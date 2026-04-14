@@ -2,6 +2,7 @@
 
 import '../models/agenda_item.dart';
 import '../models/app_message.dart';
+import '../models/inspection_recovery_stage.dart';
 import '../models/inspection_recovery_draft.dart';
 import '../models/job.dart';
 import '../models/job_status.dart';
@@ -29,7 +30,8 @@ class AppState extends ChangeNotifier {
   static const _devModeKey = 'developer_mode_enabled';
   static const _devToolsUnlockedKey = 'developer_tools_unlocked';
   static const _allowFarStartKey = 'developer_allow_far_start';
-  static const _inspectionRecoveryKey = 'inspection_recovery_draft';
+  static const _inspectionRecoveryKey = 'inspection_recovery_snapshot_v2';
+  static const _legacyInspectionRecoveryKey = 'inspection_recovery_draft';
   static const _userPhotoKey = 'user_photo_path';
 
   final JobRepository repository;
@@ -83,14 +85,16 @@ class AppState extends ChangeNotifier {
 
     userPhotoPath = await preferencesRepository.getString(_userPhotoKey);
 
-    final recoveryJson = await preferencesRepository.getString(
-      _inspectionRecoveryKey,
-    );
+    final recoveryJson =
+        await preferencesRepository.getString(_inspectionRecoveryKey) ??
+        await preferencesRepository.getString(_legacyInspectionRecoveryKey);
     if (recoveryJson != null && recoveryJson.isNotEmpty) {
       try {
         inspectionRecoveryDraft = InspectionRecoveryDraft.fromJson(
           recoveryJson,
         );
+        await _saveInspectionRecoveryDraft();
+        await preferencesRepository.remove(_legacyInspectionRecoveryKey);
       } catch (_) {
         inspectionRecoveryDraft = null;
       }
@@ -117,12 +121,14 @@ class AppState extends ChangeNotifier {
   Future<void> _saveInspectionRecoveryDraft() async {
     if (inspectionRecoveryDraft == null) {
       await preferencesRepository.remove(_inspectionRecoveryKey);
+      await preferencesRepository.remove(_legacyInspectionRecoveryKey);
       return;
     }
     await preferencesRepository.setString(
       _inspectionRecoveryKey,
       inspectionRecoveryDraft!.toJson(),
     );
+    await preferencesRepository.remove(_legacyInspectionRecoveryKey);
   }
 
   Future<void> carregarJobs() async {
@@ -140,9 +146,6 @@ class AppState extends ChangeNotifier {
       prioritizeRecoveryJob();
       _rebuildOperationalFeedsFromJobs();
     } catch (_) {
-      jobs = [];
-      agendaItems = [];
-      mensagens = [];
       jobsLoadError =
           'Nao foi possivel carregar as vistorias no momento. Tente novamente.';
     } finally {
@@ -151,11 +154,15 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  Future<void> loadJobs() => carregarJobs();
+
   String get primeiroNome {
     final nome = usuarioNomeCompleto.trim();
     if (nome.isEmpty) return 'Usuario';
     return nome.split(RegExp(r'\s+')).first;
   }
+
+  String get firstName => primeiroNome;
 
   void setUsuarioNomeCompleto(String value) {
     final nome = value.trim();
@@ -164,20 +171,70 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setUserFullName(String value) => setUsuarioNomeCompleto(value);
+
   void selecionarJob(Job job) {
     jobAtual = job;
     notifyListeners();
   }
+
+  void selectJob(Job job) => selecionarJob(job);
 
   void iniciarJob(Job job) {
     jobAtual = job;
     notifyListeners();
   }
 
+  void startJob(Job job) => iniciarJob(job);
+
   void aceitarJob(String jobId) {
     final index = jobs.indexWhere((j) => j.id == jobId);
     if (index == -1) return;
     jobs[index].status = JobStatus.aceito;
+    notifyListeners();
+  }
+
+  Future<void> marcarJobAguardandoAgendamento({
+    required String jobId,
+    String? titulo,
+    String? endereco,
+  }) async {
+    final normalizedJobId = jobId.trim();
+    if (normalizedJobId.isEmpty) return;
+
+    final targetJob = jobs.cast<Job?>().firstWhere(
+      (job) => job?.id == normalizedJobId,
+      orElse: () => null,
+    );
+
+    if (targetJob != null) {
+      targetJob.status = JobStatus.aguardandoAgendamento;
+      jobs = jobs.where((job) => job.id != normalizedJobId).toList();
+    }
+
+    if (jobAtual?.id == normalizedJobId) {
+      jobAtual = null;
+    }
+
+    _rebuildOperationalFeedsFromJobs();
+    await clearInspectionRecovery();
+
+    final resolvedTitle = (titulo ?? targetJob?.titulo ?? 'Vistoria').trim();
+    final resolvedAddress = (endereco ?? targetJob?.endereco ?? '').trim();
+
+    mensagens = [
+      AppMessage(
+        id: 'job-awaiting-scheduling-$normalizedJobId-${DateTime.now().toIso8601String()}',
+        titulo: 'Aguardando agendamento',
+        corpo:
+            '${resolvedTitle.isEmpty ? 'Vistoria' : resolvedTitle} foi enviada ao backoffice para reagendamento'
+            '${resolvedAddress.isEmpty ? '.' : ' em $resolvedAddress.'}',
+        jobId: normalizedJobId,
+        timestamp: DateTime.now(),
+      ),
+      ...mensagens,
+    ];
+
     notifyListeners();
   }
 
@@ -203,7 +260,9 @@ class AppState extends ChangeNotifier {
         ...inspectionRecoveryPayload,
         'step1': {
           ...step1Payload,
+          'contactPresent': clientePresente,
           'clientePresente': clientePresente,
+          'assetType': tipoImovel,
           'tipoImovel': tipoImovel,
         },
       },
@@ -217,6 +276,8 @@ class AppState extends ChangeNotifier {
     );
     notifyListeners();
   }
+
+  void saveChecklist(List items) => salvarChecklist(items);
 
   void adicionarFoto(String path) {
     jobAtual?.fotos.add(path);
@@ -242,6 +303,14 @@ class AppState extends ChangeNotifier {
 
     notifyListeners();
   }
+
+  void updateCurrentJobExternalReferences({
+    String? externalId,
+    String? externalProtocol,
+  }) => atualizarReferenciasExternasJobAtual(
+    idExterno: externalId,
+    protocoloExterno: externalProtocol,
+  );
 
   void atualizarReferenciasExternasJob({
     required String jobId,
@@ -323,6 +392,8 @@ class AppState extends ChangeNotifier {
     jobAtual = null;
     notifyListeners();
   }
+
+  Future<void> finalizeJob() => finalizarJob();
 
   bool get supportsMockJobControl => repository is MockJobRepositoryController;
 
@@ -552,11 +623,41 @@ class AppState extends ChangeNotifier {
 
   Future<void> beginInspectionRecovery(Job job) async {
     selecionarJob(job);
-    inspectionRecoveryDraft = InspectionRecoveryDraft.initial(jobId: job.id);
+    await setInspectionRecoverySnapshot(
+      InspectionRecoveryStageSnapshot(
+        jobId: job.id,
+        stage: InspectionRecoveryStageId.checkinStep1,
+      ),
+    );
+  }
+
+  Future<void> setInspectionRecoverySnapshot(
+    InspectionRecoveryStageSnapshot snapshot,
+  ) async {
+    final nextDraft = snapshot.toDraft();
+    final currentDraft = inspectionRecoveryDraft;
+    if (currentDraft != null &&
+        currentDraft.jobId == nextDraft.jobId &&
+        currentDraft.stageKey == nextDraft.stageKey &&
+        currentDraft.stageLabel == nextDraft.stageLabel &&
+        currentDraft.routeName == nextDraft.routeName &&
+        mapEquals(currentDraft.payload, nextDraft.payload)) {
+      return;
+    }
+
+    inspectionRecoveryDraft = nextDraft;
     await _saveInspectionRecoveryDraft();
     prioritizeRecoveryJob();
     notifyListeners();
   }
+
+  Future<void> checkIn({
+    required bool contactPresent,
+    String? assetType,
+  }) => fazerCheckin(
+    clientePresente: contactPresent,
+    tipoImovel: assetType,
+  );
 
   Future<void> setInspectionRecoveryStage({
     required String stageKey,
@@ -567,20 +668,20 @@ class AppState extends ChangeNotifier {
     final currentJob = jobAtual;
     if (currentJob == null) return;
 
-    inspectionRecoveryDraft = (inspectionRecoveryDraft ??
-            InspectionRecoveryDraft.initial(jobId: currentJob.id))
-        .copyWith(
+    await setInspectionRecoverySnapshot(
+      InspectionRecoveryStageSnapshot(
+        jobId: currentJob.id,
+        stage: InspectionRecoveryDraft(
           jobId: currentJob.id,
           stageKey: stageKey,
           stageLabel: stageLabel,
           routeName: routeName,
           updatedAtIso: DateTime.now().toIso8601String(),
           payload: payload,
-        );
-
-    await _saveInspectionRecoveryDraft();
-    prioritizeRecoveryJob();
-    notifyListeners();
+        ).resolvedStage,
+        payload: payload,
+      ),
+    );
   }
 
   Future<void> persistStep1Draft({
@@ -595,9 +696,13 @@ class AppState extends ChangeNotifier {
 
     final nextStep1 = {
       ...step1Payload,
+      'contactPresent': clientePresente,
       'clientePresente': clientePresente,
+      'assetType': tipoImovel,
       'tipoImovel': tipoImovel,
+      'assetSubtype': subtipoImovel,
       'subtipoImovel': subtipoImovel,
+      'entryPoint': porOndeComecar,
       'porOndeComecar': porOndeComecar,
       if (niveis != null) 'niveis': Map<String, String>.from(niveis),
     };
@@ -648,8 +753,22 @@ class AppState extends ChangeNotifier {
   Map<String, dynamic> get inspectionRecoveryPayload =>
       Map<String, dynamic>.from(inspectionRecoveryDraft?.payload ?? const {});
 
-  Map<String, dynamic> get step1Payload =>
-      Map<String, dynamic>.from(inspectionRecoveryPayload['step1'] ?? const {});
+  Map<String, dynamic> get step1Payload {
+    final raw = Map<String, dynamic>.from(
+      inspectionRecoveryPayload['step1'] ?? const {},
+    );
+    return {
+      ...raw,
+      'contactPresent': raw['contactPresent'] ?? raw['clientePresente'],
+      'clientePresente': raw['clientePresente'] ?? raw['contactPresent'],
+      'assetType': raw['assetType'] ?? raw['tipoImovel'],
+      'tipoImovel': raw['tipoImovel'] ?? raw['assetType'],
+      'assetSubtype': raw['assetSubtype'] ?? raw['subtipoImovel'],
+      'subtipoImovel': raw['subtipoImovel'] ?? raw['assetSubtype'],
+      'entryPoint': raw['entryPoint'] ?? raw['porOndeComecar'],
+      'porOndeComecar': raw['porOndeComecar'] ?? raw['entryPoint'],
+    };
+  }
 
   Map<String, dynamic> get step2Payload =>
       Map<String, dynamic>.from(inspectionRecoveryPayload['step2'] ?? const {});
@@ -773,6 +892,8 @@ class AppState extends ChangeNotifier {
       case JobStatus.novo:
       case JobStatus.emPreparacao:
         return AgendaItemStatus.agendado;
+      case JobStatus.aguardandoAgendamento:
+        return AgendaItemStatus.cancelado;
       case JobStatus.emAndamento:
         return AgendaItemStatus.confirmado;
       case JobStatus.finalizado:
@@ -808,6 +929,8 @@ class AppState extends ChangeNotifier {
     switch (job.status) {
       case JobStatus.aceito:
         return 'Job agendado';
+      case JobStatus.aguardandoAgendamento:
+        return 'Aguardando reagendamento';
       case JobStatus.emPreparacao:
         return 'Job em preparacao';
       case JobStatus.emAndamento:
@@ -835,6 +958,8 @@ class AppState extends ChangeNotifier {
       case JobStatus.novo:
       case JobStatus.emPreparacao:
         return '${job.titulo} agendado para $scheduleText em ${job.endereco}.';
+      case JobStatus.aguardandoAgendamento:
+        return '${job.titulo} aguarda reagendamento pelo backoffice apos cliente ausente no check-in.';
       case JobStatus.emAndamento:
         return '${job.titulo} esta em andamento. Local: ${job.endereco}.';
       case JobStatus.finalizado:

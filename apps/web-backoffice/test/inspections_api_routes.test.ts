@@ -46,7 +46,7 @@ test("inspections route propaga query params e resposta do backend", async () =>
   };
 
   try {
-    const request = new NextRequest("http://localhost/api/inspections?tenantId=ignored&status=SUBMITTED&vistoriadorId=42&page=1&size=10", {
+    const request = new NextRequest("http://localhost/api/inspections?tenantId=ignored&status=SUBMITTED&fieldAgentId=42&page=1&size=10", {
       headers: {
         cookie: sessionCookie()
       }
@@ -58,7 +58,7 @@ test("inspections route propaga query params e resposta do backend", async () =>
     assert.equal(payload.total, 1);
     assert.match(capturedUrl, /tenantId=tenant-alpha/);
     assert.match(capturedUrl, /status=SUBMITTED/);
-    assert.match(capturedUrl, /vistoriadorId=42/);
+    assert.match(capturedUrl, /fieldAgentId=42/);
     assert.match(capturedUrl, /page=1/);
     assert.match(capturedUrl, /size=10/);
     assert.equal(capturedHeaders?.get("Authorization"), "Bearer access-token");

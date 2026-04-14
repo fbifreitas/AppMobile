@@ -8,8 +8,8 @@ class InspectionTechnicalRulesService {
   List<TechnicalRuleResult> evaluate({
     required String tipoImovel,
     required List<TechnicalEvidenceInput> evidences,
-    required List<TechnicalCheckRequirementInput> requirements,
-    required List<TechnicalCoverageRequirementInput> coverageRequirements,
+    required List<InspectionNormativeRequirementInput> requirements,
+    required List<InspectionCaptureCoverageRequirementInput> coverageRequirements,
   }) {
     final results = <TechnicalRuleResult>[];
 

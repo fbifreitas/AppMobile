@@ -92,4 +92,82 @@ void main() {
       <String>['Bom'],
     );
   });
+
+  test('uses flat camera level options when package has no macroLocals tree', () {
+    final package = InspectionMenuPackage.fromJson({
+      'camera': {
+        'byTipo': {
+          'urbano': {
+            'levels': [
+              {
+                'id': 'ambiente',
+                'label': 'Ambiente',
+                'options': ['Fachada'],
+              },
+              {
+                'id': 'elemento',
+                'label': 'Elemento',
+                'dependsOn': 'ambiente',
+                'options': ['Porta', 'Portao'],
+              },
+              {
+                'id': 'material',
+                'label': 'Material',
+                'dependsOn': 'elemento',
+                'options': ['Metal'],
+              },
+              {
+                'id': 'estado',
+                'label': 'Estado',
+                'dependsOn': 'elemento',
+                'options': ['Bom'],
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    expect(
+      service.ambientes(
+        package: package,
+        usage: const <String, dynamic>{},
+        propertyType: 'Urbano',
+        macroLocal: 'Rua',
+      ),
+      <String>['Fachada'],
+    );
+    expect(
+      service.elementos(
+        package: package,
+        usage: const <String, dynamic>{},
+        propertyType: 'Urbano',
+        macroLocal: 'Rua',
+        ambiente: 'Fachada',
+      ),
+      <String>['Porta', 'Portao'],
+    );
+    expect(
+      service.materiais(
+        package: package,
+        usage: const <String, dynamic>{},
+        propertyType: 'Urbano',
+        macroLocal: 'Rua',
+        ambiente: 'Fachada',
+        elemento: 'Porta',
+      ),
+      <String>['Metal'],
+    );
+    expect(
+      service.estados(
+        package: package,
+        usage: const <String, dynamic>{},
+        propertyType: 'Urbano',
+        macroLocal: 'Rua',
+        ambiente: 'Fachada',
+        elemento: 'Porta',
+      ),
+      <String>['Bom'],
+    );
+  });
 }

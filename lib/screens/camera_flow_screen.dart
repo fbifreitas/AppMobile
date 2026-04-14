@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_strings.dart';
 import '../models/inspection_session_model.dart';
 import '../models/inspection_template_model.dart';
 import '../services/inspection_capture_service.dart';
@@ -30,14 +31,15 @@ class _CameraFlowScreenState extends State<CameraFlowScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     return Consumer<InspectionState>(
       builder: (context, inspectionState, _) {
         final session = inspectionState.session;
         final ambiente = inspectionState.getSelectedEnvironment();
 
         if (session == null || ambiente == null) {
-          return const Scaffold(
-            body: Center(child: Text('Nenhum ambiente selecionado.')),
+          return Scaffold(
+            body: Center(child: Text(strings.noEnvironmentSelected)),
           );
         }
 
@@ -46,17 +48,17 @@ class _CameraFlowScreenState extends State<CameraFlowScreen> {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Coleta'),
+            title: Text(strings.capture),
             actions: [
               IconButton(
-                tooltip: 'Atualizar GPS',
+                tooltip: strings.updateGps,
                 onPressed: _busy
                     ? null
                     : () async {
                         await _runBusyAction(
                           action: () =>
                               context.read<InspectionState>().validateGpsStatus(),
-                          successMessage: 'Validação de GPS atualizada.',
+                          successMessage: strings.gpsValidationUpdated,
                         );
                       },
                 icon: const Icon(Icons.gps_fixed),
@@ -86,7 +88,7 @@ class _CameraFlowScreenState extends State<CameraFlowScreen> {
                             action: () => context
                                 .read<InspectionState>()
                                 .validateGpsStatus(),
-                            successMessage: 'GPS validado com sucesso.',
+                            successMessage: strings.gpsValidatedSuccessfully,
                           );
                         },
                       ),
@@ -98,7 +100,7 @@ class _CameraFlowScreenState extends State<CameraFlowScreen> {
                           children: [
                             if (template != null) ...[
                               Text(
-                                'O que estou analisando?',
+                                strings.whatAmIAnalyzing,
                                 style: Theme.of(context)
                                     .textTheme
                                     .titleMedium
@@ -154,7 +156,7 @@ class _CameraFlowScreenState extends State<CameraFlowScreen> {
                                                   _selectedEstado,
                                             ),
                                         successMessage:
-                                            'Foto capturada com sucesso.',
+                                            strings.photoCapturedSuccessfully,
                                       );
                                     }
                                   : null,
@@ -177,7 +179,7 @@ class _CameraFlowScreenState extends State<CameraFlowScreen> {
                                                   _selectedEstado,
                                             ),
                                         successMessage:
-                                            'Imagem da galeria vinculada com sucesso.',
+                                            strings.galleryImageLinkedSuccessfully,
                                       );
                                     }
                                   : null,
@@ -233,7 +235,7 @@ class _CameraFlowScreenState extends State<CameraFlowScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Falha na operação: $e')),
+        SnackBar(content: Text(AppStrings.of(context).operationFailed(e))),
       );
     } finally {
       if (mounted) {
@@ -252,7 +254,7 @@ class _CameraFlowScreenState extends State<CameraFlowScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Material',
+          AppStrings.of(context).materialLabel,
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
@@ -288,7 +290,7 @@ class _CameraFlowScreenState extends State<CameraFlowScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Estado de conservação',
+          AppStrings.of(context).conditionStateLabel,
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
@@ -352,7 +354,7 @@ class _CameraFlowScreenState extends State<CameraFlowScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Onde estou?',
+                    AppStrings.of(context).whereAmI,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
@@ -370,7 +372,7 @@ class _CameraFlowScreenState extends State<CameraFlowScreen> {
                   }),
                   const Divider(),
                   Text(
-                    'Ambiente não existe',
+                    AppStrings.of(context).environmentDoesNotExist,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
@@ -378,8 +380,8 @@ class _CameraFlowScreenState extends State<CameraFlowScreen> {
                   const SizedBox(height: 8),
                   TextField(
                     controller: textController,
-                    decoration: const InputDecoration(
-                      labelText: 'Qual ambiente encontrou?',
+                    decoration: InputDecoration(
+                      labelText: AppStrings.of(context).whichEnvironmentFound,
                       border: OutlineInputBorder(),
                     ),
                     onChanged: (value) {
@@ -401,8 +403,9 @@ class _CameraFlowScreenState extends State<CameraFlowScreen> {
                                   .registerMissingEnvironmentSuggestion();
                               Navigator.pop(context);
                             },
-                      child:
-                          const Text('Salvar ambiente não configurado'),
+                      child: Text(
+                        AppStrings.of(context).saveUnconfiguredEnvironment,
+                      ),
                     ),
                   ),
                 ],
@@ -445,7 +448,7 @@ class _WhereAmICard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Onde estou?',
+                  AppStrings.of(context).whereAmI,
                   style: theme.textTheme.labelLarge?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -462,7 +465,7 @@ class _WhereAmICard extends StatelessWidget {
           ),
           TextButton(
             onPressed: onChangeEnvironment,
-            child: const Text('Trocar'),
+            child: Text(AppStrings.of(context).change),
           ),
         ],
       ),
@@ -498,7 +501,11 @@ class _AuditInfoCard extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Auditoria ativa • raio permitido ${radius.toStringAsFixed(0)}m • check-in ${session.checkinGeoPoint.latitude.toStringAsFixed(5)}, ${session.checkinGeoPoint.longitude.toStringAsFixed(5)}',
+              AppStrings.of(context).auditInfo(
+                radius.toStringAsFixed(0),
+                session.checkinGeoPoint.latitude.toStringAsFixed(5),
+                session.checkinGeoPoint.longitude.toStringAsFixed(5),
+              ),
             ),
           ),
         ],
@@ -532,13 +539,13 @@ class _GpsBlockedBanner extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Para registrar evidências da vistoria, ative o GPS do aparelho.',
+              AppStrings.of(context).enableDeviceGpsForEvidence,
               style: theme.textTheme.bodyMedium,
             ),
           ),
           TextButton(
             onPressed: onEnable,
-            child: const Text('Ativar'),
+            child: Text(AppStrings.of(context).enable),
           ),
         ],
       ),
@@ -565,7 +572,7 @@ class _CaptureActions extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Registrar evidência',
+          AppStrings.of(context).registerEvidence,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
@@ -577,7 +584,9 @@ class _CaptureActions extends StatelessWidget {
               child: FilledButton.icon(
                 onPressed: onCamera,
                 icon: const Icon(Icons.camera_alt_outlined),
-                label: Text(busy ? 'Processando...' : 'Capturar'),
+                label: Text(
+                  busy ? AppStrings.of(context).processing : AppStrings.of(context).capture,
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -585,15 +594,15 @@ class _CaptureActions extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: onGallery,
                 icon: const Icon(Icons.photo_library_outlined),
-                label: const Text('Galeria'),
+                label: Text(AppStrings.of(context).gallery),
               ),
             ),
           ],
         ),
         if (!gpsEnabled) ...[
           const SizedBox(height: 8),
-          const Text(
-            'Captura bloqueada enquanto o GPS estiver desligado.',
+          Text(
+            AppStrings.of(context).captureBlockedGpsDisabled,
           ),
         ],
       ],
@@ -622,7 +631,7 @@ class _EvidenceList extends StatelessWidget {
             color: Theme.of(context).dividerColor.withValues(alpha: 0.2),
           ),
         ),
-        child: const Text('Nenhuma evidência registrada neste ambiente.'),
+        child: Text(AppStrings.of(context).noEvidenceForEnvironment),
       );
     }
 
@@ -630,7 +639,7 @@ class _EvidenceList extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Evidências deste ambiente',
+          AppStrings.of(context).evidenceForEnvironment,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
@@ -656,15 +665,21 @@ class _EvidenceList extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(evidence.elementoNome ?? 'Sem elemento definido'),
+                      Text(
+                        evidence.elementoNome ??
+                            AppStrings.of(context).undefinedTargetItem,
+                      ),
                       const SizedBox(height: 4),
                       Text(
-                        '${evidence.source == EvidenceSource.camera ? 'Câmera' : 'Galeria'} • ${evidence.geoPoint.capturedAt}',
+                        '${AppStrings.of(context).evidenceSourceLabel(evidence.source == EvidenceSource.camera)} • ${evidence.geoPoint.capturedAt}',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Lat ${evidence.geoPoint.latitude.toStringAsFixed(5)} • Lng ${evidence.geoPoint.longitude.toStringAsFixed(5)}',
+                        AppStrings.of(context).coordinatesLabel(
+                          evidence.geoPoint.latitude.toStringAsFixed(5),
+                          evidence.geoPoint.longitude.toStringAsFixed(5),
+                        ),
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],

@@ -17,6 +17,29 @@ class InspectionCameraLevelPresentationService {
     'estado',
   ];
 
+  static const List<String> defaultCameraLevels = _defaultCameraLevels;
+
+  String normalizeLevelId(String rawLevelId) {
+    return semanticFieldService.mapCameraLevelId(rawLevelId) ?? rawLevelId;
+  }
+
+  String canonicalLevelId(String levelId) {
+    switch (normalizeLevelId(levelId)) {
+      case 'macroLocal':
+        return 'captureContext';
+      case 'ambiente':
+        return 'targetItem';
+      case 'elemento':
+        return 'targetQualifier';
+      case 'material':
+        return 'materialAttribute';
+      case 'estado':
+        return 'conditionState';
+      default:
+        return normalizeLevelId(levelId);
+    }
+  }
+
   final InspectionSemanticFieldService semanticFieldService;
 
   List<String> normalizeLevelOrder(List<String> rawLevels) {

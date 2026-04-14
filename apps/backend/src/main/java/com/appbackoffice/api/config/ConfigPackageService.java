@@ -13,9 +13,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -166,7 +168,13 @@ public class ConfigPackageService {
 
         ConfigRulesAccumulator accumulator = new ConfigRulesAccumulator();
         for (ConfigPackageEntity entry : applied) {
-            accumulator.apply(entry, parseCheckinSections(entry.getCheckinSectionsJson()));
+            accumulator.apply(
+                    entry,
+                    parseCheckinSections(entry.getCheckinSectionsJson()),
+                    parseJsonMap(entry.getStep1Json()),
+                    parseJsonMap(entry.getStep2Json()),
+                    parseJsonMap(entry.getCameraJson())
+            );
         }
         ConfigRulesDto effective = accumulator.toDto();
 
@@ -344,7 +352,10 @@ public class ConfigPackageService {
                         entity.getEnableVoiceCommands(),
                         entity.getTheme(),
                         entity.getAppUpdateChannel(),
-                        parseCheckinSections(entity.getCheckinSectionsJson())
+                        parseCheckinSections(entity.getCheckinSectionsJson()),
+                        parseJsonMap(entity.getStep1Json()),
+                        parseJsonMap(entity.getStep2Json()),
+                        parseJsonMap(entity.getCameraJson())
                 )
         );
     }
@@ -374,6 +385,9 @@ public class ConfigPackageService {
         entity.setTheme(rules.theme());
         entity.setAppUpdateChannel(rules.appUpdateChannel());
         entity.setCheckinSectionsJson(serializeCheckinSections(rules.checkinSections()));
+        entity.setStep1Json(serializeJsonMap(rules.step1(), "step1"));
+        entity.setStep2Json(serializeJsonMap(rules.step2(), "step2"));
+        entity.setCameraJson(serializeJsonMap(rules.camera(), "camera"));
     }
 
     private ActorRole parseActorRole(String raw) {
@@ -502,6 +516,17 @@ public class ConfigPackageService {
         }
     }
 
+    private Map<String, Object> parseJsonMap(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(raw, new TypeReference<>() {});
+        } catch (Exception exception) {
+            return null;
+        }
+    }
+
     private String serializeCheckinSections(List<ConfigCheckinSectionRuleDto> sections) {
         if (sections == null || sections.isEmpty()) {
             return null;
@@ -520,6 +545,24 @@ public class ConfigPackageService {
         }
     }
 
+    private String serializeJsonMap(Map<String, Object> value, String fieldName) {
+        if (value == null || value.isEmpty()) {
+            return null;
+        }
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (Exception exception) {
+            throw new ApiContractException(
+                    HttpStatus.BAD_REQUEST,
+                    "CONFIG_RULES_INVALID",
+                    fieldName + " invalido para serializacao",
+                    ErrorSeverity.ERROR,
+                    "Revise a estrutura de rules." + fieldName + " antes de publicar.",
+                    null
+            );
+        }
+    }
+
     private static final class ConfigRulesAccumulator {
         private Boolean requireBiometric;
         private Integer cameraMinPhotos;
@@ -528,10 +571,16 @@ public class ConfigPackageService {
         private String theme;
         private String appUpdateChannel;
         private List<ConfigCheckinSectionRuleDto> checkinSections;
+        private Map<String, Object> step1;
+        private Map<String, Object> step2;
+        private Map<String, Object> camera;
 
         private ConfigRulesAccumulator apply(
                 ConfigPackageEntity entity,
-                List<ConfigCheckinSectionRuleDto> parsedCheckinSections
+                List<ConfigCheckinSectionRuleDto> parsedCheckinSections,
+                Map<String, Object> parsedStep1,
+                Map<String, Object> parsedStep2,
+                Map<String, Object> parsedCamera
         ) {
             if (entity.getRequireBiometric() != null) {
                 requireBiometric = entity.getRequireBiometric();
@@ -554,6 +603,15 @@ public class ConfigPackageService {
             if (parsedCheckinSections != null && !parsedCheckinSections.isEmpty()) {
                 checkinSections = parsedCheckinSections;
             }
+            if (parsedStep1 != null) {
+                step1 = mergeMaps(step1, parsedStep1);
+            }
+            if (parsedStep2 != null) {
+                step2 = mergeMaps(step2, parsedStep2);
+            }
+            if (parsedCamera != null) {
+                camera = mergeMaps(camera, parsedCamera);
+            }
             return this;
         }
 
@@ -565,8 +623,50 @@ public class ConfigPackageService {
                     enableVoiceCommands,
                     theme,
                     appUpdateChannel,
-                    checkinSections
+                    checkinSections,
+                    step1,
+                    step2,
+                    camera
             );
+        }
+
+        private Map<String, Object> mergeMaps(Map<String, Object> base, Map<String, Object> incoming) {
+            if (base == null || base.isEmpty()) {
+                return deepCopy(incoming);
+            }
+            Map<String, Object> merged = deepCopy(base);
+            for (Map.Entry<String, Object> entry : incoming.entrySet()) {
+                Object current = merged.get(entry.getKey());
+                Object next = entry.getValue();
+                if (current instanceof Map<?, ?> currentMap && next instanceof Map<?, ?> nextMap) {
+                    merged.put(
+                            entry.getKey(),
+                            mergeMaps(castToMap(currentMap), castToMap(nextMap))
+                    );
+                    continue;
+                }
+                merged.put(entry.getKey(), next);
+            }
+            return merged;
+        }
+
+        @SuppressWarnings("unchecked")
+        private Map<String, Object> castToMap(Map<?, ?> value) {
+            Map<String, Object> mapped = new LinkedHashMap<>();
+            value.forEach((key, item) -> mapped.put(String.valueOf(key), item));
+            return mapped;
+        }
+
+        private Map<String, Object> deepCopy(Map<String, Object> value) {
+            Map<String, Object> copy = new LinkedHashMap<>();
+            value.forEach((key, item) -> {
+                if (item instanceof Map<?, ?> mapValue) {
+                    copy.put(key, deepCopy(castToMap(mapValue)));
+                } else {
+                    copy.put(key, item);
+                }
+            });
+            return copy;
         }
     }
 }

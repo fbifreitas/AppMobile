@@ -45,4 +45,31 @@ class Job {
     this.protocoloExterno,
   }) : checklist = checklist ?? [],
        fotos = fotos ?? [];
+
+  String get title => titulo;
+  set title(String value) => titulo = value;
+
+  String get address => endereco;
+  set address(String value) => endereco = value;
+
+  String get customerName => nomeCliente;
+  set customerName(String value) => nomeCliente = value;
+
+  String? get customerPhone => telefoneCliente;
+  set customerPhone(String? value) => telefoneCliente = value;
+
+  bool get contactPresent => clientePresente;
+  set contactPresent(bool value) => clientePresente = value;
+
+  String? get assetType => tipoImovel;
+  set assetType(String? value) => tipoImovel = value;
+
+  String? get assetSubtype => subtipoImovel;
+  set assetSubtype(String? value) => subtipoImovel = value;
+
+  String? get externalId => idExterno;
+  set externalId(String? value) => idExterno = value;
+
+  String? get externalProtocol => protocoloExterno;
+  set externalProtocol(String? value) => protocoloExterno = value;
 }

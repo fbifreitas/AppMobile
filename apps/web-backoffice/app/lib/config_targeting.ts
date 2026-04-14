@@ -21,6 +21,9 @@ export type ConfigRules = {
   enableVoiceCommands?: boolean;
   theme?: "tenant-default" | "light" | "dark";
   appUpdateChannel?: "stable" | "pilot" | "hotfix";
+  step1?: Record<string, unknown>;
+  step2?: Record<string, unknown>;
+  camera?: Record<string, unknown>;
   checkinSections?: Array<{
     sectionKey: string;
     sectionLabel: string;
@@ -28,9 +31,16 @@ export type ConfigRules = {
     photoMin: number;
     photoMax: number;
     desiredItems?: string[];
+    assetType?: string;
     tipoImovel?: string;
     sortOrder?: number;
   }>;
+};
+
+export type NormalizedCheckinSectionRule = NonNullable<
+  ConfigRules["checkinSections"]
+>[number] & {
+  assetType?: string;
 };
 
 export type RolloutPolicy = {

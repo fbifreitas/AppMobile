@@ -17,6 +17,7 @@ class CheckinStep1DynamicConfig {
   final List<String> contextos;
   final List<ConfigLevelDefinition> levels;
   final Map<String, List<ConfigLevelDefinition>> levelsByTipoSubtipo;
+  final CheckinStep1UiConfig ui;
 
   const CheckinStep1DynamicConfig({
     required this.tipos,
@@ -24,6 +25,7 @@ class CheckinStep1DynamicConfig {
     required this.contextos,
     required this.levels,
     required this.levelsByTipoSubtipo,
+    required this.ui,
   });
 
   List<ConfigLevelDefinition> levelsFor({
@@ -38,6 +40,64 @@ class CheckinStep1DynamicConfig {
     }
     return levels;
   }
+}
+
+class CheckinStep1UiConfig {
+  final String clientePresenteLabel;
+  final bool clientePresenteVisible;
+  final bool clientePresenteRequired;
+  final String menuTipoLabel;
+  final bool menuTipoVisible;
+  final bool menuTipoRequired;
+  final String menuSubtipoLabel;
+  final bool menuSubtipoVisible;
+  final bool menuSubtipoRequired;
+  final String menuContextoLabel;
+  final bool menuContextoVisible;
+  final bool menuContextoRequired;
+  final String botaoEtapa2Label;
+  final bool botaoEtapa2Visible;
+  final String botaoConfirmarCameraLabel;
+  final bool botaoConfirmarCameraVisible;
+  final bool botaoConfirmarCameraRequired;
+
+  const CheckinStep1UiConfig({
+    this.clientePresenteLabel = 'Cliente está presente',
+    this.clientePresenteVisible = true,
+    this.clientePresenteRequired = true,
+    this.menuTipoLabel = 'Tipo',
+    this.menuTipoVisible = true,
+    this.menuTipoRequired = true,
+    this.menuSubtipoLabel = 'Subtipo',
+    this.menuSubtipoVisible = true,
+    this.menuSubtipoRequired = true,
+    this.menuContextoLabel = 'Por onde deseja começar',
+    this.menuContextoVisible = true,
+    this.menuContextoRequired = true,
+    this.botaoEtapa2Label = 'Ir para etapa 2 do check-in',
+    this.botaoEtapa2Visible = true,
+    this.botaoConfirmarCameraLabel = 'Confirmar e abrir a câmera',
+    this.botaoConfirmarCameraVisible = true,
+    this.botaoConfirmarCameraRequired = true,
+  });
+
+  String get contactPresentLabel => clientePresenteLabel;
+  bool get contactPresentVisible => clientePresenteVisible;
+  bool get contactPresentRequired => clientePresenteRequired;
+  String get assetTypeLabel => menuTipoLabel;
+  bool get assetTypeVisible => menuTipoVisible;
+  bool get assetTypeRequired => menuTipoRequired;
+  String get assetSubtypeLabel => menuSubtipoLabel;
+  bool get assetSubtypeVisible => menuSubtipoVisible;
+  bool get assetSubtypeRequired => menuSubtipoRequired;
+  String get entryPointLabel => menuContextoLabel;
+  bool get entryPointVisible => menuContextoVisible;
+  bool get entryPointRequired => menuContextoRequired;
+  String get step2ButtonLabel => botaoEtapa2Label;
+  bool get step2ButtonVisible => botaoEtapa2Visible;
+  String get confirmCameraButtonLabel => botaoConfirmarCameraLabel;
+  bool get confirmCameraButtonVisible => botaoConfirmarCameraVisible;
+  bool get confirmCameraButtonRequired => botaoConfirmarCameraRequired;
 }
 
 class CheckinDynamicConfigService {
@@ -76,8 +136,10 @@ class CheckinDynamicConfigService {
     defaultValue: '',
   );
 
-  static const String _step1CacheKey = 'checkin_dynamic_step1_config_v1';
-  static const String _step1VersionKey = 'checkin_dynamic_step1_version_v1';
+  static const String _step1CacheKey = 'asset_dynamic_step1_config_v2';
+  static const String _step1VersionKey = 'asset_dynamic_step1_version_v2';
+  static const String _legacyStep1CacheKey = 'checkin_dynamic_step1_config_v1';
+  static const String _legacyStep1VersionKey = 'checkin_dynamic_step1_version_v1';
   static const String _devMockEnabledKey = 'dev_mock_checkin_config_enabled_v1';
   static const String _devMockDocumentKey =
       'dev_mock_checkin_config_document_v1';
@@ -136,6 +198,31 @@ class CheckinDynamicConfigService {
     return document == null ? null : Map<String, dynamic>.from(document);
   }
 
+  Future<Map<String, dynamic>?> loadResolvedConfigDocument({
+    String? tipo,
+  }) async {
+    final developerDocument = await _readDeveloperMockDocument();
+    if (developerDocument != null) {
+      return Map<String, dynamic>.from(developerDocument);
+    }
+
+    final cacheKey = tipo == null ? _step1CacheKey : _step2CacheKeyByValue(tipo);
+    final versionKey =
+        tipo == null ? _step1VersionKey : _step2VersionKeyByValue(tipo);
+
+    if (_resolvedBaseUrl.isNotEmpty) {
+      final fetched = await _fetchDocument(tipo: tipo);
+      if (fetched != null) {
+        await _writeCache(cacheKey, fetched);
+        await _writeCachedVersion(versionKey, _resolveDocumentVersion(fetched));
+        return fetched;
+      }
+    }
+
+    final cached = await _readCache(cacheKey);
+    return cached == null ? null : Map<String, dynamic>.from(cached);
+  }
+
   Future<CheckinStep1DynamicConfig> loadStep1Config({
     required List<String> fallbackTipos,
     required Map<String, List<String>> fallbackSubtiposPorTipo,
@@ -161,6 +248,7 @@ class CheckinDynamicConfigService {
       contextos: List<String>.from(fallbackContextos),
       levels: fallbackLevels,
       levelsByTipoSubtipo: const {},
+      ui: const CheckinStep1UiConfig(),
     );
 
     Map<String, dynamic>? document = await _readDeveloperMockDocument();
@@ -169,11 +257,18 @@ class CheckinDynamicConfigService {
         final fetched = await _fetchDocument();
         if (fetched != null) {
           final fetchedVersion = _resolveDocumentVersion(fetched);
-          final currentVersion = await _readCachedVersion(_step1VersionKey);
+          final currentVersion = await _readCachedVersion(
+            _step1VersionKey,
+            legacyKey: _legacyStep1VersionKey,
+          );
           if (fetchedVersion != null &&
               currentVersion != null &&
               fetchedVersion == currentVersion) {
-            document = await _readCache(_step1CacheKey) ?? fetched;
+            document = await _readCache(
+                  _step1CacheKey,
+                  legacyKey: _legacyStep1CacheKey,
+                ) ??
+                fetched;
           } else {
             document = fetched;
           }
@@ -182,7 +277,10 @@ class CheckinDynamicConfigService {
         }
       }
 
-      document ??= await _readCache(_step1CacheKey);
+      document ??= await _readCache(
+        _step1CacheKey,
+        legacyKey: _legacyStep1CacheKey,
+      );
     }
 
     if (document == null) {
@@ -192,6 +290,7 @@ class CheckinDynamicConfigService {
     final package = InspectionMenuPackage.fromJson(document);
     final step1Config = package.step1Config;
     if (step1Config == null || !step1Config.isValid) return fallback;
+    final uiMap = _extractMap(document['step1Ui']) ?? const <String, dynamic>{};
 
     return CheckinStep1DynamicConfig(
       tipos: List<String>.from(step1Config.tipos),
@@ -213,6 +312,75 @@ class CheckinDynamicConfigService {
           ),
         ),
       ),
+      ui: CheckinStep1UiConfig(
+        clientePresenteLabel:
+            _optionalString(uiMap['contactPresentLabel']) ??
+            _optionalString(uiMap['clientePresenteLabel']) ??
+            fallback.ui.clientePresenteLabel,
+        clientePresenteVisible:
+            _parseBoolean(uiMap['contactPresentVisible']) ??
+            _parseBoolean(uiMap['clientePresenteVisible']) ??
+            fallback.ui.clientePresenteVisible,
+        clientePresenteRequired:
+            _parseBoolean(uiMap['contactPresentRequired']) ??
+            _parseBoolean(uiMap['clientePresenteRequired']) ??
+            fallback.ui.clientePresenteRequired,
+        menuTipoLabel:
+            _optionalString(uiMap['assetTypeLabel']) ??
+            _optionalString(uiMap['menuTipoLabel']) ?? fallback.ui.menuTipoLabel,
+        menuTipoVisible:
+            _parseBoolean(uiMap['assetTypeVisible']) ??
+            _parseBoolean(uiMap['menuTipoVisible']) ??
+            fallback.ui.menuTipoVisible,
+        menuTipoRequired:
+            _parseBoolean(uiMap['assetTypeRequired']) ??
+            _parseBoolean(uiMap['menuTipoRequired']) ??
+            fallback.ui.menuTipoRequired,
+        menuSubtipoLabel:
+            _optionalString(uiMap['assetSubtypeLabel']) ??
+            _optionalString(uiMap['menuSubtipoLabel']) ??
+            fallback.ui.menuSubtipoLabel,
+        menuSubtipoVisible:
+            _parseBoolean(uiMap['assetSubtypeVisible']) ??
+            _parseBoolean(uiMap['menuSubtipoVisible']) ??
+            fallback.ui.menuSubtipoVisible,
+        menuSubtipoRequired:
+            _parseBoolean(uiMap['assetSubtypeRequired']) ??
+            _parseBoolean(uiMap['menuSubtipoRequired']) ??
+            fallback.ui.menuSubtipoRequired,
+        menuContextoLabel:
+            _optionalString(uiMap['entryPointLabel']) ??
+            _optionalString(uiMap['menuContextoLabel']) ??
+            fallback.ui.menuContextoLabel,
+        menuContextoVisible:
+            _parseBoolean(uiMap['entryPointVisible']) ??
+            _parseBoolean(uiMap['menuContextoVisible']) ??
+            fallback.ui.menuContextoVisible,
+        menuContextoRequired:
+            _parseBoolean(uiMap['entryPointRequired']) ??
+            _parseBoolean(uiMap['menuContextoRequired']) ??
+            fallback.ui.menuContextoRequired,
+        botaoEtapa2Label:
+            _optionalString(uiMap['step2ButtonLabel']) ??
+            _optionalString(uiMap['botaoEtapa2Label']) ??
+            fallback.ui.botaoEtapa2Label,
+        botaoEtapa2Visible:
+            _parseBoolean(uiMap['step2ButtonVisible']) ??
+            _parseBoolean(uiMap['botaoEtapa2Visible']) ??
+            fallback.ui.botaoEtapa2Visible,
+        botaoConfirmarCameraLabel:
+            _optionalString(uiMap['confirmCameraButtonLabel']) ??
+            _optionalString(uiMap['botaoConfirmarCameraLabel']) ??
+            fallback.ui.botaoConfirmarCameraLabel,
+        botaoConfirmarCameraVisible:
+            _parseBoolean(uiMap['confirmCameraButtonVisible']) ??
+            _parseBoolean(uiMap['botaoConfirmarCameraVisible']) ??
+            fallback.ui.botaoConfirmarCameraVisible,
+        botaoConfirmarCameraRequired:
+            _parseBoolean(uiMap['confirmCameraButtonRequired']) ??
+            _parseBoolean(uiMap['botaoConfirmarCameraRequired']) ??
+            fallback.ui.botaoConfirmarCameraRequired,
+      ),
     );
   }
 
@@ -229,11 +397,18 @@ class CheckinDynamicConfigService {
         final fetched = await _fetchDocument(tipo: tipo.name);
         if (fetched != null) {
           final fetchedVersion = _resolveDocumentVersion(fetched);
-          final currentVersion = await _readCachedVersion(versionKey);
+          final currentVersion = await _readCachedVersion(
+            versionKey,
+            legacyKey: _legacyStep2VersionKey(tipo),
+          );
           if (fetchedVersion != null &&
               currentVersion != null &&
               fetchedVersion == currentVersion) {
-            document = await _readCache(cacheKey) ?? fetched;
+            document = await _readCache(
+                  cacheKey,
+                  legacyKey: _legacyStep2CacheKey(tipo),
+                ) ??
+                fetched;
           } else {
             document = fetched;
           }
@@ -242,7 +417,10 @@ class CheckinDynamicConfigService {
         }
       }
 
-      document ??= await _readCache(cacheKey);
+      document ??= await _readCache(
+        cacheKey,
+        legacyKey: _legacyStep2CacheKey(tipo),
+      );
     }
 
     final step2Node =
@@ -310,6 +488,7 @@ class CheckinDynamicConfigService {
     required Map<String, dynamic> raw,
     required CheckinStep2Config fallback,
   }) {
+    final uiRaw = _extractMap(raw['ui']) ?? const <String, dynamic>{};
     final camposRaw = (raw['camposFotos'] as List?) ?? const [];
     final gruposRaw = (raw['gruposOpcoes'] as List?) ?? const [];
 
@@ -372,6 +551,8 @@ class CheckinDynamicConfigService {
           id: id,
           titulo: titulo,
           opcoes: opcoes,
+          visivel: _parseBoolean(map['visivel']) ?? true,
+          obrigatorio: _parseBoolean(map['obrigatorio']) ?? false,
           multiplaEscolha: (map['multiplaEscolha'] as bool?) ?? true,
           permiteObservacao: (map['permiteObservacao'] as bool?) ?? false,
         ),
@@ -389,9 +570,35 @@ class CheckinDynamicConfigService {
 
     return CheckinStep2Config(
       tipoImovel: tipo,
-      tituloTela: _optionalString(raw['tituloTela']) ?? fallback.tituloTela,
+      tituloTela:
+          _optionalString(uiRaw['screenLabel']) ??
+          _optionalString(raw['tituloTela']) ??
+          fallback.tituloTela,
       subtituloTela:
-          _optionalString(raw['subtituloTela']) ?? fallback.subtituloTela,
+          _optionalString(uiRaw['subtitleLabel']) ??
+          _optionalString(raw['subtituloTela']) ??
+          fallback.subtituloTela,
+      secaoFotosLabel:
+          _optionalString(uiRaw['photoSectionLabel']) ??
+          fallback.secaoFotosLabel,
+      secaoFotosVisivel:
+          _parseBoolean(uiRaw['photoSectionVisible']) ??
+          fallback.secaoFotosVisivel,
+      secaoFotosObrigatoria:
+          _parseBoolean(uiRaw['photoSectionRequired']) ??
+          fallback.secaoFotosObrigatoria,
+      secaoOpcoesLabel:
+          _optionalString(uiRaw['optionSectionLabel']) ??
+          fallback.secaoOpcoesLabel,
+      secaoOpcoesVisivel:
+          _parseBoolean(uiRaw['optionSectionVisible']) ??
+          fallback.secaoOpcoesVisivel,
+      secaoOpcoesObrigatoria:
+          _parseBoolean(uiRaw['optionSectionRequired']) ??
+          fallback.secaoOpcoesObrigatoria,
+      botaoConfirmarLabel:
+          _optionalString(uiRaw['confirmButtonLabel']) ??
+          fallback.botaoConfirmarLabel,
       minFotos: minFotos,
       maxFotos: normalizedMaxFotos,
       visivelNoFluxo:
@@ -399,11 +606,21 @@ class CheckinDynamicConfigService {
             raw['visivel'] ?? raw['visible'] ?? raw['exibir'] ?? raw['enabled'],
           ) ??
           fallback.visivelNoFluxo,
-      obrigatoriaNoFluxo:
+      obrigatoriaParaEntrega:
           _parseBoolean(
-            raw['obrigatoria'] ?? raw['obrigatorio'] ?? raw['required'],
+            raw['obrigatoriaParaEntrega'] ??
+                raw['obrigatoria'] ??
+                raw['obrigatorio'] ??
+                raw['required'],
           ) ??
-          fallback.obrigatoriaNoFluxo,
+          fallback.obrigatoriaParaEntrega,
+      bloqueiaCaptura:
+          _parseBoolean(
+            raw['bloqueiaCaptura'] ??
+                raw['bloqueiaCamera'] ??
+                raw['gateBeforeCapture'],
+          ) ??
+          fallback.bloqueiaCaptura,
       camposFotos: campos,
       gruposOpcoes: grupos.isNotEmpty ? grupos : fallback.gruposOpcoes,
     );
@@ -411,13 +628,46 @@ class CheckinDynamicConfigService {
 
   Map<String, dynamic> serializeStep2Config(CheckinStep2Config config) {
     return {
+      'assetType': config.assetType.name,
       'tipoImovel': config.tipoImovel.name,
+      'screenTitle': config.screenTitle,
       'tituloTela': config.tituloTela,
+      'screenSubtitle': config.screenSubtitle,
       'subtituloTela': config.subtituloTela,
+      'ui': {
+        'screenLabel': config.tituloTela,
+        'subtitleLabel': config.subtituloTela,
+        'photoSectionLabel': config.secaoFotosLabel,
+        'photoSectionVisible': config.secaoFotosVisivel,
+        'photoSectionRequired': config.secaoFotosObrigatoria,
+        'optionSectionLabel': config.secaoOpcoesLabel,
+        'optionSectionVisible': config.secaoOpcoesVisivel,
+        'optionSectionRequired': config.secaoOpcoesObrigatoria,
+        'confirmButtonLabel': config.botaoConfirmarLabel,
+      },
       'minFotos': config.minFotos,
       'maxFotos': config.maxFotos,
+      'visible': config.flowVisible,
       'visivel': config.visivelNoFluxo,
-      'obrigatoria': config.obrigatoriaNoFluxo,
+      'requiredForSubmission': config.requiredForSubmission,
+      'obrigatoriaParaEntrega': config.obrigatoriaParaEntrega,
+      'obrigatoria': config.obrigatoriaParaEntrega,
+      'blocksCapture': config.blocksCapture,
+      'bloqueiaCaptura': config.bloqueiaCaptura,
+      'photoFields':
+          config.camposFotos
+              .map(
+                (field) => {
+                  'id': field.id,
+                  'title': field.titulo,
+                  'icon': _iconToName(field.icon),
+                  'required': field.obrigatorio,
+                  'captureContext': field.cameraMacroLocal,
+                  'targetItem': field.cameraAmbiente,
+                  'targetQualifier': field.cameraElementoInicial,
+                },
+              )
+              .toList(),
       'camposFotos':
           config.camposFotos
               .map(
@@ -432,12 +682,36 @@ class CheckinDynamicConfigService {
                 },
               )
               .toList(),
+      'optionGroups':
+          config.gruposOpcoes
+              .map(
+                (group) => {
+                  'id': group.id,
+                  'title': group.titulo,
+                  'visible': group.visivel,
+                  'required': group.obrigatorio,
+                  'multiSelect': group.multiplaEscolha,
+                  'allowsNote': group.permiteObservacao,
+                  'options':
+                      group.opcoes
+                          .map(
+                            (option) => {
+                              'id': option.id,
+                              'label': option.label,
+                            },
+                          )
+                          .toList(),
+                },
+              )
+              .toList(),
       'gruposOpcoes':
           config.gruposOpcoes
               .map(
                 (group) => {
                   'id': group.id,
                   'titulo': group.titulo,
+                  'visivel': group.visivel,
+                  'obrigatorio': group.obrigatorio,
                   'multiplaEscolha': group.multiplaEscolha,
                   'permiteObservacao': group.permiteObservacao,
                   'opcoes':
@@ -473,6 +747,7 @@ class CheckinDynamicConfigService {
       final uri = Uri.parse('$normalizedBase$normalizedPath').replace(
         queryParameters: {
           if (tipo != null && tipo.trim().isNotEmpty) 'tipoImovel': tipo,
+          if (tipo != null && tipo.trim().isNotEmpty) 'assetType': tipo,
         },
       );
 
@@ -584,12 +859,16 @@ class CheckinDynamicConfigService {
     }
   }
 
-  Future<Map<String, dynamic>?> _readCache(String key) async {
+  Future<Map<String, dynamic>?> _readCache(String key, {String? legacyKey}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(key);
+      final raw = prefs.getString(key) ?? (legacyKey == null ? null : prefs.getString(legacyKey));
       if (raw == null || raw.trim().isEmpty) return null;
       final decoded = jsonDecode(raw);
+      if (legacyKey != null && prefs.getString(key) == null) {
+        await prefs.setString(key, raw);
+        await prefs.remove(legacyKey);
+      }
       return _extractMap(decoded);
     } catch (_) {
       return null;
@@ -606,20 +885,41 @@ class CheckinDynamicConfigService {
     }
   }
 
-  Future<String?> _readCachedVersion(String key) async {
+  Future<String?> _readCachedVersion(String key, {String? legacyKey}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getString(key);
+      final value = prefs.getString(key) ?? (legacyKey == null ? null : prefs.getString(legacyKey));
+      if (value != null && legacyKey != null && prefs.getString(key) == null) {
+        await prefs.setString(key, value);
+        await prefs.remove(legacyKey);
+      }
+      return value;
     } catch (_) {
       return null;
     }
   }
 
   String _step2CacheKey(TipoImovel tipo) {
-    return 'checkin_dynamic_step2_${tipo.name}_v1';
+    return 'asset_dynamic_step2_${tipo.name}_v2';
   }
 
   String _step2VersionKey(TipoImovel tipo) {
+    return 'asset_dynamic_step2_${tipo.name}_version_v2';
+  }
+
+  String _step2CacheKeyByValue(String tipo) {
+    return 'asset_dynamic_step2_${tipo.trim().toLowerCase()}_v2';
+  }
+
+  String _step2VersionKeyByValue(String tipo) {
+    return 'asset_dynamic_step2_${tipo.trim().toLowerCase()}_version_v2';
+  }
+
+  String _legacyStep2CacheKey(TipoImovel tipo) {
+    return 'checkin_dynamic_step2_${tipo.name}_v1';
+  }
+
+  String _legacyStep2VersionKey(TipoImovel tipo) {
     return 'checkin_dynamic_step2_${tipo.name}_version_v1';
   }
 

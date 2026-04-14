@@ -26,6 +26,28 @@ class InspectionCameraSelectorSectionService {
     required List<String> materiais,
     required List<String> estados,
   }) {
+    return buildSectionsCanonical(
+      levelOrder: levelOrder,
+      labelsByLevel: labelsByLevel,
+      selectionState: selectionState,
+      captureContexts: macroLocais,
+      targetItems: ambientes,
+      targetQualifiers: elementos,
+      materialAttributes: materiais,
+      conditionStates: estados,
+    );
+  }
+
+  List<InspectionCameraSelectorSection> buildSectionsCanonical({
+    required List<String> levelOrder,
+    required Map<String, String> labelsByLevel,
+    required FlowSelectionState selectionState,
+    required List<String> captureContexts,
+    required List<String> targetItems,
+    required List<String> targetQualifiers,
+    required List<String> materialAttributes,
+    required List<String> conditionStates,
+  }) {
     final sections = <InspectionCameraSelectorSection>[];
     final current = selectionState.currentSelection;
     final selectedMaterial = current.attributeText('inspection.material');
@@ -40,7 +62,7 @@ class InspectionCameraSelectorSectionService {
 
       switch (levelId) {
         case 'macroLocal':
-          if (macroLocais.isEmpty && current.subjectContext == null) {
+          if (captureContexts.isEmpty && current.subjectContext == null) {
             continue;
           }
           sections.add(
@@ -51,8 +73,8 @@ class InspectionCameraSelectorSectionService {
                 labelsByLevel: labelsByLevel,
               ),
               values:
-                  macroLocais.isNotEmpty
-                      ? macroLocais
+                  captureContexts.isNotEmpty
+                      ? captureContexts
                       : <String>[
                         if (current.subjectContext != null)
                           current.subjectContext!,
@@ -66,10 +88,10 @@ class InspectionCameraSelectorSectionService {
             continue;
           }
           final ambienteValues = <String>[
-            ...ambientes,
+            ...targetItems,
             if (current.targetItem != null &&
                 current.targetItem!.trim().isNotEmpty &&
-                !ambientes.contains(current.targetItem))
+                !targetItems.contains(current.targetItem))
               current.targetItem!,
           ];
           sections.add(
@@ -95,14 +117,14 @@ class InspectionCameraSelectorSectionService {
           );
           break;
         case 'elemento':
-          if (current.targetItem == null || elementos.isEmpty) {
+          if (current.targetItem == null || targetQualifiers.isEmpty) {
             continue;
           }
           final elementoValues = <String>[
-            ...elementos,
+            ...targetQualifiers,
             if (current.targetQualifier != null &&
                 current.targetQualifier!.trim().isNotEmpty &&
-                !elementos.contains(current.targetQualifier))
+                !targetQualifiers.contains(current.targetQualifier))
               current.targetQualifier!,
           ];
           sections.add(
@@ -118,14 +140,14 @@ class InspectionCameraSelectorSectionService {
           );
           break;
         case 'material':
-          if (current.targetQualifier == null || materiais.isEmpty) {
+          if (current.targetQualifier == null || materialAttributes.isEmpty) {
             continue;
           }
           final materialValues = <String>[
-            ...materiais,
+            ...materialAttributes,
             if (selectedMaterial != null &&
                 selectedMaterial.trim().isNotEmpty &&
-                !materiais.contains(selectedMaterial))
+                !materialAttributes.contains(selectedMaterial))
               selectedMaterial,
           ];
           sections.add(
@@ -142,7 +164,7 @@ class InspectionCameraSelectorSectionService {
           break;
         case 'estado':
           if (current.targetQualifier == null ||
-              (materiais.isNotEmpty && selectedMaterial == null)) {
+              (materialAttributes.isNotEmpty && selectedMaterial == null)) {
             continue;
           }
           sections.add(
@@ -153,10 +175,10 @@ class InspectionCameraSelectorSectionService {
                 labelsByLevel: labelsByLevel,
               ),
               values: <String>[
-                ...estados,
+                ...conditionStates,
                 if (current.targetCondition != null &&
                     current.targetCondition!.trim().isNotEmpty &&
-                    !estados.contains(current.targetCondition))
+                    !conditionStates.contains(current.targetCondition))
                   current.targetCondition!,
               ],
               selected: current.targetCondition,
