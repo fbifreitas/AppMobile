@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../l10n/app_strings.dart';
 import '../../models/technical_rule_result.dart';
 import '../../services/voice_input_service.dart';
 import '../technical_justification_card.dart';
@@ -27,7 +26,6 @@ class InspectionTechnicalPendingStageAccordion extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final strings = AppStrings.of(context);
     final hasPending = items.isNotEmpty;
     final pendingLabel = hasPending
         ? '${items.length} pendência(s)'
