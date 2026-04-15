@@ -1,22 +1,26 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
+import '../models/assistive_suggestion.dart';
 import '../services/assistive_review_helper_service.dart';
 import '../services/assistive_suggestion_engine.dart';
 import '../services/assistive_visual_classification_placeholder_service.dart';
 import '../widgets/assistive_review_help_card.dart';
 import '../widgets/assistive_suggestion_card.dart';
-import '../models/assistive_suggestion.dart';
 
 class AssistiveIntelligenceCenterScreen extends StatefulWidget {
   const AssistiveIntelligenceCenterScreen({super.key});
 
   @override
-  State<AssistiveIntelligenceCenterScreen> createState() => _AssistiveIntelligenceCenterScreenState();
+  State<AssistiveIntelligenceCenterScreen> createState() =>
+      _AssistiveIntelligenceCenterScreenState();
 }
 
-class _AssistiveIntelligenceCenterScreenState extends State<AssistiveIntelligenceCenterScreen> {
+class _AssistiveIntelligenceCenterScreenState
+    extends State<AssistiveIntelligenceCenterScreen> {
   final AssistiveSuggestionEngine _engine = const AssistiveSuggestionEngine();
-  final AssistiveReviewHelperService _reviewHelper = const AssistiveReviewHelperService();
+  final AssistiveReviewHelperService _reviewHelper =
+      const AssistiveReviewHelperService();
   final AssistiveVisualClassificationPlaceholderService _visualPlaceholder =
       const AssistiveVisualClassificationPlaceholderService();
 
@@ -56,21 +60,22 @@ class _AssistiveIntelligenceCenterScreenState extends State<AssistiveIntelligenc
 
   @override
   Widget build(BuildContext context) {
-      final reviewSuggestions = List<AssistiveSuggestion>.from(
-        _groups['review'] as List? ?? const [],
-      );
-
-      final cameraSuggestions = List<AssistiveSuggestion>.from(
-        _groups['camera'] as List? ?? const [],
-      );
-
-      final checkinSuggestions = List<AssistiveSuggestion>.from(
-        _groups['checkin'] as List? ?? const [],
-      );
+    final strings = AppStrings.of(context);
+    final reviewSuggestions = List<AssistiveSuggestion>.from(
+      _groups['review'] as List? ?? const [],
+    );
+    final cameraSuggestions = List<AssistiveSuggestion>.from(
+      _groups['camera'] as List? ?? const [],
+    );
+    final checkinSuggestions = List<AssistiveSuggestion>.from(
+      _groups['checkin'] as List? ?? const [],
+    );
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Central de IA assistiva'),
+        title: Text(
+          strings.tr('Central de IA assistiva', 'Assistive AI center'),
+        ),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -78,22 +83,34 @@ class _AssistiveIntelligenceCenterScreenState extends State<AssistiveIntelligenc
               padding: const EdgeInsets.all(16),
               children: [
                 AssistiveReviewHelpCard(
-                  title: 'Ajuda automática de revisão',
+                  title: strings.tr(
+                    'Ajuda automática de revisão',
+                    'Automatic review help',
+                  ),
                   hints: _hints,
                 ),
                 const SizedBox(height: 12),
                 AssistiveSuggestionCard(
-                  title: 'Sugestões para revisão final',
+                  title: strings.tr(
+                    'Sugestões para revisão final',
+                    'Suggestions for final review',
+                  ),
                   suggestions: reviewSuggestions,
                 ),
                 const SizedBox(height: 12),
                 AssistiveSuggestionCard(
-                  title: 'Sugestões para câmera',
+                  title: strings.tr(
+                    'Sugestões para câmera',
+                    'Suggestions for camera',
+                  ),
                   suggestions: cameraSuggestions,
                 ),
                 const SizedBox(height: 12),
                 AssistiveSuggestionCard(
-                  title: 'Sugestões para check-in',
+                  title: strings.tr(
+                    'Sugestões para check-in',
+                    'Suggestions for check-in',
+                  ),
                   suggestions: checkinSuggestions,
                 ),
                 const SizedBox(height: 12),
@@ -101,7 +118,10 @@ class _AssistiveIntelligenceCenterScreenState extends State<AssistiveIntelligenc
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(18),
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.24),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withValues(alpha: 0.24),
                   ),
                   child: Text(_visualPlaceholder.statusMessage),
                 ),

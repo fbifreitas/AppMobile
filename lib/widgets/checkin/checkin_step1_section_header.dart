@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_strings.dart';
+
 class CheckinStep1SectionHeader extends StatelessWidget {
   const CheckinStep1SectionHeader({
     super.key,
@@ -22,6 +24,8 @@ class CheckinStep1SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
@@ -35,7 +39,10 @@ class CheckinStep1SectionHeader extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                'ETAPA 1 CHECK-IN $answered/$total ${isDone ? 'OK' : 'NOK'}',
+                strings.tr(
+                  'ETAPA 1 CHECK-IN $answered/$total ${isDone ? 'OK' : 'NOK'}',
+                  'CHECK-IN STEP 1 $answered/$total ${isDone ? 'OK' : 'NOK'}',
+                ),
                 style: TextStyle(
                   color: statusColor,
                   fontWeight: FontWeight.w800,

@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
 import '../services/observability_logger_service.dart';
 import '../services/observability_metrics_service.dart';
 import '../widgets/observability_log_list.dart';
@@ -27,10 +28,10 @@ class _ObservabilitySupportCenterScreenState extends State<ObservabilitySupportC
   }
 
   Future<void> _seedAndLoad() async {
-    await _logger.info('sync', 'Monitoramento de sincronização disponível.');
-    await _logger.info('voice', 'Monitoramento da camada de voz disponível.');
-    await _logger.info('technical', 'Monitoramento técnico disponível.');
-    await _logger.info('assistive', 'Monitoramento da camada assistiva disponível.');
+    await _logger.info('sync', 'Monitoramento de sincronizacao disponivel.');
+    await _logger.info('voice', 'Monitoramento da camada de voz disponivel.');
+    await _logger.info('technical', 'Monitoramento tecnico disponivel.');
+    await _logger.info('assistive', 'Monitoramento da camada assistiva disponivel.');
     final snapshot = await _metrics.buildSnapshot();
     final logs = await _metrics.recent();
 
@@ -44,6 +45,7 @@ class _ObservabilitySupportCenterScreenState extends State<ObservabilitySupportC
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     if (_loading || _snapshot == null) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -52,7 +54,7 @@ class _ObservabilitySupportCenterScreenState extends State<ObservabilitySupportC
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Observabilidade e suporte'),
+        title: Text(strings.tr('Observabilidade e suporte', 'Observability and support')),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),

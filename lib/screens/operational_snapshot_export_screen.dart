@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../branding/brand_provider.dart';
+import '../l10n/app_strings.dart';
 import '../services/operational_snapshot_export_service.dart';
 import '../widgets/operational_snapshot_card.dart';
 
@@ -11,6 +12,7 @@ class OperationalSnapshotExportScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final config = BrandProvider.configOf(context);
+    final strings = AppStrings.of(context);
     final items = const OperationalSnapshotExportService().build(
       checkinReady: true,
       fieldOpsReady: true,
@@ -28,7 +30,7 @@ class OperationalSnapshotExportScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Saída operacional'),
+        title: Text(strings.tr('Saida operacional', 'Operational output')),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -49,11 +51,18 @@ class OperationalSnapshotExportScreen extends StatelessWidget {
               await Clipboard.setData(ClipboardData(text: snapshotText));
               if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Snapshot copiado para a área de transferência.')),
+                SnackBar(
+                  content: Text(
+                    strings.tr(
+                      'Snapshot copiado para a area de transferencia.',
+                      'Snapshot copied to the clipboard.',
+                    ),
+                  ),
+                ),
               );
             },
             icon: const Icon(Icons.copy_all_outlined),
-            label: const Text('Copiar snapshot'),
+            label: Text(strings.tr('Copiar snapshot', 'Copy snapshot')),
           ),
         ],
       ),

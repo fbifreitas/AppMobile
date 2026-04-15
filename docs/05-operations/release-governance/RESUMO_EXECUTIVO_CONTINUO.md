@@ -795,3 +795,68 @@ Atualizar este arquivo sempre que ocorrer um destes eventos:
   - iOS Xcode targets/schemes — guia em docs/04-engineering/iOS_FLAVOR_SETUP_GUIDE.md
   - Script create_brand automatizado (proximo ciclo)
 - Status final: **ENCERRADO**.
+## Encerramento do ciclo 2026-04-14 - release v1.2.57+77
+- Branch candidata promovida: `release/v1.2.56+76`
+- Versao promovida: `1.2.57+77`
+- Commit final do pacote na branch candidata: `42dfa35`
+- PR de promocao: https://github.com/fbifreitas/AppMobile/pull/41
+- Autorizacao do usuario: concedida explicitamente na mesma sessao
+
+- Escopo promovido:
+  - consolidacao de normalizacao de dominio, idioma e i18n;
+  - ajustes de recovery, navigation e review para fechar a homologacao da release;
+  - estabilizacao da suite Flutter local e alinhamento do contrato do config page no `Web CI`.
+
+- Evidencias de promocao:
+  - a branch candidata entrou em PR com `mergeStateStatus = CLEAN` apos a rodada final de checks;
+  - commits tecnicos do ciclo na branch candidata:
+    - `bc0855b` â€” `v1.2.56+76 - refactor: consolidar normalizacao de dominio idioma e i18n`
+    - `b4031f0` â€” `v1.2.56+76 - fix: ajustar analyze da homologacao`
+    - `8cfab35` â€” `v1.2.56+76 - fix: alinhar testes da homologacao ao fluxo atual`
+    - `51f2e88` â€” `v1.2.56+76 - fix: ajustar recovery navigation tests para i18n`
+    - `ea25a18` â€” `v1.2.56+76 - fix: estabilizar testes de navigation e review`
+    - `b45df0b` â€” `[1.2.57+77] - chore: bump version to unblock release promotion`
+    - `42dfa35` â€” `v1.2.57+77 - fix: alinhar contrato do config page no web ci`
+  - validacoes locais executadas antes da promocao:
+    - `flutter analyze --no-pub` verde
+    - `flutter test --no-pub` verde (`03:08 +280 ~1: 1 skipped test. All other tests passed!`)
+
+- Evidencias do bypass controlado:
+  - protecao lida antes do merge em `main`: `required_approving_review_count = 0`
+  - nao foi necessario reduzir temporariamente o valor porque a branch ja estava com aprovacao minima em `0` no momento da promocao
+  - merge executado pelo caminho normal da PR, sem uso de `--admin`
+  - protecao restaurada imediatamente apos o merge para `required_approving_review_count = 1`
+
+- Evidencias do merge:
+  - PR #41 mergeada com sucesso
+  - commit de merge em `main`: `a330476a6163a7b39e71fbe909b7282fa404fe8d`
+  - horario de merge registrado pela plataforma: `2026-04-14T21:30:24Z`
+
+- Evidencias das esteiras pos-merge:
+  - `Android CI` â€” success (`run 24423922024`)
+  - `Android Homologation` â€” success (`run 24423922009`)
+  - `Android Distribution` â€” success (`run 24424133459`)
+  - `Backend CI` â€” success (`run 24423922041`)
+  - `Web CI` â€” success (`run 24423922029`)
+  - `Internal Docs CI` â€” success (`run 24423922037`)
+  - `Backend Deploy` â€” success (`run 24423922002`)
+  - `Web Deploy` â€” success (`run 24423922028`)
+
+- Evidencias de equalizacao da branch operacional:
+  - `release/v1.2.56+76` foi atualizada por fast-forward a partir de `origin/main` apos o merge
+  - divergencia final entre `origin/main` e `origin/release/v1.2.56+76`: `0/0`
+  - decisao operacional: branch de release mantida equalizada como historico do ciclo
+
+- Ocorrencias relevantes durante a promocao:
+  - o primeiro `Android CI` da PR falhou por `Validate app version bump`, exigindo bump adicional de versao para `1.2.57+77`
+  - a PR foi reaberta tecnicamente com o commit `b45df0b` para satisfazer o gate de versao
+  - a rodada seguinte falhou em `Web CI` por contrato desatualizado de `config_page.test`
+  - o contrato foi alinhado para `Central de configuracoes` no commit `42dfa35`
+  - apos esses dois ajustes, a PR entrou em estado `CLEAN` e seguiu para merge
+
+- Conclusao formal:
+  - ciclo de release `v1.2.57+77` promovido com sucesso para `main`
+  - protecao da `main` restaurada
+  - esteiras criticas pos-merge confirmadas em verde
+  - branch operacional equalizada
+  - status final: **ENCERRADO**

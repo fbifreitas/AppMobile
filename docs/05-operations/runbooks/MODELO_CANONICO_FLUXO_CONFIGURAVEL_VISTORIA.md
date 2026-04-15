@@ -1,4 +1,4 @@
-# Modelo Canonico do Fluxo Configuravel de Vistoria
+﻿# Modelo Canonico do Fluxo Configuravel de Vistoria
 
 ## Objetivo
 
@@ -20,6 +20,8 @@ consumam a mesma base semantica sem misturar arvore de captura com exigencias no
 4. O app consome esse payload como caminho principal.
 5. `check-in etapa 1` e obrigatorio para iniciar a captura.
 6. `check-in etapa 2` pode ser obrigatorio para entrega, mas nao bloqueia a camera.
+7. O fluxo de vistoria continua sendo especializacao do dominio `inspection` sobre capacidades mais horizontais da plataforma.
+8. O plano operacional consumido pelo app deve nascer do backend/plataforma como `Execution Plan` derivado.
 
 ## Modelo canonico
 
@@ -126,10 +128,26 @@ Compatibilidade atual:
 - `obrigatoriaNoFluxo` deve ser interpretado como `obrigatoriaParaEntrega`
 - `bloqueiaCaptura` deve ser explicito e default `false`
 
+## Vinculo com o incremento atual de plataforma
+
+O programa atual adiciona uma camada acima do fluxo configuravel de vistoria.
+
+Essa camada deve:
+- consolidar facts de case, OCR, pesquisa e campo
+- gerar `Execution Plan` para o app
+- publicar configuracao operacional pronta para consumo
+- receber o retorno do App Mobile como evidencia estruturada
+- preparar a base progressiva do report e da trilha analytics-ready
+
+Importante:
+- isso nao muda o modelo canonico do fluxo configuravel
+- isso melhora a qualidade da configuracao publicada para o app
+
 ## Artefatos operacionais vinculados
 
 - `docs/05-operations/runbooks/PAINEL_MILESTONES_FLUXO_CONFIGURAVEL_VISTORIA.md`
 - `docs/05-operations/runbooks/VALIDACAO_FINAL_FLUXO_CONFIGURAVEL_VISTORIA.md`
+- `docs/05-operations/runbooks/PLANO_IMPLANTACAO_INCREMENTO_ENRICHMENT_SMART_APP.md`
 
 ### Revisao
 
@@ -195,3 +213,4 @@ O backoffice deve operar com tres camadas:
 - `BL-057`: semantica canonica unica entre check-in, camera, revisao e menu
 - `BL-058`: separar estado inicial, estado atual e retomada
 - `BOW-130`: consumo mobile da configuracao real como caminho principal
+- `BL-080`: programa incremental de backend/plataforma para enrichment, OCR, reconciliacao, smart app derivado e analytics-ready trail

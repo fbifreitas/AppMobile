@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 
 import '../config/inspection_menu_package.dart';
+import '../l10n/app_strings.dart';
 import '../models/flow_selection.dart';
 import '../models/inspection_camera_menu_view_state.dart';
 import '../models/inspection_camera_selector_section.dart';
@@ -152,6 +153,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   bool _selectorsCollapsed = false;
 
   String? get _predictionSummary {
+    final strings = AppStrings.of(context);
     final prediction = _predictedSelection;
     if (prediction == null || !prediction.hasAnyValue) return null;
     final parts = <String>[];
@@ -159,8 +161,10 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     if (prediction.material != null) parts.add(prediction.material!);
     if (prediction.estado != null) parts.add(prediction.estado!);
     if (parts.isEmpty) return null;
-    return 'SugestÃ£o silenciosa com base em ${prediction.captures} captura(s): '
-        '${parts.join(' â€¢ ')}';
+    return strings.tr(
+      'Sugestao silenciosa com base em ${prediction.captures} captura(s): ${parts.join(' • ')}',
+      'Silent suggestion based on ${prediction.captures} capture(s): ${parts.join(' • ')}',
+    );
   }
 
   // ── canonical accessors ────────────────────────────────────────────────────
@@ -275,9 +279,13 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       });
     } catch (error) {
       if (!mounted) return;
+      final strings = AppStrings.of(context);
       setState(() {
         _initializing = false;
-        _error = 'Falha ao inicializar a cÃ¢mera: $error';
+        _error = strings.tr(
+          'Falha ao inicializar a camera: $error',
+          'Failed to initialize camera: $error',
+        );
       });
     }
   }
@@ -369,8 +377,14 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   }
 
   Future<void> _ensureLocationReady() async {
+    final strings = AppStrings.of(context);
     if (!await Geolocator.isLocationServiceEnabled()) {
-      throw Exception('Ative o GPS do aparelho.');
+      throw Exception(
+        strings.tr(
+          'Ative o GPS do aparelho.',
+          'Enable the device GPS.',
+        ),
+      );
     }
 
     var permission = await Geolocator.checkPermission();
@@ -379,7 +393,12 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     }
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
-      throw Exception('PermissÃ£o de localizaÃ§Ã£o nÃ£o concedida.');
+      throw Exception(
+        strings.tr(
+          'Permissao de localizacao nao concedida.',
+          'Location permission not granted.',
+        ),
+      );
     }
   }
 
@@ -467,11 +486,17 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
 
   Future<void> _capture() async {
     if (_controller == null || !_controller!.value.isInitialized) return;
+    final strings = AppStrings.of(context);
 
     if (_targetItem == null || _targetItem!.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Selecione o local da foto antes de capturar.'),
+        SnackBar(
+          content: Text(
+            strings.tr(
+              'Selecione o local da foto antes de capturar.',
+              'Select the photo location before capturing.',
+            ),
+          ),
         ),
       );
       return;
@@ -525,8 +550,14 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
         SnackBar(
           content: Text(
             result.usedSuggestion
-                ? 'Foto adicionada ao lote com sugestÃ£o silenciosa.'
-                : 'Foto adicionada ao lote.',
+                ? strings.tr(
+                  'Foto adicionada ao lote com sugestao silenciosa.',
+                  'Photo added to the batch with silent suggestion.',
+                )
+                : strings.tr(
+                  'Foto adicionada ao lote.',
+                  'Photo added to the batch.',
+                ),
           ),
         ),
       );
@@ -547,6 +578,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   }
 
   void _openVoiceSheet() {
+    final strings = AppStrings.of(context);
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -560,9 +592,11 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
               parserService: _voiceCommandParser,
               commands: _voiceCommandCatalog.cameraCommands(),
               contextKey: 'camera',
-              title: 'Comandos rÃ¡pidos por voz',
-              subtitle:
-                  'Ex.: capturar foto, abrir Ã¡rea, abrir local, abrir elemento.',
+              title: strings.tr('Comandos rapidos por voz', 'Quick voice commands'),
+              subtitle: strings.tr(
+                'Ex.: capturar foto, abrir area, abrir local, abrir elemento.',
+                'Example: capture photo, open area, open location, open element.',
+              ),
               onCommand: _handleCameraVoiceCommand,
             ),
           ),
@@ -717,6 +751,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     if (_initializing || _loadingMenus) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -887,7 +922,10 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                                 if (presentation.showRecentAmbientes) ...[
                                   const SizedBox(height: 8),
                                   OverlayCameraQuickSuggestionCard(
-                                    title: 'Locais mais usados nesta Ã¡rea',
+                                    title: strings.tr(
+                                      'Locais mais usados nesta area',
+                                      'Most used locations in this area',
+                                    ),
                                     values: _recentAmbientes,
                                     selected: _targetItem,
                                     onSelect: (value) => _selectTargetItem(value),
@@ -902,7 +940,10 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                                 if (presentation.showRecentElementos) ...[
                                   const SizedBox(height: 8),
                                   OverlayCameraQuickSuggestionCard(
-                                    title: 'Mais usados neste contexto',
+                                    title: strings.tr(
+                                      'Mais usados neste contexto',
+                                      'Most used in this context',
+                                    ),
                                     values: _recentElementos,
                                     selected: _targetQualifier,
                                     onSelect: (value) =>
@@ -954,9 +995,12 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
                           icon: Icons.photo_library_outlined,
                           onTap: () {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
+                              SnackBar(
                                 content: Text(
-                                  'Galeria permanece no fluxo atual.',
+                                  strings.tr(
+                                    'Galeria permanece no fluxo atual.',
+                                    'Gallery remains in the current flow.',
+                                  ),
                                 ),
                               ),
                             );

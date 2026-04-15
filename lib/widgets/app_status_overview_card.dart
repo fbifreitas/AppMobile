@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
 import '../models/center_status_item.dart';
 
 class AppStatusOverviewCard extends StatelessWidget {
@@ -12,6 +13,7 @@ class AppStatusOverviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     final available = items.where((item) => item.available).length;
 
     return Container(
@@ -24,14 +26,17 @@ class AppStatusOverviewCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Visão geral da integração',
+            strings.tr('Visao geral da integracao', 'Integration overview'),
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
           ),
           const SizedBox(height: 8),
           Text(
-            '$available de ${items.length} centrais principais estão disponíveis.',
+            strings.tr(
+              '$available de ${items.length} centrais principais estao disponiveis.',
+              '$available of ${items.length} main centers are available.',
+            ),
             style: const TextStyle(fontSize: 12),
           ),
           const SizedBox(height: 10),

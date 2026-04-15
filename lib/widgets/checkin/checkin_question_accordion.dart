@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_strings.dart';
 import '../../theme/app_colors.dart';
 
 class CheckinQuestionAccordion extends StatelessWidget {
@@ -22,6 +23,7 @@ class CheckinQuestionAccordion extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     final answered = answer != null && answer!.trim().isNotEmpty;
     final borderColor = answered ? AppColors.success : AppColors.border;
     final background = answered ? AppColors.successLight : AppColors.surface;
@@ -66,7 +68,7 @@ class CheckinQuestionAccordion extends StatelessWidget {
                     ),
                   ),
                   IconButton(
-                    tooltip: 'Selecionar por voz',
+                    tooltip: strings.tr('Selecionar por voz', 'Select by voice'),
                     onPressed: onVoiceTap,
                     icon: const Icon(Icons.mic_none, size: 18),
                   ),

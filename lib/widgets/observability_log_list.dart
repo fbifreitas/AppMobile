@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
 import '../models/observability_log_entry.dart';
 
 class ObservabilityLogList extends StatelessWidget {
@@ -12,6 +13,7 @@ class ObservabilityLogList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     if (items.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(16),
@@ -19,7 +21,7 @@ class ObservabilityLogList extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.22),
         ),
-        child: const Text('Nenhum log registrado até o momento.'),
+        child: Text(strings.tr('Nenhum log registrado ate o momento.', 'No logs recorded so far.')),
       );
     }
 

@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
 import '../services/app_navigation_coordinator.dart';
 import '../services/app_navigation_registry_service.dart';
 import '../services/center_status_resolver_service.dart';
@@ -16,11 +17,16 @@ class AppIntegrationCenterScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     final status = const CenterStatusResolverService().build();
     final shortcuts = const AppNavigationRegistryService().entries();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Integração operacional')),
+      appBar: AppBar(
+        title: Text(
+          strings.tr('Integração operacional', 'Operational integration'),
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -28,11 +34,10 @@ class AppIntegrationCenterScreen extends StatelessWidget {
           const SizedBox(height: 12),
           AppNavigationShortcutsCard(
             items: shortcuts,
-            onTap:
-                (entry) => navigationCoordinator.openAppShortcut(
-                  context,
-                  routeKey: entry.routeKey,
-                ),
+            onTap: (entry) => navigationCoordinator.openAppShortcut(
+              context,
+              routeKey: entry.routeKey,
+            ),
           ),
         ],
       ),

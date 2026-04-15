@@ -1,0 +1,25 @@
+* text=auto
+
+*.dart text working-tree-encoding=UTF-8 eol=lf
+*.md text working-tree-encoding=UTF-8 eol=lf
+*.txt text working-tree-encoding=UTF-8 eol=lf
+*.json text working-tree-encoding=UTF-8 eol=lf
+*.yml text working-tree-encoding=UTF-8 eol=lf
+*.yaml text working-tree-encoding=UTF-8 eol=lf
+*.xml text working-tree-encoding=UTF-8 eol=lf
+*.java text working-tree-encoding=UTF-8 eol=lf
+*.kt text working-tree-encoding=UTF-8 eol=lf
+*.properties text working-tree-encoding=UTF-8 eol=lf
+*.gradle text working-tree-encoding=UTF-8 eol=lf
+*.sh text working-tree-encoding=UTF-8 eol=lf
+*.ps1 text working-tree-encoding=UTF-8 eol=lf
+*.bat text working-tree-encoding=UTF-8 eol=lf
+*.csv text working-tree-encoding=UTF-8 eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.pdf binary
+*.keystore binary

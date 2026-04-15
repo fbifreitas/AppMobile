@@ -1,13 +1,15 @@
 name: appmobile
 description: Plataforma corporativa multi-dominio, multi-tenant e white-label com apps e operacao de campo.
 publish_to: 'none'
-version: 1.2.57+77
+version: 1.2.58+78
 
 environment:
   sdk: ">=3.7.0 <4.0.0"
 
 dependencies:
   flutter:
+    sdk: flutter
+  flutter_localizations:
     sdk: flutter
   provider: ^6.0.5
   cupertino_icons: ^1.0.8

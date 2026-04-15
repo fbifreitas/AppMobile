@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
 import '../services/operational_output_service.dart';
 import '../services/production_navigation_map_service.dart';
 import '../services/production_readiness_service.dart';
@@ -11,6 +12,7 @@ class ProductionReadinessCenterScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     final summary = const ProductionReadinessService().build(
       mainNavigationReady: true,
       reviewFlowReady: true,
@@ -31,7 +33,7 @@ class ProductionReadinessCenterScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Produção e saída operacional'),
+        title: Text(strings.tr('Producao e saida operacional', 'Production and operational output')),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -41,12 +43,12 @@ class ProductionReadinessCenterScreen extends StatelessWidget {
           ProductionReadinessList(items: summary.items),
           const SizedBox(height: 12),
           _SectionCard(
-            title: 'Mapa de navegação de produção',
+            title: strings.tr('Mapa de navegacao de producao', 'Production navigation map'),
             lines: entries,
           ),
           const SizedBox(height: 12),
           _SectionCard(
-            title: 'Checklist de saída operacional',
+            title: strings.tr('Checklist de saida operacional', 'Operational output checklist'),
             lines: outputs,
           ),
         ],

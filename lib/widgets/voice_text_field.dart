@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
 import '../services/voice_input_service.dart';
 
 class VoiceTextField extends StatefulWidget {
@@ -56,6 +57,7 @@ class _VoiceTextFieldState extends State<VoiceTextField> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     return TextFormField(
       controller: widget.controller,
       focusNode: widget.focusNode,
@@ -70,7 +72,9 @@ class _VoiceTextFieldState extends State<VoiceTextField> {
         alignLabelWithHint: true,
         isDense: true,
         suffixIcon: IconButton(
-          tooltip: _isListening ? 'Ouvindo...' : 'Preencher por voz',
+          tooltip: _isListening
+              ? strings.tr('Ouvindo...', 'Listening...')
+              : strings.tr('Preencher por voz', 'Fill by voice'),
           onPressed: _dictate,
           icon: Icon(_isListening ? Icons.mic : Icons.mic_none),
         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_strings.dart';
 import '../models/job_status.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
@@ -12,6 +13,7 @@ class CompletedInspectionsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
+    final strings = AppStrings.of(context);
     final completedJobs =
         appState.jobs
             .where((job) => job.status == JobStatus.finalizado)
@@ -19,12 +21,15 @@ class CompletedInspectionsScreen extends StatelessWidget {
           ..sort((a, b) => b.id.compareTo(a.id));
 
     if (completedJobs.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24),
           child: Text(
-            'Nenhuma vistoria concluida ainda.',
-            style: TextStyle(
+            strings.tr(
+              'Nenhuma vistoria concluida ainda.',
+              'No completed inspection yet.',
+            ),
+            style: const TextStyle(
               color: AppColors.textSecondary,
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -74,9 +79,9 @@ class CompletedInspectionsScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Text(
-                        'CONCLUIDA',
-                        style: TextStyle(
+                      Text(
+                        strings.tr('CONCLUIDA', 'COMPLETED'),
+                        style: const TextStyle(
                           color: Colors.green,
                           fontWeight: FontWeight.w800,
                           fontSize: 11,
@@ -119,7 +124,7 @@ class CompletedInspectionsScreen extends StatelessWidget {
                   if (_nonEmpty(job.idExterno) != null) ...[
                     const SizedBox(height: 4),
                     Text(
-                      'ID externo: ${_nonEmpty(job.idExterno)}',
+                      '${strings.tr('ID externo', 'External ID')}: ${_nonEmpty(job.idExterno)}',
                       style: const TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 11,
@@ -130,7 +135,7 @@ class CompletedInspectionsScreen extends StatelessWidget {
                   if (_nonEmpty(job.protocoloExterno) != null) ...[
                     const SizedBox(height: 2),
                     Text(
-                      'Protocolo: ${_nonEmpty(job.protocoloExterno)}',
+                      '${strings.tr('Protocolo', 'Protocol')}: ${_nonEmpty(job.protocoloExterno)}',
                       style: const TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 11,

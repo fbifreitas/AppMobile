@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
 import '../services/voice_input_service.dart';
 
 class VoiceSelectorSheet extends StatefulWidget {
@@ -85,13 +86,22 @@ class _VoiceSelectorSheetState extends State<VoiceSelectorSheet> {
       }
     }
 
+    final strings = AppStrings.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Nenhuma opção compatível encontrada em: $transcript')),
+      SnackBar(
+        content: Text(
+          strings.tr(
+            'Nenhuma opcao compativel encontrada em: $transcript',
+            'No compatible option found in: $transcript',
+          ),
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     return SafeArea(
       top: false,
       child: Padding(
@@ -110,7 +120,7 @@ class _VoiceSelectorSheetState extends State<VoiceSelectorSheet> {
                   ),
                 ),
                 IconButton(
-                  tooltip: _isListening ? 'Ouvindo...' : 'Selecionar por voz',
+                  tooltip: _isListening ? strings.tr('Ouvindo...', 'Listening...') : strings.tr('Selecionar por voz', 'Select by voice'),
                   onPressed: _listen,
                   icon: Icon(_isListening ? Icons.mic : Icons.mic_none),
                 ),
@@ -141,7 +151,7 @@ class _VoiceSelectorSheetState extends State<VoiceSelectorSheet> {
               width: double.infinity,
               child: FilledButton(
                 onPressed: () => Navigator.of(context).pop(_selected),
-                child: const Text('Confirmar'),
+                child: Text(strings.tr('Confirmar', 'Confirm')),
               ),
             ),
           ],

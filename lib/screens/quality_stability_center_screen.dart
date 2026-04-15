@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
 import '../services/quality_gate_service.dart';
 import '../widgets/quality_gate_summary_card.dart';
 import '../widgets/stability_check_card.dart';
@@ -9,6 +10,7 @@ class QualityStabilityCenterScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     final summary = const QualityGateService().build(
       checkinScreenAvailable: true,
       cameraScreenAvailable: true,
@@ -31,7 +33,7 @@ class QualityStabilityCenterScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Qualidade e estabilidade'),
+        title: Text(strings.tr('Qualidade e estabilidade', 'Quality and stability')),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),

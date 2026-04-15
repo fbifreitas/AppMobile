@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_strings.dart';
 import '../../models/job.dart';
 import '../../theme/app_colors.dart';
 
@@ -13,6 +14,9 @@ class CheckinPropertyClientCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
+    final notProvided = strings.tr('Nao informado', 'Not provided');
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -23,9 +27,9 @@ class CheckinPropertyClientCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'DADOS IMÓVEL E CLIENTE',
-            style: TextStyle(
+          Text(
+            strings.tr('DADOS IMOVEL E CLIENTE', 'PROPERTY AND CLIENT DATA'),
+            style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w800,
               color: AppColors.textSecondary,
@@ -50,7 +54,7 @@ class CheckinPropertyClientCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            'Cliente: ${job.nomeCliente.isEmpty ? 'Não informado' : job.nomeCliente}',
+            '${strings.tr('Cliente', 'Client')}: ${job.nomeCliente.isEmpty ? notProvided : job.nomeCliente}',
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -58,7 +62,7 @@ class CheckinPropertyClientCard extends StatelessWidget {
             ),
           ),
           Text(
-            'Contato: ${job.telefoneCliente?.isNotEmpty == true ? job.telefoneCliente : 'Não informado'}',
+            '${strings.tr('Contato', 'Contact')}: ${job.telefoneCliente?.isNotEmpty == true ? job.telefoneCliente : notProvided}',
             style: const TextStyle(
               fontSize: 12,
               color: AppColors.textSecondary,

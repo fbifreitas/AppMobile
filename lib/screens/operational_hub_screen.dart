@@ -1,9 +1,11 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_strings.dart';
 import '../models/home_location_snapshot.dart';
 import '../services/app_navigation_coordinator.dart';
 import '../services/home_location_service.dart';
+import '../services/inspection_export_service.dart';
 import '../services/location_service.dart';
 import '../services/operational_hub_registry_service.dart';
 import '../state/app_state.dart';
@@ -11,7 +13,6 @@ import '../state/auth_state.dart';
 import '../widgets/home/location_status_card.dart';
 import '../widgets/home/startup_status_card.dart';
 import '../widgets/operational_hub_grid.dart';
-import '../services/inspection_export_service.dart';
 
 class OperationalHubScreen extends StatefulWidget {
   final AppNavigationCoordinator navigationCoordinator;
@@ -100,6 +101,7 @@ class _OperationalHubScreenState extends State<OperationalHubScreen> {
   }
 
   Future<void> _readCurrentLocationForTestConfig() async {
+    final strings = AppStrings.of(context);
     setState(() {
       _loadingCurrentLocation = true;
       _comparisonText = null;
@@ -128,8 +130,14 @@ class _OperationalHubScreenState extends State<OperationalHubScreen> {
 
         comparison =
             d < 1000
-                ? 'Diferença entre localização atual e configurada: ${d.toStringAsFixed(0)}m'
-                : 'Diferença entre localização atual e configurada: ${(d / 1000).toStringAsFixed(2)} km';
+                ? strings.tr(
+                  'Diferenca entre localizacao atual e configurada: ${d.toStringAsFixed(0)}m',
+                  'Difference between current and configured location: ${d.toStringAsFixed(0)}m',
+                )
+                : strings.tr(
+                  'Diferenca entre localizacao atual e configurada: ${(d / 1000).toStringAsFixed(2)} km',
+                  'Difference between current and configured location: ${(d / 1000).toStringAsFixed(2)} km',
+                );
       }
 
       if (!mounted) return;
@@ -142,7 +150,10 @@ class _OperationalHubScreenState extends State<OperationalHubScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _comparisonText = 'Não foi possível ler a localização atual: $e';
+        _comparisonText = strings.tr(
+          'Nao foi possivel ler a localizacao atual: $e',
+          'Could not read the current location: $e',
+        );
       });
     } finally {
       if (mounted) {
@@ -159,6 +170,7 @@ class _OperationalHubScreenState extends State<OperationalHubScreen> {
 
   void _saveTestAddressConfig() {
     final appState = context.read<AppState>();
+    final strings = AppStrings.of(context);
     final lat = double.tryParse(_latController.text.replaceAll(',', '.'));
     final lng = double.tryParse(_lngController.text.replaceAll(',', '.'));
 
@@ -166,21 +178,30 @@ class _OperationalHubScreenState extends State<OperationalHubScreen> {
     appState.setResidencia(lat: lat, lng: lng);
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Configuração de endereço para teste atualizada.'),
+      SnackBar(
+        content: Text(
+          strings.tr(
+            'Configuracao de endereco para teste atualizada.',
+            'Test address configuration updated.',
+          ),
+        ),
       ),
     );
   }
 
   Future<void> _resetOnboardingMock() async {
     final authState = context.read<AuthState>();
+    final strings = AppStrings.of(context);
     await authState.resetOnboardingForMock();
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text(
-          'Onboarding mock resetado. Reinicie o cadastro para validar o fluxo PJ.',
+          strings.tr(
+            'Onboarding mock resetado. Reinicie o cadastro para validar o fluxo PJ.',
+            'Mock onboarding reset. Restart registration to validate the business flow.',
+          ),
         ),
       ),
     );
@@ -191,22 +212,28 @@ class _OperationalHubScreenState extends State<OperationalHubScreen> {
   Widget build(BuildContext context) {
     final items = const OperationalHubRegistryService().items();
     final appState = context.watch<AppState>();
+    final strings = AppStrings.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Hub operacional')),
+      appBar: AppBar(
+        title: Text(strings.tr('Hub operacional', 'Operational hub')),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Text(
-            'Centrais integradas',
+            strings.tr('Centrais integradas', 'Integrated centers'),
             style: Theme.of(
               context,
             ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Acesse o fluxo principal e os painéis técnicos a partir de um único ponto.',
-            style: TextStyle(fontSize: 12),
+          Text(
+            strings.tr(
+              'Acesse o fluxo principal e os paineis tecnicos a partir de um unico ponto.',
+              'Access the main flow and technical panels from a single place.',
+            ),
+            style: const TextStyle(fontSize: 12),
           ),
           const SizedBox(height: 16),
           StartupStatusCard(
@@ -243,20 +270,34 @@ class _OperationalHubScreenState extends State<OperationalHubScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Ferramentas operacionais de mock',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                  Text(
+                    strings.tr(
+                      'Ferramentas operacionais de mock',
+                      'Mock operational tools',
+                    ),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Use para reiniciar o onboarding sem reinstalar o app.',
-                    style: TextStyle(fontSize: 12),
+                  Text(
+                    strings.tr(
+                      'Use para reiniciar o onboarding sem reinstalar o app.',
+                      'Use this to restart onboarding without reinstalling the app.',
+                    ),
+                    style: const TextStyle(fontSize: 12),
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
                     onPressed: _resetOnboardingMock,
                     icon: const Icon(Icons.restart_alt_outlined),
-                    label: const Text('Resetar mock de onboarding'),
+                    label: Text(
+                      strings.tr(
+                        'Resetar mock de onboarding',
+                        'Reset onboarding mock',
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -333,6 +374,7 @@ class _ExportSettingsCardState extends State<_ExportSettingsCard> {
   }
 
   Future<void> _saveSettings() async {
+    final strings = AppStrings.of(context);
     await _exportService.configureExportDirectory(
       mode: _exportMode,
       folderName: _folderController.text,
@@ -347,20 +389,30 @@ class _ExportSettingsCardState extends State<_ExportSettingsCard> {
     final message =
         effectiveSettings.mode == InspectionExportDirectoryMode.external &&
                 !effectiveSettings.usingExternalBase
-            ? 'Salvo. Diretório externo indisponível; usando interno automaticamente.'
-            : 'Configuração de exportação salva.';
+            ? strings.tr(
+              'Salvo. Diretorio externo indisponivel; usando interno automaticamente.',
+              'Saved. External directory unavailable; using internal automatically.',
+            )
+            : strings.tr(
+              'Configuracao de exportacao salva.',
+              'Export configuration saved.',
+            );
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _purgeNow() async {
+    final strings = AppStrings.of(context);
     final retentionDays = int.tryParse(_retentionController.text.trim()) ?? 30;
     if (retentionDays <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Retenção definida como 0: nenhum arquivo é excluído automaticamente.',
+            strings.tr(
+              'Retencao definida como 0: nenhum arquivo e excluido automaticamente.',
+              'Retention set to 0: no file is deleted automatically.',
+            ),
           ),
         ),
       );
@@ -376,8 +428,14 @@ class _ExportSettingsCardState extends State<_ExportSettingsCard> {
       SnackBar(
         content: Text(
           deleted == 0
-              ? 'Nenhum arquivo removido (todos dentro do período de $retentionDays dias).'
-              : '$deleted arquivo(s) removido(s) com mais de $retentionDays dia(s).',
+              ? strings.tr(
+                'Nenhum arquivo removido (todos dentro do periodo de $retentionDays dias).',
+                'No file removed (all within the $retentionDays-day period).',
+              )
+              : strings.tr(
+                '$deleted arquivo(s) removido(s) com mais de $retentionDays dia(s).',
+                '$deleted file(s) removed with more than $retentionDays day(s).',
+              ),
         ),
       ),
     );
@@ -385,20 +443,24 @@ class _ExportSettingsCardState extends State<_ExportSettingsCard> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Exportação da vistoria',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+            Text(
+              strings.tr('Exportacao da vistoria', 'Inspection export'),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 4),
-            const Text(
-              'Configuração do destino dos JSONs exportados.',
-              style: TextStyle(fontSize: 12),
+            Text(
+              strings.tr(
+                'Configuracao do destino dos JSONs exportados.',
+                'Configuration of the destination for exported JSON files.',
+              ),
+              style: const TextStyle(fontSize: 12),
             ),
             const SizedBox(height: 12),
             if (_loading)
@@ -406,18 +468,31 @@ class _ExportSettingsCardState extends State<_ExportSettingsCard> {
             else ...[
               DropdownButtonFormField<InspectionExportDirectoryMode>(
                 initialValue: _exportMode,
-                decoration: const InputDecoration(
-                  labelText: 'Destino da exportação JSON',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: strings.tr(
+                    'Destino da exportacao JSON',
+                    'JSON export destination',
+                  ),
+                  border: const OutlineInputBorder(),
                 ),
-                items: const [
+                items: [
                   DropdownMenuItem(
                     value: InspectionExportDirectoryMode.internal,
-                    child: Text('Interno (recomendado)'),
+                    child: Text(
+                      strings.tr(
+                        'Interno (recomendado)',
+                        'Internal (recommended)',
+                      ),
+                    ),
                   ),
                   DropdownMenuItem(
                     value: InspectionExportDirectoryMode.external,
-                    child: Text('Externo (quando disponível)'),
+                    child: Text(
+                      strings.tr(
+                        'Externo (quando disponivel)',
+                        'External (when available)',
+                      ),
+                    ),
                   ),
                 ],
                 onChanged: (value) {
@@ -428,20 +503,28 @@ class _ExportSettingsCardState extends State<_ExportSettingsCard> {
               const SizedBox(height: 10),
               TextField(
                 controller: _folderController,
-                decoration: const InputDecoration(
-                  labelText: 'Subdiretório de exportação',
-                  border: OutlineInputBorder(),
-                  helperText:
-                      'Exemplo: inspection_exports ou operacao/json/vistorias',
+                decoration: InputDecoration(
+                  labelText: strings.tr(
+                    'Subdiretorio de exportacao',
+                    'Export subdirectory',
+                  ),
+                  border: const OutlineInputBorder(),
+                  helperText: strings.tr(
+                    'Exemplo: inspection_exports ou operacao/json/vistorias',
+                    'Example: inspection_exports or operacao/json/vistorias',
+                  ),
                 ),
               ),
               if (_exportMode == InspectionExportDirectoryMode.external &&
                   !_usingExternalBase)
-                const Padding(
-                  padding: EdgeInsets.only(top: 8),
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
                   child: Text(
-                    'Neste dispositivo, o diretório externo pode não estar disponível. O app fará fallback automático para o diretório interno.',
-                    style: TextStyle(
+                    strings.tr(
+                      'Neste dispositivo, o diretorio externo pode nao estar disponivel. O app fara fallback automatico para o diretorio interno.',
+                      'On this device, the external directory may be unavailable. The app will automatically fall back to the internal directory.',
+                    ),
+                    style: const TextStyle(
                       color: Colors.deepOrange,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -450,23 +533,28 @@ class _ExportSettingsCardState extends State<_ExportSettingsCard> {
                 ),
               const SizedBox(height: 12),
               const Divider(height: 28),
-              const Text(
-                'Retenção de arquivos',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+              Text(
+                strings.tr('Retencao de arquivos', 'File retention'),
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 4),
-              const Text(
-                'Defina por quantos dias os JSONs exportados são mantidos. '
-                'Use 0 para nunca limpar automaticamente.',
-                style: TextStyle(fontSize: 12),
+              Text(
+                strings.tr(
+                  'Defina por quantos dias os JSONs exportados sao mantidos. Use 0 para nunca limpar automaticamente.',
+                  'Define how many days exported JSON files are kept. Use 0 to never clean automatically.',
+                ),
+                style: const TextStyle(fontSize: 12),
               ),
               const SizedBox(height: 10),
               TextField(
                 controller: _retentionController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Dias de retenção (0 = nunca limpar)',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: strings.tr(
+                    'Dias de retencao (0 = nunca limpar)',
+                    'Retention days (0 = never clean)',
+                  ),
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
@@ -476,7 +564,12 @@ class _ExportSettingsCardState extends State<_ExportSettingsCard> {
                 children: [
                   FilledButton(
                     onPressed: _saveSettings,
-                    child: const Text('Salvar configuração'),
+                    child: Text(
+                      strings.tr(
+                        'Salvar configuracao',
+                        'Save configuration',
+                      ),
+                    ),
                   ),
                   OutlinedButton.icon(
                     onPressed: _purging ? null : _purgeNow,
@@ -488,7 +581,7 @@ class _ExportSettingsCardState extends State<_ExportSettingsCard> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                             : const Icon(Icons.delete_sweep_outlined, size: 16),
-                    label: const Text('Limpar agora'),
+                    label: Text(strings.tr('Limpar agora', 'Clean now')),
                   ),
                 ],
               ),
@@ -527,22 +620,29 @@ class _TestAddressConfigurationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Configuração de Endereço para Teste',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+            Text(
+              strings.tr(
+                'Configuracao de Endereco para Teste',
+                'Test Address Configuration',
+              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: enderecoController,
-              decoration: const InputDecoration(
-                labelText: 'Meu Endereço Base',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: strings.tr(
+                  'Meu Endereco Base',
+                  'My Base Address',
+                ),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -552,9 +652,12 @@ class _TestAddressConfigurationCard extends StatelessWidget {
                 decimal: true,
                 signed: true,
               ),
-              decoration: const InputDecoration(
-                labelText: 'Latitude Configurada',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: strings.tr(
+                  'Latitude Configurada',
+                  'Configured Latitude',
+                ),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -564,9 +667,12 @@ class _TestAddressConfigurationCard extends StatelessWidget {
                 decimal: true,
                 signed: true,
               ),
-              decoration: const InputDecoration(
-                labelText: 'Longitude Configurada',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: strings.tr(
+                  'Longitude Configurada',
+                  'Configured Longitude',
+                ),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -575,8 +681,11 @@ class _TestAddressConfigurationCard extends StatelessWidget {
               icon: const Icon(Icons.my_location),
               label: Text(
                 loadingCurrentLocation
-                    ? 'Lendo...'
-                    : 'Ler Localização do Celular',
+                    ? strings.tr('Lendo...', 'Reading...')
+                    : strings.tr(
+                      'Ler Localizacao do Celular',
+                      'Read Device Location',
+                    ),
               ),
             ),
             if (currentLat != null && currentLng != null) ...[
@@ -593,9 +702,19 @@ class _TestAddressConfigurationCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Latitude atual: $currentLat'),
+                    Text(
+                      strings.tr(
+                        'Latitude atual: $currentLat',
+                        'Current latitude: $currentLat',
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    Text('Longitude atual: $currentLng'),
+                    Text(
+                      strings.tr(
+                        'Longitude atual: $currentLng',
+                        'Current longitude: $currentLng',
+                      ),
+                    ),
                     if (comparisonText != null) ...[
                       const SizedBox(height: 8),
                       Text(
@@ -611,9 +730,30 @@ class _TestAddressConfigurationCard extends StatelessWidget {
               Text(comparisonText!),
             ],
             const SizedBox(height: 12),
-            FilledButton(
-              onPressed: onSave,
-              child: const Text('Salvar configuração de teste'),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilledButton(
+                  onPressed: onSave,
+                  child: Text(
+                    strings.tr(
+                      'Salvar configuracao de teste',
+                      'Save test configuration',
+                    ),
+                  ),
+                ),
+                if (currentLat != null && currentLng != null)
+                  OutlinedButton(
+                    onPressed: onUseCurrentLocation,
+                    child: Text(
+                      strings.tr(
+                        'Usar localizacao atual',
+                        'Use current location',
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ],
         ),

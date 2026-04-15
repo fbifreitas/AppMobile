@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_strings.dart';
 import '../services/permissions_onboarding_service.dart';
 import '../state/auth_state.dart';
 import '../theme/app_colors.dart';
@@ -24,6 +25,7 @@ class _PermissionsOnboardingScreenState
   PermissionsOnboardingStatus? _status;
 
   Future<void> _requestPermissions() async {
+    final strings = AppStrings.of(context);
     setState(() => _loading = true);
     final status = await widget.permissionsService.requestAll();
     if (!mounted) return;
@@ -36,17 +38,25 @@ class _PermissionsOnboardingScreenState
       await context.read<AuthState>().completePermissionsOnboarding();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Permissoes essenciais conferidas com sucesso.'),
+        SnackBar(
+          content: Text(
+            strings.tr(
+              'Permissoes essenciais conferidas com sucesso.',
+              'Essential permissions validated successfully.',
+            ),
+          ),
         ),
       );
       return;
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text(
-          'Ainda faltam permissoes essenciais. Revise cada item e tente novamente.',
+          strings.tr(
+            'Ainda faltam permissoes essenciais. Revise cada item e tente novamente.',
+            'Some essential permissions are still missing. Review each item and try again.',
+          ),
         ),
       ),
     );
@@ -71,31 +81,44 @@ class _PermissionsOnboardingScreenState
   @override
   Widget build(BuildContext context) {
     final current = _status;
+    final strings = AppStrings.of(context);
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Permissoes essenciais')),
+      appBar: AppBar(title: Text(strings.tr('Permissoes essenciais', 'Essential permissions'))),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Antes de usar o app em campo, valide as permissoes essenciais. Se alguma ja estiver aprovada no Android, vamos apenas confirmar e continuar.',
+            Text(
+              strings.tr(
+                'Antes de usar o app em campo, valide as permissoes essenciais. Se alguma ja estiver aprovada no Android, vamos apenas confirmar e continuar.',
+                'Before using the app in the field, validate the essential permissions. If any of them are already granted on Android, we will just confirm and continue.',
+              ),
             ),
             const SizedBox(height: 16),
             _permissionTile(
-              title: 'Camera',
-              description: 'Necessaria para captura tecnica da vistoria.',
+              title: strings.tr('Camera', 'Camera'),
+              description: strings.tr(
+                'Necessaria para captura tecnica da vistoria.',
+                'Required for technical inspection capture.',
+              ),
               granted: current?.cameraGranted ?? false,
             ),
             _permissionTile(
-              title: 'Localizacao',
-              description: 'Necessaria para validacao operacional em campo.',
+              title: strings.tr('Localizacao', 'Location'),
+              description: strings.tr(
+                'Necessaria para validacao operacional em campo.',
+                'Required for field operational validation.',
+              ),
               granted: current?.locationGranted ?? false,
             ),
             _permissionTile(
-              title: 'Microfone',
-              description: 'Necessario para recursos de voz operacionais.',
+              title: strings.tr('Microfone', 'Microphone'),
+              description: strings.tr(
+                'Necessario para recursos de voz operacionais.',
+                'Required for operational voice features.',
+              ),
               granted: current?.microphoneGranted ?? false,
             ),
           ],
@@ -106,7 +129,7 @@ class _PermissionsOnboardingScreenState
         minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
         child: SizedBox(
           width: double.infinity,
-              child: FilledButton(
+          child: FilledButton(
             onPressed: _loading ? null : _requestPermissions,
             child: _loading
                 ? const SizedBox(
@@ -117,7 +140,12 @@ class _PermissionsOnboardingScreenState
                       color: Colors.white,
                     ),
                   )
-                : const Text('Validar permissoes e continuar'),
+                : Text(
+                    strings.tr(
+                      'Validar permissoes e continuar',
+                      'Validate permissions and continue',
+                    ),
+                  ),
           ),
         ),
       ),

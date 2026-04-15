@@ -31,6 +31,7 @@ import '../helpers/brand_test_helper.dart';
 
 MaterialApp _materialApp(Widget home) {
   return MaterialApp(
+    locale: const Locale('pt'),
     localizationsDelegates: AppStrings.localizationsDelegates,
     supportedLocales: AppStrings.supportedLocales,
     home: home,

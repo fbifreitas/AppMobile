@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_strings.dart';
 import '../../models/inspection_camera_selector_section.dart';
 import 'overlay_camera_support_widgets.dart';
 
@@ -33,6 +34,7 @@ class OverlayCameraSelectorPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     final widgets = <Widget>[];
 
     for (final section in sections) {
@@ -71,7 +73,9 @@ class OverlayCameraSelectorPanel extends StatelessWidget {
                         onSelect: (value) async => onSelectTargetItem(value),
                       ),
               onDuplicate: !section.allowDuplicate ? null : onDuplicateTargetItem,
-              duplicateLabel: section.duplicateLabel ?? 'Novo ambiente',
+              duplicateLabel:
+                  section.duplicateLabel ??
+                  strings.tr('Novo ambiente', 'New environment'),
             ),
           );
           break;

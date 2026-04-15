@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
 import '../models/app_navigation_entry.dart';
 
 class AppNavigationShortcutsCard extends StatelessWidget {
@@ -14,6 +15,7 @@ class AppNavigationShortcutsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -24,7 +26,7 @@ class AppNavigationShortcutsCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Atalhos principais',
+            strings.tr('Atalhos principais', 'Main shortcuts'),
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),

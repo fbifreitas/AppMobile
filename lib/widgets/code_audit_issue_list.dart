@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
 import '../models/code_audit_issue.dart';
 import 'unified_section_card.dart';
 
@@ -13,9 +14,13 @@ class CodeAuditIssueList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     return UnifiedSectionCard(
-      title: 'Achados principais',
-      subtitle: 'Base para os pacotes 10A, 10B, 11A e 11B.',
+      title: strings.tr('Achados principais', 'Main findings'),
+      subtitle: strings.tr(
+        'Base para os pacotes 10A, 10B, 11A e 11B.',
+        'Base for packages 10A, 10B, 11A and 11B.',
+      ),
       child: Column(
         children: items.map((item) {
           final color = item.severity == CodeAuditSeverity.blocking
@@ -51,7 +56,10 @@ class CodeAuditIssueList extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(item.description, style: const TextStyle(fontSize: 12)),
                       const SizedBox(height: 6),
-                      Text('Área: ${item.area}', style: const TextStyle(fontSize: 11)),
+                      Text(
+                        strings.tr('Area: ${item.area}', 'Area: ${item.area}'),
+                        style: const TextStyle(fontSize: 11),
+                      ),
                     ],
                   ),
                 ),

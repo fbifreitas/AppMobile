@@ -1,10 +1,10 @@
-> [NOTA DE ESCOPO - OPERACIONAL ATIVO]
+﻿> [NOTA DE ESCOPO - OPERACIONAL ATIVO]
 > Este e um documento operacional ativo.
 > Este documento nao substitui a direcao arquitetural V2 corporativa do repositorio.
 > Deve ser lido em conjunto com README.md, GEMINI.md, .github/copilot-instructions.md e os documentos ativos da V2 em docs/.
 
 > [31/03/2026] **Ajuste operacional:**
-> Esteira de distribuição Android ajustada para garantir que builds automáticos sejam enviados apenas ao grupo "prod-testers" no Firebase App Distribution. Builds manuais permitem seleção de grupo, com padrão "testers-internos". Mudança documentada para rastreabilidade e prevenção de erros operacionais. (Ver detalhes no plano operacional e workflows)
+> Esteira de distribuiÃ§Ã£o Android ajustada para garantir que builds automÃ¡ticos sejam enviados apenas ao grupo "prod-testers" no Firebase App Distribution. Builds manuais permitem seleÃ§Ã£o de grupo, com padrÃ£o "testers-internos". MudanÃ§a documentada para rastreabilidade e prevenÃ§Ã£o de erros operacionais. (Ver detalhes no plano operacional e workflows)
 # Backlog de Funcionalidades Nao Implementadas
 
 Atualizado em: 2026-04-01
@@ -13,10 +13,10 @@ Atualizado em: 2026-04-01
 Registrar funcionalidades pendentes para evolucao do AppMobile, com foco em priorizacao de produto e previsibilidade tecnica.
 
 ## Backlog complementar de backoffice web
-Para planejamento do sistema web de backoffice (APIs, painéis e configurações para suportar o app mobile), consultar `docs/05-operations/tactical-backlogs/BACKLOG_BACKOFFICE_WEB.md`.
+Para planejamento do sistema web de backoffice (APIs, painÃ©is e configuraÃ§Ãµes para suportar o app mobile), consultar `docs/05-operations/tactical-backlogs/BACKLOG_BACKOFFICE_WEB.md`.
 
-## Backlog complementar de integração web-mobile
-Para segurança, contratos e comunicação bidirecional entre app e backoffice, consultar `docs/05-operations/tactical-backlogs/BACKLOG_INTEGRACAO_WEB_MOBILE.md`.
+## Backlog complementar de integraÃ§Ã£o web-mobile
+Para seguranÃ§a, contratos e comunicaÃ§Ã£o bidirecional entre app e backoffice, consultar `docs/05-operations/tactical-backlogs/BACKLOG_INTEGRACAO_WEB_MOBILE.md`.
 
 ## Plano de execucao (proximos 30 dias)
 Para transformar backlog em entrega com marcos semanais, ownership e criterios de aceite, consultar `docs/05-operations/runbooks/PLANO_EXECUCAO_30_DIAS_WEB_MOBILE.md`.
@@ -37,7 +37,7 @@ Usar este cabecalho nos itens priorizados:
 
 ## Rastreabilidade retroativa de documentacao (governanca)
 
-### DOC-001 — Migracao documental V2 (registro retroativo)
+### DOC-001 â€” Migracao documental V2 (registro retroativo)
 - Camada: corporate
 - Dominio: cross-domain
 - Area: governanca documental
@@ -51,7 +51,7 @@ Usar este cabecalho nos itens priorizados:
 
 Status: Concluido (registro retroativo)
 
-### DOC-002 — Reclassificacao operacional ativa (registro retroativo)
+### DOC-002 â€” Reclassificacao operacional ativa (registro retroativo)
 - Camada: corporate
 - Dominio: cross-domain
 - Area: taxonomia documental operacional
@@ -65,7 +65,7 @@ Status: Concluido (registro retroativo)
 
 Status: Concluido (registro retroativo)
 
-### DOC-003 — Consolidacao operacional do agente (registro retroativo)
+### DOC-003 â€” Consolidacao operacional do agente (registro retroativo)
 - Camada: corporate
 - Dominio: cross-domain
 - Area: autonomia operacional do agente
@@ -79,31 +79,31 @@ Status: Concluido (registro retroativo)
 
 Status: Concluido (registro retroativo)
 
-## 🎯 Roadmap de Priorização
+## ðŸŽ¯ Roadmap de PriorizaÃ§Ã£o
 
-A sequência de implementação foi definida considerando:
-- **Dependências técnicas**: itens que desbloqueiam outros
-- **Crítica para NBR**: conformidade regulatória não é negociável
-- **Impacto no fluxo**: validação em checkin/revisão
+A sequÃªncia de implementaÃ§Ã£o foi definida considerando:
+- **DependÃªncias tÃ©cnicas**: itens que desbloqueiam outros
+- **CrÃ­tica para NBR**: conformidade regulatÃ³ria nÃ£o Ã© negociÃ¡vel
+- **Impacto no fluxo**: validaÃ§Ã£o em checkin/revisÃ£o
 
-**Fluxo de implementação recomendado:**
+**Fluxo de implementaÃ§Ã£o recomendado:**
 
 ```
-Step 1️⃣ (CRÍTICA) → BL-012 + BL-001
-    ↓
-Step 2️⃣ (ALTA) → BL-002 + BL-008 + BL-015
-    ↓
-Step 3️⃣ (ALTA) → BL-003 + BL-006
-    ↓
-Step 4️⃣ (ALTA) → BL-010
-    ↓
-Step 5️⃣ (MÉDIA) → BL-004, BL-005, BL-007, BL-009, BL-016, BL-037, BL-038, BL-039
-  ↓
-Step 6️⃣ (DÉBITO TÉCNICO) → BL-013 + BL-014 + BL-036
-  ↓
-Step 7️⃣ (BOAS PRÁTICAS) → BL-017, BL-018, BL-019, BL-020, BL-021, BL-022, BL-023, BL-024, BL-025, BL-026, BL-027, BL-028
-  ↓
-Step 8️⃣ (BACKEND BLOQUEADO — aguarda Onda 1 BOW) → BL-031 (depende de BOW-100 + BOW-101 + BOW-102), BL-032, BL-033, BL-034, BL-035, BL-029, BL-030
+Step 1ï¸âƒ£ (CRÃTICA) â†’ BL-012 + BL-001
+    â†“
+Step 2ï¸âƒ£ (ALTA) â†’ BL-002 + BL-008 + BL-015
+    â†“
+Step 3ï¸âƒ£ (ALTA) â†’ BL-003 + BL-006
+    â†“
+Step 4ï¸âƒ£ (ALTA) â†’ BL-010
+    â†“
+Step 5ï¸âƒ£ (MÃ‰DIA) â†’ BL-004, BL-005, BL-007, BL-009, BL-016, BL-037, BL-038, BL-039
+  â†“
+Step 6ï¸âƒ£ (DÃ‰BITO TÃ‰CNICO) â†’ BL-013 + BL-014 + BL-036
+  â†“
+Step 7ï¸âƒ£ (BOAS PRÃTICAS) â†’ BL-017, BL-018, BL-019, BL-020, BL-021, BL-022, BL-023, BL-024, BL-025, BL-026, BL-027, BL-028
+  â†“
+Step 8ï¸âƒ£ (BACKEND BLOQUEADO â€” aguarda Onda 1 BOW) â†’ BL-031 (depende de BOW-100 + BOW-101 + BOW-102), BL-032, BL-033, BL-034, BL-035, BL-029, BL-030
 ```
 
 ---
@@ -112,76 +112,161 @@ Step 8️⃣ (BACKEND BLOQUEADO — aguarda Onda 1 BOW) → BL-031 (depende de B
 
 | Seq | ID | Funcionalidade | Status | Prioridade | Criterio de pronto |
 |---|---|---|---|---|---|
-| **1️⃣ AGORA** | **BL-012** | **Menus de checkin etapa 1 e 2 dinamicos via backend (sessoes NBR)** | Em andamento | 🔴 **CRÍTICA** | Sessoes de captura (fachada, ambiente, elemento) com requisitos obrigatorio/desejavel configuravel via API, sem hardcoding |
-| **2️⃣ AGORA** | **BL-001** | **Integracao de envio do JSON final da vistoria para sistema web (API real)** | Em andamento | 🔴 **CRÍTICA** | JSON de encerramento enviado para endpoint autenticado com retentativa e log de sucesso/erro |
-| 3️⃣ | BL-002 | Fila offline para exportacao/sincronizacao de vistorias finalizadas | Concluido | 🟠 Alta | Se sem internet, arquivo entra em fila local e sincroniza automaticamente ao reconectar |
-| 4️⃣ | BL-008 | Auditoria de fallback por etapa (checkin, step2, camera, review) | Concluido | 🟠 Alta | Relatorio interno mostra consistencia de payload, retomada por etapa e pilha de navegacao ao retomar vistoria |
-| 5️⃣ | BL-015 | Associar capturas iniciadas na camera com checkin etapa 2 e revisao | Concluído | 🟠 Alta | Captura iniciada fora da etapa 2 atualiza cards/pendencias obrigatorias no checkin e preserva fotos anteriores na revisao |
-| 6️⃣ | BL-003 | Tela de detalhes da vistoria concluida (somente leitura) | Concluido | 🟠 Alta | Aba Vistorias permite abrir detalhes completos sem edicao |
-| 7️⃣ | BL-006 | Modo desenvolvedor: editor completo de mocks para menus dinamicos da camera | Concluido | 🟠 Alta | Painel dev permite editar cenarios e menus dinamicos sem alterar codigo |
-| 8️⃣ | BL-010 | Endurecimento de bloqueio de recursos dev em release final | Concluido | 🟠 Alta | Recursos dev nao aparecem para usuario final sem desbloqueio autorizado |
-| 9️⃣ | BL-004 | Exibir protocolo/ID externo no card e no historico de vistorias | Concluido | 🟡 Media | Card mostra ID do job e protocolo externo quando existir |
-| 🔟 | BL-005 | Regras de retencao e limpeza de arquivos JSON exportados | Concluído | 🟡 Media | Politica configuravel (ex.: manter ultimos N dias) com limpeza segura |
-| 1️⃣1️⃣ | BL-016 | Diretorio de exportacao JSON configuravel para conferencia operacional | Concluido | 🟡 Media | Export permite alternar destino (interno/externo) sem perder rastreabilidade e fluxo de sync |
-| 1️⃣2️⃣ | BL-037 | Matriz de pendencia tecnica com linguagem operacional e acao guiada | Concluido | 🟠 Alta | Matriz apresenta texto simples e link/acao direta para levar o usuario ao ponto exato da pendencia no fluxo |
-| 1️⃣3️⃣ | BL-038 | Preservar classificacao revisada ao retornar da camera para revisao | Concluido | 🟠 Alta | Fotos ja classificadas nao regressam para status laranja ao adicionar nova captura e voltar para revisao |
-| 1️⃣4️⃣ | BL-039 | Agrupar revisao no topo por fotos obrigatorias e fotos capturadas | Concluido | 🟡 Media | Topo da revisao exibe agrupadores claros de obrigatorias e capturadas, alinhado ao bloco de pendencias |
-| 1️⃣5️⃣ | BL-007 | Seed de cenarios de QA por perfil (1, 3, 10 vistorias; ativas/concluidas) | Pendente | 🟡 Media | Um toque aplica cenarios pre-definidos para homologacao |
-| 1️⃣6️⃣ | BL-009 | Telemetria de fluxo (inicio, retomada, conclusao, falhas de integracao) | Pendente | 🟡 Media | Eventos minimos registrados para diagnostico operacional |
-| ⏸️  | BL-011 | Flavors de distribuicao (prod, internal, dev) | Adiado | 🟡 Media | Entrypoints e pipeline separados para builds internos e producao |
-| ⚡ | BL-036 | Cache de Flutter/pub no pipeline CI (débito técnico) | Pendente | 🔵 Baixa (pos-funcional) | Pipeline reduz tempo de build cacheando `.pub-cache` e `.dart_tool` com chave baseada em `pubspec.lock` |
-| 🔧 | BL-013 | Auditoria de Clean Code e SOLID (débito técnico) | Planejado | 🔵 Baixa (pos-funcional) | Relatorio técnico com achados, plano de refatoracao e aplicacao incremental por modulo sem regressao funcional |
-| 🧪 | BL-014 | Evolução da suíte de testes com prática TDD (débito técnico) | Em andamento | 🔵 Baixa (pos-funcional) | Cobertura de testes ampliada por fluxo crítico, com testes criados/atualizados a cada entrega funcional |
-| 🧱 | BL-017 | Contract testing de APIs mobile-backend | Planejado | 🟠 Alta | Contratos de request/response validados em CI para endpoints críticos (config dinâmica e sync) |
-| 🧬 | BL-018 | Mutation testing para regras críticas | Planejado | 🟡 Media | Mutation score mínimo definido e monitorado para serviços críticos |
-| 📈 | BL-019 | Quality gate de cobertura por módulo | Planejado | 🟠 Alta | CI bloqueia merge quando cobertura mínima por módulo regredir |
-| 🧭 | BL-020 | Fronteiras de arquitetura e inversão de dependência | Planejado | 🟠 Alta | Camadas desacopladas com interfaces explícitas entre domínio, aplicação e infraestrutura |
-| ⚠️ | BL-021 | Estratégia padronizada de tratamento de erros | Planejado | 🟠 Alta | Erros tipados, mensagens consistentes e ausência de catch silencioso nos fluxos críticos |
-| 🔗 | BL-022 | Observabilidade com correlation id por vistoria | Planejado | 🟡 Media | Eventos de ponta a ponta rastreáveis por job/correlation id |
-| 🔐 | BL-023 | Hardening de segurança e gestão de secrets | Em andamento | 🟠 Alta | Segredos fora do código, validação de configuração e checklist de segurança em release |
-| ⚡ | BL-024 | Performance budgets em fluxos críticos | Planejado | 🟡 Media | Metas de tempo por etapa monitoradas com alerta de regressão |
-| 🧩 | BL-057 | Semântica canônica única para labels e aliases do fluxo de inspection | Em andamento | 🟠 Alta | Coordinator, câmera e revisão deixam de depender de vocabulário legado como regra operacional |
-| 🧭 | BL-058 | Estado canônico inicial/current/resume fora da UI | Em andamento | 🟠 Alta | Bootstrap, operação e retomada passam a trafegar por objeto coeso compatível com payload legado |
-| 🏷️ | BL-059 | Ambientes repetidos como ação contextual estável | Em andamento | 🟠 Alta | `Novo Quarto`/`Quarto 2` persistem ponta a ponta sem submenu nem regra paralela em tela |
-| 🧱 | BL-060 | Quebra incremental do concentrador de menus/configuração | Em andamento | 🟠 Alta | Loader, merge, prefs, catálogo, inteligência e ranking deixam de viver no mesmo service |
-| 🧰 | BL-061 | Especialização inspection sobre core configurável reutilizável | Em andamento | 🟠 Alta | Taxonomia imobiliária fica no domínio e não volta a contaminar a semântica global |
-| 📦 | BL-025 | Governança de dependências e vulnerabilidades | Planejado | 🟡 Media | Rotina de atualização com scanner e política de correção de CVEs |
-| 🧾 | BL-026 | ADRs para decisões arquiteturais | Planejado | 🟡 Media | Decisões técnicas relevantes registradas com contexto e trade-offs |
-| 🚩 | BL-027 | Ciclo de vida de feature flags | Planejado | 🟡 Media | Processo de criação, auditoria e remoção de flags sem acúmulo técnico |
-| ✅ | BL-028 | Definition of Done reforçada | Planejado | 🟠 Alta | Entrega só conclui com testes, observabilidade mínima, documentação e checklist QA |
-| 🗓️ | BL-029 | Agenda em calendário com jobs agendados do usuário | Concluido | 🟠 Alta | Aba Agenda exibe calendário mensal/semanal com jobs por data e navegação para detalhes |
-| 🔔 | BL-030 | Sininho de mensagens com central backend-app e push | Concluido | 🔴 Crítica | Mensagens vinculadas a job/proposta aparecem na central e geram notificação no celular mesmo com app fechado |
-| 🔐 | BL-031 | Tela de login e autenticação do App | Em andamento | 🔴 Crítica | Usuário autentica com backend, sessão persistida com expiração/renovação, controle de tentativas, MFA readiness e logout seguro |
-| 🧾 | BL-032 | Onboarding de usuários CLT e PJ no app | Concluido | 🔴 Crítica | Fluxo coleta dados obrigatórios por tipo (CLT/PJ), incluindo dados pessoais e bancários para PJ |
-| ⏳ | BL-033 | Estado aguardando aprovação do cadastro (backoffice) | Concluido | 🟠 Alta | Após onboarding, usuário sem aprovação visualiza tela estática de aguardando aprovação com atualização de status |
-| ⚙️ | BL-034 | Configurações para atualização de dados cadastrais | Concluido | 🟠 Alta | Menu configurações permite editar os mesmos dados do onboarding com validação e envio ao backend |
-| 🧑 | BL-035 | Foto do usuário no topo com captura e atualização | Concluido | 🟠 Alta | Foto do onboarding aparece no topo da Home e pode ser atualizada por captura de câmera (sem galeria) |
-| 4️⃣0️⃣ | BL-040 | Corrigir consistência NBR: obrigatoriedade de Entorno no Checkin Etapa 2 e Revisão | Concluído | 🔴 Crítica | Entorno obrigatório deve ser consistente em Checkin Etapa 2 e Pendências Técnicas; ação "Ir para pendência" não pode travar fluxo |
-| 4️⃣1️⃣ | BL-041 | Reorganizar Revisão de Fotos com acordeões de obrigatórias e capturadas no bloco inferior | Concluído | 🟠 Alta | Bloco "Revisão de Fotos Obrigatórias" deve ficar abaixo, com dois acordeões independentes e estados visuais OK/NOK |
-| 4️⃣2️⃣ | BL-042 | Exibir ID do JOB em Novas Propostas e simular aceite por deslize com movimentação de card | Concluído | 🟠 Alta | Card de proposta mostra ID do job e, ao aceitar, sai de propostas e entra em "Meus Jobs Agendados" via mock atualizado |
-| 4️⃣3️⃣ | BL-043 | Remover overlay fixo de comandos rápidos por voz na câmera | Concluído | 🟡 Media | Componente de voz não pode cobrir a área principal de captura/classificação |
-| 4️⃣4️⃣ | BL-044 | Adicionar colapso lateral dos menus dinâmicos da câmera com abertura padrão expandida | Concluído | 🟠 Alta | Menu lateral inicia expandido e permite ocultar/mostrar via controle lateral sem impactar captura |
-| 4️⃣5️⃣ | BL-045 | Mover exportação da vistoria de Configurações para Hub Operacional | Concluído | 🟡 Media | Entrada de exportação deve estar no Hub Operacional e removida de Configurações |
-| 4️⃣6️⃣ | BL-046 | Corrigir logout em Configurações com retorno para tela de login (mock) | Concluído | 🔴 Crítica | Ação "Sair da conta" limpa sessão mock e retorna para login consistentemente |
-| 4️⃣7️⃣ | BL-047 | Ajustar onboarding do app para fluxo exclusivamente PJ com validações de CNPJ/Agência/Conta/Banco | Concluído | 🔴 Crítica | Tela inicial não deve pedir CLT/PJ e campos PJ devem validar formato e consistência mínima |
-| 4️⃣8️⃣ | BL-048 | Criar ação no Hub Operacional para resetar mock de onboarding | Concluído | 🟠 Alta | Operador deve conseguir zerar estado de onboarding para reteste sem reinstalar app |
-| 4️⃣9️⃣ | BL-049 | Consolidar GitHub Project como fonte primária do backlog com sincronização total dos itens BL | Em andamento | 🟠 Alta | Todos os BL (pendentes, em andamento, concluídos e adiados) devem existir no board com status e critérios atualizados |
-| 5️⃣0️⃣ | BL-050 | Corrigir botão "Concluir" do onboarding encoberto pelo rodapé do Android | Concluído | 🟠 Alta | Botão final do onboarding deve permanecer totalmente visível em Android (botões/gestos), permitindo concluir o fluxo sem obstrução |
-| 5️⃣1️⃣ | BL-051 | Unificar persistência dinâmica de obrigatoriedade e política de fotos (mín/máx) entre Checkin, Câmera, Revisão e Menu | Em andamento | 🔴 Crítica | Mesma regra dinâmica deve governar validação e indicadores em todas as telas, com suporte a mínimo/máximo de fotos sem divergência de payload |
-| 5️⃣2️⃣ | BL-052 | Unificar pacote de parametrização operacional do HUB para Check-in e Câmera por níveis | Em andamento | 🔴 Crítica | Mesmo documento do modo desenvolvedor deve definir menus do check-in e níveis da câmera, incluindo material e estado, sem contratos paralelos |
-| 5️⃣3️⃣ | BL-054 | UX progressiva no Check-in etapa 1 e 2 com acordeões por pergunta e resumo inline da resposta | Em andamento | 🟠 Alta | Exibir apenas a próxima pergunta pendente, colapsar respostas já preenchidas com status visual OK/NOK e manter feedback de progresso x/y durante o preenchimento |
-| 5️⃣4️⃣ | BL-055 | Revisar hierarquia visual e regras de casing por nível no Menu de Vistoria e Check-in Etapa 2 | Concluído | 🟠 Alta | Nível 1 em Title Case, nível 2 em CAIXA ALTA, nível 3 em Title Case, com acordeões iniciando recolhidos conforme regra operacional |
-| 5️⃣5️⃣ | BL-056 | Tela dedicada de onboarding de permissões Android e iOS com reentrada obrigatória para usuários sem etapa de onboarding (ex.: CLTs criados via web) | Concluido | 🔴 Crítica | Usuário concede permissões essenciais no onboarding inicial e, quando autenticado sem onboarding concluído, é redirecionado para tela de permissões antes de usar fluxos operacionais |
-| 5️⃣6️⃣ | BL-057 | Alinhar semântica canônica do fluxo de captura à arquitetura V2 da plataforma | Planejado | 🔴 Crítica | Labels diferentes por tela continuam possíveis, mas Check-in, Câmera, Revisão e Menu passam a apontar para a mesma dimensão semântica canônica, sem inspection definir o core global |
-| 5️⃣7️⃣ | BL-058 | Separar estado inicial sugerido, estado atual e estado de retomada da captura | Planejado | 🔴 Crítica | O fluxo mantém bootstrap do check-in, operação corrente e retomada como estados distintos, com recovery compatível e sem travar a câmera no contexto inicial |
-| 5️⃣8️⃣ | BL-059 | Tratar duplicação de ambiente repetido como ação contextual do nível atual | Planejado | 🔴 Crítica | A câmera permite `Trocar` e `Novo <ambiente>` sem criar novo nível na árvore principal, preservando revisão/retomada e matching de obrigatórios |
-| 5️⃣9️⃣ | BL-060 | Quebrar o service concentrador de configuração em fatias coesas e compatíveis com V2 | Planejado | 🟠 Alta | Carregamento, merge, fallback, histórico e prediction deixam de ficar concentrados em um único service, mantendo a API pública estável na migração |
-| 6️⃣0️⃣ | BL-061 | Isolar especialização do domínio inspection sobre um core reutilizável de fluxo configurável | Planejado | 🟠 Alta | Taxonomia imobiliária, instâncias operacionais e labels de inspection permanecem no domain layer, desacopladas do core/plataforma e sem rename cego |
-| 6️⃣1️⃣ | BL-075 | Arquitetura modular de onboarding white label por marca/produto | Em andamento (slice Compass iniciado em 2026-04-10) | 🔴 Crítica | Substituir o onboarding único por resolver de fluxo por brand/productMode, reaproveitando core e separando jornadas Kaptur/Compass |
-| 6️⃣2️⃣ | BL-076 | Primeiro acesso Compass para usuário provisionado com OTP e criação de senha | Em andamento (baseline local entregue em 2026-04-10) | 🔴 Crítica | Compass deve localizar cadastro prévio, validar OTP em contato cadastrado, criar senha e seguir pendências mínimas sem auto-cadastro |
-| 6️⃣3️⃣ | BL-077 | Cadastro Kaptur marketplace PF/MEI/PJ com módulos fiscais, atuação e repasse | Planejado | 🔴 Crítica | Kaptur deve evoluir o cadastro atual PJ para jornada completa de prestador, com campos condicionais e aprovação |
-| 6️⃣4️⃣ | BL-078 | Permissões progressivas por recurso e por marca | Planejado | 🟠 Alta | Tela atual de permissões vira módulo explicativo; câmera/localização/microfone são solicitados no momento certo e microfone fica condicional |
-| 6️⃣5️⃣ | BL-079 | Pocket training e termos versionados por app | Planejado | 🟠 Alta | Tutorial, LGPD, confidencialidade e conduta passam a ser módulos reutilizáveis com conteúdo e obrigatoriedade por marca |
+| **1ï¸âƒ£ AGORA** | **BL-012** | **Menus de checkin etapa 1 e 2 dinamicos via backend (sessoes NBR)** | Em andamento | ðŸ”´ **CRÃTICA** | Sessoes de captura (fachada, ambiente, elemento) com requisitos obrigatorio/desejavel configuravel via API, sem hardcoding |
+| **2ï¸âƒ£ AGORA** | **BL-001** | **Integracao de envio do JSON final da vistoria para sistema web (API real)** | Em andamento | ðŸ”´ **CRÃTICA** | JSON de encerramento enviado para endpoint autenticado com retentativa e log de sucesso/erro |
+| 3ï¸âƒ£ | BL-002 | Fila offline para exportacao/sincronizacao de vistorias finalizadas | Concluido | ðŸŸ  Alta | Se sem internet, arquivo entra em fila local e sincroniza automaticamente ao reconectar |
+| 4ï¸âƒ£ | BL-008 | Auditoria de fallback por etapa (checkin, step2, camera, review) | Concluido | ðŸŸ  Alta | Relatorio interno mostra consistencia de payload, retomada por etapa e pilha de navegacao ao retomar vistoria |
+| 5ï¸âƒ£ | BL-015 | Associar capturas iniciadas na camera com checkin etapa 2 e revisao | ConcluÃ­do | ðŸŸ  Alta | Captura iniciada fora da etapa 2 atualiza cards/pendencias obrigatorias no checkin e preserva fotos anteriores na revisao |
+| 6ï¸âƒ£ | BL-003 | Tela de detalhes da vistoria concluida (somente leitura) | Concluido | ðŸŸ  Alta | Aba Vistorias permite abrir detalhes completos sem edicao |
+
+
+### BL-080 — Programa incremental de backend/plataforma para enrichment, OCR, reconciliacao, smart app derivado e analytics-ready trail
+- Camada: platform + shared foundations + domain-inspection
+- Dominio: cross-domain com especializacao inicial em inspection/real-estate
+- Area: orchestration, storage, OCR, reconciliation, mobile return ingestion, execution plan, report basis
+- Objetivo: evoluir a plataforma para orquestrar enrichment, OCR documental, reconciliacao de fatos, geracao/publicacao de execution hints e recebimento do retorno do App Mobile, preparando base progressiva do report e trilha analytics-ready sem recentralizar a inteligencia no canal mobile
+- Arquivos provaveis:
+  `docs/02-product/03_INCREMENTO_BACKEND_ORQUESTRACAO_ENRICHMENT_OCR_SMART_APP.md`
+  `docs/03-architecture/13_INCREMENTO_BACKEND_ORQUESTRACAO_ENRICHMENT_OCR.md`
+  `docs/03-architecture/14_INCREMENTO_STORAGE_RECONCILIATION_AND_ANALYTICS_TRAIL.md`
+  `docs/03-architecture/15_INCREMENTO_SMART_APP_AS_DERIVED_EXECUTION_PLAN.md`
+  `docs/06-analysis-design/02_INCREMENTO_USE_CASES_BACKEND_ORCHESTRATION.md`
+  `docs/06-analysis-design/03_INCREMENTO_CANONICAL_ARTIFACTS_AND_PAYLOADS.md`
+  `docs/05-operations/runbooks/PLANO_IMPLANTACAO_INCREMENTO_ENRICHMENT_SMART_APP.md`
+  `apps/backend/*`
+  `apps/web-backoffice/*`
+  `lib/services/*inspection*`
+  `lib/models/*inspection*`
+- Dependencias:
+  manter Clean Architecture, SOLID, Clean Code e TDD como guardrails obrigatorios
+  preservar o case canonico existente
+  separar capabilities horizontais de especializacao imobiliaria/NBR
+- Testes obrigatorios:
+  contract tests dos payloads publicados para mobile e retornados pelo app
+  testes de use case do backend/plataforma para enrichment, OCR, reconciliation e execution plan
+  testes de integracao da fila de manual resolution
+  validacao do storage `raw/normalized/curated`
+- Evidencia esperada:
+  backend/plataforma como orquestrador documentado e implementavel
+  storage preparado para receber input, research, documents, job-config, inspection-return e field-evidence
+  smart app documentado como saida derivada
+  trilha pronta para analytics futura
+- Docs que precisam ser atualizados:
+  este backlog
+  `docs/05-operations/runbooks/PAINEL_MILESTONES_FLUXO_CONFIGURAVEL_VISTORIA.md`
+  docs incrementais criados neste pacote
+- Criterio de pronto:
+  arquitetura incremental documentada
+  milestones M1..Mx publicados
+  backlog implementavel por ciclos longos de desenvolvimento
+
+Status: Planejado
+### BL-053 â€” Consolidacao final da i18n como camada unica de UI
+- Camada: mobile app
+- Dominio: cross-domain
+- Area: interface, i18n, branding
+- Objetivo: concluir a migracao para que todo texto visivel ao usuario seja resolvido pela i18n, evitando texto final vindo de branding/config e eliminando hardcodes residuais PT/EN nas telas do app
+- Arquivos provaveis:
+  `lib/screens/checkin_capture_screen.dart`
+  `lib/screens/inspection_menu_screen.dart`
+  `lib/screens/inspection_review_screen.dart`
+  `lib/widgets/review/inspection_review_section_widgets.dart`
+  `lib/widgets/review/inspection_review_technical_widgets.dart`
+  `lib/screens/go_live_readiness_screen.dart`
+  `lib/screens/field_operations_center_screen.dart`
+  `lib/screens/fallback_audit_center_screen.dart`
+  `lib/screens/data_governance_center_screen.dart`
+  `lib/screens/clean_code_maturity_screen.dart`
+  `lib/screens/clean_code_audit_center_screen.dart`
+  `lib/screens/mock_data_control_screen.dart`
+  `lib/widgets/operational_center_list_card.dart`
+  `lib/widgets/remote_config_list_card.dart`
+- Dependencias:
+  manter `AppStrings` como camada unica de resolucao de idioma
+  branding deve fornecer apenas dados de marca ou copy integrada a locale via i18n
+- Testes obrigatorios:
+  `C:\src\flutter\bin\flutter.bat analyze --no-pub`
+  `C:\src\flutter\bin\flutter.bat test --no-pub`
+  smoke manual em `EN` e `PT` nas telas de login, home, jobs, proposals, review e inspection menu
+- Evidencia esperada:
+  nao haver uso de `config.copyText(...)` ou `copyTextOrNull(...)` como texto final visivel ao usuario fora da camada de i18n
+  nao haver textos hardcoded inconsistentes com locale ativo nas telas priorizadas
+- Docs que precisam ser atualizados:
+  este backlog
+  se houver mudanca estrutural adicional, `docs/04-engineering/07_LANGUAGE_MIGRATION_DASHBOARD.md`
+- Criterio de pronto:
+  app respeita o locale ativo de forma consistente
+  branding nao atua como mini-i18n paralela
+  testes existentes permanecem verdes
+
+Status: Parcialmente concluido
+Progresso atual:
+- concluido: base estrutural da integracao i18n + branding, login, home, jobs, proposals, navegacao inferior, alguns centros e cards principais
+- pendente: lote residual de telas com hardcodes visiveis ou arquivos com historico de encoding que exigem passe dedicado
+| 7ï¸âƒ£ | BL-006 | Modo desenvolvedor: editor completo de mocks para menus dinamicos da camera | Concluido | ðŸŸ  Alta | Painel dev permite editar cenarios e menus dinamicos sem alterar codigo |
+| 8ï¸âƒ£ | BL-010 | Endurecimento de bloqueio de recursos dev em release final | Concluido | ðŸŸ  Alta | Recursos dev nao aparecem para usuario final sem desbloqueio autorizado |
+| 9ï¸âƒ£ | BL-004 | Exibir protocolo/ID externo no card e no historico de vistorias | Concluido | ðŸŸ¡ Media | Card mostra ID do job e protocolo externo quando existir |
+| ðŸ”Ÿ | BL-005 | Regras de retencao e limpeza de arquivos JSON exportados | ConcluÃ­do | ðŸŸ¡ Media | Politica configuravel (ex.: manter ultimos N dias) com limpeza segura |
+| 1ï¸âƒ£1ï¸âƒ£ | BL-016 | Diretorio de exportacao JSON configuravel para conferencia operacional | Concluido | ðŸŸ¡ Media | Export permite alternar destino (interno/externo) sem perder rastreabilidade e fluxo de sync |
+| 1ï¸âƒ£2ï¸âƒ£ | BL-037 | Matriz de pendencia tecnica com linguagem operacional e acao guiada | Concluido | ðŸŸ  Alta | Matriz apresenta texto simples e link/acao direta para levar o usuario ao ponto exato da pendencia no fluxo |
+| 1ï¸âƒ£3ï¸âƒ£ | BL-038 | Preservar classificacao revisada ao retornar da camera para revisao | Concluido | ðŸŸ  Alta | Fotos ja classificadas nao regressam para status laranja ao adicionar nova captura e voltar para revisao |
+| 1ï¸âƒ£4ï¸âƒ£ | BL-039 | Agrupar revisao no topo por fotos obrigatorias e fotos capturadas | Concluido | ðŸŸ¡ Media | Topo da revisao exibe agrupadores claros de obrigatorias e capturadas, alinhado ao bloco de pendencias |
+| 1ï¸âƒ£5ï¸âƒ£ | BL-007 | Seed de cenarios de QA por perfil (1, 3, 10 vistorias; ativas/concluidas) | Pendente | ðŸŸ¡ Media | Um toque aplica cenarios pre-definidos para homologacao |
+| 1ï¸âƒ£6ï¸âƒ£ | BL-009 | Telemetria de fluxo (inicio, retomada, conclusao, falhas de integracao) | Pendente | ðŸŸ¡ Media | Eventos minimos registrados para diagnostico operacional |
+| â¸ï¸  | BL-011 | Flavors de distribuicao (prod, internal, dev) | Adiado | ðŸŸ¡ Media | Entrypoints e pipeline separados para builds internos e producao |
+| âš¡ | BL-036 | Cache de Flutter/pub no pipeline CI (dÃ©bito tÃ©cnico) | Pendente | ðŸ”µ Baixa (pos-funcional) | Pipeline reduz tempo de build cacheando `.pub-cache` e `.dart_tool` com chave baseada em `pubspec.lock` |
+| ðŸ”§ | BL-013 | Auditoria de Clean Code e SOLID (dÃ©bito tÃ©cnico) | Planejado | ðŸ”µ Baixa (pos-funcional) | Relatorio tÃ©cnico com achados, plano de refatoracao e aplicacao incremental por modulo sem regressao funcional |
+| ðŸ§ª | BL-014 | EvoluÃ§Ã£o da suÃ­te de testes com prÃ¡tica TDD (dÃ©bito tÃ©cnico) | Em andamento | ðŸ”µ Baixa (pos-funcional) | Cobertura de testes ampliada por fluxo crÃ­tico, com testes criados/atualizados a cada entrega funcional |
+| ðŸ§± | BL-017 | Contract testing de APIs mobile-backend | Planejado | ðŸŸ  Alta | Contratos de request/response validados em CI para endpoints crÃ­ticos (config dinÃ¢mica e sync) |
+| ðŸ§¬ | BL-018 | Mutation testing para regras crÃ­ticas | Planejado | ðŸŸ¡ Media | Mutation score mÃ­nimo definido e monitorado para serviÃ§os crÃ­ticos |
+| ðŸ“ˆ | BL-019 | Quality gate de cobertura por mÃ³dulo | Planejado | ðŸŸ  Alta | CI bloqueia merge quando cobertura mÃ­nima por mÃ³dulo regredir |
+| ðŸ§­ | BL-020 | Fronteiras de arquitetura e inversÃ£o de dependÃªncia | Planejado | ðŸŸ  Alta | Camadas desacopladas com interfaces explÃ­citas entre domÃ­nio, aplicaÃ§Ã£o e infraestrutura |
+| âš ï¸ | BL-021 | EstratÃ©gia padronizada de tratamento de erros | Planejado | ðŸŸ  Alta | Erros tipados, mensagens consistentes e ausÃªncia de catch silencioso nos fluxos crÃ­ticos |
+| ðŸ”— | BL-022 | Observabilidade com correlation id por vistoria | Planejado | ðŸŸ¡ Media | Eventos de ponta a ponta rastreÃ¡veis por job/correlation id |
+| ðŸ” | BL-023 | Hardening de seguranÃ§a e gestÃ£o de secrets | Em andamento | ðŸŸ  Alta | Segredos fora do cÃ³digo, validaÃ§Ã£o de configuraÃ§Ã£o e checklist de seguranÃ§a em release |
+| âš¡ | BL-024 | Performance budgets em fluxos crÃ­ticos | Planejado | ðŸŸ¡ Media | Metas de tempo por etapa monitoradas com alerta de regressÃ£o |
+| ðŸ§© | BL-057 | SemÃ¢ntica canÃ´nica Ãºnica para labels e aliases do fluxo de inspection | Em andamento | ðŸŸ  Alta | Coordinator, cÃ¢mera e revisÃ£o deixam de depender de vocabulÃ¡rio legado como regra operacional |
+| ðŸ§­ | BL-058 | Estado canÃ´nico inicial/current/resume fora da UI | Em andamento | ðŸŸ  Alta | Bootstrap, operaÃ§Ã£o e retomada passam a trafegar por objeto coeso compatÃ­vel com payload legado |
+| ðŸ·ï¸ | BL-059 | Ambientes repetidos como aÃ§Ã£o contextual estÃ¡vel | Em andamento | ðŸŸ  Alta | `Novo Quarto`/`Quarto 2` persistem ponta a ponta sem submenu nem regra paralela em tela |
+| ðŸ§± | BL-060 | Quebra incremental do concentrador de menus/configuraÃ§Ã£o | Em andamento | ðŸŸ  Alta | Loader, merge, prefs, catÃ¡logo, inteligÃªncia e ranking deixam de viver no mesmo service |
+| ðŸ§° | BL-061 | EspecializaÃ§Ã£o inspection sobre core configurÃ¡vel reutilizÃ¡vel | Em andamento | ðŸŸ  Alta | Taxonomia imobiliÃ¡ria fica no domÃ­nio e nÃ£o volta a contaminar a semÃ¢ntica global |
+| ðŸ“¦ | BL-025 | GovernanÃ§a de dependÃªncias e vulnerabilidades | Planejado | ðŸŸ¡ Media | Rotina de atualizaÃ§Ã£o com scanner e polÃ­tica de correÃ§Ã£o de CVEs |
+| ðŸ§¾ | BL-026 | ADRs para decisÃµes arquiteturais | Planejado | ðŸŸ¡ Media | DecisÃµes tÃ©cnicas relevantes registradas com contexto e trade-offs |
+| ðŸš© | BL-027 | Ciclo de vida de feature flags | Planejado | ðŸŸ¡ Media | Processo de criaÃ§Ã£o, auditoria e remoÃ§Ã£o de flags sem acÃºmulo tÃ©cnico |
+| âœ… | BL-028 | Definition of Done reforÃ§ada | Planejado | ðŸŸ  Alta | Entrega sÃ³ conclui com testes, observabilidade mÃ­nima, documentaÃ§Ã£o e checklist QA |
+| ðŸ—“ï¸ | BL-029 | Agenda em calendÃ¡rio com jobs agendados do usuÃ¡rio | Concluido | ðŸŸ  Alta | Aba Agenda exibe calendÃ¡rio mensal/semanal com jobs por data e navegaÃ§Ã£o para detalhes |
+| ðŸ”” | BL-030 | Sininho de mensagens com central backend-app e push | Concluido | ðŸ”´ CrÃ­tica | Mensagens vinculadas a job/proposta aparecem na central e geram notificaÃ§Ã£o no celular mesmo com app fechado |
+| ðŸ” | BL-031 | Tela de login e autenticaÃ§Ã£o do App | Em andamento | ðŸ”´ CrÃ­tica | UsuÃ¡rio autentica com backend, sessÃ£o persistida com expiraÃ§Ã£o/renovaÃ§Ã£o, controle de tentativas, MFA readiness e logout seguro |
+| ðŸ§¾ | BL-032 | Onboarding de usuÃ¡rios CLT e PJ no app | Concluido | ðŸ”´ CrÃ­tica | Fluxo coleta dados obrigatÃ³rios por tipo (CLT/PJ), incluindo dados pessoais e bancÃ¡rios para PJ |
+| â³ | BL-033 | Estado aguardando aprovaÃ§Ã£o do cadastro (backoffice) | Concluido | ðŸŸ  Alta | ApÃ³s onboarding, usuÃ¡rio sem aprovaÃ§Ã£o visualiza tela estÃ¡tica de aguardando aprovaÃ§Ã£o com atualizaÃ§Ã£o de status |
+| âš™ï¸ | BL-034 | ConfiguraÃ§Ãµes para atualizaÃ§Ã£o de dados cadastrais | Concluido | ðŸŸ  Alta | Menu configuraÃ§Ãµes permite editar os mesmos dados do onboarding com validaÃ§Ã£o e envio ao backend |
+| ðŸ§‘ | BL-035 | Foto do usuÃ¡rio no topo com captura e atualizaÃ§Ã£o | Concluido | ðŸŸ  Alta | Foto do onboarding aparece no topo da Home e pode ser atualizada por captura de cÃ¢mera (sem galeria) |
+| 4ï¸âƒ£0ï¸âƒ£ | BL-040 | Corrigir consistÃªncia NBR: obrigatoriedade de Entorno no Checkin Etapa 2 e RevisÃ£o | ConcluÃ­do | ðŸ”´ CrÃ­tica | Entorno obrigatÃ³rio deve ser consistente em Checkin Etapa 2 e PendÃªncias TÃ©cnicas; aÃ§Ã£o "Ir para pendÃªncia" nÃ£o pode travar fluxo |
+| 4ï¸âƒ£1ï¸âƒ£ | BL-041 | Reorganizar RevisÃ£o de Fotos com acordeÃµes de obrigatÃ³rias e capturadas no bloco inferior | ConcluÃ­do | ðŸŸ  Alta | Bloco "RevisÃ£o de Fotos ObrigatÃ³rias" deve ficar abaixo, com dois acordeÃµes independentes e estados visuais OK/NOK |
+| 4ï¸âƒ£2ï¸âƒ£ | BL-042 | Exibir ID do JOB em Novas Propostas e simular aceite por deslize com movimentaÃ§Ã£o de card | ConcluÃ­do | ðŸŸ  Alta | Card de proposta mostra ID do job e, ao aceitar, sai de propostas e entra em "Meus Jobs Agendados" via mock atualizado |
+| 4ï¸âƒ£3ï¸âƒ£ | BL-043 | Remover overlay fixo de comandos rÃ¡pidos por voz na cÃ¢mera | ConcluÃ­do | ðŸŸ¡ Media | Componente de voz nÃ£o pode cobrir a Ã¡rea principal de captura/classificaÃ§Ã£o |
+| 4ï¸âƒ£4ï¸âƒ£ | BL-044 | Adicionar colapso lateral dos menus dinÃ¢micos da cÃ¢mera com abertura padrÃ£o expandida | ConcluÃ­do | ðŸŸ  Alta | Menu lateral inicia expandido e permite ocultar/mostrar via controle lateral sem impactar captura |
+| 4ï¸âƒ£5ï¸âƒ£ | BL-045 | Mover exportaÃ§Ã£o da vistoria de ConfiguraÃ§Ãµes para Hub Operacional | ConcluÃ­do | ðŸŸ¡ Media | Entrada de exportaÃ§Ã£o deve estar no Hub Operacional e removida de ConfiguraÃ§Ãµes |
+| 4ï¸âƒ£6ï¸âƒ£ | BL-046 | Corrigir logout em ConfiguraÃ§Ãµes com retorno para tela de login (mock) | ConcluÃ­do | ðŸ”´ CrÃ­tica | AÃ§Ã£o "Sair da conta" limpa sessÃ£o mock e retorna para login consistentemente |
+| 4ï¸âƒ£7ï¸âƒ£ | BL-047 | Ajustar onboarding do app para fluxo exclusivamente PJ com validaÃ§Ãµes de CNPJ/AgÃªncia/Conta/Banco | ConcluÃ­do | ðŸ”´ CrÃ­tica | Tela inicial nÃ£o deve pedir CLT/PJ e campos PJ devem validar formato e consistÃªncia mÃ­nima |
+| 4ï¸âƒ£8ï¸âƒ£ | BL-048 | Criar aÃ§Ã£o no Hub Operacional para resetar mock de onboarding | ConcluÃ­do | ðŸŸ  Alta | Operador deve conseguir zerar estado de onboarding para reteste sem reinstalar app |
+| 4ï¸âƒ£9ï¸âƒ£ | BL-049 | Consolidar GitHub Project como fonte primÃ¡ria do backlog com sincronizaÃ§Ã£o total dos itens BL | Em andamento | ðŸŸ  Alta | Todos os BL (pendentes, em andamento, concluÃ­dos e adiados) devem existir no board com status e critÃ©rios atualizados |
+| 5ï¸âƒ£0ï¸âƒ£ | BL-050 | Corrigir botÃ£o "Concluir" do onboarding encoberto pelo rodapÃ© do Android | ConcluÃ­do | ðŸŸ  Alta | BotÃ£o final do onboarding deve permanecer totalmente visÃ­vel em Android (botÃµes/gestos), permitindo concluir o fluxo sem obstruÃ§Ã£o |
+| 5ï¸âƒ£1ï¸âƒ£ | BL-051 | Unificar persistÃªncia dinÃ¢mica de obrigatoriedade e polÃ­tica de fotos (mÃ­n/mÃ¡x) entre Checkin, CÃ¢mera, RevisÃ£o e Menu | Em andamento | ðŸ”´ CrÃ­tica | Mesma regra dinÃ¢mica deve governar validaÃ§Ã£o e indicadores em todas as telas, com suporte a mÃ­nimo/mÃ¡ximo de fotos sem divergÃªncia de payload |
+| 5ï¸âƒ£2ï¸âƒ£ | BL-052 | Unificar pacote de parametrizaÃ§Ã£o operacional do HUB para Check-in e CÃ¢mera por nÃ­veis | Em andamento | ðŸ”´ CrÃ­tica | Mesmo documento do modo desenvolvedor deve definir menus do check-in e nÃ­veis da cÃ¢mera, incluindo material e estado, sem contratos paralelos |
+| 5ï¸âƒ£3ï¸âƒ£ | BL-054 | UX progressiva no Check-in etapa 1 e 2 com acordeÃµes por pergunta e resumo inline da resposta | Em andamento | ðŸŸ  Alta | Exibir apenas a prÃ³xima pergunta pendente, colapsar respostas jÃ¡ preenchidas com status visual OK/NOK e manter feedback de progresso x/y durante o preenchimento |
+| 5ï¸âƒ£4ï¸âƒ£ | BL-055 | Revisar hierarquia visual e regras de casing por nÃ­vel no Menu de Vistoria e Check-in Etapa 2 | ConcluÃ­do | ðŸŸ  Alta | NÃ­vel 1 em Title Case, nÃ­vel 2 em CAIXA ALTA, nÃ­vel 3 em Title Case, com acordeÃµes iniciando recolhidos conforme regra operacional |
+| 5ï¸âƒ£5ï¸âƒ£ | BL-056 | Tela dedicada de onboarding de permissÃµes Android e iOS com reentrada obrigatÃ³ria para usuÃ¡rios sem etapa de onboarding (ex.: CLTs criados via web) | Concluido | ðŸ”´ CrÃ­tica | UsuÃ¡rio concede permissÃµes essenciais no onboarding inicial e, quando autenticado sem onboarding concluÃ­do, Ã© redirecionado para tela de permissÃµes antes de usar fluxos operacionais |
+| 5ï¸âƒ£6ï¸âƒ£ | BL-057 | Alinhar semÃ¢ntica canÃ´nica do fluxo de captura Ã  arquitetura V2 da plataforma | Planejado | ðŸ”´ CrÃ­tica | Labels diferentes por tela continuam possÃ­veis, mas Check-in, CÃ¢mera, RevisÃ£o e Menu passam a apontar para a mesma dimensÃ£o semÃ¢ntica canÃ´nica, sem inspection definir o core global |
+| 5ï¸âƒ£7ï¸âƒ£ | BL-058 | Separar estado inicial sugerido, estado atual e estado de retomada da captura | Planejado | ðŸ”´ CrÃ­tica | O fluxo mantÃ©m bootstrap do check-in, operaÃ§Ã£o corrente e retomada como estados distintos, com recovery compatÃ­vel e sem travar a cÃ¢mera no contexto inicial |
+| 5ï¸âƒ£8ï¸âƒ£ | BL-059 | Tratar duplicaÃ§Ã£o de ambiente repetido como aÃ§Ã£o contextual do nÃ­vel atual | Planejado | ðŸ”´ CrÃ­tica | A cÃ¢mera permite `Trocar` e `Novo <ambiente>` sem criar novo nÃ­vel na Ã¡rvore principal, preservando revisÃ£o/retomada e matching de obrigatÃ³rios |
+| 5ï¸âƒ£9ï¸âƒ£ | BL-060 | Quebrar o service concentrador de configuraÃ§Ã£o em fatias coesas e compatÃ­veis com V2 | Planejado | ðŸŸ  Alta | Carregamento, merge, fallback, histÃ³rico e prediction deixam de ficar concentrados em um Ãºnico service, mantendo a API pÃºblica estÃ¡vel na migraÃ§Ã£o |
+| 6ï¸âƒ£0ï¸âƒ£ | BL-061 | Isolar especializaÃ§Ã£o do domÃ­nio inspection sobre um core reutilizÃ¡vel de fluxo configurÃ¡vel | Planejado | ðŸŸ  Alta | Taxonomia imobiliÃ¡ria, instÃ¢ncias operacionais e labels de inspection permanecem no domain layer, desacopladas do core/plataforma e sem rename cego |
+| 6ï¸âƒ£1ï¸âƒ£ | BL-075 | Arquitetura modular de onboarding white label por marca/produto | Em andamento (slice Compass iniciado em 2026-04-10) | ðŸ”´ CrÃ­tica | Substituir o onboarding Ãºnico por resolver de fluxo por brand/productMode, reaproveitando core e separando jornadas Kaptur/Compass |
+| 6ï¸âƒ£2ï¸âƒ£ | BL-076 | Primeiro acesso Compass para usuÃ¡rio provisionado com OTP e criaÃ§Ã£o de senha | Em andamento (baseline local entregue em 2026-04-10) | ðŸ”´ CrÃ­tica | Compass deve localizar cadastro prÃ©vio, validar OTP em contato cadastrado, criar senha e seguir pendÃªncias mÃ­nimas sem auto-cadastro |
+| 6ï¸âƒ£3ï¸âƒ£ | BL-077 | Cadastro Kaptur marketplace PF/MEI/PJ com mÃ³dulos fiscais, atuaÃ§Ã£o e repasse | Planejado | ðŸ”´ CrÃ­tica | Kaptur deve evoluir o cadastro atual PJ para jornada completa de prestador, com campos condicionais e aprovaÃ§Ã£o |
+| 6ï¸âƒ£4ï¸âƒ£ | BL-078 | PermissÃµes progressivas por recurso e por marca | Planejado | ðŸŸ  Alta | Tela atual de permissÃµes vira mÃ³dulo explicativo; cÃ¢mera/localizaÃ§Ã£o/microfone sÃ£o solicitados no momento certo e microfone fica condicional |
+| 6ï¸âƒ£5ï¸âƒ£ | BL-079 | Pocket training e termos versionados por app | Planejado | ðŸŸ  Alta | Tutorial, LGPD, confidencialidade e conduta passam a ser mÃ³dulos reutilizÃ¡veis com conteÃºdo e obrigatoriedade por marca |
 
 ---
 
@@ -333,6 +418,48 @@ Observacao 2026-04-10 (PARCIAL - Compass Pacote B): distribuicao Android manual 
 Observacao 2026-04-10 (PARCIAL - Compass Pacote B): Android ganhou recursos nativos por flavor para splash/adaptive icon. iOS ganhou xcconfigs por marca e Info.plist parametrizado; validacao final de scheme/target Compass permanece pendente em ambiente Xcode.
 Observacao 2026-04-10 (PARCIAL - Compass Pacote B): iOS ganhou schemes compartilhados `kaptur` e `compass` e configuracoes `Debug/Release/Profile` por flavor, apontando para xcconfigs de marca. Validacao local em Windows cobriu XML dos schemes e `flutter analyze --no-pub`; build iOS real segue pendente de macOS/Xcode.
 
+
+### BL-080 — Programa incremental de backend/plataforma para enrichment, OCR, reconciliacao, smart app derivado e analytics-ready trail
+- Camada: platform + shared foundations + domain-inspection
+- Dominio: cross-domain com especializacao inicial em inspection/real-estate
+- Area: orchestration, storage, OCR, reconciliation, mobile return ingestion, execution plan, report basis
+- Objetivo: evoluir a plataforma para orquestrar enrichment, OCR documental, reconciliacao de fatos, geracao/publicacao de execution hints e recebimento do retorno do App Mobile, preparando base progressiva do report e trilha analytics-ready sem recentralizar a inteligencia no canal mobile
+- Arquivos provaveis:
+  `docs/02-product/03_INCREMENTO_BACKEND_ORQUESTRACAO_ENRICHMENT_OCR_SMART_APP.md`
+  `docs/03-architecture/13_INCREMENTO_BACKEND_ORQUESTRACAO_ENRICHMENT_OCR.md`
+  `docs/03-architecture/14_INCREMENTO_STORAGE_RECONCILIATION_AND_ANALYTICS_TRAIL.md`
+  `docs/03-architecture/15_INCREMENTO_SMART_APP_AS_DERIVED_EXECUTION_PLAN.md`
+  `docs/06-analysis-design/02_INCREMENTO_USE_CASES_BACKEND_ORCHESTRATION.md`
+  `docs/06-analysis-design/03_INCREMENTO_CANONICAL_ARTIFACTS_AND_PAYLOADS.md`
+  `docs/05-operations/runbooks/PLANO_IMPLANTACAO_INCREMENTO_ENRICHMENT_SMART_APP.md`
+  `apps/backend/*`
+  `apps/web-backoffice/*`
+  `lib/services/*inspection*`
+  `lib/models/*inspection*`
+- Dependencias:
+  manter Clean Architecture, SOLID, Clean Code e TDD como guardrails obrigatorios
+  preservar o case canonico existente
+  separar capabilities horizontais de especializacao imobiliaria/NBR
+- Testes obrigatorios:
+  contract tests dos payloads publicados para mobile e retornados pelo app
+  testes de use case do backend/plataforma para enrichment, OCR, reconciliation e execution plan
+  testes de integracao da fila de manual resolution
+  validacao do storage `raw/normalized/curated`
+- Evidencia esperada:
+  backend/plataforma como orquestrador documentado e implementavel
+  storage preparado para receber input, research, documents, job-config, inspection-return e field-evidence
+  smart app documentado como saida derivada
+  trilha pronta para analytics futura
+- Docs que precisam ser atualizados:
+  este backlog
+  `docs/05-operations/runbooks/PAINEL_MILESTONES_FLUXO_CONFIGURAVEL_VISTORIA.md`
+  docs incrementais criados neste pacote
+- Criterio de pronto:
+  arquitetura incremental documentada
+  milestones M1..Mx publicados
+  backlog implementavel por ciclos longos de desenvolvimento
+
+Status: Planejado
 ### BL-053
 Remover modulo desenvolvedor do pacote final (empacotamento enxuto para producao).
 
@@ -343,7 +470,7 @@ Criterio de pronto: build de producao sem telas/servicos/mock dev vinculados, va
 Observacao 2026-03-31: fluxo Git atualizado para impedir push direto na main e exigir homologacao em `release/*`/`homolog/*` com smoke Maestro USB antes de PR.
 
 ### BL-036
-Adicionar cache de dependências Flutter/pub ao workflow do GitHub Actions (`android_ci.yml`) usando `actions/cache@v4`, cacheando `.pub-cache` e `.dart_tool` com chave baseada em `pubspec.lock`. Reduz o tempo de execução do job de build (atualmente 8-15 min) eliminando o download repetido de pacotes a cada run.
+Adicionar cache de dependÃªncias Flutter/pub ao workflow do GitHub Actions (`android_ci.yml`) usando `actions/cache@v4`, cacheando `.pub-cache` e `.dart_tool` com chave baseada em `pubspec.lock`. Reduz o tempo de execuÃ§Ã£o do job de build (atualmente 8-15 min) eliminando o download repetido de pacotes a cada run.
 
 ```yaml
 - uses: actions/cache@v4
@@ -358,27 +485,27 @@ Adicionar cache de dependências Flutter/pub ao workflow do GitHub Actions (`and
 Realizar auditoria arquitetural e de qualidade de codigo (Clean Code e SOLID), consolidando debitos tecnicos e plano de refatoracao para execucao quando o backlog funcional estiver menor.
 
 ### BL-014
-Evoluir a suíte de testes do app com prática TDD contínua, cobrindo regras de negócio críticas, fluxos de fallback/retomada e integrações, evitando avanço funcional sem proteção de testes.
+Evoluir a suÃ­te de testes do app com prÃ¡tica TDD contÃ­nua, cobrindo regras de negÃ³cio crÃ­ticas, fluxos de fallback/retomada e integraÃ§Ãµes, evitando avanÃ§o funcional sem proteÃ§Ã£o de testes.
 
 Observacao 2026-03-31 (Em andamento): iniciada migracao da automacao E2E para Maestro para reduzir fragilidade operacional de execucao local e estabilizar fluxo critico de login em dispositivo fisico.
 
 ### BL-054
-Aplicar UX progressiva no Check-in etapa 1 e etapa 2, exibindo somente a próxima pergunta pendente, mantendo as respostas preenchidas em modo colapsado com resumo na linha e status visual operacional.
+Aplicar UX progressiva no Check-in etapa 1 e etapa 2, exibindo somente a prÃ³xima pergunta pendente, mantendo as respostas preenchidas em modo colapsado com resumo na linha e status visual operacional.
 
-Observacao 2026-04-01 (Em andamento): iniciada implementacao de acordeoes por pergunta no check-in para reduzir deslocamento vertical e reforcar percepção de seguranca durante o preenchimento.
+Observacao 2026-04-01 (Em andamento): iniciada implementacao de acordeoes por pergunta no check-in para reduzir deslocamento vertical e reforcar percepÃ§Ã£o de seguranca durante o preenchimento.
 
 ### BL-055
-Aplicar revisão de taxonomia visual dos menus no fluxo de vistoria, corrigindo o entendimento de níveis de título e padronizando comportamento de collapse inicial por seção.
+Aplicar revisÃ£o de taxonomia visual dos menus no fluxo de vistoria, corrigindo o entendimento de nÃ­veis de tÃ­tulo e padronizando comportamento de collapse inicial por seÃ§Ã£o.
 
-Observacao 2026-04-01 (Concluído): ajuste aplicado no Menu de Vistoria (Nível 1 em Title Case; divisões da tela em CAIXA ALTA; subtítulos em Title Case) e na Etapa 2 com acordeões independentes iniciando recolhidos, mantendo compatibilidade com configuração dinâmica vinda do sistema web. Cobertura de regressão atualizada para os novos comportamentos de expansão.
+Observacao 2026-04-01 (ConcluÃ­do): ajuste aplicado no Menu de Vistoria (NÃ­vel 1 em Title Case; divisÃµes da tela em CAIXA ALTA; subtÃ­tulos em Title Case) e na Etapa 2 com acordeÃµes independentes iniciando recolhidos, mantendo compatibilidade com configuraÃ§Ã£o dinÃ¢mica vinda do sistema web. Cobertura de regressÃ£o atualizada para os novos comportamentos de expansÃ£o.
 
 ### BL-056
-Adicionar tela específica de onboarding para coleta/concessão de permissões obrigatórias (Android e iOS), cobrindo tanto o primeiro acesso após instalação quanto usuários que entram por login sem ter passado pelo onboarding (ex.: CLTs cadastrados via módulo web).
+Adicionar tela especÃ­fica de onboarding para coleta/concessÃ£o de permissÃµes obrigatÃ³rias (Android e iOS), cobrindo tanto o primeiro acesso apÃ³s instalaÃ§Ã£o quanto usuÃ¡rios que entram por login sem ter passado pelo onboarding (ex.: CLTs cadastrados via mÃ³dulo web).
 
 Detalhamento:
-1. Listar permissões operacionais obrigatórias por plataforma (localização, câmera, microfone e notificações quando aplicável).
-2. Bloquear acesso ao fluxo principal até concluir a etapa de permissões mínimas obrigatórias.
-3. Implementar verificação de estado no login para redirecionar usuários sem onboarding/permissões concluídas para a nova tela.
+1. Listar permissÃµes operacionais obrigatÃ³rias por plataforma (localizaÃ§Ã£o, cÃ¢mera, microfone e notificaÃ§Ãµes quando aplicÃ¡vel).
+2. Bloquear acesso ao fluxo principal atÃ© concluir a etapa de permissÃµes mÃ­nimas obrigatÃ³rias.
+3. Implementar verificaÃ§Ã£o de estado no login para redirecionar usuÃ¡rios sem onboarding/permissÃµes concluÃ­das para a nova tela.
 
 Observacao 2026-04-10 (CONCLUIDO - Compass Pacote B): regra de roteamento ajustada para nao exibir onboarding de permissoes antes do login. A etapa passa a bloquear somente usuario autenticado/ativo sem permissao concluida, cobrindo o primeiro acesso de usuario provisionado via backoffice.
 Observacao 2026-04-10 (CONCLUIDO - Compass Pacote B): adicionada auditoria automatizada entre catalogo de permissoes, `AndroidManifest.xml` e `Info.plist`, protegendo camera, localizacao, microfone e reconhecimento de fala usados pelo onboarding.
@@ -437,73 +564,73 @@ Criar modulos reutilizaveis de termos e pocket training por app.
 - Dependencias: BL-075, BOW-212.
 
 ### BL-017
-Adicionar contract tests entre mobile e backend para validar schemas e evitar quebra silenciosa de integrações críticas.
+Adicionar contract tests entre mobile e backend para validar schemas e evitar quebra silenciosa de integraÃ§Ãµes crÃ­ticas.
 
 ### BL-018
-Aplicar mutation testing em serviços críticos para medir efetividade real da suíte de testes além da cobertura tradicional.
+Aplicar mutation testing em serviÃ§os crÃ­ticos para medir efetividade real da suÃ­te de testes alÃ©m da cobertura tradicional.
 
 ### BL-019
-Estabelecer quality gates por módulo para impedir regressão de cobertura em serviços, estados e fluxos principais.
+Estabelecer quality gates por mÃ³dulo para impedir regressÃ£o de cobertura em serviÃ§os, estados e fluxos principais.
 
 ### BL-020
-Fortalecer fronteiras arquiteturais com inversão de dependência, reduzindo acoplamento entre UI e infraestrutura.
+Fortalecer fronteiras arquiteturais com inversÃ£o de dependÃªncia, reduzindo acoplamento entre UI e infraestrutura.
 
 ### BL-021
-Padronizar tratamento de erros com tipagem e mensagens consistentes para usuário, suporte e observabilidade.
+Padronizar tratamento de erros com tipagem e mensagens consistentes para usuÃ¡rio, suporte e observabilidade.
 
 ### BL-022
-Implantar correlation id por vistoria para rastrear eventos de início, retomada, exportação, sync e falhas.
+Implantar correlation id por vistoria para rastrear eventos de inÃ­cio, retomada, exportaÃ§Ã£o, sync e falhas.
 
 ### BL-023
-Endurecer segurança operacional do app e pipeline com política de secrets, validações e checklist de release seguro.
+Endurecer seguranÃ§a operacional do app e pipeline com polÃ­tica de secrets, validaÃ§Ãµes e checklist de release seguro.
 
 Observacao 2026-03-30 (Em andamento): workflows de deploy backend/web ajustados para validar `VPS_HOST`, `VPS_USER` e `VPS_SSH_KEY` antes da etapa SSH, com skip explicito quando os segredos nao estiverem configurados. Em revisao final de compatibilidade no parser do GitHub Actions.
 
 ### BL-024
-Definir performance budgets por fluxo crítico e monitorar regressões de tempo no ciclo de entrega.
+Definir performance budgets por fluxo crÃ­tico e monitorar regressÃµes de tempo no ciclo de entrega.
 
 ### BL-025
-Criar governança contínua de dependências, atualizações e vulnerabilidades com critérios de resposta.
+Criar governanÃ§a contÃ­nua de dependÃªncias, atualizaÃ§Ãµes e vulnerabilidades com critÃ©rios de resposta.
 
 ### BL-026
-Adotar ADRs para registrar decisões arquiteturais e reduzir retrabalho em mudanças estruturais.
+Adotar ADRs para registrar decisÃµes arquiteturais e reduzir retrabalho em mudanÃ§as estruturais.
 
 ### BL-027
-Padronizar ciclo de vida de feature flags para evitar acúmulo de código morto e inconsistências de comportamento.
+Padronizar ciclo de vida de feature flags para evitar acÃºmulo de cÃ³digo morto e inconsistÃªncias de comportamento.
 
 ### BL-028
-Reforçar Definition of Done com critérios obrigatórios de teste, qualidade técnica, QA e documentação.
+ReforÃ§ar Definition of Done com critÃ©rios obrigatÃ³rios de teste, qualidade tÃ©cnica, QA e documentaÃ§Ã£o.
 
-Lista básica operacional (obrigatória para todo pacote):
+Lista bÃ¡sica operacional (obrigatÃ³ria para todo pacote):
 1. Registrar demanda no backlog antes de implementar e manter status atualizado.
-2. Ler contexto completo do projeto e limitar mudanças ao escopo solicitado.
-3. Não remover código/arquivos fora do requisito explícito.
-4. Escrever/atualizar testes para o comportamento alterado (TDD sempre que viável).
+2. Ler contexto completo do projeto e limitar mudanÃ§as ao escopo solicitado.
+3. NÃ£o remover cÃ³digo/arquivos fora do requisito explÃ­cito.
+4. Escrever/atualizar testes para o comportamento alterado (TDD sempre que viÃ¡vel).
 5. Executar `flutter analyze` antes de commit/push.
 6. Executar `flutter test` antes de commit/push.
-7. Validar e incrementar `version` no `pubspec.yaml` antes de merge/push/publicação.
-8. Usar mensagem de commit/publicação no padrão acordado: `[versão] - [tipo alteração]: [resumo curto em português]`.
-9. Atualizar documentação e observações do backlog no fechamento da entrega.
+7. Validar e incrementar `version` no `pubspec.yaml` antes de merge/push/publicaÃ§Ã£o.
+8. Usar mensagem de commit/publicaÃ§Ã£o no padrÃ£o acordado: `[versÃ£o] - [tipo alteraÃ§Ã£o]: [resumo curto em portuguÃªs]`.
+9. Atualizar documentaÃ§Ã£o e observaÃ§Ãµes do backlog no fechamento da entrega.
 
-Observacao 2026-03-31: checklist operacional dedicado publicado em `docs/qa/CHECKLIST_OPERACIONAL_PRE_PUSH.md` para padronizar gate de backlog, testes, analyze, versionamento e padrão de commit antes do push.
+Observacao 2026-03-31: checklist operacional dedicado publicado em `docs/qa/CHECKLIST_OPERACIONAL_PRE_PUSH.md` para padronizar gate de backlog, testes, analyze, versionamento e padrÃ£o de commit antes do push.
 
 ### BL-029
-Implementar a aba Agenda com visualização em calendário para o usuário consultar os jobs agendados por dia, semana e mês.
+Implementar a aba Agenda com visualizaÃ§Ã£o em calendÃ¡rio para o usuÃ¡rio consultar os jobs agendados por dia, semana e mÃªs.
 
 Observacao 2026-03-30 (CONCLUIDO): criada aba Agenda com grade mensal, marcacao de dias com jobs e lista de compromissos por dia selecionado.
 
 ### BL-030
-Evoluir o sininho de mensagens para central de comunicação backend-app, sempre vinculada a job ou proposta, com push notification mesmo com aplicativo fechado.
+Evoluir o sininho de mensagens para central de comunicaÃ§Ã£o backend-app, sempre vinculada a job ou proposta, com push notification mesmo com aplicativo fechado.
 
 Observacao 2026-03-30 (CONCLUIDO): central de mensagens implementada com contador de nao lidas no header, marcacao individual/geral de leitura e alimentacao por mocks do painel dev para simulacao de push/backend.
 
 ### BL-031
-Introduzir autenticação com tela de login, gerenciamento de sessão e proteção de acesso às áreas internas do app.
+Introduzir autenticaÃ§Ã£o com tela de login, gerenciamento de sessÃ£o e proteÃ§Ã£o de acesso Ã s Ã¡reas internas do app.
 
 Observacao 2026-03-30 (PARCIAL): fluxo de autenticacao com estado persistido localmente, logout seguro e roteamento condicional para login/onboarding/aguardando aprovacao/home.
 Observacao 2026-03-31 (EM ANDAMENTO): reforcada a testabilidade da tela de login para automacao Maestro com identificadores semanticos estaveis em campos e botao de submit.
 Observacao 2026-04-02 (REPLANEJADO): validado que o app ainda nao autentica contra backend real; passam a ser obrigatorios neste item o login backend-first, refresh/revogacao de sessao, trilha de auditoria de acesso, controle de tentativas/lockout e readiness para MFA/FIDO2.
-Observacao 2026-04-03 (SEQUENCIAMENTO): BL-031 depende dos cards de backend BOW-100 (Tenant+Membership), BOW-101 (User entity retrofit) e BOW-102 (JWT auth backend). Não iniciar o lado mobile enquanto o backend não tiver JWT funcional com GET /auth/me retornando tenant context correto.
+Observacao 2026-04-03 (SEQUENCIAMENTO): BL-031 depende dos cards de backend BOW-100 (Tenant+Membership), BOW-101 (User entity retrofit) e BOW-102 (JWT auth backend). NÃ£o iniciar o lado mobile enquanto o backend nÃ£o tiver JWT funcional com GET /auth/me retornando tenant context correto.
 Observacao 2026-04-10 (PARCIAL - Compass Pacote B): app mobile ganhou cliente backend-first para `POST /auth/login` + `GET /auth/me`, ativado por `--dart-define=APP_API_BASE_URL=...` e `--dart-define=APP_TENANT_ID=tenant-compass`. Quando a API nao esta configurada, o fluxo mock legado permanece como fallback local.
 Observacao 2026-04-10 (PARCIAL - Compass Pacote B): contexto operacional mobile passou a priorizar a sessao autenticada (`auth_tenant_id`, `auth_user_id`, `auth_access_token`) para chamadas de configuracao dinamica e sincronizacao de vistoria, mantendo overrides/env apenas como fallback tecnico.
 Observacao 2026-04-10 (PARCIAL - Compass Pacote B): sessao mobile passa a persistir expiracao do access token, executar refresh automatico ao restaurar sessao expirada e revogar refresh token no logout via `/auth/logout` quando backend esta configurado.
@@ -511,174 +638,174 @@ Observacao 2026-04-10 (PARCIAL - Compass Pacote B): backend passou a validar o b
 Observacao 2026-04-10 (PARCIAL - Compass Pacote B): backend tambem valida o bearer token quando informado em configuracao dinamica e sincronizacao de vistoria, bloqueando tenant/ator divergente antes do processamento operacional.
 
 ### BL-032
-Criar onboarding de novos usuários para perfis CLT e PJ, com coleta de dados cadastrais completos e captura de foto pelo app.
+Criar onboarding de novos usuÃ¡rios para perfis CLT e PJ, com coleta de dados cadastrais completos e captura de foto pelo app.
 
 Observacao 2026-03-30 (CONCLUIDO): onboarding em etapas com selecao CLT/PJ, dados pessoais e bloco bancario para PJ, integrado ao estado de autenticacao.
 
 ### BL-033
-Adicionar tela de aguardando aprovação de cadastro para usuários onboarded que dependem de liberação do backoffice.
+Adicionar tela de aguardando aprovaÃ§Ã£o de cadastro para usuÃ¡rios onboarded que dependem de liberaÃ§Ã£o do backoffice.
 
 Observacao 2026-03-30 (CONCLUIDO): tela dedicada de aguardando aprovacao adicionada, com acao de verificacao de status e simulacao de aprovacao em ambiente de desenvolvimento.
 
 ### BL-057
-Refatorar o fluxo de vistoria como alinhamento arquitetural ao V2 da plataforma, removendo a semântica inspection-centric do núcleo do fluxo configurável sem reescrever a navegação atual.
+Refatorar o fluxo de vistoria como alinhamento arquitetural ao V2 da plataforma, removendo a semÃ¢ntica inspection-centric do nÃºcleo do fluxo configurÃ¡vel sem reescrever a navegaÃ§Ã£o atual.
 
 - Camada: domain-inspection
 - Dominio: domain-inspection
-- Area: fluxo configurável / semântica
-- Objetivo: unificar a dimensão funcional hoje exibida como `Por onde deseja começar?`, `Onde estou?` e `Área da foto` sob uma chave semântica canônica única
+- Area: fluxo configurÃ¡vel / semÃ¢ntica
+- Objetivo: unificar a dimensÃ£o funcional hoje exibida como `Por onde deseja comeÃ§ar?`, `Onde estou?` e `Ãrea da foto` sob uma chave semÃ¢ntica canÃ´nica Ãºnica
 - Arquivos provaveis: `lib/screens/checkin_screen.dart`, `lib/screens/overlay_camera_screen.dart`, `lib/screens/inspection_review_screen.dart`, `lib/services/inspection_semantic_field_service.dart`, `lib/config/inspection_menu_package.dart`
 - Dependencias: BL-051, BL-052
 - Testes obrigatorios:
-  - regressão de label por etapa (check-in, câmera, revisão)
-  - regressão de aliases/payload legado
+  - regressÃ£o de label por etapa (check-in, cÃ¢mera, revisÃ£o)
+  - regressÃ£o de aliases/payload legado
   - `flutter analyze --no-pub`
-- Evidencia esperada: labels diferentes por surface apontando para a mesma semântica canônica sem duplicação de regra na UI
-- Docs que precisam ser atualizados: este backlog, backlog V2 prioritário se houver mudança de fronteira, resumo executivo contínuo
-- Criterio de pronto: widgets deixam de decidir semântica funcional por texto exibido; remoto e fallback usam o mesmo shape lógico
+- Evidencia esperada: labels diferentes por surface apontando para a mesma semÃ¢ntica canÃ´nica sem duplicaÃ§Ã£o de regra na UI
+- Docs que precisam ser atualizados: este backlog, backlog V2 prioritÃ¡rio se houver mudanÃ§a de fronteira, resumo executivo contÃ­nuo
+- Criterio de pronto: widgets deixam de decidir semÃ¢ntica funcional por texto exibido; remoto e fallback usam o mesmo shape lÃ³gico
 
-Observacao 2026-04-06 (FECHAMENTO OBRIGATORIO ONDA 3): rodada reaberta para eliminar a última inconsistência pública entre `InspectionFlowCoordinator` e `OverlayCameraScreen`, removendo contrato fragmentado legado da câmera e consolidando labels/surface aliases na mesma chave semântica canônica.
-Observacao 2026-04-12 (ALINHAMENTO CANONICO): o fluxo passa a reconhecer duas estruturas distintas e complementares: `arvore de captura` (check-in etapa 1, câmera, revisão de evidências) e `matriz normativa/operacional` (check-in etapa 2, pendências, bloqueio de entrega). `Etapa 1` permanece obrigatória para abertura da câmera; `Etapa 2` pode ser obrigatória para entrega, mas não deve bloquear a captura. Documento de referência: `docs/05-operations/runbooks/MODELO_CANONICO_FLUXO_CONFIGURAVEL_VISTORIA.md`.
+Observacao 2026-04-06 (FECHAMENTO OBRIGATORIO ONDA 3): rodada reaberta para eliminar a Ãºltima inconsistÃªncia pÃºblica entre `InspectionFlowCoordinator` e `OverlayCameraScreen`, removendo contrato fragmentado legado da cÃ¢mera e consolidando labels/surface aliases na mesma chave semÃ¢ntica canÃ´nica.
+Observacao 2026-04-12 (ALINHAMENTO CANONICO): o fluxo passa a reconhecer duas estruturas distintas e complementares: `arvore de captura` (check-in etapa 1, cÃ¢mera, revisÃ£o de evidÃªncias) e `matriz normativa/operacional` (check-in etapa 2, pendÃªncias, bloqueio de entrega). `Etapa 1` permanece obrigatÃ³ria para abertura da cÃ¢mera; `Etapa 2` pode ser obrigatÃ³ria para entrega, mas nÃ£o deve bloquear a captura. Documento de referÃªncia: `docs/05-operations/runbooks/MODELO_CANONICO_FLUXO_CONFIGURAVEL_VISTORIA.md`.
 
 Observacao 2026-04-12 (IMPLEMENTACAO PRATICA): revisao, matching operacional e atalhos de pendencia passaram a trafegar por `subjectContext`, `targetItem` e `targetQualifier`, fechando o milestone `M3` no runtime. Painel operacional: `docs/05-operations/runbooks/PAINEL_MILESTONES_FLUXO_CONFIGURAVEL_VISTORIA.md`.
 
 ### BL-058
-Separar explicitamente o estado inicial sugerido, o estado atual da captura e o último estado utilizado para retomada, mantendo compatibilidade com o payload de recovery existente.
+Separar explicitamente o estado inicial sugerido, o estado atual da captura e o Ãºltimo estado utilizado para retomada, mantendo compatibilidade com o payload de recovery existente.
 
 - Camada: domain-inspection
 - Dominio: domain-inspection
 - Area: estado / recovery
-- Objetivo: impedir que o contexto inicial vindo do check-in continue funcionando como trava operacional da câmera
+- Objetivo: impedir que o contexto inicial vindo do check-in continue funcionando como trava operacional da cÃ¢mera
 - Arquivos provaveis: `lib/screens/overlay_camera_screen.dart`, `lib/screens/inspection_review_screen.dart`, `lib/services/inspection_flow_coordinator.dart`, `lib/state/app_state.dart`
 - Dependencias: BL-057
 - Testes obrigatorios:
-  - abrir câmera com sugestão inicial
+  - abrir cÃ¢mera com sugestÃ£o inicial
   - trocar contexto atual
-  - voltar da revisão reabrindo no último contexto real
+  - voltar da revisÃ£o reabrindo no Ãºltimo contexto real
   - compatibilidade de recovery antigo e novo
   - `flutter analyze --no-pub`
-- Evidencia esperada: retomada priorizando o último contexto real, com bootstrap e recovery claramente separados
-- Docs que precisam ser atualizados: este backlog e resumo executivo contínuo
-- Criterio de pronto: bootstrap, operação corrente e retomada passam a existir como estados distintos fora da UI; payload novo é aditivo e o legado continua suportado
+- Evidencia esperada: retomada priorizando o Ãºltimo contexto real, com bootstrap e recovery claramente separados
+- Docs que precisam ser atualizados: este backlog e resumo executivo contÃ­nuo
+- Criterio de pronto: bootstrap, operaÃ§Ã£o corrente e retomada passam a existir como estados distintos fora da UI; payload novo Ã© aditivo e o legado continua suportado
 
-Observacao 2026-04-06 (FECHAMENTO OBRIGATORIO ONDA 3): revisão reaberta para retirar montagem manual de `resumeContext` e serialização manual de `cameraContext`, centralizando leitura/escrita no adapter de recovery sem quebrar payload legado.
+Observacao 2026-04-06 (FECHAMENTO OBRIGATORIO ONDA 3): revisÃ£o reaberta para retirar montagem manual de `resumeContext` e serializaÃ§Ã£o manual de `cameraContext`, centralizando leitura/escrita no adapter de recovery sem quebrar payload legado.
 
 Observacao 2026-04-12 (IMPLEMENTACAO PRATICA): cobertura automatizada valida bootstrap do `step1`, abertura da camera com `step2` obrigatoria apenas para entrega e bloqueio de finalizacao na revisao enquanto a pendencia normativa continuar aberta. Runbook de fechamento: `docs/05-operations/runbooks/VALIDACAO_FINAL_FLUXO_CONFIGURAVEL_VISTORIA.md`.
 
 ### BL-059
-Consolidar a duplicação de ambiente repetido como ação contextual do nível atual, fora da árvore principal, preservando o comportamento operacional `Trocar` e `Novo <ambiente>`.
+Consolidar a duplicaÃ§Ã£o de ambiente repetido como aÃ§Ã£o contextual do nÃ­vel atual, fora da Ã¡rvore principal, preservando o comportamento operacional `Trocar` e `Novo <ambiente>`.
 
 - Camada: domain-inspection
 - Dominio: domain-inspection
-- Area: UX operacional da câmera
-- Objetivo: suportar `Quarto 2`, `Sala 2` e equivalentes sem criar submenu e sem quebrar revisão/retomada
+- Area: UX operacional da cÃ¢mera
+- Objetivo: suportar `Quarto 2`, `Sala 2` e equivalentes sem criar submenu e sem quebrar revisÃ£o/retomada
 - Arquivos provaveis: `lib/screens/overlay_camera_screen.dart`, `lib/screens/inspection_review_screen.dart`, `lib/services/inspection_environment_instance_service.dart`
 - Dependencias: BL-057, BL-058
 - Testes obrigatorios:
   - `Novo Quarto` cria `Quarto 2`
-  - revisão mantém a instância operacional
+  - revisÃ£o mantÃ©m a instÃ¢ncia operacional
   - obrigatoriedade configurada para `Quarto` continua satisfeita por `Quarto 2`
   - `flutter analyze --no-pub`
-- Evidencia esperada: ação contextual fora da árvore principal com estado operacional preservado ponta a ponta
-- Docs que precisam ser atualizados: este backlog e resumo executivo contínuo
-- Criterio de pronto: instância operacional de ambiente fica estável no fluxo principal sem aumento de profundidade da navegação
+- Evidencia esperada: aÃ§Ã£o contextual fora da Ã¡rvore principal com estado operacional preservado ponta a ponta
+- Docs que precisam ser atualizados: este backlog e resumo executivo contÃ­nuo
+- Criterio de pronto: instÃ¢ncia operacional de ambiente fica estÃ¡vel no fluxo principal sem aumento de profundidade da navegaÃ§Ã£o
 
-Observacao 2026-04-06 (FECHAMENTO OBRIGATORIO ONDA 3): a rodada de fechamento mantém `Novo Quarto`/`Quarto 2` como ação contextual fora da árvore principal, com persistência e retomada validadas a partir do estado canônico.
+Observacao 2026-04-06 (FECHAMENTO OBRIGATORIO ONDA 3): a rodada de fechamento mantÃ©m `Novo Quarto`/`Quarto 2` como aÃ§Ã£o contextual fora da Ã¡rvore principal, com persistÃªncia e retomada validadas a partir do estado canÃ´nico.
 
 ### BL-060
-Quebrar incrementalmente o service concentrador de configuração/menus em fatias coesas e compatíveis com a arquitetura V2, sem mudança abrupta de contrato externo.
+Quebrar incrementalmente o service concentrador de configuraÃ§Ã£o/menus em fatias coesas e compatÃ­veis com a arquitetura V2, sem mudanÃ§a abrupta de contrato externo.
 
 - Camada: shared-foundation
 - Dominio: cross-domain
-- Area: config runtime / fallback / histórico
-- Objetivo: separar carregamento de documento, merge, fallback, histórico de uso e prediction em responsabilidades independentes
-- Arquivos provaveis: `lib/services/inspection_menu_service.dart`, `lib/config/inspection_menu_package.dart`, novos services/adapters seguindo o padrão real do projeto
+- Area: config runtime / fallback / histÃ³rico
+- Objetivo: separar carregamento de documento, merge, fallback, histÃ³rico de uso e prediction em responsabilidades independentes
+- Arquivos provaveis: `lib/services/inspection_menu_service.dart`, `lib/config/inspection_menu_package.dart`, novos services/adapters seguindo o padrÃ£o real do projeto
 - Dependencias: BL-057
 - Testes obrigatorios:
-  - regressão de load do asset
-  - regressão de merge de override/mock
-  - regressão de fallback offline
-  - regressão de prediction/sugestão
+  - regressÃ£o de load do asset
+  - regressÃ£o de merge de override/mock
+  - regressÃ£o de fallback offline
+  - regressÃ£o de prediction/sugestÃ£o
   - `flutter analyze --no-pub`
-- Evidencia esperada: responsabilidades hoje concentradas em `inspection_menu_service.dart` migradas por fatias, mantendo uma façade compatível durante a transição
-- Docs que precisam ser atualizados: este backlog e lições aprendidas quando a primeira fatia entrar
-- Criterio de pronto: o service atual deixa de ser dono simultâneo de loader + merge + fallback + history + prediction; a migração permanece invisível para a UI no primeiro estágio
+- Evidencia esperada: responsabilidades hoje concentradas em `inspection_menu_service.dart` migradas por fatias, mantendo uma faÃ§ade compatÃ­vel durante a transiÃ§Ã£o
+- Docs que precisam ser atualizados: este backlog e liÃ§Ãµes aprendidas quando a primeira fatia entrar
+- Criterio de pronto: o service atual deixa de ser dono simultÃ¢neo de loader + merge + fallback + history + prediction; a migraÃ§Ã£o permanece invisÃ­vel para a UI no primeiro estÃ¡gio
 
-Observacao 2026-04-06 (FECHAMENTO OBRIGATORIO ONDA 3): esta rodada não amplia escopo do service deus; apenas fecha a fronteira residual de recovery/semântica entre coordinator, câmera e revisão para concluir a migração canônica já iniciada.
+Observacao 2026-04-06 (FECHAMENTO OBRIGATORIO ONDA 3): esta rodada nÃ£o amplia escopo do service deus; apenas fecha a fronteira residual de recovery/semÃ¢ntica entre coordinator, cÃ¢mera e revisÃ£o para concluir a migraÃ§Ã£o canÃ´nica jÃ¡ iniciada.
 
 ### BL-061
-Isolar a especialização do domínio inspection sobre um core reutilizável de fluxo configurável, preservando taxonomia imobiliária no domínio sem contaminar a semântica global da plataforma.
+Isolar a especializaÃ§Ã£o do domÃ­nio inspection sobre um core reutilizÃ¡vel de fluxo configurÃ¡vel, preservando taxonomia imobiliÃ¡ria no domÃ­nio sem contaminar a semÃ¢ntica global da plataforma.
 
 - Camada: domain-inspection
 - Dominio: domain-inspection
-- Area: adapter de domínio / taxonomia
-- Objetivo: manter `tipoImovel`, `subtipo`, `ambiente`, `elemento`, `material` e `estado` como especialização do domínio inspection, desacoplados do core
-- Arquivos provaveis: `lib/screens/checkin_screen.dart`, `lib/screens/overlay_camera_screen.dart`, `lib/screens/inspection_review_screen.dart`, `lib/config/inspection_menu_package.dart`, novos adapters/taxonomy services conforme padrão do projeto
+- Area: adapter de domÃ­nio / taxonomia
+- Objetivo: manter `tipoImovel`, `subtipo`, `ambiente`, `elemento`, `material` e `estado` como especializaÃ§Ã£o do domÃ­nio inspection, desacoplados do core
+- Arquivos provaveis: `lib/screens/checkin_screen.dart`, `lib/screens/overlay_camera_screen.dart`, `lib/screens/inspection_review_screen.dart`, `lib/config/inspection_menu_package.dart`, novos adapters/taxonomy services conforme padrÃ£o do projeto
 - Dependencias: BL-057, BL-060
 - Testes obrigatorios:
-  - regressão de tradução semântica -> vocabulário inspection
-  - regressão de labels por surface
-  - regressão de taxonomia na revisão e na câmera
+  - regressÃ£o de traduÃ§Ã£o semÃ¢ntica -> vocabulÃ¡rio inspection
+  - regressÃ£o de labels por surface
+  - regressÃ£o de taxonomia na revisÃ£o e na cÃ¢mera
   - `flutter analyze --no-pub`
-- Evidencia esperada: inspection permanece funcional como domain pack, mas o core reutilizável deixa de depender do vocabulário imobiliário
-- Docs que precisam ser atualizados: este backlog, backlog V2 prioritário se houver ajuste de fronteira, resumo executivo contínuo
-- Criterio de pronto: vocabulário imobiliário permanece no domain layer e não exige rename global para neutralizar o core
+- Evidencia esperada: inspection permanece funcional como domain pack, mas o core reutilizÃ¡vel deixa de depender do vocabulÃ¡rio imobiliÃ¡rio
+- Docs que precisam ser atualizados: este backlog, backlog V2 prioritÃ¡rio se houver ajuste de fronteira, resumo executivo contÃ­nuo
+- Criterio de pronto: vocabulÃ¡rio imobiliÃ¡rio permanece no domain layer e nÃ£o exige rename global para neutralizar o core
 
-Observacao 2026-04-06 (FECHAMENTO OBRIGATORIO ONDA 3): o fechamento desta etapa exige que a câmera continue aceitando labels por surface e aliases legados apenas via camada semântica/adapters, sem regra crítica hardcoded na UI.
+Observacao 2026-04-06 (FECHAMENTO OBRIGATORIO ONDA 3): o fechamento desta etapa exige que a cÃ¢mera continue aceitando labels por surface e aliases legados apenas via camada semÃ¢ntica/adapters, sem regra crÃ­tica hardcoded na UI.
 
 ### BL-034
-Disponibilizar atualização cadastral no menu de configurações, mantendo consistência com os campos definidos no onboarding.
+Disponibilizar atualizaÃ§Ã£o cadastral no menu de configuraÃ§Ãµes, mantendo consistÃªncia com os campos definidos no onboarding.
 
 Observacao 2026-03-30 (CONCLUIDO): configuracoes agora possuem entrada de atualizacao cadastral com persistencia de nome/documento e sincronizacao com dados exibidos no app.
 
 ### BL-035
-Exibir foto do usuário na Home e permitir atualização por câmera, sem upload da galeria, preparando base para validação facial futura.
+Exibir foto do usuÃ¡rio na Home e permitir atualizaÃ§Ã£o por cÃ¢mera, sem upload da galeria, preparando base para validaÃ§Ã£o facial futura.
 
 Observacao 2026-03-30 (CONCLUIDO): foto de usuario exibida no header da Home, com atualizacao por captura de camera nas configuracoes e persistencia local da referencia da imagem.
 
 ### BL-040
-Corrigir divergência entre Checkin Etapa 2 e Revisão para o item obrigatório "Entorno", eliminando falso verde no checkin e bloqueio ao usar "Ir para pendência".
+Corrigir divergÃªncia entre Checkin Etapa 2 e RevisÃ£o para o item obrigatÃ³rio "Entorno", eliminando falso verde no checkin e bloqueio ao usar "Ir para pendÃªncia".
 
-Observacao 2026-03-30 (CONCLUIDO): campo obrigatório "Entorno" adicionado ao Checkin Etapa 2 (urbano) e refletido na revisão/pêndencias. Atalhos "Ir para pendência" agora expandem a seção de destino antes do scroll para evitar travamento de fluxo.
+Observacao 2026-03-30 (CONCLUIDO): campo obrigatÃ³rio "Entorno" adicionado ao Checkin Etapa 2 (urbano) e refletido na revisÃ£o/pÃªndencias. Atalhos "Ir para pendÃªncia" agora expandem a seÃ§Ã£o de destino antes do scroll para evitar travamento de fluxo.
 
 ### BL-041
-Reorganizar o bloco de revisão de fotos para a área inferior com agrupamento "Revisão de Fotos Obrigatórias", contendo dois acordeões independentes: "Fotos Obrigatórias" e "Fotos Capturadas".
+Reorganizar o bloco de revisÃ£o de fotos para a Ã¡rea inferior com agrupamento "RevisÃ£o de Fotos ObrigatÃ³rias", contendo dois acordeÃµes independentes: "Fotos ObrigatÃ³rias" e "Fotos Capturadas".
 
-Observacao 2026-03-30 (CONCLUIDO): bloco inferior foi remodelado com dois acordeões independentes e status visual OK/NOK para cada grupo.
+Observacao 2026-03-30 (CONCLUIDO): bloco inferior foi remodelado com dois acordeÃµes independentes e status visual OK/NOK para cada grupo.
 
 ### BL-042
-No card de Novas Propostas, exibir ID do JOB e implementar simulação do aceite por deslize, movendo o item aceito para "Meus Jobs Agendados" no mock.
+No card de Novas Propostas, exibir ID do JOB e implementar simulaÃ§Ã£o do aceite por deslize, movendo o item aceito para "Meus Jobs Agendados" no mock.
 
-**Implementado:** `ProposalsSection` convertido para `StatefulWidget` gerenciando lista local. ID exibido como `_InfoTag`. Swipe usa `confirmDismiss → true` + `onDismissed` para animação limpa. Aceite converte `ProposalOffer` em `Job` e adiciona em `AppState.jobs` via Provider. SnackBar de confirmação exibido. Testes: 2/2 ✅
+**Implementado:** `ProposalsSection` convertido para `StatefulWidget` gerenciando lista local. ID exibido como `_InfoTag`. Swipe usa `confirmDismiss â†’ true` + `onDismissed` para animaÃ§Ã£o limpa. Aceite converte `ProposalOffer` em `Job` e adiciona em `AppState.jobs` via Provider. SnackBar de confirmaÃ§Ã£o exibido. Testes: 2/2 âœ…
 
 ### BL-043
-Remover o componente de comandos rápidos por voz da câmera por comprometer a área útil de captura e classificação.
+Remover o componente de comandos rÃ¡pidos por voz da cÃ¢mera por comprometer a Ã¡rea Ãºtil de captura e classificaÃ§Ã£o.
 
 ### BL-044
-Adicionar controle lateral para ocultar/mostrar menus dinâmicos na câmera, com comportamento padrão inicial expandido.
+Adicionar controle lateral para ocultar/mostrar menus dinÃ¢micos na cÃ¢mera, com comportamento padrÃ£o inicial expandido.
 
 ### BL-045
-Transferir a funcionalidade de exportação da vistoria do menu Configurações para o Hub Operacional.
+Transferir a funcionalidade de exportaÃ§Ã£o da vistoria do menu ConfiguraÃ§Ãµes para o Hub Operacional.
 
-**Implementado:** Bloco "Exportação da vistoria" removido de `settings_screen.dart` (incluindo state fields `_exportFolderController`, `_exportMode`, `_loadingExportSettings`, `_usingExternalExportBase`, métodos `_loadExportSettings`, lógica de export em `_saveSettings` e UI do Divider ao botão). `_ExportSettingsCard` (StatefulWidget com estado próprio) adicionado ao `operational_hub_screen.dart`. 110/110 testes ✅
+**Implementado:** Bloco "ExportaÃ§Ã£o da vistoria" removido de `settings_screen.dart` (incluindo state fields `_exportFolderController`, `_exportMode`, `_loadingExportSettings`, `_usingExternalExportBase`, mÃ©todos `_loadExportSettings`, lÃ³gica de export em `_saveSettings` e UI do Divider ao botÃ£o). `_ExportSettingsCard` (StatefulWidget com estado prÃ³prio) adicionado ao `operational_hub_screen.dart`. 110/110 testes âœ…
 
 ### BL-046
-Corrigir o fluxo de "Sair da conta" em Configurações para funcionar em mock e retornar para a tela inicial de login.
+Corrigir o fluxo de "Sair da conta" em ConfiguraÃ§Ãµes para funcionar em mock e retornar para a tela inicial de login.
 
-Observacao 2026-03-30 (CONCLUIDO): logout em Configurações limpa sessão mock completa (email/perfil/documentos), retorna para a raiz e exibe Login de forma consistente.
+Observacao 2026-03-30 (CONCLUIDO): logout em ConfiguraÃ§Ãµes limpa sessÃ£o mock completa (email/perfil/documentos), retorna para a raiz e exibe Login de forma consistente.
 
 ### BL-047
-Simplificar onboarding do app para perfil PJ (sem seletor CLT/PJ) e aplicar validações de CNPJ, Agência, Conta e Banco.
+Simplificar onboarding do app para perfil PJ (sem seletor CLT/PJ) e aplicar validaÃ§Ãµes de CNPJ, AgÃªncia, Conta e Banco.
 
-Observacao 2026-03-30 (CONCLUIDO): onboarding passou a iniciar direto no fluxo PJ (2 etapas), removendo seletor CLT/PJ e validando CNPJ (14 dígitos + DV), banco, agência e conta.
+Observacao 2026-03-30 (CONCLUIDO): onboarding passou a iniciar direto no fluxo PJ (2 etapas), removendo seletor CLT/PJ e validando CNPJ (14 dÃ­gitos + DV), banco, agÃªncia e conta.
 
 ### BL-048
-Adicionar no Hub Operacional uma ação de reset do mock de onboarding para permitir retestes completos do fluxo.
+Adicionar no Hub Operacional uma aÃ§Ã£o de reset do mock de onboarding para permitir retestes completos do fluxo.
 
-Observacao 2026-03-30 (CONCLUIDO): Hub Operacional recebeu ação "Resetar mock de onboarding", retornando o usuário ao estado de cadastro sem reinstalar o app.
+Observacao 2026-03-30 (CONCLUIDO): Hub Operacional recebeu aÃ§Ã£o "Resetar mock de onboarding", retornando o usuÃ¡rio ao estado de cadastro sem reinstalar o app.
 
 ### BL-049
-Consolidar o GitHub Project como fonte principal do backlog, garantindo sincronização integral dos itens BL e status com rastreabilidade.
+Consolidar o GitHub Project como fonte principal do backlog, garantindo sincronizaÃ§Ã£o integral dos itens BL e status com rastreabilidade.
 
 Observacao 2026-04-01 (Em andamento): criado o resumo executivo continuo de implantacao (`docs/05-operations/release-governance/RESUMO_EXECUTIVO_CONTINUO.md`) com snapshot de branches, versao, gates de promocao e estado homolog -> main para reduzir perda de contexto entre sessoes e suportar decisao de merge com rastreabilidade.
 
@@ -691,14 +818,14 @@ Observacao 2026-04-01 (Em acompanhamento): divergencia de notificacao por e-mail
 Observacao 2026-04-02 (CONCLUIDO): ciclo de promocao homolog -> main finalizado por PR com excecao controlada de aprovacao minima e restauracao imediata da protecao (1 aprovacao), workflows chave em verde e equalizacao de ambientes concluida com `origin/main` e `origin/homolog` em 0/0 de divergencia.
 
 ### BL-050
-Corrigir a área de ação final do onboarding para evitar que o botão "Concluir" fique encoberto pela barra de navegação do Android, garantindo conclusão do fluxo com usabilidade consistente.
+Corrigir a Ã¡rea de aÃ§Ã£o final do onboarding para evitar que o botÃ£o "Concluir" fique encoberto pela barra de navegaÃ§Ã£o do Android, garantindo conclusÃ£o do fluxo com usabilidade consistente.
 
-Observacao 2026-03-30 (Concluído): botão movido do `body` (Column) para `Scaffold.bottomNavigationBar` com `SafeArea(top: false, minimum: EdgeInsets.fromLTRB(20, 8, 20, 20))` e altura fixa de 54dp via `SizedBox`. O `Scaffold` gerencia corretamente o inset do rodapé do Android independente de modo de gestos ou botões de navegação. 3 testes passando.
+Observacao 2026-03-30 (ConcluÃ­do): botÃ£o movido do `body` (Column) para `Scaffold.bottomNavigationBar` com `SafeArea(top: false, minimum: EdgeInsets.fromLTRB(20, 8, 20, 20))` e altura fixa de 54dp via `SizedBox`. O `Scaffold` gerencia corretamente o inset do rodapÃ© do Android independente de modo de gestos ou botÃµes de navegaÃ§Ã£o. 3 testes passando.
 
 ### BL-051
-Unificar a persistência e o consumo das regras dinâmicas de obrigatoriedade entre Checkin Etapa 1/2, Câmera, Revisão e Menu de Vistoria, preparando o app para receber parâmetros normativos do módulo web (incluindo mínimo/máximo de fotos).
+Unificar a persistÃªncia e o consumo das regras dinÃ¢micas de obrigatoriedade entre Checkin Etapa 1/2, CÃ¢mera, RevisÃ£o e Menu de Vistoria, preparando o app para receber parÃ¢metros normativos do mÃ³dulo web (incluindo mÃ­nimo/mÃ¡ximo de fotos).
 
-Observacao 2026-03-30 (Em andamento): refatoração big-bang aplicada no fluxo mobile para consumir `step2Config` dinâmica de forma consistente em Revisão, Câmera em lote e Menu de Vistoria; export final da revisão passou a usar a lista de capturas atualizada em memória (incluindo capturas adicionadas na própria revisão); contrato dinâmico da etapa 2 recebeu suporte a `minFotos` e `maxFotos`, com validação de limite máximo na Etapa 2 e sinalização operacional na Revisão.
+Observacao 2026-03-30 (Em andamento): refatoraÃ§Ã£o big-bang aplicada no fluxo mobile para consumir `step2Config` dinÃ¢mica de forma consistente em RevisÃ£o, CÃ¢mera em lote e Menu de Vistoria; export final da revisÃ£o passou a usar a lista de capturas atualizada em memÃ³ria (incluindo capturas adicionadas na prÃ³pria revisÃ£o); contrato dinÃ¢mico da etapa 2 recebeu suporte a `minFotos` e `maxFotos`, com validaÃ§Ã£o de limite mÃ¡ximo na Etapa 2 e sinalizaÃ§Ã£o operacional na RevisÃ£o.
 
 Observacao 2026-03-30 (Em andamento): corrigida a persistencia do snapshot dinamico da Etapa 2 no draft de recuperacao para evitar perda de `step2Config` ao avancar/retomar o fluxo. Menu de Vistoria, Revisao, Camera e auditoria de fallback passaram a resolver a mesma configuracao persistida por um unico caminho no servico dinamico, reduzindo divergencia de indicador e obrigatorios entre telas.
 
@@ -707,9 +834,9 @@ Observacao 2026-03-30 (Concluido): reforcado o caminho de persistencia do indica
 Observacao 2026-04-10 (PARCIAL - Compass Pacote C): smoke E2E de homolog valida que a politica dinamica de fotos Compass (`min=2`, `max=8`) publicada no pacote operacional e consumida pelo mobile antes da vistoria finalizada, reduzindo risco de divergencia entre configuracao, captura e payload enviado.
 
 ### BL-052
-Unificar no Hub Operacional um pacote único de parametrização para o modo desenvolvedor, deixando explícito o que pertence ao Check-in e o que pertence à Câmera, com organização por níveis configuráveis.
+Unificar no Hub Operacional um pacote Ãºnico de parametrizaÃ§Ã£o para o modo desenvolvedor, deixando explÃ­cito o que pertence ao Check-in e o que pertence Ã  CÃ¢mera, com organizaÃ§Ã£o por nÃ­veis configurÃ¡veis.
 
-Observacao 2026-03-30 (Em andamento): o documento JSON local do modo desenvolvedor passou a servir como fonte unificada para `step1`, `step2` e `camera`, eliminando a separação entre contrato de check-in e pacote isolado da câmera. A câmera agora pode consumir também níveis dinâmicos de `material` e `estado` por tipo de imóvel no mesmo documento salvo pelo HUB operacional. Próximo passo: evoluir o editor visual do HUB para manipular níveis sem edição manual de JSON.
+Observacao 2026-03-30 (Em andamento): o documento JSON local do modo desenvolvedor passou a servir como fonte unificada para `step1`, `step2` e `camera`, eliminando a separaÃ§Ã£o entre contrato de check-in e pacote isolado da cÃ¢mera. A cÃ¢mera agora pode consumir tambÃ©m nÃ­veis dinÃ¢micos de `material` e `estado` por tipo de imÃ³vel no mesmo documento salvo pelo HUB operacional. PrÃ³ximo passo: evoluir o editor visual do HUB para manipular nÃ­veis sem ediÃ§Ã£o manual de JSON.
 
 Observacao 2026-03-30 (Em andamento): o app passou a ter tambem unificacao no codigo de leitura do documento, com um pacote unico de configuracao compartilhado entre Check-in Etapa 1, Etapa 2 e Camera, reduzindo duplicacao de parser e abrindo caminho para evolucao por niveis e por subtipo sem contratos paralelos.
 
@@ -729,38 +856,38 @@ Observacao 2026-04-12 (IMPLEMENTACAO PRATICA): o pacote unificado ja cobre `step
 
 ---
 
-## Lista de evolução de testes (débito técnico)
+## Lista de evoluÃ§Ã£o de testes (dÃ©bito tÃ©cnico)
 
-1. BT-TEST-001 [Em progresso]: mapear cobertura atual por módulo (state, services, screens) e identificar lacunas.
-2. BT-TEST-002 [Concluído]: criar testes de unidade para `checkin_dynamic_config_service.dart` (parse, fallback, cache).
-3. BT-TEST-003 [Concluído]: criar testes de unidade para `inspection_sync_service.dart` e `inspection_sync_queue_service.dart` (sucesso, falha, retry).
-4. BT-TEST-004: criar testes da auditoria de fallback (`inspection_fallback_audit_service.dart`) para cenários saudável, alerta e falha.
+1. BT-TEST-001 [Em progresso]: mapear cobertura atual por mÃ³dulo (state, services, screens) e identificar lacunas.
+2. BT-TEST-002 [ConcluÃ­do]: criar testes de unidade para `checkin_dynamic_config_service.dart` (parse, fallback, cache).
+3. BT-TEST-003 [ConcluÃ­do]: criar testes de unidade para `inspection_sync_service.dart` e `inspection_sync_queue_service.dart` (sucesso, falha, retry).
+4. BT-TEST-004: criar testes da auditoria de fallback (`inspection_fallback_audit_service.dart`) para cenÃ¡rios saudÃ¡vel, alerta e falha.
 5. BT-TEST-005: criar testes de widget para aba Vistorias e detalhe read-only (`completed_inspections_screen.dart` e `completed_inspection_detail_screen.dart`).
-6. BT-TEST-006: adicionar regra de PR/CI para exigir alteração de teste quando houver alteração funcional.
+6. BT-TEST-006: adicionar regra de PR/CI para exigir alteraÃ§Ã£o de teste quando houver alteraÃ§Ã£o funcional.
 7. BT-TEST-007: registrar baseline de cobertura e meta incremental por sprint.
 
 ---
 
-## 🚀 Itens Críticos para Começar Agora
+## ðŸš€ Itens CrÃ­ticos para ComeÃ§ar Agora
 
-### BL-012: Menus de Checkin Dinâmicos (Prioridade #1)
-**Por que agora?** Validação NBR é bloqueadora e está hardcoded. Sem dinâmica, cada ajuste de obrigatoriedade precisa deploy.
+### BL-012: Menus de Checkin DinÃ¢micos (Prioridade #1)
+**Por que agora?** ValidaÃ§Ã£o NBR Ã© bloqueadora e estÃ¡ hardcoded. Sem dinÃ¢mica, cada ajuste de obrigatoriedade precisa deploy.
 
-**Dependências:** 
+**DependÃªncias:** 
 - Contrato de API definido
 
-**Exemplo de impacto:** Se o cliente quiser remover "Micro Detalhes" como obrigatório, hoje é deploy. Amanhã será 1 API call.
+**Exemplo de impacto:** Se o cliente quiser remover "Micro Detalhes" como obrigatÃ³rio, hoje Ã© deploy. AmanhÃ£ serÃ¡ 1 API call.
 
 ---
 
-### BL-001: Integração API Real (Prioridade #2)
-**Por que após BL-012?** Precisa saber qual é a estrutura de "checkinSessions" (BL-012) que será enviada no JSON final.
+### BL-001: IntegraÃ§Ã£o API Real (Prioridade #2)
+**Por que apÃ³s BL-012?** Precisa saber qual Ã© a estrutura de "checkinSessions" (BL-012) que serÃ¡ enviada no JSON final.
 
-**Dependências:**
-- BL-012 estar estável (estrutura de sessões conhecida)
+**DependÃªncias:**
+- BL-012 estar estÃ¡vel (estrutura de sessÃµes conhecida)
 - Endpoint da API web definido
 
-**Fluxo:** Job finalizado → Valida BL-012 (obrigatórios) → Envia JSON via BL-001
+**Fluxo:** Job finalizado â†’ Valida BL-012 (obrigatÃ³rios) â†’ Envia JSON via BL-001
 
 ---
 
@@ -777,19 +904,19 @@ Quando revisitar BL-011:
 ## Detalhamento BL-012: Menus de Checkin Dinamicos
 
 ### Contexto
-Atualmente, os menus de checkin etapa 1 e 2 estão hardcoded em `lib/config/checkin_step2_config.dart`. Cada sessão de captura (ex: fachada, ambiente, elemento inicial) possui:
-- Título
-- Ícone
+Atualmente, os menus de checkin etapa 1 e 2 estÃ£o hardcoded em `lib/config/checkin_step2_config.dart`. Cada sessÃ£o de captura (ex: fachada, ambiente, elemento inicial) possui:
+- TÃ­tulo
+- Ãcone
 - Requisitos de captura (Macro Local, Ambiente, Elemento)
 - Flag `obrigatorio` (booleano)
 
-Estes requisitos são baseados em padrões NBR e validados durante o checkout/revisão final de uma vistoria.
+Estes requisitos sÃ£o baseados em padrÃµes NBR e validados durante o checkout/revisÃ£o final de uma vistoria.
 
 ### Requisito
-Permitir configuração dinâmica via backend para:
-1. Adicionar/remover sessões de captura
-2. Alterar obrigatoriedade (obrigatorio vs desejável) sem deploy
-3. Adaptar para diferentes tipos de imóvel ou contextos
+Permitir configuraÃ§Ã£o dinÃ¢mica via backend para:
+1. Adicionar/remover sessÃµes de captura
+2. Alterar obrigatoriedade (obrigatorio vs desejÃ¡vel) sem deploy
+3. Adaptar para diferentes tipos de imÃ³vel ou contextos
 
 ### Estrutura Proposta
 ```json
@@ -803,7 +930,7 @@ Permitir configuração dinâmica via backend para:
       "cameraMacroLocal": true,
       "cameraAmbiente": true,
       "cameraElementoInicial": true,
-      "descricao": "Captura obrigatória NBR 16500"
+      "descricao": "Captura obrigatÃ³ria NBR 16500"
     },
     {
       "id": "ambiente",
@@ -813,14 +940,14 @@ Permitir configuração dinâmica via backend para:
       "cameraMacroLocal": true,
       "cameraAmbiente": true,
       "cameraElementoInicial": false,
-      "descricao": "Sessão desejável para contexto"
+      "descricao": "SessÃ£o desejÃ¡vel para contexto"
     }
   ]
 }
 ```
 
-### Validação na Revisão
-O campo `obrigatorio` é crítico pois bloqueia finalização se não atendido (CheckinReviewScreen valida).
+### ValidaÃ§Ã£o na RevisÃ£o
+O campo `obrigatorio` Ã© crÃ­tico pois bloqueia finalizaÃ§Ã£o se nÃ£o atendido (CheckinReviewScreen valida).
 
 ---
 
@@ -828,27 +955,27 @@ O campo `obrigatorio` é crítico pois bloqueia finalização se não atendido (
 1. Definicao do contrato da API web para recebimento do JSON de vistoria.
 2. Definicao de politica de autenticacao para integracao mobile -> web.
 3. Decisao sobre destino dos arquivos locais (apenas cache local ou sincronizacao obrigatoria).
-4. **Define contrato de API para checkin sessions configurável (BL-012)**.
-5. **Cache local de sessões com fallback para config hardcoded se offline (BL-012)**.
-6. **Definir política de destino de exportacao JSON (BL-016) sem comprometer sync offline e limpeza (BL-005)**.
-7. **Definir contrato de agenda de jobs por usuário (BL-029) com data/hora/status e paginação**.
+4. **Define contrato de API para checkin sessions configurÃ¡vel (BL-012)**.
+5. **Cache local de sessÃµes com fallback para config hardcoded se offline (BL-012)**.
+6. **Definir polÃ­tica de destino de exportacao JSON (BL-016) sem comprometer sync offline e limpeza (BL-005)**.
+7. **Definir contrato de agenda de jobs por usuÃ¡rio (BL-029) com data/hora/status e paginaÃ§Ã£o**.
 8. **Definir contrato de mensagens vinculadas a job/proposta e eventos de push (BL-030)**.
-9. **Definir provedor de push notification e estratégia de token/device registration (BL-030)**.
-10. **Definir política de autenticação (login, refresh token, expiração e logout) para mobile (BL-031)**.
-11. **Definir fluxos e validações de onboarding CLT/PJ no backend e no app (BL-032/BL-033/BL-034)**.
-12. **Definir diretriz de captura de foto via câmera e regras anti-galeria para onboarding/perfil (BL-032/BL-035)**.
+9. **Definir provedor de push notification e estratÃ©gia de token/device registration (BL-030)**.
+10. **Definir polÃ­tica de autenticaÃ§Ã£o (login, refresh token, expiraÃ§Ã£o e logout) para mobile (BL-031)**.
+11. **Definir fluxos e validaÃ§Ãµes de onboarding CLT/PJ no backend e no app (BL-032/BL-033/BL-034)**.
+12. **Definir diretriz de captura de foto via cÃ¢mera e regras anti-galeria para onboarding/perfil (BL-032/BL-035)**.
 
 ---
 
-## 📝 Notas para Colaboradores
+## ðŸ“ Notas para Colaboradores
 
 Ao pegar um item para implementar:
-1. ✅ Verifique se as dependências já foram satisfeitas
-2. ✅ Atualize o status de `Pendente` para `Em Progresso`
-3. ✅ Crie branch com padrão: `feature/BL-XXX-descricao-curto`
-4. ✅ Commit com prefixo: `feat/BL-XXX: descrição`
-5. ✅ Aplicar TDD no ciclo: escrever/ajustar teste, implementar, validar `flutter analyze` e `flutter test`
-6. ✅ Atualize este arquivo ao terminar (marque como `Concluído`)
+1. âœ… Verifique se as dependÃªncias jÃ¡ foram satisfeitas
+2. âœ… Atualize o status de `Pendente` para `Em Progresso`
+3. âœ… Crie branch com padrÃ£o: `feature/BL-XXX-descricao-curto`
+4. âœ… Commit com prefixo: `feat/BL-XXX: descriÃ§Ã£o`
+5. âœ… Aplicar TDD no ciclo: escrever/ajustar teste, implementar, validar `flutter analyze` e `flutter test`
+6. âœ… Atualize este arquivo ao terminar (marque como `ConcluÃ­do`)
 
 ## ADENDO 2026-04-04 - Priorizacao Mobile
 
@@ -889,3 +1016,4 @@ Ao pegar um item para implementar:
   - compatibilidade com payloads/JSON existentes;
   - `flutter analyze --no-pub`;
   - documentacao do checkpoint no resumo executivo continuo.
+

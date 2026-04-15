@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_strings.dart';
 import '../models/agenda_item.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
@@ -31,6 +32,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
+    final strings = AppStrings.of(context);
     final firstDay = DateTime(_focusMonth.year, _focusMonth.month, 1);
     final daysInMonth = DateUtils.getDaysInMonth(
       _focusMonth.year,
@@ -52,7 +54,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
             ),
             Expanded(
               child: Text(
-                _monthLabel(_focusMonth),
+                _monthLabel(strings, _focusMonth),
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 16,
@@ -79,7 +81,10 @@ class _AgendaScreenState extends State<AgendaScreen> {
         ),
         const SizedBox(height: 16),
         Text(
-          'Jobs em ${_selectedDay.day.toString().padLeft(2, '0')}/${_selectedDay.month.toString().padLeft(2, '0')}',
+          strings.tr(
+            'Jobs em ${_selectedDay.day.toString().padLeft(2, '0')}/${_selectedDay.month.toString().padLeft(2, '0')}',
+            'Jobs on ${_selectedDay.day.toString().padLeft(2, '0')}/${_selectedDay.month.toString().padLeft(2, '0')}',
+          ),
           style: const TextStyle(
             fontWeight: FontWeight.w800,
             color: AppColors.textPrimary,
@@ -87,9 +92,12 @@ class _AgendaScreenState extends State<AgendaScreen> {
         ),
         const SizedBox(height: 8),
         if (selectedItems.isEmpty)
-          const Text(
-            'Nenhum job agendado para este dia.',
-            style: TextStyle(color: AppColors.textSecondary),
+          Text(
+            strings.tr(
+              'Nenhum job agendado para este dia.',
+              'No job scheduled for this day.',
+            ),
+            style: const TextStyle(color: AppColors.textSecondary),
           )
         else
           ...selectedItems.map((item) => _AgendaCard(item: item)),
@@ -97,20 +105,20 @@ class _AgendaScreenState extends State<AgendaScreen> {
     );
   }
 
-  String _monthLabel(DateTime date) {
-    const months = [
-      'Janeiro',
-      'Fevereiro',
-      'Março',
-      'Abril',
-      'Maio',
-      'Junho',
-      'Julho',
-      'Agosto',
-      'Setembro',
-      'Outubro',
-      'Novembro',
-      'Dezembro',
+  String _monthLabel(AppStrings strings, DateTime date) {
+    final months = [
+      strings.tr('Janeiro', 'January'),
+      strings.tr('Fevereiro', 'February'),
+      strings.tr('Marco', 'March'),
+      strings.tr('Abril', 'April'),
+      strings.tr('Maio', 'May'),
+      strings.tr('Junho', 'June'),
+      strings.tr('Julho', 'July'),
+      strings.tr('Agosto', 'August'),
+      strings.tr('Setembro', 'September'),
+      strings.tr('Outubro', 'October'),
+      strings.tr('Novembro', 'November'),
+      strings.tr('Dezembro', 'December'),
     ];
     return '${months[date.month - 1]} ${date.year}';
   }
@@ -138,7 +146,16 @@ class _CalendarGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cells = <Widget>[];
-    const weekdayLabels = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
+    final strings = AppStrings.of(context);
+    final weekdayLabels = [
+      strings.tr('S', 'S'),
+      strings.tr('T', 'M'),
+      strings.tr('Q', 'T'),
+      strings.tr('Q', 'W'),
+      strings.tr('S', 'T'),
+      strings.tr('S', 'F'),
+      strings.tr('D', 'S'),
+    ];
 
     for (final label in weekdayLabels) {
       cells.add(

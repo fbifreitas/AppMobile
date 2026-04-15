@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
 import '../models/go_live_summary.dart';
 
 class GoLiveSummaryCard extends StatelessWidget {
@@ -12,6 +13,7 @@ class GoLiveSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     final color = summary.ready ? Colors.green : Colors.orange;
 
     return Container(
@@ -24,7 +26,7 @@ class GoLiveSummaryCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Checklist final de go-live',
+            strings.tr('Checklist final de go-live', 'Final go-live checklist'),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                   fontSize: 16,
@@ -35,17 +37,23 @@ class GoLiveSummaryCard extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _Mini(label: 'Itens', value: '${summary.total}'),
-              _Mini(label: 'Concluídos', value: '${summary.doneCount}'),
-              _Mini(label: 'Pendentes', value: '${summary.pendingCount}'),
-              _Mini(label: 'Bloqueios', value: '${summary.blockingCount}'),
+              _Mini(label: strings.tr('Itens', 'Items'), value: '${summary.total}'),
+              _Mini(label: strings.tr('Concluidos', 'Completed'), value: '${summary.doneCount}'),
+              _Mini(label: strings.tr('Pendentes', 'Pending'), value: '${summary.pendingCount}'),
+              _Mini(label: strings.tr('Bloqueios', 'Blocks'), value: '${summary.blockingCount}'),
             ],
           ),
           const SizedBox(height: 12),
           Text(
             summary.ready
-                ? 'Sem bloqueios críticos para o go-live.'
-                : 'Ainda existem bloqueios críticos antes do go-live.',
+                ? strings.tr(
+                    'Sem bloqueios criticos para o go-live.',
+                    'No critical blockers for go-live.',
+                  )
+                : strings.tr(
+                    'Ainda existem bloqueios criticos antes do go-live.',
+                    'There are still critical blockers before go-live.',
+                  ),
             style: TextStyle(
               color: color.shade700,
               fontWeight: FontWeight.w800,

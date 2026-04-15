@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
+import '../../l10n/app_strings.dart';
 import '../../theme/app_colors.dart';
 
 class StartupStatusCard extends StatelessWidget {
@@ -16,6 +17,7 @@ class StartupStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -26,9 +28,9 @@ class StartupStatusCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Status do startup',
-            style: TextStyle(
+          Text(
+            strings.tr('Status do startup', 'Startup status'),
+            style: const TextStyle(
               fontWeight: FontWeight.w800,
               fontSize: 14,
               color: AppColors.textPrimary,
@@ -36,7 +38,7 @@ class StartupStatusCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'isLoadingJobs: $isLoadingJobs',
+            strings.tr('isLoadingJobs: $isLoadingJobs', 'isLoadingJobs: $isLoadingJobs'),
             style: const TextStyle(
               fontSize: 13,
               color: AppColors.textPrimary,
@@ -44,7 +46,7 @@ class StartupStatusCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'jobs carregados: $jobsCount',
+            strings.tr('jobs carregados: $jobsCount', 'loaded jobs: $jobsCount'),
             style: const TextStyle(
               fontSize: 13,
               color: AppColors.textPrimary,
@@ -52,7 +54,10 @@ class StartupStatusCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'jobsLoadError: ${jobsLoadError ?? "nenhum"}',
+            strings.tr(
+              'jobsLoadError: ${jobsLoadError ?? "nenhum"}',
+              'jobsLoadError: ${jobsLoadError ?? "none"}',
+            ),
             style: const TextStyle(
               fontSize: 13,
               color: AppColors.textPrimary,

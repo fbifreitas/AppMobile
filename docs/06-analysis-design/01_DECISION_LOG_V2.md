@@ -1,4 +1,4 @@
-# DECISION LOG V2
+﻿# DECISION LOG V2
 
 > Ponte ativa para as decisoes estruturais da V2.
 > Este arquivo existe para manter estabilidade dos ponteiros documentais ainda ativos no repositorio.
@@ -19,6 +19,10 @@ As decisoes V2 que continuam valendo para a arquitetura ativa sao:
 4. O modelo canonico global e corporativo e neutro; o fluxo especifico de inspection permanece como especializacao do dominio.
 5. Tenant e white-label sao capacidades estruturais do core/plataforma.
 6. Documentacao antiga relevante deve ser arquivada como legado, nao removida silenciosamente.
+7. O incremento atual deve ser tratado como capacidade de backend/plataforma, e nao como aumento de centralidade do canal mobile.
+8. Capabilities horizontais como OCR, reconciliation, artifact storage, manual resolution e analytics-ready trail devem nascer com potencial de reaproveitamento futuro entre dominios.
+9. O App Mobile e canal operacional e fonte de evidencias, nao dono da inteligencia principal.
+10. O desenvolvimento do incremento deve seguir Clean Architecture, SOLID, Clean Code e TDD como guardrails obrigatorios.
 
 ## Fonte Historica
 
@@ -31,3 +35,4 @@ Se houver conflito:
 1. `01_CORPORATE_BLUEPRINT.md` e `07_CORPORATE_CANONICAL_MODEL.md` mandam sobre a arquitetura corporativa.
 2. `10_PLATFORM_ECOSYSTEM_AND_TENANT_MODEL.md`, `11_PLATFORM_CHANNELS_AND_CAPABILITY_BOUNDARIES.md` e `12_PLATFORM_MATURITY_AND_ALIGNMENT_MATRIX.md` refinam a leitura atual da V3.
 3. `08_BRAND_AND_DISTRIBUTION_MODEL.md` governa apenas o canal mobile white-label.
+4. Os docs incrementais `13`, `14` e `15` em `03-architecture/` refinam a leitura do programa atual de orchestracao, storage e smart app derivado.

@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../branding/brand_provider.dart';
+import '../../l10n/app_strings.dart';
 import '../../theme/app_colors.dart';
 
 class OperationalHubCard extends StatelessWidget {
@@ -14,6 +15,7 @@ class OperationalHubCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = BrandProvider.configOf(context).tokens;
+    final strings = AppStrings.of(context);
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -37,22 +39,25 @@ class OperationalHubCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Centrais integradas',
-                  style: TextStyle(
+                  strings.tr('Centrais integradas', 'Integrated centers'),
+                  style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
                     color: AppColors.textPrimary,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
-                  'Acesse fluxo, operação, IA, qualidade e produção em um único ponto.',
-                  style: TextStyle(
+                  strings.tr(
+                    'Acesse fluxo, operação, IA, qualidade e produção em um único ponto.',
+                    'Access flow, operations, AI, quality, and production in one place.',
+                  ),
+                  style: const TextStyle(
                     fontSize: 11,
                     color: AppColors.textSecondary,
                   ),
@@ -65,7 +70,7 @@ class OperationalHubCard extends StatelessWidget {
             width: 96,
             child: OutlinedButton(
               onPressed: onOpen,
-              child: const Text('ABRIR'),
+              child: Text(strings.tr('ABRIR', 'OPEN')),
             ),
           ),
         ],

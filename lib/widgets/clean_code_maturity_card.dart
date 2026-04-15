@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
 import '../models/clean_code_maturity_item.dart';
 
 class CleanCodeMaturityCard extends StatelessWidget {
@@ -12,6 +13,7 @@ class CleanCodeMaturityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -22,7 +24,7 @@ class CleanCodeMaturityCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Plano para chegar perto de 9/10',
+            strings.tr('Plano para chegar perto de 9/10', 'Plan to get close to 9/10'),
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
@@ -36,7 +38,13 @@ class CleanCodeMaturityCard extends StatelessWidget {
                 children: [
                   Text(item.title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
                   const SizedBox(height: 4),
-                  Text('Atual: ${item.currentLevel} • Alvo: ${item.targetLevel}', style: const TextStyle(fontSize: 11)),
+                  Text(
+                    strings.tr(
+                      'Atual: ${item.currentLevel} • Alvo: ${item.targetLevel}',
+                      'Current: ${item.currentLevel} • Target: ${item.targetLevel}',
+                    ),
+                    style: const TextStyle(fontSize: 11),
+                  ),
                   const SizedBox(height: 4),
                   Text(item.action, style: const TextStyle(fontSize: 12)),
                 ],

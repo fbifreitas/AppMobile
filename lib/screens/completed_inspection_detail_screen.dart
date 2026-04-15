@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
 import '../models/job.dart';
 import '../services/inspection_export_service.dart';
 import '../theme/app_colors.dart';
@@ -30,8 +31,12 @@ class _CompletedInspectionDetailScreenState
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Detalhes da vistoria')),
+      appBar: AppBar(
+        title: Text(strings.tr('Detalhes da vistoria', 'Inspection details')),
+      ),
       body: FutureBuilder<Map<String, dynamic>?>(
         future: _payloadFuture,
         builder: (context, snapshot) {
@@ -44,56 +49,62 @@ class _CompletedInspectionDetailScreenState
             padding: const EdgeInsets.all(16),
             children: [
               _InfoBlock(
-                title: 'Identificação',
+                title: strings.tr('Identificacao', 'Identification'),
                 lines: [
                   'JOB #${widget.job.id}',
                   widget.job.titulo,
                   widget.job.endereco,
                   if (_nonEmptyText(widget.job.idExterno) != null)
-                    'ID externo: ${_nonEmptyText(widget.job.idExterno)}',
+                    '${strings.tr('ID externo', 'External ID')}: ${_nonEmptyText(widget.job.idExterno)}',
                   if (_nonEmptyText(widget.job.protocoloExterno) != null)
-                    'Protocolo: ${_nonEmptyText(widget.job.protocoloExterno)}',
+                    '${strings.tr('Protocolo', 'Protocol')}: ${_nonEmptyText(widget.job.protocoloExterno)}',
                   if (widget.job.nomeCliente.trim().isNotEmpty)
-                    'Cliente: ${widget.job.nomeCliente}',
+                    '${strings.tr('Cliente', 'Client')}: ${widget.job.nomeCliente}',
                 ],
               ),
               const SizedBox(height: 12),
               if (payload == null)
-                const _InfoBlock(
-                  title: 'Detalhes técnicos',
+                _InfoBlock(
+                  title: strings.tr('Detalhes tecnicos', 'Technical details'),
                   lines: [
-                    'Nenhum JSON exportado encontrado para este job.',
-                    'A vistoria continua disponível apenas no resumo da lista.',
+                    strings.tr(
+                      'Nenhum JSON exportado encontrado para este job.',
+                      'No exported JSON found for this job.',
+                    ),
+                    strings.tr(
+                      'A vistoria continua disponivel apenas no resumo da lista.',
+                      'The inspection is still available only in the list summary.',
+                    ),
                   ],
                 )
               else ...[
                 _InfoBlock(
-                  title: 'Resumo da exportação',
+                  title: strings.tr('Resumo da exportacao', 'Export summary'),
                   lines: [
-                    'Exportado em: ${_text(payload['exportedAt'])}',
-                    'Tipo de imóvel: ${_text(_map(payload['review'])['tipoImovel'])}',
-                    'Capturas: ${_list(_map(payload['review'])['capturas']).length}',
-                    'Capturas revisadas: ${_list(_map(payload['review'])['capturasRevisadas']).length}',
+                    '${strings.tr('Exportado em', 'Exported at')}: ${_text(payload['exportedAt'])}',
+                    '${strings.tr('Tipo de imovel', 'Property type')}: ${_text(_map(payload['review'])['tipoImovel'])}',
+                    '${strings.tr('Capturas', 'Captures')}: ${_list(_map(payload['review'])['capturas']).length}',
+                    '${strings.tr('Capturas revisadas', 'Reviewed captures')}: ${_list(_map(payload['review'])['capturasRevisadas']).length}',
                   ],
                 ),
                 const SizedBox(height: 12),
                 _InfoBlock(
-                  title: 'Check-in etapa 1',
+                  title: strings.tr('Check-in etapa 1', 'Check-in step 1'),
                   lines: [
-                    'Cliente presente: ${_yesNo(_map(payload['step1'])['clientePresente'])}',
-                    'Tipo: ${_text(_map(payload['step1'])['tipoImovel'])}',
-                    'Subtipo: ${_text(_map(payload['step1'])['subtipoImovel'])}',
-                    'Início em: ${_text(_map(payload['step1'])['porOndeComecar'])}',
+                    '${strings.tr('Cliente presente', 'Client present')}: ${_yesNo(_map(payload['step1'])['clientePresente'])}',
+                    '${strings.tr('Tipo', 'Type')}: ${_text(_map(payload['step1'])['tipoImovel'])}',
+                    '${strings.tr('Subtipo', 'Subtype')}: ${_text(_map(payload['step1'])['subtipoImovel'])}',
+                    '${strings.tr('Inicio em', 'Started at')}: ${_text(_map(payload['step1'])['porOndeComecar'])}',
                   ],
                 ),
                 const SizedBox(height: 12),
                 _Step2PhotosBlock(step2: _map(payload['step2'])),
                 const SizedBox(height: 12),
                 _InfoBlock(
-                  title: 'Encerramento',
+                  title: strings.tr('Encerramento', 'Closing'),
                   lines: [
-                    'Observação: ${_text(_map(payload['review'])['observacao'])}',
-                    'Justificativa técnica: ${_text(_map(payload['review'])['justificativaTecnica'])}',
+                    '${strings.tr('Observacao', 'Note')}: ${_text(_map(payload['review'])['observacao'])}',
+                    '${strings.tr('Justificativa tecnica', 'Technical justification')}: ${_text(_map(payload['review'])['justificativaTecnica'])}',
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -106,9 +117,15 @@ class _CompletedInspectionDetailScreenState
                     borderRadius: BorderRadius.circular(14),
                     side: const BorderSide(color: AppColors.border),
                   ),
-                  title: const Text(
-                    'JSON completo (somente leitura)',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+                  title: Text(
+                    strings.tr(
+                      'JSON completo (somente leitura)',
+                      'Full JSON (read-only)',
+                    ),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                   children: [
@@ -146,14 +163,16 @@ class _CompletedInspectionDetailScreenState
   }
 
   String _text(Object? value) {
+    final strings = AppStrings.of(context);
     final text = value == null ? '' : '$value'.trim();
-    return text.isEmpty ? 'Não informado' : text;
+    return text.isEmpty ? strings.tr('Nao informado', 'Not provided') : text;
   }
 
   String _yesNo(Object? value) {
-    if (value == true) return 'Sim';
-    if (value == false) return 'Não';
-    return 'Não informado';
+    final strings = AppStrings.of(context);
+    if (value == true) return strings.tr('Sim', 'Yes');
+    if (value == false) return strings.tr('Nao', 'No');
+    return strings.tr('Nao informado', 'Not provided');
   }
 
   String? _nonEmptyText(String? value) {
@@ -218,13 +237,19 @@ class _Step2PhotosBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     final fotos = _map(step2['fotos']);
     final entries = fotos.entries.toList();
 
     if (entries.isEmpty) {
-      return const _InfoBlock(
-        title: 'Check-in etapa 2',
-        lines: ['Sem registros de foto no payload da etapa 2.'],
+      return _InfoBlock(
+        title: strings.tr('Check-in etapa 2', 'Check-in step 2'),
+        lines: [
+          strings.tr(
+            'Sem registros de foto no payload da etapa 2.',
+            'No photo records in the step 2 payload.',
+          ),
+        ],
       );
     }
 
@@ -239,9 +264,9 @@ class _Step2PhotosBlock extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Check-in etapa 2',
-            style: TextStyle(
+          Text(
+            strings.tr('Check-in etapa 2', 'Check-in step 2'),
+            style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w800,
               color: AppColors.textPrimary,
@@ -250,8 +275,10 @@ class _Step2PhotosBlock extends StatelessWidget {
           const SizedBox(height: 10),
           ...entries.map((entry) {
             final answer = _map(entry.value);
-            final title = _text(answer['titulo']);
-            final hasImage = _text(answer['imagePath']) != 'Não informado';
+            final title = _text(context, answer['titulo']);
+            final hasImage =
+                _text(context, answer['imagePath']) !=
+                strings.tr('Nao informado', 'Not provided');
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Row(
@@ -292,8 +319,9 @@ class _Step2PhotosBlock extends StatelessWidget {
     return const <String, dynamic>{};
   }
 
-  String _text(Object? value) {
+  String _text(BuildContext context, Object? value) {
+    final strings = AppStrings.of(context);
     final text = value == null ? '' : '$value'.trim();
-    return text.isEmpty ? 'Não informado' : text;
+    return text.isEmpty ? strings.tr('Nao informado', 'Not provided') : text;
   }
 }
