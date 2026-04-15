@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_strings.dart';
 import '../state/app_state.dart';
 import '../state/auth_state.dart';
 import '../theme/app_colors.dart';
@@ -12,6 +13,7 @@ class AwaitingApprovalScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authState = context.watch<AuthState>();
+    final strings = AppStrings.of(context);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -35,9 +37,9 @@ class AwaitingApprovalScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 28),
-              const Text(
-                'Cadastro em análise',
-                style: TextStyle(
+              Text(
+                strings.tr('Cadastro em analise', 'Registration under review'),
+                style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
@@ -45,10 +47,12 @@ class AwaitingApprovalScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Seu cadastro foi recebido e está sendo verificado pela nossa equipe. '
-                'Você será notificado assim que a aprovação for concluída.',
-                style: TextStyle(
+              Text(
+                strings.tr(
+                  'Seu cadastro foi recebido e esta sendo verificado pela nossa equipe. Voce sera notificado assim que a aprovacao for concluida.',
+                  'Your registration has been received and is being reviewed by our team. You will be notified as soon as approval is completed.',
+                ),
+                style: const TextStyle(
                   fontSize: 14,
                   color: AppColors.textSecondary,
                   height: 1.5,
@@ -60,15 +64,18 @@ class AwaitingApprovalScreen extends StatelessWidget {
                 key: const Key('check_status_button'),
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
+                    SnackBar(
                       content: Text(
-                        'Status verificado. Aguarde a aprovação do backoffice.',
+                        strings.tr(
+                          'Status verificado. Aguarde a aprovacao do backoffice.',
+                          'Status checked. Please wait for backoffice approval.',
+                        ),
                       ),
                     ),
                   );
                 },
                 icon: const Icon(Icons.refresh),
-                label: const Text('Verificar status'),
+                label: Text(strings.tr('Verificar status', 'Check status')),
               ),
               if (!kReleaseMode) ...[
                 const SizedBox(height: 12),
@@ -76,7 +83,9 @@ class AwaitingApprovalScreen extends StatelessWidget {
                   key: const Key('simulate_approval_button'),
                   onPressed: () => authState.activateAccount(),
                   icon: const Icon(Icons.check_circle_outline),
-                  label: const Text('[Dev] Simular aprovação'),
+                  label: Text(
+                    strings.tr('[Dev] Simular aprovacao', '[Dev] Simulate approval'),
+                  ),
                 ),
               ],
               const Spacer(),
@@ -86,7 +95,7 @@ class AwaitingApprovalScreen extends StatelessWidget {
                   await authState.logout();
                 },
                 icon: const Icon(Icons.logout, size: 16),
-                label: const Text('Sair da conta'),
+                label: Text(strings.tr('Sair da conta', 'Sign out')),
               ),
             ],
           ),

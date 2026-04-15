@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_strings.dart';
 import '../state/app_state.dart';
 import '../state/auth_state.dart';
 import '../theme/app_colors.dart';
@@ -42,6 +43,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _nextPage() {
+    final strings = AppStrings.of(context);
     final valid =
         _currentPage == 0
             ? (_formKeyDadosPessoais.currentState?.validate() ?? false)
@@ -49,8 +51,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (!valid) {
       final message =
           _currentPage == 0
-              ? 'Preencha os dados da empresa para continuar.'
-              : 'Preencha os dados bancários para continuar.';
+              ? strings.tr(
+                  'Preencha os dados da empresa para continuar.',
+                  'Fill in company details to continue.',
+                )
+              : strings.tr(
+                  'Preencha os dados bancarios para continuar.',
+                  'Fill in bank details to continue.',
+                );
       _showMessage(message);
       return;
     }
@@ -75,6 +83,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Future<void> _submit() async {
+    final strings = AppStrings.of(context);
     final formValid =
         _validateNome(_nomeController.text) == null &&
         _validateCnpj(_cnpjController.text) == null;
@@ -87,12 +96,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           curve: Curves.easeInOut,
         );
       }
-      _showMessage('Revise os dados da empresa para concluir.');
+      _showMessage(
+        strings.tr(
+          'Revise os dados da empresa para concluir.',
+          'Review company details to finish.',
+        ),
+      );
       return;
     }
 
     if (!bankValid) {
-      _showMessage('Revise os dados bancários para concluir.');
+      _showMessage(
+        strings.tr(
+          'Revise os dados bancarios para concluir.',
+          'Review bank details to finish.',
+        ),
+      );
       return;
     }
 
@@ -110,7 +129,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       appState.setUsuarioNomeCompleto(_nomeController.text);
     } catch (_) {
       _showMessage(
-        'Nao foi possivel concluir o cadastro agora. Tente novamente.',
+        strings.tr(
+          'Nao foi possivel concluir o cadastro agora. Tente novamente.',
+          'Could not complete registration right now. Please try again.',
+        ),
       );
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -126,10 +148,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Cadastro PJ'),
+        title: Text(strings.tr('Cadastro PJ', 'Business registration')),
         leading:
             _currentPage > 0
                 ? IconButton(
@@ -157,7 +180,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                     )
                     : Text(
-                      _currentPage < _totalPages - 1 ? 'Continuar' : 'Concluir',
+                      _currentPage < _totalPages - 1
+                          ? strings.tr('Continuar', 'Continue')
+                          : strings.tr('Concluir', 'Finish'),
                     ),
           ),
         ),
@@ -195,21 +220,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   String? _validateCnpj(String? value) {
+    final strings = AppStrings.of(context);
     final digits = (value ?? '').replaceAll(RegExp(r'\D'), '');
     if (digits.length != 14) {
-      return 'Informe um CNPJ válido com 14 dígitos';
+      return strings.tr(
+        'Informe um CNPJ valido com 14 digitos',
+        'Enter a valid 14-digit company ID',
+      );
     }
     if (RegExp(r'^(\d)\1{13}$').hasMatch(digits)) {
-      return 'CNPJ inválido';
+      return strings.tr('CNPJ inválido', 'Invalid company ID');
     }
     if (!_isValidCnpjDigits(digits)) {
-      return 'CNPJ inválido';
+      return strings.tr('CNPJ inválido', 'Invalid company ID');
     }
     return null;
   }
 
   String? _validateNome(String? value) {
-    return (value == null || value.trim().isEmpty) ? 'Informe o nome' : null;
+    final strings = AppStrings.of(context);
+    return (value == null || value.trim().isEmpty)
+        ? strings.tr('Informe o nome', 'Enter the name')
+        : null;
   }
 
   bool _isValidCnpjDigits(String digits) {
@@ -228,25 +260,31 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   String? _validateBanco(String? value) {
+    final strings = AppStrings.of(context);
     final text = (value ?? '').trim();
     if (text.length < 3) {
-      return 'Informe o banco (mínimo 3 caracteres)';
+      return strings.tr(
+        'Informe o banco (minimo 3 caracteres)',
+        'Enter the bank name (minimum 3 characters)',
+      );
     }
     return null;
   }
 
   String? _validateAgencia(String? value) {
+    final strings = AppStrings.of(context);
     final normalized = _normalizeBankToken(value);
     if (normalized.length < 3 || normalized.length > 7) {
-      return 'Agência inválida';
+      return strings.tr('Agencia invalida', 'Invalid branch number');
     }
     return null;
   }
 
   String? _validateConta(String? value) {
+    final strings = AppStrings.of(context);
     final normalized = _normalizeBankToken(value);
     if (normalized.length < 4 || normalized.length > 13) {
-      return 'Conta inválida';
+      return strings.tr('Conta invalida', 'Invalid account number');
     }
     return null;
   }
@@ -265,12 +303,13 @@ class _OnboardingProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
         children: [
           Text(
-            'Passo $current de $total',
+            strings.tr('Passo $current de $total', 'Step $current of $total'),
             style: const TextStyle(
               fontSize: 12,
               color: AppColors.textSecondary,
@@ -306,47 +345,52 @@ class _StepDadosPessoais extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     return Form(
       key: formKey,
       child: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          const Text(
-            'Dados da empresa',
-            style: TextStyle(
+          Text(
+            strings.tr('Dados da empresa', 'Company details'),
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Cadastro focado em prestador PJ. Preencha CNPJ válido para continuar.',
-            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+          Text(
+            strings.tr(
+              'Cadastro focado em prestador PJ. Preencha CNPJ valido para continuar.',
+              'Registration focused on business providers. Fill in a valid company ID to continue.',
+            ),
+            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 20),
           TextFormField(
             key: const Key('onboarding_nome_field'),
             controller: nomeController,
             textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(
-              labelText: 'Nome completo',
-              prefixIcon: Icon(Icons.person_outline),
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: strings.tr('Nome completo', 'Full name'),
+              prefixIcon: const Icon(Icons.person_outline),
+              border: const OutlineInputBorder(),
             ),
-            validator:
-                (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Informe o nome' : null,
+            validator: (v) =>
+                (v == null || v.trim().isEmpty)
+                    ? strings.tr('Informe o nome', 'Enter the name')
+                    : null,
           ),
           const SizedBox(height: 16),
           TextFormField(
             key: const Key('onboarding_cnpj_field'),
             controller: cnpjController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'CNPJ',
-              prefixIcon: Icon(Icons.business_outlined),
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: strings.tr('CNPJ', 'Company ID'),
+              prefixIcon: const Icon(Icons.business_outlined),
+              border: const OutlineInputBorder(),
             ),
             validator: cnpjValidator,
           ),
@@ -377,32 +421,36 @@ class _StepDadosBancarios extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     return Form(
       key: formKey,
       child: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          const Text(
-            'Dados bancários',
-            style: TextStyle(
+          Text(
+            strings.tr('Dados bancarios', 'Bank details'),
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Necessário para repasse de valores por serviços prestados.',
-            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+          Text(
+            strings.tr(
+              'Necessario para repasse de valores por servicos prestados.',
+              'Required for service payment transfers.',
+            ),
+            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 20),
           TextFormField(
             key: const Key('onboarding_banco_field'),
             controller: bancoController,
-            decoration: const InputDecoration(
-              labelText: 'Banco',
-              prefixIcon: Icon(Icons.account_balance_outlined),
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: strings.tr('Banco', 'Bank'),
+              prefixIcon: const Icon(Icons.account_balance_outlined),
+              border: const OutlineInputBorder(),
             ),
             validator: bancoValidator,
           ),
@@ -415,9 +463,9 @@ class _StepDadosBancarios extends StatelessWidget {
                   key: const Key('onboarding_agencia_field'),
                   controller: agenciaController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Agência',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: strings.tr('Agencia', 'Branch'),
+                    border: const OutlineInputBorder(),
                   ),
                   validator: agenciaValidator,
                 ),
@@ -429,9 +477,9 @@ class _StepDadosBancarios extends StatelessWidget {
                   key: const Key('onboarding_conta_field'),
                   controller: contaController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Conta',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: strings.tr('Conta', 'Account'),
+                    border: const OutlineInputBorder(),
                   ),
                   validator: contaValidator,
                 ),

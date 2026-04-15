@@ -1,4 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+
+import '../l10n/app_strings.dart';
 
 class FieldResumeBanner extends StatelessWidget {
   final String title;
@@ -16,6 +18,7 @@ class FieldResumeBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -34,13 +37,13 @@ class FieldResumeBanner extends StatelessWidget {
             children: [
               FilledButton(
                 onPressed: onResume,
-                child: const Text('Retomar'),
+                child: Text(strings.tr('Retomar', 'Resume')),
               ),
               if (onDismiss != null) ...[
                 const SizedBox(width: 8),
                 TextButton(
                   onPressed: onDismiss,
-                  child: const Text('Descartar'),
+                  child: Text(strings.tr('Descartar', 'Discard')),
                 ),
               ],
             ],

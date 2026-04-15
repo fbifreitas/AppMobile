@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
 import '../models/assistive_suggestion.dart';
 
 class AssistiveSuggestionCard extends StatelessWidget {
@@ -14,6 +15,7 @@ class AssistiveSuggestionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     if (suggestions.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(14),
@@ -22,7 +24,10 @@ class AssistiveSuggestionCard extends StatelessWidget {
           color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.24),
         ),
         child: Text(
-          '$title: ainda não há sugestões suficientes para este contexto.',
+          strings.tr(
+            '$title: ainda nao ha sugestoes suficientes para este contexto.',
+            '$title: there are not enough suggestions yet for this context.',
+          ),
           style: Theme.of(context).textTheme.bodySmall,
         ),
       );

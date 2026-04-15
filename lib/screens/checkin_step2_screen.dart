@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../config/checkin_step2_config.dart';
 import '../models/flow_selection.dart';
 import '../models/checkin_step2_model.dart';
+import '../l10n/app_strings.dart';
 import '../services/checkin_dynamic_config_service.dart';
 import '../services/inspection_flow_coordinator.dart';
 import '../services/inspection_menu_service.dart';
@@ -204,6 +205,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
   }
 
   Future<void> _handleCapture(CheckinStep2PhotoFieldConfig field) async {
+    final strings = AppStrings.of(context);
     final messenger = ScaffoldMessenger.of(context);
 
     final maxFotos = _config.maxFotos;
@@ -214,7 +216,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
         messenger.showSnackBar(
           SnackBar(
             content: Text(
-              'MÃ¡ximo de $maxFotos foto(s) atingido para esta vistoria.',
+              strings.tr('Maximo de $maxFotos foto(s) atingido para esta vistoria.', 'Maximum of $maxFotos photo(s) reached for this inspection.'),
             ),
           ),
         );
@@ -269,7 +271,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
 
       messenger.showSnackBar(
         SnackBar(
-          content: Text('Foto de "${field.titulo}" capturada com sucesso.'),
+          content: Text(strings.tr('Foto de "${field.titulo}" capturada com sucesso.', 'Photo "${field.titulo}" captured successfully.')),
         ),
       );
     } finally {
@@ -395,10 +397,11 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
   }
 
   Widget _buildHeader(ThemeData theme) {
+    final strings = AppStrings.of(context);
     final maxLabel =
         _config.maxFotos != null && _config.maxFotos! > 0
-            ? 'mÃ¡x ${_config.maxFotos}'
-            : 'mÃ¡x livre';
+            ? strings.tr('max ${_config.maxFotos}', 'max ${_config.maxFotos}')
+            : strings.tr('max livre', 'no max');
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
@@ -437,7 +440,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Preencha as evidÃªncias externas do imÃ³vel. MÃ­n ${_config.minFotos} â€¢ $maxLabel',
+            strings.tr('Preencha as evidencias externas do imovel. Min ${_config.minFotos} • $maxLabel', 'Fill in the external property evidence. Min ${_config.minFotos} • $maxLabel'),
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.75),
             ),
@@ -472,7 +475,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
             tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
             childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
             title: Text(
-              'REGISTROS FOTOGRÃFICOS $captured/$total',
+              'REGISTROS FOTOGRÁFICOS $captured/$total',
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w800,
               ),
@@ -510,6 +513,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
   }
 
   Widget _buildDynamicOptionsSection(ThemeData theme) {
+    final strings = AppStrings.of(context);
     if (!_config.secaoOpcoesVisivel) {
       return const SizedBox.shrink();
     }
@@ -542,7 +546,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
             tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
             childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
             title: Text(
-              'INFRAESTRUTURA E SERVIÃ‡OS $answered/$total ${complete ? 'OK' : 'NOK'}',
+              strings.tr('INFRAESTRUTURA E SERVICOS $answered/$total ${complete ? 'OK' : 'NOK'}', 'INFRASTRUCTURE AND SERVICES $answered/$total ${complete ? 'OK' : 'NOK'}'),
               style: theme.textTheme.labelLarge?.copyWith(
                 color: statusColor,
                 fontWeight: FontWeight.w800,
@@ -568,6 +572,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
     ThemeData theme,
     CheckinStep2OptionGroupConfig grupo,
   ) {
+    final strings = AppStrings.of(context);
     final resposta = _model.respostas[grupo.id];
     final answered = _isGroupAnswered(grupo.id);
     final expanded = _expandedOptionGroupIds[grupo.id] ?? false;
@@ -623,7 +628,7 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
                   ),
                 ),
                 IconButton(
-                  tooltip: 'Selecionar por voz',
+                  tooltip: strings.tr('Selecionar por voz', 'Select by voice'),
                   onPressed: () => _selectGroupOptionByVoice(grupo),
                   icon: const Icon(Icons.mic_none, size: 18),
                 ),
@@ -681,18 +686,18 @@ class _CheckinStep2ScreenState extends State<CheckinStep2Screen> {
                     vertical: 0,
                   ),
                   childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                  title: const Text(
-                    'ObservaÃ§Ãµes',
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                  title: Text(
+                    strings.tr('Observacoes', 'Notes'),
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                   ),
                   children: [
                     VoiceTextField(
                       controller: _obsControllers[grupo.id]!,
-                      labelText: 'ObservaÃ§Ãµes',
+                      labelText: strings.tr('Observacoes', 'Notes'),
                       minLines: 2,
                       maxLines: 3,
                       voiceService: _voiceService,
-                      helperText: 'Toque no microfone para ditar a observaÃ§Ã£o.',
+                      helperText: strings.tr('Toque no microfone para ditar a observacao.', 'Tap the microphone to dictate the note.'),
                       onChanged: (value) async {
                         _model = _model.setObservacao(
                           groupId: grupo.id,
@@ -786,16 +791,17 @@ class _PhotoCaptureCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final strings = AppStrings.of(context);
     final completionColor =
         capturado
             ? (obrigatorio ? Colors.green : theme.colorScheme.primary)
             : theme.iconTheme.color ?? Colors.black;
     final subtitle =
         capturado
-            ? 'Imagem capturada'
+            ? strings.tr('Imagem capturada', 'Image captured')
             : obrigatorio
-            ? 'Foto obrigatÃ³ria'
-            : 'Foto opcional';
+            ? strings.tr('Foto obrigatoria', 'Required photo')
+            : strings.tr('Foto opcional', 'Optional photo');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -846,7 +852,7 @@ class _PhotoCaptureCard extends StatelessWidget {
           FilledButton(
             onPressed: busy ? null : onCapture,
             child: Text(
-              capturado ? 'Refazer' : 'Capturar',
+              capturado ? strings.tr('Refazer', 'Retake') : strings.tr('Capturar', 'Capture'),
               style: const TextStyle(fontSize: 12),
             ),
           ),
@@ -855,3 +861,4 @@ class _PhotoCaptureCard extends StatelessWidget {
     );
   }
 }
+

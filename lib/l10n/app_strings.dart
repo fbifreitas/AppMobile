@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import '../branding/resolved_brand_config.dart';
+
 class AppStrings {
   const AppStrings._(this.locale);
+  static const AppStrings _fallbackPortuguese = AppStrings._(Locale('pt'));
 
   final Locale locale;
 
@@ -19,12 +22,30 @@ class AppStrings {
   ];
 
   static AppStrings of(BuildContext context) {
-    final strings = Localizations.of<AppStrings>(context, AppStrings);
-    assert(strings != null, 'AppStrings not found in context');
-    return strings!;
+    return maybeOf(context) ?? _fallbackPortuguese;
+  }
+
+  static AppStrings? maybeOf(BuildContext context) {
+    return Localizations.of<AppStrings>(context, AppStrings);
   }
 
   bool get isPortuguese => locale.languageCode.toLowerCase().startsWith('pt');
+
+  String tr(String portuguese, [String? english]) {
+    return isPortuguese ? portuguese : (english ?? portuguese);
+  }
+
+  String branded(
+    ResolvedBrandConfig config, {
+    required String key,
+    required String portuguese,
+    String? english,
+  }) {
+    if (isPortuguese) {
+      return config.copyText(key, defaultValue: portuguese);
+    }
+    return english ?? portuguese;
+  }
 
   String get inspection => isPortuguese ? 'Vistoria' : 'Inspection';
   String get startInspection =>

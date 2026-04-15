@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_strings.dart';
 import '../models/app_message.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
@@ -11,25 +12,29 @@ class NotificationsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
+    final strings = AppStrings.of(context);
     final mensagens = appState.mensagens;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Central de mensagens'),
+        title: Text(strings.tr('Central de mensagens', 'Message center')),
         actions: [
           if (appState.mensagensNaoLidas > 0)
             TextButton(
               onPressed: appState.marcarTodasLidas,
-              child: const Text('Marcar todas'),
+              child: Text(strings.tr('Marcar todas', 'Mark all')),
             ),
         ],
       ),
       body:
           mensagens.isEmpty
-              ? const Center(
+              ? Center(
                 child: Text(
-                  'Nenhuma mensagem no momento.',
-                  style: TextStyle(color: AppColors.textSecondary),
+                  strings.tr(
+                    'Nenhuma mensagem no momento.',
+                    'No messages at the moment.',
+                  ),
+                  style: const TextStyle(color: AppColors.textSecondary),
                 ),
               )
               : ListView.separated(

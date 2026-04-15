@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_strings.dart';
+
 class OverlayCameraGlassButton extends StatelessWidget {
   const OverlayCameraGlassButton({
     super.key,
@@ -48,6 +50,8 @@ class OverlayCameraFinalizeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
+
     if (singleCaptureMode) {
       return _OverlayCameraCircleAction(
         icon: Icons.fact_check_outlined,
@@ -100,9 +104,9 @@ class OverlayCameraFinalizeButton extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Revisar',
-                  style: TextStyle(
+                Text(
+                  strings.tr('Revisar', 'Review'),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
@@ -246,6 +250,8 @@ class OverlayCameraCarouselCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
+
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
@@ -273,7 +279,7 @@ class OverlayCameraCarouselCard extends StatelessWidget {
                   ),
                   if (values.isNotEmpty)
                     IconButton(
-                      tooltip: 'Selecionar por voz',
+                      tooltip: strings.tr('Selecionar por voz', 'Select by voice'),
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(
@@ -359,6 +365,8 @@ class OverlayCameraAmbienteSelectorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
+
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
@@ -420,7 +428,7 @@ class OverlayCameraAmbienteSelectorCard extends StatelessWidget {
                           fontSize: 11,
                         ),
                       ),
-                      child: const Text('Trocar'),
+                      child: Text(strings.tr('Trocar', 'Change')),
                     ),
                   ],
                 ),

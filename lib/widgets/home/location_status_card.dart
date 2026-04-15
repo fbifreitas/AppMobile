@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../branding/brand_provider.dart';
+import '../../l10n/app_strings.dart';
 import '../../theme/app_colors.dart';
 
 class LocationStatusCard extends StatelessWidget {
@@ -24,6 +25,7 @@ class LocationStatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = BrandProvider.configOf(context).tokens;
+    final strings = AppStrings.of(context);
     final hasLocation = latitude != null && longitude != null;
 
     return Container(
@@ -43,10 +45,10 @@ class LocationStatusCard extends StatelessWidget {
                 color: tokens.primary,
               ),
               const SizedBox(width: 8),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Localização operacional',
-                  style: TextStyle(
+                  strings.tr('Localização operacional', 'Operational location'),
+                  style: const TextStyle(
                     fontWeight: FontWeight.w800,
                     fontSize: 14,
                     color: AppColors.textPrimary,
@@ -64,7 +66,11 @@ class LocationStatusCard extends StatelessWidget {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.refresh),
-                  label: Text(loading ? 'Atualizando' : 'Atualizar'),
+                  label: Text(
+                    loading
+                        ? strings.tr('Atualizando', 'Updating')
+                        : strings.tr('Atualizar', 'Refresh'),
+                  ),
                 ),
               ),
             ],
@@ -72,7 +78,10 @@ class LocationStatusCard extends StatelessWidget {
           const SizedBox(height: 12),
           if (hasLocation) ...[
             Text(
-              'Latitude: ${latitude!.toStringAsFixed(6)}',
+              strings.tr(
+                'Latitude: ${latitude!.toStringAsFixed(6)}',
+                'Latitude: ${latitude!.toStringAsFixed(6)}',
+              ),
               style: const TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 12,
@@ -80,16 +89,22 @@ class LocationStatusCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Longitude: ${longitude!.toStringAsFixed(6)}',
+              strings.tr(
+                'Longitude: ${longitude!.toStringAsFixed(6)}',
+                'Longitude: ${longitude!.toStringAsFixed(6)}',
+              ),
               style: const TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 12,
               ),
             ),
           ] else
-            const Text(
-              'Nenhuma localização capturada ainda.',
-              style: TextStyle(
+            Text(
+              strings.tr(
+                'Nenhuma localização capturada ainda.',
+                'No location captured yet.',
+              ),
+              style: const TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 12,
               ),
@@ -97,7 +112,10 @@ class LocationStatusCard extends StatelessWidget {
           if (lastSyncAt != null) ...[
             const SizedBox(height: 8),
             Text(
-              'Última atualização: ${_formatDateTime(lastSyncAt!)}',
+              strings.tr(
+                'Última atualização: ${_formatDateTime(lastSyncAt!)}',
+                'Last update: ${_formatDateTime(lastSyncAt!)}',
+              ),
               style: const TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 12,

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../branding/brand_provider.dart';
 import '../branding/brand_tokens.dart';
+import '../l10n/app_strings.dart';
 import '../services/mobile_auth_service.dart';
 import '../state/auth_state.dart';
 
@@ -91,10 +92,11 @@ class _CompassFirstAccessScreenState extends State<CompassFirstAccessScreen> {
   Widget build(BuildContext context) {
     final config = BrandProvider.configOf(context);
     final tokens = config.tokens;
+    final strings = AppStrings.of(context);
 
     return Scaffold(
       backgroundColor: BrandTokens.background,
-      appBar: AppBar(title: const Text('Primeiro acesso')),
+      appBar: AppBar(title: Text(strings.tr('Primeiro acesso', 'First access'))),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
@@ -103,20 +105,23 @@ class _CompassFirstAccessScreenState extends State<CompassFirstAccessScreen> {
             children: [
               Icon(Icons.verified_user_outlined, size: 56, color: tokens.primary),
               const SizedBox(height: 16),
-              const Text(
-                'Ative seu acesso Compass',
+              Text(
+                strings.tr('Ative seu acesso Compass', 'Activate your Compass access'),
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   color: BrandTokens.textPrimary,
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Use os dados ja cadastrados pela empresa. Vamos localizar seu cadastro e enviar um codigo de confirmacao para o seu contato salvo.',
+              Text(
+                strings.tr(
+                  'Use os dados ja cadastrados pela empresa. Vamos localizar seu cadastro e enviar um codigo de confirmacao para o seu contato salvo.',
+                  'Use the data already registered by the company. We will locate your profile and send a confirmation code to your saved contact.',
+                ),
                 textAlign: TextAlign.center,
-                style: TextStyle(color: BrandTokens.textSecondary, height: 1.35),
+                style: const TextStyle(color: BrandTokens.textSecondary, height: 1.35),
               ),
               const SizedBox(height: 28),
               if (_challenge == null) _buildLookupForm() else _buildOtpForm(),
@@ -128,6 +133,7 @@ class _CompassFirstAccessScreenState extends State<CompassFirstAccessScreen> {
   }
 
   Widget _buildLookupForm() {
+    final strings = AppStrings.of(context);
     return Form(
       key: _lookupFormKey,
       child: Column(
@@ -137,10 +143,10 @@ class _CompassFirstAccessScreenState extends State<CompassFirstAccessScreen> {
             key: const Key('compass_first_access_cpf_field'),
             controller: _cpfController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'CPF',
-              prefixIcon: Icon(Icons.badge_outlined),
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: strings.tr('CPF', 'CPF'),
+              prefixIcon: const Icon(Icons.badge_outlined),
+              border: const OutlineInputBorder(),
             ),
             validator: _required,
           ),
@@ -152,16 +158,16 @@ class _CompassFirstAccessScreenState extends State<CompassFirstAccessScreen> {
             inputFormatters: const <TextInputFormatter>[
               _BirthDateTextInputFormatter(),
             ],
-            decoration: const InputDecoration(
-              labelText: 'Data de nascimento',
-              hintText: 'dd/mm/aaaa',
-              prefixIcon: Icon(Icons.event_outlined),
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: strings.tr('Data de nascimento', 'Birth date'),
+              hintText: 'dd/mm/yyyy',
+              prefixIcon: const Icon(Icons.event_outlined),
+              border: const OutlineInputBorder(),
             ),
             validator: (value) {
               if (_required(value) != null) return _required(value);
               return _normalizeBirthDate(value!).isEmpty
-                  ? 'Use o formato dd/mm/aaaa'
+                  ? strings.tr('Use o formato dd/mm/aaaa', 'Use the dd/mm/yyyy format')
                   : null;
             },
           ),
@@ -169,11 +175,14 @@ class _CompassFirstAccessScreenState extends State<CompassFirstAccessScreen> {
           TextFormField(
             key: const Key('compass_first_access_identifier_field'),
             controller: _identifierController,
-            decoration: const InputDecoration(
-              labelText: 'Identificador da empresa',
-              hintText: 'Matricula, codigo ou ID informado pela Compass',
-              prefixIcon: Icon(Icons.business_center_outlined),
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: strings.tr('Identificador da empresa', 'Company identifier'),
+              hintText: strings.tr(
+                'Matricula, codigo ou ID informado pela Compass',
+                'Registration, code or ID provided by Compass',
+              ),
+              prefixIcon: const Icon(Icons.business_center_outlined),
+              border: const OutlineInputBorder(),
             ),
             validator: _required,
           ),
@@ -187,7 +196,7 @@ class _CompassFirstAccessScreenState extends State<CompassFirstAccessScreen> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Enviar codigo de ativacao'),
+                : Text(strings.tr('Enviar codigo de ativacao', 'Send activation code')),
           ),
         ],
       ),
@@ -195,6 +204,7 @@ class _CompassFirstAccessScreenState extends State<CompassFirstAccessScreen> {
   }
 
   Widget _buildOtpForm() {
+    final strings = AppStrings.of(context);
     return Form(
       key: _otpFormKey,
       child: Column(
@@ -217,9 +227,12 @@ class _CompassFirstAccessScreenState extends State<CompassFirstAccessScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
-                    'Codigo de teste do ambiente local',
-                    style: TextStyle(
+                  Text(
+                    strings.tr(
+                      'Codigo de teste do ambiente local',
+                      'Local environment test code',
+                    ),
+                    style: const TextStyle(
                       fontWeight: FontWeight.w700,
                       color: BrandTokens.textPrimary,
                     ),
@@ -236,10 +249,13 @@ class _CompassFirstAccessScreenState extends State<CompassFirstAccessScreen> {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
-                    'Use esse codigo apenas para o teste funcional local.',
+                  Text(
+                    strings.tr(
+                      'Use esse codigo apenas para o teste funcional local.',
+                      'Use this code only for local functional testing.',
+                    ),
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: BrandTokens.textSecondary),
+                    style: const TextStyle(color: BrandTokens.textSecondary),
                   ),
                 ],
               ),
@@ -250,10 +266,10 @@ class _CompassFirstAccessScreenState extends State<CompassFirstAccessScreen> {
             key: const Key('compass_first_access_otp_field'),
             controller: _otpController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Codigo de confirmacao',
-              prefixIcon: Icon(Icons.pin_outlined),
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: strings.tr('Codigo de confirmacao', 'Confirmation code'),
+              prefixIcon: const Icon(Icons.pin_outlined),
+              border: const OutlineInputBorder(),
             ),
             validator: _required,
           ),
@@ -263,7 +279,7 @@ class _CompassFirstAccessScreenState extends State<CompassFirstAccessScreen> {
             controller: _passwordController,
             obscureText: _obscurePassword,
             decoration: InputDecoration(
-              labelText: 'Criar senha',
+              labelText: strings.tr('Criar senha', 'Create password'),
               prefixIcon: const Icon(Icons.lock_outline),
               border: const OutlineInputBorder(),
               suffixIcon: IconButton(
@@ -279,7 +295,9 @@ class _CompassFirstAccessScreenState extends State<CompassFirstAccessScreen> {
             ),
             validator: (value) {
               if (_required(value) != null) return _required(value);
-              return value!.length < 8 ? 'Use ao menos 8 caracteres' : null;
+              return value!.length < 8
+                  ? strings.tr('Use ao menos 8 caracteres', 'Use at least 8 characters')
+                  : null;
             },
           ),
           const SizedBox(height: 22),
@@ -292,20 +310,20 @@ class _CompassFirstAccessScreenState extends State<CompassFirstAccessScreen> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Ativar e entrar'),
+                : Text(strings.tr('Ativar e entrar', 'Activate and sign in')),
           ),
           const SizedBox(height: 8),
           OutlinedButton(
             onPressed: _loading ? null : _start,
-            child: const Text('Reenviar codigo'),
+            child: Text(strings.tr('Reenviar codigo', 'Resend code')),
           ),
           TextButton(
             onPressed: _loading ? null : () => setState(() => _challenge = null),
-            child: const Text('Corrigir meus dados'),
+            child: Text(strings.tr('Corrigir meus dados', 'Correct my details')),
           ),
           TextButton(
             onPressed: _loading ? null : _showHelp,
-            child: const Text('Nao recebi o codigo'),
+            child: Text(strings.tr('Nao recebi o codigo', 'I did not receive the code')),
           ),
         ],
       ),
@@ -313,7 +331,10 @@ class _CompassFirstAccessScreenState extends State<CompassFirstAccessScreen> {
   }
 
   String? _required(String? value) {
-    return value == null || value.trim().isEmpty ? 'Campo obrigatorio' : null;
+    final strings = AppStrings.of(context);
+    return value == null || value.trim().isEmpty
+        ? strings.tr('Campo obrigatorio', 'Required field')
+        : null;
   }
 
   String _normalizeBirthDate(String value) {
@@ -338,6 +359,7 @@ class _CompassFirstAccessScreenState extends State<CompassFirstAccessScreen> {
 
   void _showHelp() {
     if (!mounted) return;
+    final strings = AppStrings.of(context);
     showModalBottomSheet<void>(
       context: context,
       builder: (context) {
@@ -347,29 +369,38 @@ class _CompassFirstAccessScreenState extends State<CompassFirstAccessScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: const [
+              children: [
                 Text(
-                  'Como encontrar o codigo',
-                  style: TextStyle(
+                  strings.tr('Como encontrar o codigo', 'How to find the code'),
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                     color: BrandTokens.textPrimary,
                   ),
                 ),
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
                 Text(
-                  '1. Verifique o telefone ou e-mail mostrado acima.',
-                  style: TextStyle(color: BrandTokens.textSecondary),
+                  strings.tr(
+                    '1. Verifique o telefone ou e-mail mostrado acima.',
+                    '1. Check the phone number or email shown above.',
+                  ),
+                  style: const TextStyle(color: BrandTokens.textSecondary),
                 ),
-                SizedBox(height: 6),
+                const SizedBox(height: 6),
                 Text(
-                  '2. Se o codigo nao chegou, toque em "Reenviar codigo".',
-                  style: TextStyle(color: BrandTokens.textSecondary),
+                  strings.tr(
+                    '2. Se o codigo nao chegou, toque em "Reenviar codigo".',
+                    '2. If the code did not arrive, tap "Resend code".',
+                  ),
+                  style: const TextStyle(color: BrandTokens.textSecondary),
                 ),
-                SizedBox(height: 6),
+                const SizedBox(height: 6),
                 Text(
-                  '3. Se o problema continuar, procure o administrador da sua empresa para confirmar o contato cadastrado.',
-                  style: TextStyle(color: BrandTokens.textSecondary),
+                  strings.tr(
+                    '3. Se o problema continuar, procure o administrador da sua empresa para confirmar o contato cadastrado.',
+                    '3. If the problem continues, contact your company administrator to confirm the registered contact.',
+                  ),
+                  style: const TextStyle(color: BrandTokens.textSecondary),
                 ),
               ],
             ),

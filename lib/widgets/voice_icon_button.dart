@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
 import '../services/voice_input_service.dart';
 
 class VoiceIconButton extends StatefulWidget {
@@ -48,8 +49,9 @@ class _VoiceIconButtonState extends State<VoiceIconButton> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     return IconButton(
-      tooltip: _isListening ? 'Ouvindo...' : widget.tooltip,
+      tooltip: _isListening ? strings.tr('Ouvindo...', 'Listening...') : strings.tr(widget.tooltip, widget.tooltip),
       onPressed: _start,
       icon: Icon(_isListening ? Icons.mic : widget.icon),
     );

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../branding/brand_provider.dart';
 import '../branding/brand_tokens.dart';
+import '../l10n/app_strings.dart';
 import '../services/mobile_auth_service.dart';
 import '../state/auth_state.dart';
 import 'compass_first_access_screen.dart';
@@ -24,10 +25,14 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _loading = false;
 
   String _errorMessageFor(Object error) {
+    final strings = AppStrings.of(context);
     if (error is MobileAuthException) {
       return error.message;
     }
-    return 'Nao foi possivel entrar no momento. Tente novamente.';
+    return strings.tr(
+      'Nao foi possivel entrar no momento. Tente novamente.',
+      'Could not sign in right now. Please try again.',
+    );
   }
 
   @override
@@ -61,9 +66,10 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final config = BrandProvider.configOf(context);
     final tokens = config.tokens;
-    final welcomeText = config.copyText(
-      'login_welcome',
-      defaultValue: 'Bem-vindo ao App de Vistorias',
+    final strings = AppStrings.of(context);
+    final welcomeText = strings.tr(
+      'Bem-vindo à ${config.appName}',
+      'Welcome to ${config.appName}',
     );
     final isCompass = config.brandId == 'compass';
 
@@ -94,10 +100,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Faça login para acessar seu painel',
+                  Text(
+                    strings.tr(
+                      'Faça login para acessar seu painel',
+                      'Sign in to access your dashboard',
+                    ),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 13,
                       color: BrandTokens.textSecondary,
                     ),
@@ -111,14 +120,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       key: const Key('login_email_field'),
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: 'E-mail',
-                        prefixIcon: Icon(Icons.email_outlined),
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: strings.tr('E-mail', 'Email'),
+                        prefixIcon: const Icon(Icons.email_outlined),
+                        border: const OutlineInputBorder(),
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Informe o e-mail';
+                          return strings.tr(
+                            'Informe o e-mail',
+                            'Enter your email',
+                          );
                         }
                         return null;
                       },
@@ -134,7 +146,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       controller: _senhaController,
                       obscureText: _obscureSenha,
                       decoration: InputDecoration(
-                        labelText: 'Senha',
+                        labelText: strings.tr('Senha', 'Password'),
                         prefixIcon: const Icon(Icons.lock_outlined),
                         border: const OutlineInputBorder(),
                         suffixIcon: IconButton(
@@ -151,7 +163,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Informe a senha';
+                          return strings.tr(
+                            'Informe a senha',
+                            'Enter your password',
+                          );
                         }
                         return null;
                       },
@@ -175,7 +190,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   color: Colors.white,
                                 ),
                               )
-                              : const Text('Entrar'),
+                              : Text(strings.tr('Entrar', 'Sign in')),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -183,29 +198,39 @@ class _LoginScreenState extends State<LoginScreen> {
                     key: const Key('login_first_access_button'),
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute<void>(
-                        builder: (_) => isCompass
-                            ? const CompassFirstAccessScreen()
-                            : const OnboardingScreen(),
+                        builder:
+                            (_) =>
+                                isCompass
+                                    ? const CompassFirstAccessScreen()
+                                    : const OnboardingScreen(),
                       ),
                     ),
                     child: Text(
                       isCompass
-                          ? 'Primeiro acesso'
-                          : 'Criar minha conta de Vistoriador',
+                          ? strings.tr('Primeiro acesso', 'First access')
+                          : strings.tr(
+                            'Criar minha conta de Vistoriador',
+                            'Create inspector account',
+                          ),
                     ),
                   ),
                   TextButton(
                     key: const Key('login_forgot_password_button'),
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
+                        SnackBar(
                           content: Text(
-                            'Recuperacao de senha sera validada no proximo pacote de autenticacao.',
+                            strings.tr(
+                              'Recuperacao de senha sera validada no proximo pacote de autenticacao.',
+                              'Password recovery will be delivered in the next authentication package.',
+                            ),
                           ),
                         ),
                       );
                     },
-                    child: const Text('Esqueci minha senha'),
+                    child: Text(
+                      strings.tr('Esqueci minha senha', 'Forgot password'),
+                    ),
                   ),
                 ],
               ),

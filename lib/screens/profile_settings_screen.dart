@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_strings.dart';
 import '../state/app_state.dart';
 import '../state/auth_state.dart';
 
@@ -52,7 +53,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Dados atualizados com sucesso.')),
+        SnackBar(
+          content: Text(
+            AppStrings.of(context).tr(
+              'Dados atualizados com sucesso.',
+              'Profile updated successfully.',
+            ),
+          ),
+        ),
       );
       Navigator.pop(context);
     } finally {
@@ -62,11 +70,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     final authState = context.watch<AuthState>();
     final isPj = authState.userTipo == 'PJ';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Dados cadastrais')),
+      appBar: AppBar(
+        title: Text(strings.tr('Dados cadastrais', 'Profile details')),
+      ),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -76,7 +87,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: Chip(
-                  label: Text('Vinculo: ${authState.userTipo}'),
+                  label: Text(
+                    '${strings.tr('Vinculo', 'Relationship')}: ${authState.userTipo}',
+                  ),
                   avatar: const Icon(Icons.badge_outlined, size: 16),
                 ),
               ),
@@ -84,14 +97,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               key: const Key('profile_nome_field'),
               controller: _nomeController,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                labelText: 'Nome completo',
-                prefixIcon: Icon(Icons.person_outline),
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: strings.tr('Nome completo', 'Full name'),
+                prefixIcon: const Icon(Icons.person_outline),
+                border: const OutlineInputBorder(),
               ),
-              validator:
-                  (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Informe o nome' : null,
+              validator: (v) => (v == null || v.trim().isEmpty)
+                  ? strings.tr('Informe o nome', 'Enter the name')
+                  : null,
             ),
             const SizedBox(height: 16),
             if (!isPj)
@@ -99,10 +112,10 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 key: const Key('profile_cpf_field'),
                 controller: _cpfController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'CPF',
-                  prefixIcon: Icon(Icons.credit_card_outlined),
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: strings.tr('CPF', 'CPF'),
+                  prefixIcon: const Icon(Icons.credit_card_outlined),
+                  border: const OutlineInputBorder(),
                 ),
               ),
             if (isPj)
@@ -110,10 +123,10 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 key: const Key('profile_cnpj_field'),
                 controller: _cnpjController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'CNPJ',
-                  prefixIcon: Icon(Icons.business_outlined),
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: strings.tr('CNPJ', 'CNPJ'),
+                  prefixIcon: const Icon(Icons.business_outlined),
+                  border: const OutlineInputBorder(),
                 ),
               ),
             if (authState.userEmail != null) ...[
@@ -121,10 +134,13 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               TextFormField(
                 readOnly: true,
                 initialValue: authState.userEmail,
-                decoration: const InputDecoration(
-                  labelText: 'E-mail (somente leitura)',
-                  prefixIcon: Icon(Icons.email_outlined),
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: strings.tr(
+                    'E-mail (somente leitura)',
+                    'Email (read-only)',
+                  ),
+                  prefixIcon: const Icon(Icons.email_outlined),
+                  border: const OutlineInputBorder(),
                 ),
               ),
             ],
@@ -132,17 +148,16 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             FilledButton(
               key: const Key('profile_save_button'),
               onPressed: _saving ? null : _save,
-              child:
-                  _saving
-                      ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                      : const Text('Salvar alteracoes'),
+              child: _saving
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(strings.tr('Salvar alteracoes', 'Save changes')),
             ),
           ],
         ),

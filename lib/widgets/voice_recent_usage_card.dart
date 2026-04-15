@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
 import '../models/voice_usage_entry.dart';
 
 class VoiceRecentUsageCard extends StatelessWidget {
@@ -14,6 +15,7 @@ class VoiceRecentUsageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     if (items.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -48,7 +50,9 @@ class VoiceRecentUsageCard extends StatelessWidget {
                       color: badgeColor.withValues(alpha: 0.12),
                     ),
                     child: Text(
-                      item.matched ? 'Reconhecido' : 'Sem match',
+                      item.matched
+                          ? strings.tr('Reconhecido', 'Recognized')
+                          : strings.tr('Sem match', 'No match'),
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,

@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
 import '../models/data_governance_summary.dart';
 
 class DataGovernanceSummaryCard extends StatelessWidget {
@@ -12,6 +13,7 @@ class DataGovernanceSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     final color = summary.canProceed ? Colors.green : Colors.orange;
 
     return Container(
@@ -24,7 +26,7 @@ class DataGovernanceSummaryCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Resumo de governança local',
+            strings.tr('Resumo de governanca local', 'Local governance summary'),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                   fontSize: 16,
@@ -35,16 +37,22 @@ class DataGovernanceSummaryCard extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _Mini(label: 'Itens', value: '${summary.total}'),
-              _Mini(label: 'Bloqueios', value: '${summary.blocking}'),
-              _Mini(label: 'Pendências', value: '${summary.unresolved}'),
+              _Mini(label: strings.tr('Itens', 'Items'), value: '${summary.total}'),
+              _Mini(label: strings.tr('Bloqueios', 'Blocks'), value: '${summary.blocking}'),
+              _Mini(label: strings.tr('Pendencias', 'Pending'), value: '${summary.unresolved}'),
             ],
           ),
           const SizedBox(height: 12),
           Text(
             summary.canProceed
-                ? 'Sem bloqueios críticos de governança local.'
-                : 'Existem bloqueios críticos de governança local.',
+                ? strings.tr(
+                    'Sem bloqueios criticos de governanca local.',
+                    'No critical local governance blockers.',
+                  )
+                : strings.tr(
+                    'Existem bloqueios criticos de governanca local.',
+                    'There are critical local governance blockers.',
+                  ),
             style: TextStyle(
               color: color.shade700,
               fontWeight: FontWeight.w800,

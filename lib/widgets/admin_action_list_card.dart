@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
 import '../models/admin_action_item.dart';
 
 class AdminActionListCard extends StatelessWidget {
@@ -12,6 +13,7 @@ class AdminActionListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -22,7 +24,7 @@ class AdminActionListCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Ações administrativas',
+            strings.tr('Acoes administrativas', 'Administrative actions'),
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
@@ -52,7 +54,10 @@ class AdminActionListCard extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(item.description, style: const TextStyle(fontSize: 12)),
                         const SizedBox(height: 6),
-                        Text('Categoria: ${item.category}', style: const TextStyle(fontSize: 11)),
+                        Text(
+                          strings.tr('Categoria: ${item.category}', 'Category: ${item.category}'),
+                          style: const TextStyle(fontSize: 11),
+                        ),
                       ],
                     ),
                   ),

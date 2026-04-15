@@ -66,6 +66,10 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Validate UTF-8 encoding
+        shell: pwsh
+        run: ./scripts/check_utf8.ps1
+
       - name: Analyze
         run: flutter analyze
 

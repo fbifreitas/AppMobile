@@ -1,4 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+
+import '../l10n/app_strings.dart';
 
 class FieldSyncStatusCard extends StatelessWidget {
   final int pendingCount;
@@ -21,9 +23,13 @@ class FieldSyncStatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final strings = AppStrings.of(context);
     final lastSyncText = lastSyncAt == null
-        ? 'Ainda não sincronizado'
-        : 'Última sincronização: ${lastSyncAt!.hour.toString().padLeft(2, '0')}:${lastSyncAt!.minute.toString().padLeft(2, '0')}';
+        ? strings.tr('Ainda nao sincronizado', 'Not synced yet')
+        : strings.tr(
+            'Ultima sincronizacao: ${lastSyncAt!.hour.toString().padLeft(2, '0')}:${lastSyncAt!.minute.toString().padLeft(2, '0')}',
+            'Last sync: ${lastSyncAt!.hour.toString().padLeft(2, '0')}:${lastSyncAt!.minute.toString().padLeft(2, '0')}',
+          );
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -35,7 +41,7 @@ class FieldSyncStatusCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Operação de campo',
+            strings.tr('Operacao de campo', 'Field operation'),
             style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 6),
@@ -45,9 +51,9 @@ class FieldSyncStatusCard extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _pill(context, 'Pendentes', pendingCount, Colors.blueGrey),
-              _pill(context, 'Falhas', failedCount, Colors.orange),
-              _pill(context, 'Conflitos', conflictCount, Colors.red),
+              _pill(context, strings.tr('Pendentes', 'Pending'), pendingCount, Colors.blueGrey),
+              _pill(context, strings.tr('Falhas', 'Failures'), failedCount, Colors.orange),
+              _pill(context, strings.tr('Conflitos', 'Conflicts'), conflictCount, Colors.red),
             ],
           ),
           const SizedBox(height: 12),
@@ -56,7 +62,11 @@ class FieldSyncStatusCard extends StatelessWidget {
             child: FilledButton.icon(
               onPressed: syncing ? null : onSync,
               icon: Icon(syncing ? Icons.sync : Icons.cloud_upload_outlined),
-              label: Text(syncing ? 'Sincronizando...' : 'Sincronizar agora'),
+              label: Text(
+                syncing
+                    ? strings.tr('Sincronizando...', 'Syncing...')
+                    : strings.tr('Sincronizar agora', 'Sync now'),
+              ),
             ),
           ),
         ],

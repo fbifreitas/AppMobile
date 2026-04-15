@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
 import '../models/code_audit_summary.dart';
 
 class CodeAuditSummaryCard extends StatelessWidget {
@@ -12,6 +13,7 @@ class CodeAuditSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     final color = summary.shouldRefactorBeforeGoLive ? Colors.orange : Colors.green;
 
     return Container(
@@ -24,7 +26,7 @@ class CodeAuditSummaryCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Resumo da auditoria de clean code',
+            strings.tr('Resumo da auditoria de clean code', 'Clean code audit summary'),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                   fontSize: 16,
@@ -35,17 +37,23 @@ class CodeAuditSummaryCard extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _Mini(label: 'Itens', value: '${summary.total}'),
-              _Mini(label: 'Bloqueios', value: '${summary.blocking}'),
-              _Mini(label: 'Alertas', value: '${summary.warnings}'),
-              _Mini(label: 'Info', value: '${summary.infos}'),
+              _Mini(label: strings.tr('Itens', 'Items'), value: '${summary.total}'),
+              _Mini(label: strings.tr('Bloqueios', 'Blocks'), value: '${summary.blocking}'),
+              _Mini(label: strings.tr('Alertas', 'Warnings'), value: '${summary.warnings}'),
+              _Mini(label: strings.tr('Info', 'Info'), value: '${summary.infos}'),
             ],
           ),
           const SizedBox(height: 12),
           Text(
             summary.shouldRefactorBeforeGoLive
-                ? 'Há itens estruturais que valem revisão antes do go-live.'
-                : 'Não há bloqueios estruturais detectados no resumo atual.',
+                ? strings.tr(
+                    'Ha itens estruturais que valem revisao antes do go-live.',
+                    'There are structural items worth reviewing before go-live.',
+                  )
+                : strings.tr(
+                    'Nao ha bloqueios estruturais detectados no resumo atual.',
+                    'No structural blockers were detected in the current summary.',
+                  ),
             style: TextStyle(
               color: color.shade700,
               fontWeight: FontWeight.w800,

@@ -1,6 +1,6 @@
-# Painel de Milestones do Fluxo Configuravel de Vistoria
+﻿# Painel de Milestones do Fluxo Configuravel de Vistoria
 
-Atualizado em: 2026-04-12
+Atualizado em: 2026-04-15
 
 ## Objetivo
 
@@ -10,6 +10,7 @@ Este painel deve ser lido em conjunto com:
 
 - `docs/05-operations/runbooks/MODELO_CANONICO_FLUXO_CONFIGURAVEL_VISTORIA.md`
 - `docs/05-operations/runbooks/VALIDACAO_FINAL_FLUXO_CONFIGURAVEL_VISTORIA.md`
+- `docs/05-operations/runbooks/PLANO_IMPLANTACAO_INCREMENTO_ENRICHMENT_SMART_APP.md`
 - `docs/05-operations/tactical-backlogs/BACKLOG_FUNCIONALIDADES.md`
 
 ## Painel
@@ -20,6 +21,9 @@ Este painel deve ser lido em conjunto com:
 | `M2` | Consolidar modelo canonico em codigo e documentacao | Concluido | contrato com `obrigatoriaParaEntrega` e `bloqueiaCaptura`, runbook canonico documentado |
 | `M3` | Separar arvore de captura e matriz normativa no runtime | Concluido | revisao, pendencias e matching operacional usando `subjectContext`, `targetItem` e `targetQualifier` |
 | `M4` | Validacao integrada final web + backend + mobile | Em andamento | cobertura automatizada do fluxo funcional principal concluida; falta fechamento operacional no ambiente real apos publicacao final |
+| `Mx-1` | Programa de orquestracao enrichment/OCR/hints | Planejado | docs incrementais e backlog de execucao publicados |
+| `Mx-2` | Storage do retorno mobile e trilha analytics-ready | Planejado | estrategia `raw/normalized/curated` com `inspection-return` e `field-evidence` documentada |
+| `Mx-3` | Smart app como execution plan derivado | Planejado | plano operacional publicado ao mobile modelado sem contrato paralelo |
 
 ## Detalhamento por milestone
 
@@ -102,6 +106,31 @@ Fechamento restante:
 - confirmar:
   - camera abre sem cumprimento integral da `etapa 2`
   - revisao bloqueia a entrega enquanto a `etapa 2` obrigatoria estiver incompleta
+
+### `Mx-1` Planejado
+
+Escopo:
+- backend/plataforma como orquestrador de enrichment, OCR, reconciliacao e publication
+- contracts base para execution hints e execution plan
+
+### `Mx-2` Planejado
+
+Escopo:
+- storage preparado para:
+  - `research`
+  - `documents`
+  - `job-config`
+  - `inspection-return`
+  - `field-evidence`
+- trilha `raw/normalized/curated`
+- readiness para analytics futura
+
+### `Mx-3` Planejado
+
+Escopo:
+- `smart app` como derivacao do backend/plataforma
+- payload do mobile alinhado ao fluxo canonico atual de inspection
+- retorno operacional do App Mobile como fonte primaria de evidencia
 
 ## Regra de atualizacao
 

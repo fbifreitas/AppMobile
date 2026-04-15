@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
 import '../models/voice_command_usage_stat.dart';
 
 class VoiceTopCommandsCard extends StatelessWidget {
@@ -16,6 +17,7 @@ class VoiceTopCommandsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     if (stats.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(14),
@@ -24,7 +26,10 @@ class VoiceTopCommandsCard extends StatelessWidget {
           color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.24),
         ),
         child: Text(
-          '$title: ainda não há comandos suficientes para montar o ranking.',
+          strings.tr(
+            '$title: ainda nao ha comandos suficientes para montar o ranking.',
+            '$title: there are not enough commands yet to build the ranking.',
+          ),
           style: Theme.of(context).textTheme.bodySmall,
         ),
       );

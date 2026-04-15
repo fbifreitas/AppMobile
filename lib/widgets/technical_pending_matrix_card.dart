@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
 import '../models/technical_pending_matrix.dart';
 import '../models/technical_rule_result.dart';
 
@@ -15,12 +16,13 @@ class TechnicalPendingMatrixCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     final sections =
         <_SectionData>[
-          _SectionData('Check-in', matrix.checkin),
-          _SectionData('Captura', matrix.capture),
-          _SectionData('Revisão', matrix.review),
-          _SectionData('Finalização', matrix.finalization),
+          _SectionData(strings.tr('Check-in', 'Check-in'), matrix.checkin),
+          _SectionData(strings.tr('Captura', 'Capture'), matrix.capture),
+          _SectionData(strings.tr('Revisao', 'Review'), matrix.review),
+          _SectionData(strings.tr('Finalizacao', 'Finalization'), matrix.finalization),
         ].where((item) => item.items.isNotEmpty).toList();
 
     if (sections.isEmpty) {
@@ -39,7 +41,7 @@ class TechnicalPendingMatrixCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Pendências técnicas da vistoria',
+            strings.tr('Pendencias tecnicas da vistoria', 'Inspection technical pending items'),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w800,
               fontSize: 16,
@@ -47,7 +49,10 @@ class TechnicalPendingMatrixCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Veja o que falta e use o atalho para ir direto ao ponto de ajuste.',
+            strings.tr(
+              'Veja o que falta e use o atalho para ir direto ao ponto de ajuste.',
+              'See what is missing and use the shortcut to go directly to the adjustment point.',
+            ),
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 10),
@@ -74,6 +79,7 @@ class _StageSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -118,7 +124,7 @@ class _StageSection extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        _friendlyDescription(item),
+                        _friendlyDescription(context, item),
                         style: const TextStyle(fontSize: 12),
                       ),
                       if (onOpenPending != null) ...[
@@ -126,7 +132,7 @@ class _StageSection extends StatelessWidget {
                         TextButton.icon(
                           onPressed: () => onOpenPending!.call(item),
                           icon: const Icon(Icons.near_me_outlined, size: 16),
-                          label: const Text('Ir para pendência'),
+                          label: Text(strings.tr('Ir para pendencia', 'Go to pending item')),
                           style: TextButton.styleFrom(
                             visualDensity: VisualDensity.compact,
                             padding: const EdgeInsets.symmetric(
@@ -148,16 +154,29 @@ class _StageSection extends StatelessWidget {
   }
 }
 
-String _friendlyDescription(TechnicalRuleResult item) {
+String _friendlyDescription(BuildContext context, TechnicalRuleResult item) {
+  final strings = AppStrings.of(context);
   switch (item.stage) {
     case TechnicalRuleStage.checkin:
-      return 'No check-in obrigatório: ${item.description}';
+      return strings.tr(
+        'No check-in obrigatorio: ${item.description}',
+        'In required check-in: ${item.description}',
+      );
     case TechnicalRuleStage.capture:
-      return 'Nas fotos capturadas: ${item.description}';
+      return strings.tr(
+        'Nas fotos capturadas: ${item.description}',
+        'In captured photos: ${item.description}',
+      );
     case TechnicalRuleStage.review:
-      return 'Na revisão das fotos: ${item.description}';
+      return strings.tr(
+        'Na revisao das fotos: ${item.description}',
+        'In photo review: ${item.description}',
+      );
     case TechnicalRuleStage.finalization:
-      return 'Na etapa de finalização: ${item.description}';
+      return strings.tr(
+        'Na etapa de finalizacao: ${item.description}',
+        'In the finalization step: ${item.description}',
+      );
   }
 }
 

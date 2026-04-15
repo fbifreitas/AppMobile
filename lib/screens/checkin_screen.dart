@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../config/checkin_step2_config.dart';
 import '../config/inspection_menu_package.dart';
+import '../l10n/app_strings.dart';
 import '../models/checkin_step2_model.dart';
 import '../services/checkin_dynamic_config_service.dart';
 import '../services/inspection_checkin_camera_use_case.dart';
@@ -58,15 +59,15 @@ class _CheckinScreenState extends State<CheckinScreen> {
 
   static const Map<String, List<String>> _defaultSubtiposPorTipo = {
     'Urbano': ['Apartamento', 'Casa', 'Sobrado', 'Terreno'],
-    'Rural': ['Sítio', 'Chácara', 'Fazenda'],
-    'Comercial': ['Loja', 'Sala comercial', 'Galpão'],
-    'Industrial': ['Fábrica', 'Armazém', 'Planta industrial'],
+    'Rural': ['SÃ­tio', 'ChÃ¡cara', 'Fazenda'],
+    'Comercial': ['Loja', 'Sala comercial', 'GalpÃ£o'],
+    'Industrial': ['FÃ¡brica', 'ArmazÃ©m', 'Planta industrial'],
   };
 
   static const List<String> _defaultContextos = <String>[
     'Rua',
-    'Área externa',
-    'Área interna',
+    'Ãrea externa',
+    'Ãrea interna',
   ];
 
   final CheckinDynamicConfigService _dynamicConfigService =
@@ -260,7 +261,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
       return <ConfigLevelDefinition>[
         ConfigLevelDefinition(
           id: _contextLevelId,
-          label: 'Por onde deseja começar?',
+          label: 'Por onde deseja comeÃ§ar?',
           required: true,
           dependsOn: null,
           options: _contextos,
@@ -271,7 +272,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
             'macroLocal',
           ],
           labelsBySurface: const <String, String>{
-            InspectionSurfaceKeys.checkinStep1: 'Por onde deseja começar?',
+            InspectionSurfaceKeys.checkinStep1: 'Por onde deseja comeÃ§ar?',
             InspectionSurfaceKeys.camera: 'Onde estou?',
           },
         ),
@@ -336,12 +337,13 @@ class _CheckinScreenState extends State<CheckinScreen> {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
+    final strings = AppStrings.of(context);
     final job = appState.jobAtual;
 
     if (job == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Check-in Vistoria')),
-        body: const Center(child: Text('Nenhum job selecionado')),
+        appBar: AppBar(title: Text(strings.tr('Check-in Vistoria', 'Inspection check-in'))),
+        body: Center(child: Text(strings.tr('Nenhum job selecionado', 'No job selected'))),
       );
     }
 
@@ -353,7 +355,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
             : (_subtiposPorTipo[tipoImovel] ?? const <String>[]);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Check-in Vistoria')),
+      appBar: AppBar(title: Text(strings.tr('Check-in Vistoria', 'Inspection check-in'))),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
@@ -363,7 +365,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
             FutureBuilder(
               future: LocationService().getCurrentLocation(),
               builder: (context, snapshot) {
-                String texto = 'Validando GPS...';
+                String texto = strings.tr('Validando GPS...', 'Validating GPS...');
                 Color cor = AppColors.warning;
                 Color fundo = AppColors.warningLight;
 
@@ -381,12 +383,12 @@ class _CheckinScreenState extends State<CheckinScreen> {
                   final raio = appState.resolveInspectionRadiusMeters(job);
 
                   if (distancia <= raio) {
-                    texto = 'GPS confirmado no local';
+                    texto = strings.tr('GPS confirmado no local', 'GPS confirmed on site');
                     cor = AppColors.success;
                     fundo = AppColors.successLight;
                   } else {
                     texto =
-                        'Você ainda não está no raio do local (${distancia.toStringAsFixed(0)}m de ${raio.toStringAsFixed(0)}m)';
+                        'VocÃª ainda nÃ£o estÃ¡ no raio do local (${distancia.toStringAsFixed(0)}m de ${raio.toStringAsFixed(0)}m)';
                     cor = AppColors.danger;
                     fundo = AppColors.dangerLight;
                   }
@@ -424,9 +426,9 @@ class _CheckinScreenState extends State<CheckinScreen> {
                   child: OutlinedButton.icon(
                     onPressed: () => _abrirWhatsApp(job.telefoneCliente),
                     icon: const Icon(Icons.chat_outlined, size: 18),
-                    label: const Text(
-                      'WhatsApp',
-                      style: TextStyle(fontSize: 13),
+                    label: Text(
+                      strings.tr('WhatsApp', 'WhatsApp'),
+                      style: const TextStyle(fontSize: 13),
                     ),
                   ),
                 ),
@@ -435,7 +437,10 @@ class _CheckinScreenState extends State<CheckinScreen> {
                   child: OutlinedButton.icon(
                     onPressed: () => _ligar(job.telefoneCliente),
                     icon: const Icon(Icons.call_outlined, size: 18),
-                    label: const Text('Ligar', style: TextStyle(fontSize: 13)),
+                    label: Text(
+                      strings.tr('Ligar', 'Call'),
+                      style: const TextStyle(fontSize: 13),
+                    ),
                   ),
                 ),
               ],
@@ -590,8 +595,8 @@ class _CheckinScreenState extends State<CheckinScreen> {
               child: ElevatedButton(
                 onPressed: _loadingDynamicConfig ? null : _handleConfirm,
                 child: Text(
-                  'Confirmar e abrir a câmera',
-                  style: TextStyle(fontSize: 13),
+                  strings.tr('Confirmar e abrir a camera', 'Confirm and open camera'),
+                  style: const TextStyle(fontSize: 13),
                 ),
               ),
             ),
@@ -614,7 +619,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'DADOS IMÓVEL E CLIENTE',
+            'DADOS IMÃ“VEL E CLIENTE',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w800,
@@ -640,7 +645,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
           ),
           const SizedBox(height: 10),
           Text(
-            'Cliente: ${job.nomeCliente.isEmpty ? 'Não informado' : job.nomeCliente}',
+            'Cliente: ${job.nomeCliente.isEmpty ? 'NÃ£o informado' : job.nomeCliente}',
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -648,7 +653,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
             ),
           ),
           Text(
-            'Contato: ${job.telefoneCliente?.isNotEmpty == true ? job.telefoneCliente : 'Não informado'}',
+            'Contato: ${job.telefoneCliente?.isNotEmpty == true ? job.telefoneCliente : 'NÃ£o informado'}',
             style: const TextStyle(
               fontSize: 12,
               color: AppColors.textSecondary,
@@ -702,8 +707,8 @@ class _CheckinScreenState extends State<CheckinScreen> {
       if (_step1Ui.clientePresenteVisible) {
         step1Cards.add(
         CheckinQuestionAccordion(
-          question: 'Cliente está presente?',
-          answer: clientePresente == null ? null : (clientePresente! ? 'Sim' : 'Não'),
+          question: 'Cliente estÃ¡ presente?',
+          answer: clientePresente == null ? null : (clientePresente! ? 'Sim' : 'NÃ£o'),
           expanded: resolvedExpandedId == _questionClienteId,
           onToggle: () => _toggleQuestion(_questionClienteId),
           onVoiceTap: _selectClientePresenteByVoice,
@@ -722,7 +727,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
                 },
               ),
               ChoiceChip(
-                label: const Text('Não'),
+                label: const Text('NÃ£o'),
                 selected: clientePresente == false,
                 onSelected:
                     _submittingClientAbsent
@@ -739,7 +744,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
         step1Cards.add(const SizedBox(height: 10));
         step1Cards.add(
           CheckinQuestionAccordion(
-            question: 'Tipo de imóvel',
+            question: 'Tipo de imÃ³vel',
             answer: tipoImovel,
             expanded: resolvedExpandedId == _questionTipoId,
             onToggle: () => _toggleQuestion(_questionTipoId),
@@ -981,16 +986,17 @@ class _CheckinScreenState extends State<CheckinScreen> {
   }
 
   Future<void> _selectClientePresenteByVoice() async {
+    final strings = AppStrings.of(context);
     final selected = await VoiceSelectorSheet.open(
       context,
       voiceService: _voiceService,
-      options: const ['Sim', 'Não'],
-      title: 'Cliente está presente?',
+      options: <String>[strings.tr('Sim', 'Yes'), strings.tr('Nao', 'No')],
+      title: strings.tr('Cliente esta presente?', 'Is the client present?'),
       currentValue:
-          clientePresente == null ? null : (clientePresente! ? 'Sim' : 'Não'),
+          clientePresente == null ? null : (clientePresente! ? strings.tr('Sim', 'Yes') : strings.tr('Nao', 'No')),
     );
     if (selected == null || !mounted) return;
-    if (selected == 'Sim') {
+    if (selected == strings.tr('Sim', 'Yes')) {
       setState(() {
         clientePresente = true;
         _expandedQuestionId = _questionTipoId;
@@ -1004,24 +1010,25 @@ class _CheckinScreenState extends State<CheckinScreen> {
 
   Future<void> _handleClienteAusenteSelection() async {
     if (_submittingClientAbsent) return;
+    final strings = AppStrings.of(context);
 
     final confirmed =
         await showDialog<bool>(
           context: context,
           builder:
               (dialogContext) => AlertDialog(
-                title: const Text('Confirmar ausência do cliente'),
-                content: const Text(
-                  'Essa ação vai avisar o backoffice para reagendar a vistoria e retirar este job da sua fila ativa. Deseja continuar?',
+                title: Text(strings.tr('Confirmar ausencia do cliente', 'Confirm client absence')),
+                content: Text(
+                  strings.tr('Essa acao vai avisar o backoffice para reagendar a vistoria e retirar este job da sua fila ativa. Deseja continuar?', 'This action will notify the back office to reschedule the inspection and remove this job from your active queue. Do you want to continue?'),
                 ),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(dialogContext, false),
-                    child: const Text('Cancelar'),
+                    child: Text(strings.tr('Cancelar', 'Cancel')),
                   ),
                   FilledButton(
                     onPressed: () => Navigator.pop(dialogContext, true),
-                    child: const Text('Confirmar'),
+                    child: Text(strings.tr('Confirmar', 'Confirm')),
                   ),
                 ],
               ),
@@ -1062,11 +1069,12 @@ class _CheckinScreenState extends State<CheckinScreen> {
   }
 
   Future<void> _selectTipoByVoice() async {
+    final strings = AppStrings.of(context);
     final selected = await VoiceSelectorSheet.open(
       context,
       voiceService: _voiceService,
       options: _tipos,
-      title: 'Tipo de imóvel',
+      title: strings.tr('Tipo de imovel', 'Property type'),
       currentValue: tipoImovel,
     );
     if (selected == null || !mounted) return;
@@ -1078,12 +1086,13 @@ class _CheckinScreenState extends State<CheckinScreen> {
   }
 
   Future<void> _selectSubtipoByVoice() async {
+    final strings = AppStrings.of(context);
     final subtipos =
         tipoImovel == null
             ? const <String>[]
             : (_subtiposPorTipo[tipoImovel] ?? const <String>[]);
     if (subtipos.isEmpty) {
-      _mostrarInfo('Selecione o tipo de imóvel antes do subtipo.');
+      _mostrarInfo(strings.tr('Selecione o tipo de imovel antes do subtipo.', 'Select the property type before the subtype.'));
       return;
     }
 
@@ -1091,7 +1100,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
       context,
       voiceService: _voiceService,
       options: subtipos,
-      title: 'Subtipo',
+      title: strings.tr('Subtipo', 'Subtype'),
       currentValue: subtipoImovel,
     );
     if (selected == null || !mounted) return;
@@ -1104,7 +1113,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
     List<String> options,
   ) async {
     if (options.isEmpty) {
-      _mostrarInfo('Nível "${level.label}" sem opções configuradas.');
+      _mostrarInfo('NÃ­vel "${level.label}" sem opÃ§Ãµes configuradas.');
       return;
     }
 
@@ -1128,9 +1137,10 @@ class _CheckinScreenState extends State<CheckinScreen> {
   }
 
   Future<void> _handleConfirm() async {
+    final strings = AppStrings.of(context);
     if (_loadingStep2Policy) {
       _mostrarInfo(
-        'Aguarde a configuracao operacional da Etapa 2 carregar para continuar.',
+        strings.tr('Aguarde a configuracao operacional da Etapa 2 carregar para continuar.', 'Wait for the operational Step 2 configuration to load before continuing.'),
       );
       return;
     }
@@ -1140,7 +1150,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
         subtipoImovel == null ||
         !_hasRequiredLevelsSelected()) {
       _mostrarInfo(
-        'Preencha presença, tipo, subtipo e os níveis obrigatórios.',
+        strings.tr('Preencha presenca, tipo, subtipo e os niveis obrigatorios.', 'Fill in presence, type, subtype, and the required levels.'),
       );
       return;
     }
@@ -1151,7 +1161,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
     final step2Config = _resolveCurrentStep2Config();
     if (step2Config == null) {
       _mostrarInfo(
-        'Selecione o tipo do imovel para carregar a configuracao operacional antes de continuar.',
+        strings.tr('Selecione o tipo do imovel para carregar a configuracao operacional antes de continuar.', 'Select the property type to load the operational configuration before continuing.'),
       );
       return;
     }
@@ -1192,19 +1202,21 @@ class _CheckinScreenState extends State<CheckinScreen> {
   }
 
   void _mostrarInfo(String msg) {
+    final strings = AppStrings.of(context);
     showDialog(
       context: context,
       builder:
           (dialogContext) => AlertDialog(
-            title: const Text('Atenção'),
+            title: Text(strings.tr('Atencao', 'Attention')),
             content: Text(msg),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('OK'),
+                child: Text(strings.tr('OK', 'OK')),
               ),
             ],
           ),
     );
   }
 }
+

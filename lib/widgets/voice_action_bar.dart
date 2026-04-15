@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
 import '../models/voice_command_usage_stat.dart';
 import '../models/voice_usage_entry.dart';
 import '../services/voice_command_insights_service.dart';
@@ -97,8 +98,16 @@ class _VoiceActionBarState extends State<VoiceActionBar> {
 
     if (match == null) {
       if (!mounted) return;
+      final strings = AppStrings.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Nenhum comando reconhecido em: $transcript')),
+        SnackBar(
+          content: Text(
+            strings.tr(
+              'Nenhum comando reconhecido em: $transcript',
+              'No command recognized in: $transcript',
+            ),
+          ),
+        ),
       );
       return;
     }
@@ -108,6 +117,7 @@ class _VoiceActionBarState extends State<VoiceActionBar> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     final rankedStats = _topCommands.entries
         .map((item) => VoiceCommandUsageStat(
               context: widget.contextKey,
@@ -127,14 +137,14 @@ class _VoiceActionBarState extends State<VoiceActionBar> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            widget.title,
+            strings.tr(widget.title, widget.title),
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
           ),
           const SizedBox(height: 4),
           Text(
-            widget.subtitle,
+            strings.tr(widget.subtitle, widget.subtitle),
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 10),
@@ -146,7 +156,11 @@ class _VoiceActionBarState extends State<VoiceActionBar> {
               FilledButton.icon(
                 onPressed: _listen,
                 icon: Icon(_listening ? Icons.mic : Icons.mic_none),
-                label: Text(_listening ? 'Ouvindo...' : 'Falar comando'),
+                label: Text(
+                  _listening
+                      ? strings.tr('Ouvindo...', 'Listening...')
+                      : strings.tr('Falar comando', 'Speak command'),
+                ),
               ),
               if (_lastTranscript != null && _lastTranscript!.trim().isNotEmpty)
                 Container(
@@ -164,12 +178,12 @@ class _VoiceActionBarState extends State<VoiceActionBar> {
           ),
           if (widget.showRecentHistory)
             VoiceRecentUsageCard(
-              title: 'Uso recente da voz',
+              title: strings.tr('Uso recente da voz', 'Recent voice usage'),
               items: _recent,
             ),
           if (widget.showTopCommands)
             VoiceTopCommandsCard(
-              title: 'Comandos mais usados',
+              title: strings.tr('Comandos mais usados', 'Most used commands'),
               stats: rankedStats,
               labelBuilder: widget.commandLabelBuilder,
             ),

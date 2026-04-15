@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../branding/brand_provider.dart';
 import '../../branding/brand_tokens.dart';
 import '../../branding/resolved_brand_config.dart';
+import '../../l10n/app_strings.dart';
 import '../../models/job.dart';
 import '../../models/job_status.dart';
 import '../../services/location_service.dart';
@@ -42,17 +43,8 @@ class JobsSection extends StatelessWidget {
   final double? currentLatitude;
   final double? currentLongitude;
   final bool useDistanceMetrics;
-
-  /// Section heading. Falls back to 'MEUS JOBS DE HOJE' when null.
-  /// Callers pass: config.copyText('jobs_section_title', defaultValue: 'MEUS JOBS DE HOJE')
   final String? sectionTitle;
-
-  /// When false (Compass / corporate mode), geofence distance UI is hidden
-  /// and the start button is always enabled regardless of radius.
   final bool geofenceRequired;
-
-  /// Button label overrides resolved from brand copy.
-  /// Falls back to canonical Portuguese when null.
   final String? startLabel;
   final String? resumeLabel;
   final String? startBlockedLabel;
@@ -64,26 +56,45 @@ class JobsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final config = BrandProvider.configOf(context);
     final tokens = config.tokens;
+    final strings = AppStrings.of(context);
     final resolvedTitle =
         sectionTitle?.isNotEmpty == true
             ? sectionTitle!
-            : config.copyText('jobs_section_title', defaultValue: 'MEUS JOBS DE HOJE');
+            : strings.branded(
+                config,
+                key: 'jobs_section_title',
+                portuguese: 'MEUS JOBS DE HOJE',
+                english: 'MY JOBS FOR TODAY',
+              );
 
-    final loadingLabel = config.copyText('job_loading_label', defaultValue: 'Carregando jobs...');
-    final errorTitle = config.copyText('job_error_title', defaultValue: 'Não foi possível carregar as vistorias.');
-    final emptyLabel = config.copyText('job_empty_label', defaultValue: 'Nenhuma vistoria disponível no momento.');
+    final loadingLabel = strings.branded(
+      config,
+      key: 'job_loading_label',
+      portuguese: 'Carregando jobs...',
+      english: 'Loading jobs...',
+    );
+    final errorTitle = strings.branded(
+      config,
+      key: 'job_error_title',
+      portuguese: 'Nao foi possivel carregar as vistorias.',
+      english: 'Could not load inspections.',
+    );
+    final emptyLabel = strings.branded(
+      config,
+      key: 'job_empty_label',
+      portuguese: 'Nenhuma vistoria disponivel no momento.',
+      english: 'No inspection available right now.',
+    );
 
     final activeJobs =
-        appState.jobs
-            .where((job) => job.status != JobStatus.finalizado)
-            .toList();
+        appState.jobs.where((job) => job.status != JobStatus.finalizado).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           resolvedTitle,
-          style: TextStyle(
+          style: const TextStyle(
             color: BrandTokens.textSecondary,
             fontWeight: FontWeight.w800,
             letterSpacing: 0.8,
@@ -95,8 +106,8 @@ class JobsSection extends StatelessWidget {
           _buildInlineLoadingCard(loadingLabel)
         else ...[
           if (appState.jobsLoadError != null)
-            _buildJobsLoadErrorCard(appState.jobsLoadError!, errorTitle),
-          if (activeJobs.isEmpty)
+            _buildJobsLoadErrorCard(appState.jobsLoadError!, errorTitle)
+          else if (activeJobs.isEmpty)
             _buildEmptyJobsCard(emptyLabel)
           else
             ...activeJobs.map(
@@ -151,7 +162,10 @@ class JobsSection extends StatelessWidget {
           Expanded(
             child: Text(
               loadingLabel,
-              style: const TextStyle(color: BrandTokens.textSecondary, fontSize: 12),
+              style: const TextStyle(
+                color: BrandTokens.textSecondary,
+                fontSize: 12,
+              ),
             ),
           ),
         ],
@@ -251,11 +265,7 @@ class _RichJobCard extends StatelessWidget {
   final double? currentLatitude;
   final double? currentLongitude;
   final bool useDistanceMetrics;
-
-  /// When false, geofence distance UI is hidden and the start button is always
-  /// enabled (Compass / corporate mode doesn't enforce proximity).
   final bool geofenceRequired;
-
   final String? startLabel;
   final String? resumeLabel;
   final String? startBlockedLabel;
@@ -266,9 +276,20 @@ class _RichJobCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final config = BrandProvider.configOf(context);
-    final devHint = config.copyText('job_dev_mode_hint_label', defaultValue: 'Modo desenvolvedor ativo: fluxo liberado para teste fora do raio.');
-    final devStartLabel = config.copyText('job_dev_mode_start_label', defaultValue: 'INICIAR (DEV)');
-    final distanceInfo = _buildDistanceInfo(config);
+    final strings = AppStrings.of(context);
+    final devHint = strings.branded(
+      config,
+      key: 'job_dev_mode_hint_label',
+      portuguese: 'Modo desenvolvedor ativo: fluxo liberado para teste fora do raio.',
+      english: 'Developer mode active: flow unlocked for testing outside the radius.',
+    );
+    final devStartLabel = strings.branded(
+      config,
+      key: 'job_dev_mode_start_label',
+      portuguese: 'INICIAR (DEV)',
+      english: 'START (DEV)',
+    );
+    final distanceInfo = _buildDistanceInfo(context, config);
     final canStart =
         !geofenceRequired ||
         appState.canStartInspection(
@@ -314,19 +335,27 @@ class _RichJobCard extends StatelessWidget {
                 width: 8,
                 height: 8,
                 decoration: BoxDecoration(
-                  color:
-                      isRecoverable ? BrandTokens.warning : tokens.primary,
+                  color: isRecoverable ? BrandTokens.warning : tokens.primary,
                   shape: BoxShape.circle,
                 ),
               ),
               const SizedBox(width: 6),
               Text(
                 isRecoverable
-                    ? config.copyText('job_status_recoverable_label', defaultValue: 'EM RECUPERAÇÃO')
-                    : config.copyText('job_status_active_label', defaultValue: 'EM ANDAMENTO'),
+                    ? strings.branded(
+                        config,
+                        key: 'job_status_recoverable_label',
+                        portuguese: 'EM RECUPERACAO',
+                        english: 'IN RECOVERY',
+                      )
+                    : strings.branded(
+                        config,
+                        key: 'job_status_active_label',
+                        portuguese: 'EM ANDAMENTO',
+                        english: 'IN PROGRESS',
+                      ),
                 style: TextStyle(
-                  color:
-                      isRecoverable ? BrandTokens.warning : tokens.primary,
+                  color: isRecoverable ? BrandTokens.warning : tokens.primary,
                   fontWeight: FontWeight.w800,
                   fontSize: 11,
                 ),
@@ -358,13 +387,19 @@ class _RichJobCard extends StatelessWidget {
                   _JobTag(
                     bg: BrandTokens.surface,
                     fg: BrandTokens.textSecondary,
-                    text: 'ID externo: $_normalizedExternalId',
+                    text: strings.tr(
+                      'ID externo: $_normalizedExternalId',
+                      'External ID: $_normalizedExternalId',
+                    ),
                   ),
                 if (_normalizedProtocol != null)
                   _JobTag(
                     bg: BrandTokens.surface,
                     fg: BrandTokens.textSecondary,
-                    text: 'Protocolo: $_normalizedProtocol',
+                    text: strings.tr(
+                      'Protocolo: $_normalizedProtocol',
+                      'Protocol: $_normalizedProtocol',
+                    ),
                   ),
               ],
             ),
@@ -397,20 +432,19 @@ class _RichJobCard extends StatelessWidget {
                   text: distanceInfo.label,
                 ),
                 _JobTag(
-                  bg:
-                      distanceInfo.withinRange
-                          ? Colors.green.withValues(alpha: 0.12)
-                          : BrandTokens.warningLight,
-                  fg:
-                      distanceInfo.withinRange
-                          ? Colors.green.shade800
-                          : BrandTokens.warning,
+                  bg: distanceInfo.withinRange
+                      ? Colors.green.withValues(alpha: 0.12)
+                      : BrandTokens.warningLight,
+                  fg: distanceInfo.withinRange
+                      ? Colors.green.shade800
+                      : BrandTokens.warning,
                   text: distanceInfo.rangeLabel,
                 ),
                 _JobTag(
                   bg: BrandTokens.surface,
                   fg: BrandTokens.textSecondary,
-                  text: '${config.copyText('job_geofence_radius_prefix', defaultValue: 'Raio:')} ${radiusMeters.toStringAsFixed(0)}m',
+                  text:
+                      '${strings.branded(config, key: 'job_geofence_radius_prefix', portuguese: 'Raio:', english: 'Radius:')} ${radiusMeters.toStringAsFixed(0)}m',
                 ),
               ],
             ),
@@ -424,7 +458,7 @@ class _RichJobCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                '${config.copyText('job_recovery_warning_prefix', defaultValue: 'Vistoria em andamento interrompida. Última etapa salva:')} $recoveryStageLabel.',
+                '${strings.branded(config, key: 'job_recovery_warning_prefix', portuguese: 'Vistoria em andamento interrompida. Ultima etapa salva:', english: 'Interrupted inspection in progress. Last saved step:')} $recoveryStageLabel.',
                 style: const TextStyle(
                   color: BrandTokens.warning,
                   fontSize: 11,
@@ -435,7 +469,10 @@ class _RichJobCard extends StatelessWidget {
           else if (geofenceRequired && !canStart && !showDevStart)
             Text(
               startBlockedLabel ??
-                  'Fora do raio de vistoria para ${job.tipoImovel ?? 'tipo não informado'}.',
+                  strings.tr(
+                    'Fora do raio de vistoria para ${job.tipoImovel ?? 'tipo nao informado'}.',
+                    'Outside the inspection radius for ${job.tipoImovel ?? 'unknown type'}.',
+                  ),
               style: const TextStyle(
                 color: BrandTokens.warning,
                 fontSize: 11,
@@ -460,7 +497,7 @@ class _RichJobCard extends StatelessWidget {
                     await onNavigateToJob();
                   },
                   child: Text(
-                    navigateLabel ?? 'COMO CHEGAR',
+                    navigateLabel ?? strings.tr('COMO CHEGAR', 'DIRECTIONS'),
                     style: const TextStyle(fontSize: 11),
                   ),
                 ),
@@ -468,18 +505,17 @@ class _RichJobCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: ElevatedButton(
-                  onPressed:
-                      (canStart || showDevStart)
-                          ? () async {
-                            await onStartInspection();
-                          }
-                          : null,
+                  onPressed: (canStart || showDevStart)
+                      ? () async {
+                          await onStartInspection();
+                        }
+                      : null,
                   child: Text(
                     isRecoverable
-                        ? (resumeLabel ?? 'RETOMAR VISTORIA')
+                        ? (resumeLabel ?? strings.tr('RETOMAR VISTORIA', 'RESUME INSPECTION'))
                         : showDevStart
-                        ? devStartLabel
-                        : (startLabel ?? 'INICIAR VISTORIA'),
+                            ? devStartLabel
+                            : (startLabel ?? strings.tr('INICIAR VISTORIA', 'START INSPECTION')),
                     style: const TextStyle(fontSize: 11),
                   ),
                 ),
@@ -491,10 +527,29 @@ class _RichJobCard extends StatelessWidget {
     );
   }
 
-  _DistanceInfo _buildDistanceInfo(ResolvedBrandConfig config) {
-    final pendingLabel = config.copyText('job_location_pending_label', defaultValue: 'Localização pendente');
-    final noCalcLabel = config.copyText('job_no_calculation_label', defaultValue: 'Sem cálculo');
-    final onSiteLabel = config.copyText('job_on_site_label', defaultValue: 'Você está no local');
+  _DistanceInfo _buildDistanceInfo(
+    BuildContext context,
+    ResolvedBrandConfig config,
+  ) {
+    final strings = AppStrings.of(context);
+    final pendingLabel = strings.branded(
+      config,
+      key: 'job_location_pending_label',
+      portuguese: 'Localizacao pendente',
+      english: 'Location pending',
+    );
+    final noCalcLabel = strings.branded(
+      config,
+      key: 'job_no_calculation_label',
+      portuguese: 'Sem calculo',
+      english: 'No calculation',
+    );
+    final onSiteLabel = strings.branded(
+      config,
+      key: 'job_on_site_label',
+      portuguese: 'Voce esta no local',
+      english: 'You are on site',
+    );
 
     if (!useDistanceMetrics ||
         currentLatitude == null ||
@@ -521,8 +576,8 @@ class _RichJobCard extends StatelessWidget {
       subtipoImovel: job.subtipoImovel,
     );
 
-    final withinLabel = withinRangeLabel ?? 'Dentro do raio';
-    final outsideLabel = outOfRangeLabel ?? 'Fora do raio';
+    final withinLabel = withinRangeLabel ?? strings.tr('Dentro do raio', 'Within radius');
+    final outsideLabel = outOfRangeLabel ?? strings.tr('Fora do raio', 'Outside radius');
 
     if (distanceMeters <= 80) {
       return _DistanceInfo(
@@ -534,14 +589,20 @@ class _RichJobCard extends StatelessWidget {
 
     if (distanceMeters < 1000) {
       return _DistanceInfo(
-        label: '${distanceMeters.toStringAsFixed(0)} m de distância',
+        label: strings.tr(
+          '${distanceMeters.toStringAsFixed(0)} m de distancia',
+          '${distanceMeters.toStringAsFixed(0)} m away',
+        ),
         rangeLabel: withinRange ? withinLabel : outsideLabel,
         withinRange: withinRange,
       );
     }
 
     return _DistanceInfo(
-      label: '${(distanceMeters / 1000).toStringAsFixed(1)} km de distância',
+      label: strings.tr(
+        '${(distanceMeters / 1000).toStringAsFixed(1)} km de distancia',
+        '${(distanceMeters / 1000).toStringAsFixed(1)} km away',
+      ),
       rangeLabel: withinRange ? withinLabel : outsideLabel,
       withinRange: withinRange,
     );

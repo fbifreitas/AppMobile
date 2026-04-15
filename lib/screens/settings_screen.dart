@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_strings.dart';
 import '../state/app_state.dart';
 import '../state/auth_state.dart';
 import 'profile_settings_screen.dart';
@@ -18,7 +19,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   static const int _developerModeTapThreshold = 7;
 
   int _versionTapCount = 0;
-  String _appVersion = 'vcarregando...';
+  String _appVersion = 'vloading...';
 
   @override
   void initState() {
@@ -40,18 +41,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _appVersion = 'Versao indisponivel';
+        _appVersion = AppStrings.of(
+          context,
+        ).tr('Versao indisponivel', 'Version unavailable');
       });
     }
   }
 
   Future<void> _handleDeveloperModeHiddenTap() async {
+    final strings = AppStrings.of(context);
     final appState = context.read<AppState>();
 
     if (kReleaseMode) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Recursos de desenvolvedor bloqueados em release.'),
+        SnackBar(
+          content: Text(
+            strings.tr(
+              'Recursos de desenvolvedor bloqueados em release.',
+              'Developer features are blocked in release.',
+            ),
+          ),
         ),
       );
       return;
@@ -66,7 +75,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Mais $remaining toque${remaining == 1 ? '' : 's'} para habilitar a ferramenta do desenvolvedor.',
+                strings.tr(
+                  'Mais $remaining toque${remaining == 1 ? '' : 's'} para habilitar a ferramenta do desenvolvedor.',
+                  '$remaining more tap${remaining == 1 ? '' : 's'} to enable the developer tool.',
+                ),
               ),
             ),
           );
@@ -80,22 +92,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Ferramenta do desenvolvedor habilitada.'),
+        SnackBar(
+          content: Text(
+            strings.tr(
+              'Ferramenta do desenvolvedor habilitada.',
+              'Developer tool enabled.',
+            ),
+          ),
         ),
       );
       return;
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('A ferramenta do desenvolvedor ja esta habilitada.'),
+      SnackBar(
+        content: Text(
+          strings.tr(
+            'A ferramenta do desenvolvedor ja esta habilitada.',
+            'The developer tool is already enabled.',
+          ),
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     final appState = context.watch<AppState>();
     final authState = Provider.of<AuthState?>(context);
     final displayName = authState?.userNome?.trim().isNotEmpty == true
@@ -103,13 +126,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         : appState.usuarioNomeCompleto.trim();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Configuracoes')),
+      appBar: AppBar(title: Text(strings.tr('Configuracoes', 'Settings'))),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Text(
-            'Meus dados',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+          Text(
+            strings.tr('Meus dados', 'My data'),
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
           InkWell(
@@ -127,13 +150,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           if ((authState?.userEmail?.trim().isNotEmpty ?? false)) ...[
             _InfoRow(
               icon: Icons.person_outline,
-              label: 'Nome completo',
-              value: displayName.isEmpty ? 'Nao informado' : displayName,
+              label: strings.tr('Nome completo', 'Full name'),
+              value: displayName.isEmpty
+                  ? strings.tr('Nao informado', 'Not provided')
+                  : displayName,
             ),
             const SizedBox(height: 12),
             _InfoRow(
               icon: Icons.email_outlined,
-              label: 'E-mail',
+              label: strings.tr('E-mail', 'Email'),
               value: authState!.userEmail!,
             ),
           ],
@@ -141,7 +166,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 8),
             _InfoRow(
               icon: Icons.apartment_outlined,
-              label: 'Empresa',
+              label: strings.tr('Empresa', 'Company'),
               value: authState!.tenantId!,
             ),
           ],
@@ -155,21 +180,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
               );
             },
             icon: const Icon(Icons.manage_accounts_outlined),
-            label: const Text('Atualizar dados cadastrais'),
+            label: Text(
+              strings.tr(
+                'Atualizar dados cadastrais',
+                'Update profile information',
+              ),
+            ),
           ),
           if (appState.developerToolsUnlocked &&
               appState.developerModeEnabled) ...[
             const Divider(height: 28),
-            const Text(
-              'Ferramentas do desenvolvedor',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            Text(
+              strings.tr('Ferramentas do desenvolvedor', 'Developer tools'),
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Habilitar ferramenta do desenvolvedor'),
-              subtitle: const Text(
-                'Controla a exibicao do icone do hub tecnico na Home.',
+              title: Text(
+                strings.tr(
+                  'Habilitar ferramenta do desenvolvedor',
+                  'Enable developer tool',
+                ),
+              ),
+              subtitle: Text(
+                strings.tr(
+                  'Controla a exibicao do icone do hub tecnico na Home.',
+                  'Controls whether the technical hub icon is shown on Home.',
+                ),
               ),
               value: appState.developerModeEnabled,
               onChanged: (value) async {
@@ -182,9 +220,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Permitir iniciar longe do local'),
-              subtitle: const Text(
-                'Quando desligado, o botao de vistoria depende da distancia real ate o imovel.',
+              title: Text(
+                strings.tr(
+                  'Permitir iniciar longe do local',
+                  'Allow starting far from the site',
+                ),
+              ),
+              subtitle: Text(
+                strings.tr(
+                  'Quando desligado, o botao de vistoria depende da distancia real ate o imovel.',
+                  'When disabled, the inspection button depends on the real distance to the property.',
+                ),
               ),
               value: appState.permitirIniciarLonge,
               onChanged: (value) async {
@@ -204,7 +250,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               navigator.popUntil((route) => route.isFirst);
             },
             icon: const Icon(Icons.logout),
-            label: const Text('Sair da conta'),
+            label: Text(strings.tr('Sair da conta', 'Sign out')),
           ),
           const SizedBox(height: 20),
         ],

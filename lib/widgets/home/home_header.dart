@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 import '../../branding/brand_provider.dart';
 import '../../branding/brand_tokens.dart';
+import '../../l10n/app_strings.dart';
 
 class HomeHeader extends StatelessWidget {
   const HomeHeader({
@@ -28,23 +29,20 @@ class HomeHeader extends StatelessWidget {
   final VoidCallback onSettingsTap;
   final VoidCallback onHubTap;
   final bool showHubButton;
-
-  /// Subtitle shown below the greeting.
-  /// When provided, uses this value directly.
-  /// When null, reads 'home_header_subtitle' from [BrandProvider].
   final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
     final config = BrandProvider.configOf(context);
     final tokens = config.tokens;
-    final greetingPrefix = config.copyText('home_greeting_prefix', defaultValue: 'Olá,');
+    final strings = AppStrings.of(context);
+    final greetingPrefix = strings.tr('Olá,', 'Hello,');
     final resolvedSubtitle =
         subtitle?.isNotEmpty == true
             ? subtitle!
-            : config.copyText(
-                'home_header_subtitle',
-                defaultValue: 'Seu painel operacional de hoje',
+            : strings.tr(
+                'Seu painel operacional de hoje',
+                'Your operational dashboard for today',
               );
 
     return Row(
@@ -64,7 +62,7 @@ class HomeHeader extends StatelessWidget {
                 '$greetingPrefix $firstName!',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: BrandTokens.textPrimary,
@@ -91,7 +89,7 @@ class HomeHeader extends StatelessWidget {
               icon: Icons.notifications_none,
               onTap: onNotificationsTap,
               badge: unreadMessages > 0 ? '$unreadMessages' : null,
-              semanticLabel: 'Abrir notificacoes',
+              semanticLabel: strings.tr('Abrir notificacoes', 'Open notifications'),
               automationKey: 'home_header_notifications_button',
               tokens: tokens,
             ),
@@ -99,7 +97,7 @@ class HomeHeader extends StatelessWidget {
             _HeaderIconButton(
               icon: Icons.settings_outlined,
               onTap: onSettingsTap,
-              semanticLabel: 'Abrir configuracoes',
+              semanticLabel: strings.tr('Abrir configuracoes', 'Open settings'),
               automationKey: 'home_header_settings_button',
               tokens: tokens,
             ),
@@ -108,7 +106,7 @@ class HomeHeader extends StatelessWidget {
               _HeaderIconButton(
                 icon: Icons.dashboard_customize_outlined,
                 onTap: onHubTap,
-                semanticLabel: 'Abrir hub operacional',
+                semanticLabel: strings.tr('Abrir hub operacional', 'Open operational hub'),
                 automationKey: 'home_header_hub_button',
                 tokens: tokens,
               ),

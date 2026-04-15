@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../config/inspection_menu_package.dart';
+import '../../l10n/app_strings.dart';
 import '../../services/checkin_dynamic_config_service.dart';
 import '../../theme/app_colors.dart';
 import 'checkin_question_accordion.dart';
@@ -87,6 +88,7 @@ class CheckinStep1QuestionFlow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     final statusColor = isDone ? AppColors.success : AppColors.warning;
     final statusBg = isDone ? AppColors.successLight : AppColors.warningLight;
 
@@ -114,8 +116,12 @@ class CheckinStep1QuestionFlow extends StatelessWidget {
     if (step1Ui.clientePresenteVisible) {
       step1Cards.add(
         CheckinQuestionAccordion(
-          question: 'Cliente está presente?',
-          answer: clientePresente == null ? null : (clientePresente! ? 'Sim' : 'Não'),
+          question: strings.tr('Cliente esta presente?', 'Is the client present?'),
+          answer: clientePresente == null
+              ? null
+              : (clientePresente!
+                  ? strings.tr('Sim', 'Yes')
+                  : strings.tr('Nao', 'No')),
           expanded: resolvedExpandedId == questionClienteId,
           onToggle: () => onToggleQuestion(questionClienteId),
           onVoiceTap: onClienteVoiceTap,
@@ -123,14 +129,16 @@ class CheckinStep1QuestionFlow extends StatelessWidget {
             spacing: 8,
             children: [
               ChoiceChip(
-                label: const Text('Sim'),
+                label: Text(strings.tr('Sim', 'Yes')),
                 selected: clientePresente == true,
-                onSelected: submittingClientAbsent ? null : (_) => onClientePresenteYes(),
+                onSelected:
+                    submittingClientAbsent ? null : (_) => onClientePresenteYes(),
               ),
               ChoiceChip(
-                label: const Text('Não'),
+                label: Text(strings.tr('Nao', 'No')),
                 selected: clientePresente == false,
-                onSelected: submittingClientAbsent ? null : (_) => onClientePresenteNo(),
+                onSelected:
+                    submittingClientAbsent ? null : (_) => onClientePresenteNo(),
               ),
             ],
           ),
@@ -142,7 +150,7 @@ class CheckinStep1QuestionFlow extends StatelessWidget {
       step1Cards.add(const SizedBox(height: 10));
       step1Cards.add(
         CheckinQuestionAccordion(
-          question: 'Tipo de imóvel',
+          question: strings.tr('Tipo de imovel', 'Property type'),
           answer: tipoImovel,
           expanded: resolvedExpandedId == questionTipoId,
           onToggle: () => onToggleQuestion(questionTipoId),
@@ -168,7 +176,7 @@ class CheckinStep1QuestionFlow extends StatelessWidget {
       step1Cards.add(const SizedBox(height: 10));
       step1Cards.add(
         CheckinQuestionAccordion(
-          question: 'Subtipo',
+          question: strings.tr('Subtipo', 'Subtype'),
           answer: subtipoImovel,
           expanded: resolvedExpandedId == questionSubtipoId,
           onToggle: () => onToggleQuestion(questionSubtipoId),
