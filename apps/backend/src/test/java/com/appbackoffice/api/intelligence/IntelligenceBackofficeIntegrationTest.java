@@ -35,6 +35,7 @@ import com.appbackoffice.api.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
@@ -123,6 +124,16 @@ class IntelligenceBackofficeIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        cleanAll();
+        tenantRepository.save(new Tenant(TENANT_ID, TENANT_ID, "Tenant Intelligence", TenantStatus.ACTIVE));
+    }
+
+    @AfterEach
+    void tearDown() {
+        cleanAll();
+    }
+
+    private void cleanAll() {
         fieldEvidenceRecordRepository.deleteAll();
         inspectionReturnArtifactRepository.deleteAll();
         inspectionRepository.deleteAll();
@@ -139,7 +150,6 @@ class IntelligenceBackofficeIntegrationTest {
         userRepository.deleteAll();
         tenantApplicationRepository.deleteAll();
         tenantRepository.deleteAll();
-        tenantRepository.save(new Tenant(TENANT_ID, TENANT_ID, "Tenant Intelligence", TenantStatus.ACTIVE));
     }
 
     @Test
