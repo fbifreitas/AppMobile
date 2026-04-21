@@ -29,6 +29,7 @@ import com.appbackoffice.api.mobile.entity.InspectionEntity;
 import com.appbackoffice.api.mobile.entity.InspectionSubmissionEntity;
 import com.appbackoffice.api.mobile.repository.InspectionRepository;
 import com.appbackoffice.api.mobile.repository.InspectionSubmissionRepository;
+import com.appbackoffice.api.platform.repository.TenantApplicationRepository;
 import com.appbackoffice.api.user.repository.UserLifecycleRepository;
 import com.appbackoffice.api.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -114,6 +115,9 @@ class IntelligenceBackofficeIntegrationTest {
     @Autowired
     private InspectionSubmissionRepository inspectionSubmissionRepository;
 
+    @Autowired
+    private TenantApplicationRepository tenantApplicationRepository;
+
     @MockBean
     private ResearchProvider researchProvider;
 
@@ -133,6 +137,7 @@ class IntelligenceBackofficeIntegrationTest {
         membershipRepository.deleteAll();
         userLifecycleRepository.deleteAll();
         userRepository.deleteAll();
+        tenantApplicationRepository.deleteAll();
         tenantRepository.deleteAll();
         tenantRepository.save(new Tenant(TENANT_ID, TENANT_ID, "Tenant Intelligence", TenantStatus.ACTIVE));
     }
