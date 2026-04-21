@@ -5,15 +5,17 @@ import com.appbackoffice.api.intelligence.port.ResearchProvider;
 import com.appbackoffice.api.intelligence.port.ResearchProviderRequest;
 import com.appbackoffice.api.intelligence.port.ResearchProviderResponse;
 import com.appbackoffice.api.job.entity.InspectionCase;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 @Service
 public class ExecuteResearchUseCase {
 
-    private final ResearchProvider researchProvider;
+    private final ObjectProvider<ResearchProvider> researchProviderProvider;
+    private final DisabledResearchProvider disabledResearchProvider = new DisabledResearchProvider();
 
-    public ExecuteResearchUseCase(ResearchProvider researchProvider) {
-        this.researchProvider = researchProvider;
+    public ExecuteResearchUseCase(ObjectProvider<ResearchProvider> researchProviderProvider) {
+        this.researchProviderProvider = researchProviderProvider;
     }
 
     public ResearchProviderResponse execute(InspectionCase inspectionCase, CaseEnrichmentRunEntity run) {
@@ -24,6 +26,8 @@ public class ExecuteResearchUseCase {
                 inspectionCase.getPropertyAddress(),
                 inspectionCase.getInspectionType()
         );
-        return researchProvider.execute(request);
+        return researchProviderProvider
+                .getIfAvailable(() -> disabledResearchProvider)
+                .execute(request);
     }
 }
