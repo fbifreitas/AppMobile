@@ -29,8 +29,8 @@ class InspectionReviewOperationalService {
               subtiposComCobertura: 0,
               totalFotos: 0,
               completionPercent: 0,
-              pendingMatrix: TechnicalPendingMatrix(items: const []),
-              audits: const [],
+              pendingMatrix: TechnicalPendingMatrix(items: []),
+              audits: [],
             )
           : technicalSummary,
       justificationMissing: freeCaptureMode ? false : justificationMissing,

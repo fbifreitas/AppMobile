@@ -168,6 +168,7 @@ void main() {
               subtipoImovel: 'Apartamento',
               singleCaptureMode: false,
               cameFromCheckinStep1: true,
+              freeCaptureMode: false,
               selection: appState.step1Payload['porOndeComecar'] == 'Rua'
                   ? const FlowSelection(subjectContext: 'Rua')
                   : FlowSelection.empty,
