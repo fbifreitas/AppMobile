@@ -34,6 +34,13 @@ integration:
   config-signing:
     hmac-key: test-config-signing-key
     require-secret: false
+  ai-gateway:
+    enabled: false
+    base-url: http://localhost:9999
+    api-key:
+    model: test-inspection-research
+    research-path: /v1/research/cases
+    require-secret: false
 
 operations:
   control-tower:

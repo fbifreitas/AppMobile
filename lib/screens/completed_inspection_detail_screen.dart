@@ -82,19 +82,19 @@ class _CompletedInspectionDetailScreenState
                   title: strings.tr('Resumo da exportacao', 'Export summary'),
                   lines: [
                     '${strings.tr('Exportado em', 'Exported at')}: ${_text(payload['exportedAt'])}',
-                    '${strings.tr('Tipo de imovel', 'Property type')}: ${_text(_map(payload['review'])['tipoImovel'])}',
-                    '${strings.tr('Capturas', 'Captures')}: ${_list(_map(payload['review'])['capturas']).length}',
-                    '${strings.tr('Capturas revisadas', 'Reviewed captures')}: ${_list(_map(payload['review'])['capturasRevisadas']).length}',
+                    '${strings.tr('Tipo de imovel', 'Property type')}: ${_text(_firstValue(_map(payload['review']), ['assetType', 'tipoImovel']))}',
+                    '${strings.tr('Capturas', 'Captures')}: ${_list(_firstValue(_map(payload['review']), ['captures', 'capturas'])).length}',
+                    '${strings.tr('Capturas revisadas', 'Reviewed captures')}: ${_list(_firstValue(_map(payload['review']), ['reviewedCaptures', 'capturasRevisadas'])).length}',
                   ],
                 ),
                 const SizedBox(height: 12),
                 _InfoBlock(
                   title: strings.tr('Check-in etapa 1', 'Check-in step 1'),
                   lines: [
-                    '${strings.tr('Cliente presente', 'Client present')}: ${_yesNo(_map(payload['step1'])['clientePresente'])}',
-                    '${strings.tr('Tipo', 'Type')}: ${_text(_map(payload['step1'])['tipoImovel'])}',
-                    '${strings.tr('Subtipo', 'Subtype')}: ${_text(_map(payload['step1'])['subtipoImovel'])}',
-                    '${strings.tr('Inicio em', 'Started at')}: ${_text(_map(payload['step1'])['porOndeComecar'])}',
+                    '${strings.tr('Cliente presente', 'Client present')}: ${_yesNo(_firstValue(_map(payload['step1']), ['contactPresent', 'clientePresente']))}',
+                    '${strings.tr('Tipo', 'Type')}: ${_text(_firstValue(_map(payload['step1']), ['assetType', 'tipoImovel']))}',
+                    '${strings.tr('Subtipo', 'Subtype')}: ${_text(_firstValue(_map(payload['step1']), ['assetSubtype', 'subtipoImovel']))}',
+                    '${strings.tr('Inicio em', 'Started at')}: ${_text(_firstValue(_map(payload['step1']), ['entryPoint', 'porOndeComecar']))}',
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -103,8 +103,8 @@ class _CompletedInspectionDetailScreenState
                 _InfoBlock(
                   title: strings.tr('Encerramento', 'Closing'),
                   lines: [
-                    '${strings.tr('Observacao', 'Note')}: ${_text(_map(payload['review'])['observacao'])}',
-                    '${strings.tr('Justificativa tecnica', 'Technical justification')}: ${_text(_map(payload['review'])['justificativaTecnica'])}',
+                    '${strings.tr('Observacao', 'Note')}: ${_text(_firstValue(_map(payload['review']), ['note', 'observacao']))}',
+                    '${strings.tr('Justificativa tecnica', 'Technical justification')}: ${_text(_firstValue(_map(payload['review']), ['technicalJustification', 'justificativaTecnica']))}',
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -160,6 +160,15 @@ class _CompletedInspectionDetailScreenState
   List<dynamic> _list(Object? value) {
     if (value is List) return value;
     return const <dynamic>[];
+  }
+
+  Object? _firstValue(Map<String, dynamic> map, List<String> keys) {
+    for (final key in keys) {
+      if (map.containsKey(key)) {
+        return map[key];
+      }
+    }
+    return null;
   }
 
   String _text(Object? value) {

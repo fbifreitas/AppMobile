@@ -65,7 +65,7 @@ class InspectionFinalizeUseCase {
           lastError: syncResult.message,
         );
         finalizedLocallyOnly = true;
-        await appState.finalizarJob();
+        await appState.marcarJobAguardandoSincronizacao();
         shouldExitFlow = true;
       } else {
         finalizedLocallyOnly = !syncService.isConfigured;
@@ -78,7 +78,7 @@ class InspectionFinalizeUseCase {
       finalizedLocallyOnly = false;
       syncResult = InspectionSyncResult(
         success: false,
-        message: 'Falha ao preparar envio final: $error',
+        message: 'Failed to prepare final submission: $error',
       );
       hasSyncResult = true;
     }
@@ -101,10 +101,10 @@ class InspectionFinalizeUseCase {
       shouldExitFlow: shouldExitFlow,
       message:
           finalizedLocallyOnly
-              ? 'Vistoria salva no aparelho.$syncSuffix'
+              ? 'Inspection saved on device.$syncSuffix'
               : (syncResult.success
-                  ? 'Vistoria finalizada com sucesso.$syncSuffix'
-                  : 'Nao foi possivel finalizar a vistoria.$syncSuffix'),
+                  ? 'Inspection finalized successfully.$syncSuffix'
+                  : 'Unable to finalize inspection.$syncSuffix'),
     );
   }
 
@@ -124,9 +124,9 @@ class InspectionFinalizeUseCase {
     InspectionSyncQueueFlushResult? flushResult,
   }) {
     if (flushResult == null || flushResult.sentCount == 0) {
-      return ' Sincronizada com o servidor.';
+      return ' Synchronized with the server.';
     }
-    return ' Sincronizada com o servidor e com pendências antigas enviadas.';
+    return ' Synchronized with the server and older pending items were sent.';
   }
 
   String _buildSyncFailureMessage({
@@ -141,8 +141,8 @@ class InspectionFinalizeUseCase {
     if (queuedCount > 0) {
       parts.add(
         queuedCount == 1
-            ? '1 pendência foi colocada na fila de sincronização.'
-            : '$queuedCount pendências foram colocadas na fila de sincronização.',
+            ? '1 pending item was queued for synchronization.'
+            : '$queuedCount pending items were queued for synchronization.',
       );
     }
     if (parts.isEmpty) {

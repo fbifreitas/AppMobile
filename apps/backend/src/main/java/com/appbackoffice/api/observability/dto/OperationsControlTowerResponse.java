@@ -6,6 +6,7 @@ import java.util.List;
 public record OperationsControlTowerResponse(
         Instant generatedAt,
         Overview overview,
+        IntelligenceSummary intelligence,
         List<EndpointMetric> endpointMetrics,
         List<AlertItem> alerts,
         List<RecentEventItem> recentEvents,
@@ -34,6 +35,20 @@ public record OperationsControlTowerResponse(
             long p95LatencyMs,
             Integer lastHttpStatus,
             Instant lastSeenAt
+    ) {
+    }
+
+    public record IntelligenceSummary(
+            long enrichmentRuns,
+            long reviewRequiredRuns,
+            long failedRuns,
+            long executionPlans,
+            long publishedExecutionPlans,
+            long reviewRequiredExecutionPlans,
+            long inspectionReturnArtifacts,
+            long fieldEvidenceRecords,
+            long manualResolutionCases,
+            long reportBasisCases
     ) {
     }
 

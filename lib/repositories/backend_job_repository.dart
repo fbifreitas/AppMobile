@@ -4,6 +4,7 @@ import 'dart:io';
 import '../models/job.dart';
 import '../models/job_status.dart';
 import '../services/integration_context_service.dart';
+import '../services/smart_execution_plan_decoder.dart';
 import 'job_repository.dart';
 
 class BackendJobRepository implements JobRepository {
@@ -13,12 +14,15 @@ class BackendJobRepository implements JobRepository {
     JobRepository? fallbackRepository,
     HttpClient Function()? httpClientFactory,
     IntegrationContextService? integrationContextService,
+    SmartExecutionPlanDecoder? smartExecutionPlanDecoder,
   }) : _baseUrlOverride = baseUrl,
        _jobsEndpointOverride = jobsEndpoint,
        _fallbackRepository = fallbackRepository,
        _httpClientFactory = httpClientFactory,
        _integrationContextService =
-           integrationContextService ?? const IntegrationContextService();
+           integrationContextService ?? const IntegrationContextService(),
+       _smartExecutionPlanDecoder =
+           smartExecutionPlanDecoder ?? SmartExecutionPlanDecoder.instance;
 
   static const String _baseUrl = String.fromEnvironment('APP_API_BASE_URL');
   static const String _jobsEndpoint = String.fromEnvironment(
@@ -31,6 +35,7 @@ class BackendJobRepository implements JobRepository {
   final JobRepository? _fallbackRepository;
   final HttpClient Function()? _httpClientFactory;
   final IntegrationContextService _integrationContextService;
+  final SmartExecutionPlanDecoder _smartExecutionPlanDecoder;
 
   String get _resolvedBaseUrl => (_baseUrlOverride ?? _baseUrl).trim();
   String get _resolvedJobsEndpoint =>
@@ -96,6 +101,20 @@ class BackendJobRepository implements JobRepository {
     final propertyLatitude = _doubleOrNull(map['propertyLatitude']);
     final propertyLongitude = _doubleOrNull(map['propertyLongitude']);
     final inspectionType = map['inspectionType']?.toString().trim();
+    final executionPlan = _smartExecutionPlanDecoder.decodeEnvelope(
+      _extractMap(map['executionPlan']),
+      fallbackJobId: id,
+    );
+    final resolvedAssetType =
+        executionPlan?.initialAssetType?.trim().isNotEmpty == true
+            ? executionPlan!.initialAssetType
+            : (inspectionType == null || inspectionType.isEmpty
+                ? null
+                : inspectionType);
+    final resolvedAssetSubtype =
+        executionPlan?.initialAssetSubtype?.trim().isNotEmpty == true
+            ? executionPlan!.initialAssetSubtype
+            : null;
     return Job(
       id: id,
       titulo: title == null || title.isEmpty ? 'Job $id' : title,
@@ -103,15 +122,28 @@ class BackendJobRepository implements JobRepository {
           propertyAddress == null || propertyAddress.isEmpty
               ? 'Endereco pendente de detalhe operacional'
               : propertyAddress,
-      latitude: propertyLatitude,
-      longitude: propertyLongitude,
+      latitude: propertyLatitude ?? executionPlan?.propertyLatitude,
+      longitude: propertyLongitude ?? executionPlan?.propertyLongitude,
       deadlineAt: _dateTimeOrNull(map['deadlineAt']),
       createdAt: _dateTimeOrNull(map['createdAt']),
       status: _statusFromBackend(map['status']?.toString()),
-      tipoImovel:
-          inspectionType == null || inspectionType.isEmpty ? null : inspectionType,
+      tipoImovel: resolvedAssetType,
+      subtipoImovel: resolvedAssetSubtype,
       idExterno: caseId == null || caseId.isEmpty ? null : caseId,
+      smartExecutionPlan: executionPlan,
     );
+  }
+
+  Map<String, dynamic>? _extractMap(Object? value) {
+    if (value is Map<String, dynamic>) {
+      return value;
+    }
+    if (value is Map) {
+      return Map<String, dynamic>.from(
+        value.map((key, item) => MapEntry('$key', item)),
+      );
+    }
+    return null;
   }
 
   JobStatus _statusFromBackend(String? rawStatus) {

@@ -1,0 +1,11 @@
+app:
+  gateway:
+    api-key: test-gateway-key
+    require-secret: false
+  ai:
+    gemini:
+      api-key: test-gemini-key
+      model: gemini-3-flash-preview
+      enabled: true
+      timeout-ms: 30000
+      base-url: https://generativelanguage.googleapis.com

@@ -1,4 +1,6 @@
 ﻿import 'package:camera/camera.dart';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
@@ -10,6 +12,7 @@ import '../models/inspection_camera_menu_view_state.dart';
 import '../models/inspection_camera_selector_section.dart';
 import '../models/inspection_menu_intelligence_models.dart';
 import '../models/overlay_camera_capture_result.dart';
+import '../models/smart_execution_plan.dart';
 import '../services/inspection_camera_batch_flow_use_case.dart';
 import '../services/inspection_camera_batch_service.dart';
 import '../services/inspection_capture_flow_transition_service.dart';
@@ -25,6 +28,7 @@ import '../services/inspection_recovery_route_service.dart';
 import '../services/inspection_recovery_stage_service.dart';
 import '../services/inspection_menu_service.dart';
 import '../services/inspection_semantic_field_service.dart';
+import '../services/checkin_dynamic_config_service.dart';
 import '../services/voice_command_catalog_service.dart';
 import '../services/voice_command_parser_service.dart';
 import '../services/voice_input_service.dart';
@@ -40,8 +44,9 @@ class OverlayCameraScreen extends StatefulWidget {
   final String tipoImovel;
   final String subtipoImovel;
   final bool singleCaptureMode;
+  final bool freeCaptureMode;
 
-  /// Canonical initial flow state — domain-agnostic contract.
+  /// Canonical initial flow state - domain-agnostic contract.
   /// Inspection domain values are derived internally via [InspectionDomainAdapter].
   final FlowSelectionState? initialFlowState;
 
@@ -62,6 +67,7 @@ class OverlayCameraScreen extends StatefulWidget {
     required this.tipoImovel,
     required this.subtipoImovel,
     this.singleCaptureMode = false,
+    this.freeCaptureMode = false,
     this.initialFlowState,
     this.cameFromCheckinStep1 = false,
     this.skipDeviceInitialization = false,
@@ -87,6 +93,14 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     'material',
     'estado',
   ];
+
+  static const Map<String, String> _planDrivenLevelLabels = <String, String>{
+    'macroLocal': 'Área da foto',
+    'ambiente': 'Local da foto',
+    'elemento': 'Elemento fotografado',
+    'material': 'Material',
+    'estado': 'Estado',
+  };
 
   final InspectionMenuService _menuService = InspectionMenuService.instance;
   final InspectionEnvironmentInstanceService _environmentInstanceService =
@@ -131,7 +145,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   bool _loadingMenus = true;
   String? _error;
 
-  /// Canonical flow state — single source of truth for the capture flow.
+  /// Canonical flow state - single source of truth for the capture flow.
   FlowSelectionState _flowState = FlowSelectionState.bootstrap();
 
   List<String> _macroLocais = const [];
@@ -151,6 +165,9 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   final List<OverlayCameraCaptureResult> _captures = [];
   bool _hasPreviousPhotos = false;
   bool _selectorsCollapsed = false;
+  double _minZoomLevel = 1.0;
+  double _maxZoomLevel = 1.0;
+  double _currentZoomLevel = 1.0;
 
   String? get _predictionSummary {
     final strings = AppStrings.of(context);
@@ -167,7 +184,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     );
   }
 
-  // ── canonical accessors ────────────────────────────────────────────────────
+  // Canonical accessors.
 
   bool get _showMacroLocalSelector =>
       _cameraLevelOrder.contains('macroLocal') || _macroLocais.isNotEmpty;
@@ -185,6 +202,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   void initState() {
     super.initState();
     _flowState = widget.initialFlowState ?? FlowSelectionState.bootstrap();
+    _hydrateCapturedBatchFromRecovery();
     _setup();
     if (widget.cameFromCheckinStep1) {
       WidgetsBinding.instance.addPostFrameCallback(
@@ -233,6 +251,9 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       }
 
       await _menuService.ensureLoaded();
+      if (!mounted) return;
+      final appState = Provider.of<AppState>(context, listen: false);
+      final executionPlan = appState.currentExecutionPlan;
       final configuredLevels = await _menuService.getCameraLevelOrder(
         propertyType: widget.tipoImovel,
         subtipo: widget.subtipoImovel,
@@ -241,9 +262,27 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
         propertyType: widget.tipoImovel,
         subtipo: widget.subtipoImovel,
       );
-      _cameraLevelOrder = _normalizeCameraLevels(configuredLevels);
-      _cameraLevelLabels = _resolveCameraLevelLabels(configuredLevelDefinitions);
-      await _reloadMenus(initialLoad: true);
+      if (widget.freeCaptureMode) {
+        _cameraLevelOrder = const <String>[];
+        _cameraLevelLabels = const <String, String>{};
+        _macroLocais = const <String>[];
+        _ambientesAtuais = const <String>[];
+        _elementosAtuais = const <String>[];
+        _materiaisAtuais = const <String>[];
+        _estadosAtuais = const <String>[];
+        _selectorSections = const <InspectionCameraSelectorSection>[];
+        _loadingMenus = false;
+      } else {
+        _cameraLevelOrder = _resolveCameraLevelOrder(
+          configuredLevels,
+          executionPlan: executionPlan,
+        );
+        _cameraLevelLabels = _resolveCameraLevelLabels(
+          configuredLevelDefinitions,
+          executionPlan: executionPlan,
+        );
+        await _reloadMenus(initialLoad: true);
+      }
 
       if (widget.skipDeviceInitialization) {
         if (!mounted) return;
@@ -267,6 +306,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
         enableAudio: false,
       );
       await controller.initialize();
+      await _loadZoomBounds(controller);
 
       if (!mounted) {
         await controller.dispose();
@@ -282,6 +322,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       final strings = AppStrings.of(context);
       setState(() {
         _initializing = false;
+        _loadingMenus = false;
         _error = strings.tr(
           'Falha ao inicializar a camera: $error',
           'Failed to initialize camera: $error',
@@ -295,9 +336,20 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       setState(() => _loadingMenus = true);
     }
 
+    final developerMockDocument =
+        await CheckinDynamicConfigService.instance.loadDeveloperMockDocument();
+    if (!mounted) return;
+    final appState = Provider.of<AppState>(context, listen: false);
+    final executionPlan =
+        developerMockDocument == null
+            ? appState.currentExecutionPlan
+            : null;
+
     final viewState = await _cameraMenuResolver.resolve(
       propertyType: widget.tipoImovel,
       subtipo: widget.subtipoImovel,
+      executionPlan: executionPlan,
+      currentKnownAmbientes: _ambientesAtuais,
       showMacroLocalSelector: _showMacroLocalSelector,
       initialLoad: initialLoad,
       initialSuggestedSelection: _flowState.initialSuggestedSelection,
@@ -312,10 +364,47 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     await _persistCameraStage();
   }
 
+  Future<void> _loadZoomBounds(CameraController controller) async {
+    try {
+      final minZoom = await controller.getMinZoomLevel();
+      final maxZoom = await controller.getMaxZoomLevel();
+      final normalizedMin = minZoom.isFinite ? minZoom : 1.0;
+      final normalizedMax = maxZoom.isFinite ? maxZoom : normalizedMin;
+      final preferredZoom = math.max(1.0, normalizedMin);
+      final clampedPreferred = preferredZoom.clamp(normalizedMin, normalizedMax);
+      await controller.setZoomLevel(clampedPreferred);
+      if (!mounted) return;
+      setState(() {
+        _minZoomLevel = normalizedMin;
+        _maxZoomLevel = normalizedMax;
+        _currentZoomLevel = clampedPreferred;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _minZoomLevel = 1.0;
+        _maxZoomLevel = 1.0;
+        _currentZoomLevel = 1.0;
+      });
+    }
+  }
+
+  bool get _canZoom => _maxZoomLevel > (_minZoomLevel + 0.05);
+
+  Future<void> _setZoomLevel(double value) async {
+    final controller = _controller;
+    if (controller == null || !_canZoom) {
+      return;
+    }
+    final clamped = value.clamp(_minZoomLevel, _maxZoomLevel);
+    await controller.setZoomLevel(clamped);
+    if (!mounted) return;
+    setState(() => _currentZoomLevel = clamped);
+  }
+
   Future<void> _persistCameraStage() async {
     if (!mounted) return;
     final appState = Provider.of<AppState>(context, listen: false);
-    final draft = appState.inspectionRecoveryDraft;
     final jobId = appState.jobAtual?.id;
     if (jobId == null) return;
     await appState.setInspectionRecoverySnapshot(
@@ -327,15 +416,51 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
           tipoImovel: widget.tipoImovel,
           subtipoImovel: widget.subtipoImovel,
           singleCaptureMode: widget.singleCaptureMode,
+          freeCaptureMode: widget.freeCaptureMode,
           cameFromCheckinStep1: widget.cameFromCheckinStep1,
           selection: _flowState.currentSelection,
+          captures: _captures,
         ),
-        step1Payload:
-            draft?.payload['step1'] != null ? appState.step1Payload : const {},
-        step2Payload:
-            draft?.payload['step2'] != null ? appState.step2Payload : const {},
+        step1Payload: appState.step1Payload,
+        step2Payload: appState.step2Payload,
       ),
     );
+  }
+
+  void _hydrateCapturedBatchFromRecovery() {
+    if (!widget.cameFromCheckinStep1) {
+      return;
+    }
+    final appState = Provider.of<AppState>(context, listen: false);
+    final rawCameraStage = appState.inspectionRecoveryPayload['cameraStage'];
+    if (rawCameraStage is! Map) {
+      return;
+    }
+    final rawCaptures = rawCameraStage['captures'];
+    if (rawCaptures is! List) {
+      return;
+    }
+    final restored = <OverlayCameraCaptureResult>[];
+    for (final rawCapture in rawCaptures) {
+      if (rawCapture is Map<String, dynamic>) {
+        restored.add(OverlayCameraCaptureResult.fromMap(rawCapture));
+        continue;
+      }
+      if (rawCapture is Map) {
+        restored.add(
+          OverlayCameraCaptureResult.fromMap(
+            rawCapture.map((key, value) => MapEntry('$key', value)),
+          ),
+        );
+      }
+    }
+    if (restored.isEmpty) {
+      return;
+    }
+    _captures
+      ..clear()
+      ..addAll(restored);
+    _hasPreviousPhotos = true;
   }
 
   void _applyResolvedMenuViewState(InspectionCameraMenuViewState viewState) {
@@ -488,7 +613,8 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     if (_controller == null || !_controller!.value.isInitialized) return;
     final strings = AppStrings.of(context);
 
-    if (_targetItem == null || _targetItem!.trim().isEmpty) {
+    if (!widget.freeCaptureMode &&
+        (_targetItem == null || _targetItem!.trim().isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -516,23 +642,31 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       final navigator = Navigator.of(context);
       final messenger = ScaffoldMessenger.of(context);
       final sel = _flowState.currentSelection;
+      final freeCaptureLabel = strings.tr('Captura livre', 'Free capture');
       final result = _batchService.buildCaptureResult(
         filePath: file.path,
-        macroLocal: sel.subjectContext,
-        ambiente: sel.targetItem!,
-        elemento: sel.targetQualifier,
-        material: _domainAdapter.inspectionMaterialOf(sel),
-        estado: sel.targetCondition,
-        applicableClassificationLevels: _selectorSections
-            .where(
-              (section) =>
-                  (section.levelId == 'elemento' ||
-                      section.levelId == 'material' ||
-                      section.levelId == 'estado') &&
-                  section.values.isNotEmpty,
-            )
-            .map((section) => section.levelId)
-            .toList(),
+        macroLocal: widget.freeCaptureMode ? null : sel.subjectContext,
+        ambiente:
+            (widget.freeCaptureMode
+                ? (sel.targetItem?.trim().isNotEmpty == true
+                      ? sel.targetItem!
+                      : freeCaptureLabel)
+                : sel.targetItem!),
+        elemento: widget.freeCaptureMode ? null : sel.targetQualifier,
+        material: widget.freeCaptureMode ? null : _domainAdapter.inspectionMaterialOf(sel),
+        estado: widget.freeCaptureMode ? null : sel.targetCondition,
+        applicableClassificationLevels: widget.freeCaptureMode
+            ? const <String>[]
+            : _selectorSections
+                .where(
+                  (section) =>
+                      (section.levelId == 'elemento' ||
+                          section.levelId == 'material' ||
+                          section.levelId == 'estado') &&
+                      section.values.isNotEmpty,
+                )
+                .map((section) => section.levelId)
+                .toList(),
         capturedAt: DateTime.now(),
         position: position,
         predictionSummary: _predictionSummary,
@@ -549,15 +683,10 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            result.usedSuggestion
-                ? strings.tr(
-                  'Foto adicionada ao lote com sugestao silenciosa.',
-                  'Photo added to the batch with silent suggestion.',
-                )
-                : strings.tr(
-                  'Foto adicionada ao lote.',
-                  'Photo added to the batch.',
-                ),
+            strings.tr(
+              'Foto adicionada ao lote.',
+              'Photo added to the batch.',
+            ),
           ),
         ),
       );
@@ -577,6 +706,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
     }
   }
 
+  // ignore: unused_element
   void _openVoiceSheet() {
     final strings = AppStrings.of(context);
     showModalBottomSheet<void>(
@@ -638,6 +768,7 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       tipoImovel: widget.tipoImovel,
       cameFromCheckinStep1: widget.cameFromCheckinStep1,
     );
+    await _persistCameraStage();
   }
 
   @override
@@ -728,6 +859,40 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   List<String> _normalizeCameraLevels(List<String> rawLevels) =>
       _cameraLevelPresentationService.normalizeLevelOrder(rawLevels);
 
+  List<String> _resolveCameraLevelOrder(
+    List<String> rawLevels, {
+    required SmartExecutionPlan? executionPlan,
+  }) {
+    final fallback = _normalizeCameraLevels(rawLevels);
+    final profiles = _safeCompositionProfiles(executionPlan);
+    if (profiles.isEmpty) {
+      return fallback;
+    }
+
+    final derived = <String>['macroLocal', 'ambiente'];
+    final hasElements = profiles.any(
+      (profile) => profile.elements.isNotEmpty,
+    );
+    final hasMaterials = profiles.any(
+      (profile) => profile.elements.any((element) => element.materials.isNotEmpty),
+    );
+    final hasStates = profiles.any(
+      (profile) => profile.elements.any((element) => element.states.isNotEmpty),
+    );
+
+    if (hasElements) {
+      derived.add('elemento');
+    }
+    if (hasMaterials) {
+      derived.add('material');
+    }
+    if (hasStates) {
+      derived.add('estado');
+    }
+
+    return derived.isNotEmpty ? derived : fallback;
+  }
+
   bool _hasSelectorSection(String levelId) =>
       _selectorSections.any((section) => section.levelId == levelId);
 
@@ -741,21 +906,307 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
   }
 
   Map<String, String> _resolveCameraLevelLabels(
-    List<ConfigLevelDefinition> levels,
-  ) {
-    return _cameraLevelPresentationService.resolveLabelsByLevel(
+    List<ConfigLevelDefinition> levels, {
+    SmartExecutionPlan? executionPlan,
+  }) {
+    final labels = _cameraLevelPresentationService.resolveLabelsByLevel(
       levels: levels,
       surface: InspectionSurfaceKeys.camera,
+    );
+    if (_safeCompositionProfiles(executionPlan).isEmpty) {
+      return labels;
+    }
+    return <String, String>{
+      ..._planDrivenLevelLabels,
+      ...labels,
+    };
+  }
+
+  List<SmartExecutionCameraEnvironmentProfile> _safeCompositionProfiles(
+    SmartExecutionPlan? executionPlan,
+  ) {
+    final profiles = executionPlan?.compositionProfiles;
+    if (profiles == null || profiles.isEmpty) {
+      return const <SmartExecutionCameraEnvironmentProfile>[];
+    }
+    return profiles.whereType<SmartExecutionCameraEnvironmentProfile>().toList(
+      growable: false,
+    );
+  }
+
+  Widget _buildSelectorColumn({
+    required AppStrings strings,
+    required InspectionCameraPresentationData presentation,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        OverlayCameraSelectorPanel(
+          sections: _selectorSections,
+          onSelectSubjectContext: _selectSubjectContext,
+          onSelectTargetItem: _selectTargetItem,
+          onDuplicateTargetItem: _duplicateTargetItem,
+          onSelectTargetQualifier: _selectTargetQualifier,
+          onSelectMaterial: _selectMaterial,
+          onSelectTargetCondition: _selectTargetCondition,
+          onVoiceSelection: ({
+            required String title,
+            required List<String> values,
+            required String? selected,
+            required Future<void> Function(String value) onSelect,
+          }) {
+            return _selectFromVoiceSheet(
+              title: title,
+              values: values,
+              selected: selected,
+              onSelect: onSelect,
+            );
+          },
+        ),
+        if (presentation.showRecentAmbientes) ...[
+          const SizedBox(height: 8),
+          OverlayCameraQuickSuggestionCard(
+            title: strings.tr(
+              'Locais mais usados nesta area',
+              'Most used locations in this area',
+            ),
+            values: _recentAmbientes,
+            selected: _targetItem,
+            onSelect: (value) => _selectTargetItem(value),
+          ),
+        ],
+        if (presentation.showRecentElementos) ...[
+          const SizedBox(height: 8),
+          OverlayCameraQuickSuggestionCard(
+            title: strings.tr(
+              'Mais usados neste contexto',
+              'Most used in this context',
+            ),
+            values: _recentElementos,
+            selected: _targetQualifier,
+            onSelect: (value) => _selectTargetQualifier(value),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSelectorToggle() {
+    return GestureDetector(
+      onTap: () => setState(() => _selectorsCollapsed = !_selectorsCollapsed),
+      child: Container(
+        width: 36,
+        height: 28,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.42),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Icon(
+          MediaQuery.of(context).orientation == Orientation.landscape
+              ? (_selectorsCollapsed ? Icons.chevron_right : Icons.chevron_left)
+              : (_selectorsCollapsed ? Icons.expand_more : Icons.expand_less),
+          color: Colors.white,
+          size: 18,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildZoomCard() {
+    if (!_canZoom) {
+      return const SizedBox.shrink();
+    }
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.zoom_in, color: Colors.white, size: 18),
+          const SizedBox(width: 8),
+          Text(
+            '${_currentZoomLevel.toStringAsFixed(1)}x',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                activeTrackColor: Colors.white,
+                inactiveTrackColor: Colors.white30,
+                thumbColor: Colors.white,
+                overlayColor: Colors.white24,
+                trackHeight: 2.5,
+              ),
+              child: Slider(
+                min: _minZoomLevel,
+                max: _maxZoomLevel,
+                value: _currentZoomLevel.clamp(_minZoomLevel, _maxZoomLevel),
+                onChanged: (value) => _setZoomLevel(value),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLandscapeZoomRail() {
+    if (!_canZoom) {
+      return const SizedBox.shrink();
+    }
+    return Container(
+      width: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.42),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '${_currentZoomLevel.toStringAsFixed(1)}x',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 11,
+            ),
+          ),
+          const SizedBox(height: 6),
+          SizedBox(
+            height: 108,
+            child: RotatedBox(
+              quarterTurns: 3,
+              child: SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  activeTrackColor: Colors.white,
+                  inactiveTrackColor: Colors.white30,
+                  thumbColor: Colors.white,
+                  overlayColor: Colors.white24,
+                  trackHeight: 2.5,
+                ),
+                child: Slider(
+                  min: _minZoomLevel,
+                  max: _maxZoomLevel,
+                  value: _currentZoomLevel.clamp(_minZoomLevel, _maxZoomLevel),
+                  onChanged: (value) => _setZoomLevel(value),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCaptureButton() {
+    return GestureDetector(
+      onTap: _capturing ? null : _capture,
+      child: Container(
+        width: 82,
+        height: 82,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white.withValues(alpha: 0.96),
+          border: Border.all(
+            color: Colors.black.withValues(alpha: 0.18),
+            width: 3,
+          ),
+        ),
+        alignment: Alignment.center,
+        child: _capturing
+            ? const SizedBox(
+                width: 26,
+                height: 26,
+                child: CircularProgressIndicator(strokeWidth: 3),
+              )
+            : Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                  border: Border.all(
+                    color: Colors.black12,
+                    width: 2,
+                  ),
+                ),
+              ),
+      ),
+    );
+  }
+
+  Widget _buildInfoOverlay(String summary) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Text(
+        summary,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          fontSize: 11,
+        ),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Widget _buildFreeCaptureInfoCard(AppStrings strings) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.62),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            strings.tr('Modo de captura livre', 'Free capture mode'),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            strings.tr(
+              'Capture as fotos livremente no app. A classificacao e as obrigatoriedades serao tratadas depois na web.',
+              'Capture photos freely in the app. Classification and mandatory rules will be handled later on the web.',
+            ),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
-    if (_initializing || _loadingMenus) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
+    final appState = context.watch<AppState?>();
     if (_error != null) {
       return Scaffold(
         appBar: AppBar(title: Text(widget.title)),
@@ -766,6 +1217,9 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
           ),
         ),
       );
+    }
+    if (_initializing || _loadingMenus) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final sel = _flowState.currentSelection;
@@ -790,17 +1244,198 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
       predictionSummary: _predictionSummary,
       recentAmbientes: _recentAmbientes,
       recentElementos: _recentElementos,
+      requiredEvidenceCount: widget.freeCaptureMode
+          ? 0
+          : (appState?.currentExecutionPlan?.requiredEvidenceCount ?? 0),
     );
+    final media = MediaQuery.of(context);
+    final isLandscape = media.orientation == Orientation.landscape;
+    final selectorPanelWidth = isLandscape
+        ? math.min(media.size.width * 0.42, 320.0)
+        : math.min(media.size.width * 0.84, 360.0);
+    const controlBarExtent = 52.0;
+    final bottomControlExtent = math.max(media.size.height * 0.18, 170.0);
+    final leftRailWidth = isLandscape ? controlBarExtent : 0.0;
+    final zoomRailWidth = isLandscape ? 52.0 : 0.0;
+    final actionRailWidth = isLandscape ? 86.0 : 0.0;
+    final rightRailWidth = isLandscape
+        ? math.min(bottomControlExtent, 176.0)
+        : 0.0;
+    final previewAspectRatio = isLandscape ? 4 / 3 : 3 / 4;
+    final topInset = media.padding.top;
+    final portraitTopChrome = topInset + controlBarExtent;
+    final portraitBottomChrome = bottomControlExtent + media.padding.bottom;
+
+    Widget buildPortraitBottomControls() {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildZoomCard(),
+          const SizedBox(height: 10),
+          _buildInfoOverlay(presentation.batchSummary),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _circleAction(
+                icon: Icons.photo_library_outlined,
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        strings.tr(
+                          'Galeria permanece no fluxo atual.',
+                          'Gallery remains in the current flow.',
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const Spacer(),
+              _buildCaptureButton(),
+              const Spacer(),
+              OverlayCameraFinalizeButton(
+                singleCaptureMode: widget.singleCaptureMode,
+                hasAnyCaptures: _hasAnyCaptures,
+                finalizeSubtitle: presentation.finalizeSubtitle,
+                onFinalize: _finalizeBatch,
+                onSingleCaptureClose: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+
+    Widget buildLandscapeActionRail() {
+      return SizedBox(
+        width: actionRailWidth,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _circleAction(
+              icon: Icons.photo_library_outlined,
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      strings.tr(
+                        'Galeria permanece no fluxo atual.',
+                        'Gallery remains in the current flow.',
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+            _buildCaptureButton(),
+            OverlayCameraFinalizeButton(
+              singleCaptureMode: widget.singleCaptureMode,
+              hasAnyCaptures: _hasAnyCaptures,
+              finalizeSubtitle: presentation.finalizeSubtitle,
+              onFinalize: _finalizeBatch,
+              onSingleCaptureClose: () => Navigator.of(context).pop(),
+            ),
+          ],
+        ),
+      );
+    }
+
+    Widget buildSelectorOverlay() {
+      if (widget.freeCaptureMode) {
+        return ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: isLandscape
+                ? math.min(media.size.width * 0.56, 520.0)
+                : selectorPanelWidth,
+          ),
+          child: _buildFreeCaptureInfoCard(strings),
+        );
+      }
+      final selectorBody = !_selectorsCollapsed
+          ? Container(
+              constraints: BoxConstraints(
+                maxHeight: isLandscape
+                    ? math.min(
+                        media.size.height - media.padding.vertical - 32,
+                        media.size.height * 0.72,
+                      )
+                    : math.max(
+                        180,
+                        media.size.height -
+                            portraitTopChrome -
+                            portraitBottomChrome -
+                            40,
+                      ),
+              ),
+              width: isLandscape
+                  ? math.min(media.size.width * 0.56, 520.0)
+                  : selectorPanelWidth,
+              child: Scrollbar(
+                thumbVisibility: true,
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 12, right: 8),
+                    child: _buildSelectorColumn(
+                      strings: strings,
+                      presentation: presentation,
+                    ),
+                  ),
+                ),
+              ),
+            )
+          : const SizedBox.shrink();
+
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          if (!_selectorsCollapsed)
+            selectorBody,
+        ],
+      );
+    }
 
     return Scaffold(
+      backgroundColor: Colors.black,
       body: Stack(
         children: [
           Positioned.fill(
-            child:
-                _controller == null
-                    ? const SizedBox.shrink()
-                    : CameraPreview(_controller!),
+            child: Container(color: Colors.black),
           ),
+          if (isLandscape)
+            Positioned(
+              left: leftRailWidth + 6,
+              right: rightRailWidth + 6,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: AspectRatio(
+                  aspectRatio: previewAspectRatio,
+                  child: _controller == null
+                      ? const SizedBox.shrink()
+                      : CameraPreview(_controller!),
+                ),
+              ),
+            )
+          else
+            Positioned(
+              left: 0,
+              right: 0,
+              top: portraitTopChrome,
+              bottom: portraitBottomChrome,
+              child: Center(
+                child: AspectRatio(
+                  aspectRatio: previewAspectRatio,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: _controller == null
+                        ? const SizedBox.shrink()
+                        : CameraPreview(_controller!),
+                  ),
+                ),
+              ),
+            ),
           Positioned(
             top: 0,
             left: 0,
@@ -808,257 +1443,123 @@ class _OverlayCameraScreenState extends State<OverlayCameraScreen> {
             child: SafeArea(
               bottom: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 0),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        OverlayCameraGlassButton(
-                          icon: Icons.arrow_back_ios_new,
-                          onTap: () => Navigator.of(context).pop(),
-                        ),
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.55),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Text(
-                            widget.title,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12,
+                padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                child: isLandscape
+                    ? const SizedBox.shrink()
+                    : Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: OverlayCameraGlassButton(
+                              icon: Icons.arrow_back_ios_new,
+                              onTap: () => Navigator.of(context).pop(),
                             ),
                           ),
-                        ),
-                        const Spacer(),
-                        if (widget.showVoiceActions)
-                          OverlayCameraGlassButton(
-                            icon: Icons.mic_none,
-                            onTap: _openVoiceSheet,
-                          ),
-                        if (widget.showVoiceActions)
-                          const SizedBox(width: 8),
-                        OverlayCameraGlassButton(
-                          icon: Icons.checklist_outlined,
-                          onTap: presentation.canOpenChecklist ? _finalizeBatch : null,
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 8),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Tab de colapso lateral
-                        GestureDetector(
-                          onTap:
-                              () => setState(
-                                () =>
-                                    _selectorsCollapsed =
-                                        !_selectorsCollapsed,
-                              ),
-                          child: Container(
-                            width: 22,
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.50),
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(10),
-                                bottomLeft: Radius.circular(10),
-                              ),
+                          if (!widget.freeCaptureMode)
+                            Align(
+                              alignment: Alignment.center,
+                              child: _buildSelectorToggle(),
                             ),
-                            child: Icon(
-                              _selectorsCollapsed
-                                  ? Icons.chevron_right
-                                  : Icons.chevron_left,
-                              color: Colors.white,
-                              size: 18,
-                            ),
-                          ),
-                        ),
-                        // Painel de seletores (colapsÃ¡vel)
-                        if (!_selectorsCollapsed)
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                OverlayCameraSelectorPanel(
-                                  sections: _selectorSections,
-                                  onSelectSubjectContext: _selectSubjectContext,
-                                  onSelectTargetItem: _selectTargetItem,
-                                  onDuplicateTargetItem: _duplicateTargetItem,
-                                  onSelectTargetQualifier:
-                                      _selectTargetQualifier,
-                                  onSelectMaterial: _selectMaterial,
-                                  onSelectTargetCondition:
-                                      _selectTargetCondition,
-                                  onVoiceSelection: ({
-                                    required String title,
-                                    required List<String> values,
-                                    required String? selected,
-                                    required Future<void> Function(String value)
-                                    onSelect,
-                                  }) {
-                                    return _selectFromVoiceSheet(
-                                      title: title,
-                                      values: values,
-                                      selected: selected,
-                                      onSelect: onSelect,
-                                    );
-                                  },
-                                ),
-                                if (presentation.showContextSuggestion) ...[
-                                  const SizedBox(height: 8),
-                                  OverlayCameraHintCard(
-                                    text: _contextSuggestionSummary!,
-                                  ),
-                                ],
-                                if (presentation.showRecentAmbientes) ...[
-                                  const SizedBox(height: 8),
-                                  OverlayCameraQuickSuggestionCard(
-                                    title: strings.tr(
-                                      'Locais mais usados nesta area',
-                                      'Most used locations in this area',
-                                    ),
-                                    values: _recentAmbientes,
-                                    selected: _targetItem,
-                                    onSelect: (value) => _selectTargetItem(value),
-                                  ),
-                                ],
-                                if (presentation.showPredictionSuggestion) ...[
-                                  const SizedBox(height: 8),
-                                  OverlayCameraHintCard(
-                                    text: _predictionSummary!,
-                                  ),
-                                ],
-                                if (presentation.showRecentElementos) ...[
-                                  const SizedBox(height: 8),
-                                  OverlayCameraQuickSuggestionCard(
-                                    title: strings.tr(
-                                      'Mais usados neste contexto',
-                                      'Most used in this context',
-                                    ),
-                                    values: _recentElementos,
-                                    selected: _targetQualifier,
-                                    onSelect: (value) =>
-                                        _selectTargetQualifier(value),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
+                        ],
+                      ),
               ),
             ),
           ),
+          if (isLandscape)
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: leftRailWidth,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Column(
+                    children: [
+                      OverlayCameraGlassButton(
+                        icon: Icons.arrow_back_ios_new,
+                        onTap: () => Navigator.of(context).pop(),
+                      ),
+                      const Spacer(),
+                      if (!widget.freeCaptureMode) _buildSelectorToggle(),
+                      const Spacer(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          if (!isLandscape)
+            Positioned(
+              top: topInset + 8,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                bottom: false,
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: buildSelectorOverlay(),
+                ),
+              ),
+            ),
+          if (isLandscape)
+            Positioned(
+              top: 4,
+              left: leftRailWidth + 10,
+              child: SafeArea(
+                bottom: false,
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: buildSelectorOverlay(),
+                ),
+              ),
+            ),
           Positioned(
-            left: 0,
-            right: 0,
+            left: 12,
+            right: 12,
             bottom: 0,
             child: SafeArea(
               top: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.55),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text(
-                        presentation.batchSummary,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 11,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        _circleAction(
-                          icon: Icons.photo_library_outlined,
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  strings.tr(
-                                    'Galeria permanece no fluxo atual.',
-                                    'Gallery remains in the current flow.',
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        const Spacer(),
-                        GestureDetector(
-                          onTap: _capturing ? null : _capture,
-                          child: Container(
-                            width: 82,
-                            height: 82,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white.withValues(alpha: 0.96),
-                              border: Border.all(
-                                color: Colors.black.withValues(alpha: 0.18),
-                                width: 3,
-                              ),
-                            ),
-                            alignment: Alignment.center,
-                            child:
-                                _capturing
-                                    ? const SizedBox(
-                                      width: 26,
-                                      height: 26,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 3,
-                                      ),
-                                    )
-                                    : Container(
-                                      width: 60,
-                                      height: 60,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: Colors.white,
-                                        border: Border.all(
-                                          color: Colors.black12,
-                                          width: 2,
-                                        ),
-                                      ),
-                                    ),
-                          ),
-                        ),
-                        const Spacer(),
-                        OverlayCameraFinalizeButton(
-                          singleCaptureMode: widget.singleCaptureMode,
-                          hasAnyCaptures: _hasAnyCaptures,
-                          finalizeSubtitle: presentation.finalizeSubtitle,
-                          onFinalize: _finalizeBatch,
-                          onSingleCaptureClose: () => Navigator.of(context).pop(),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
+                child: isLandscape
+                    ? const SizedBox.shrink()
+                    : buildPortraitBottomControls(),
               ),
             ),
           ),
+          if (isLandscape)
+            Positioned(
+              left: leftRailWidth + 18,
+              right: rightRailWidth + 18,
+              bottom: media.padding.bottom + 12,
+              child: _buildInfoOverlay(presentation.batchSummary),
+            ),
+          if (isLandscape)
+            Positioned(
+              right: actionRailWidth + 20,
+              top: 0,
+              bottom: 0,
+              width: zoomRailWidth,
+              child: SafeArea(
+                child: Center(
+                  child: _buildLandscapeZoomRail(),
+                ),
+              ),
+            ),
+          if (isLandscape)
+            Positioned(
+              right: 8,
+              top: 0,
+              bottom: 0,
+              width: actionRailWidth,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: buildLandscapeActionRail(),
+                ),
+              ),
+            ),
         ],
       ),
     );

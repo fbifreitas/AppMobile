@@ -13,6 +13,10 @@ import com.appbackoffice.api.job.repository.JobRepository;
 import com.appbackoffice.api.job.repository.JobTimelineRepository;
 import com.appbackoffice.api.job.service.CaseService;
 import com.appbackoffice.api.job.service.JobService;
+import com.appbackoffice.api.intelligence.repository.FieldEvidenceRecordRepository;
+import com.appbackoffice.api.intelligence.repository.InspectionReturnArtifactRepository;
+import com.appbackoffice.api.intelligence.repository.OperationalReferenceProfileRepository;
+import com.appbackoffice.api.intelligence.port.ResearchProvider;
 import com.appbackoffice.api.mobile.repository.InspectionRepository;
 import com.appbackoffice.api.mobile.repository.InspectionSubmissionRepository;
 import com.appbackoffice.api.platform.repository.TenantApplicationRepository;
@@ -28,6 +32,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -52,6 +57,9 @@ class InspectionSubmissionIntegrationTest {
     @Autowired private ObjectMapper objectMapper;
     @Autowired private InspectionRepository inspectionRepository;
     @Autowired private InspectionSubmissionRepository inspectionSubmissionRepository;
+    @Autowired private InspectionReturnArtifactRepository inspectionReturnArtifactRepository;
+    @Autowired private FieldEvidenceRecordRepository fieldEvidenceRecordRepository;
+    @Autowired private OperationalReferenceProfileRepository operationalReferenceProfileRepository;
     @Autowired private JobTimelineRepository jobTimelineRepository;
     @Autowired private AssignmentRepository assignmentRepository;
     @Autowired private JobRepository jobRepository;
@@ -62,6 +70,7 @@ class InspectionSubmissionIntegrationTest {
     @Autowired private TenantLicenseRepository tenantLicenseRepository;
     @Autowired private CaseService caseService;
     @Autowired private JobService jobService;
+    @MockBean private ResearchProvider researchProvider;
 
     private Long operatorUserId;
     private Long alternateOperatorUserId;
@@ -71,6 +80,9 @@ class InspectionSubmissionIntegrationTest {
     void setUp() {
         inspectionRepository.deleteAll();
         inspectionSubmissionRepository.deleteAll();
+        fieldEvidenceRecordRepository.deleteAll();
+        operationalReferenceProfileRepository.deleteAll();
+        inspectionReturnArtifactRepository.deleteAll();
         jobTimelineRepository.deleteAll();
         assignmentRepository.deleteAll();
         jobRepository.deleteAll();
@@ -91,7 +103,7 @@ class InspectionSubmissionIntegrationTest {
         alternateOperatorUserId = alternateOperator.getId();
 
         CreateCaseResponse created = caseService.createCase(TENANT_ID, "admin-1", new CreateCaseRequest(
-                "CASE-MOBILE-001", "Rua Mobile, 123", "RESIDENTIAL", null, "Job Mobile"
+                "CASE-MOBILE-001", "Av. Alvaro Ramos, 760, Quarta Parada, Sao Paulo SP", "RESIDENTIAL", null, "Job Mobile"
         ));
         jobId = created.jobId();
         jobService.assignJob(TENANT_ID, jobId, new AssignJobRequest(operatorUserId), "admin-1");
@@ -102,6 +114,9 @@ class InspectionSubmissionIntegrationTest {
     void tearDown() {
         inspectionRepository.deleteAll();
         inspectionSubmissionRepository.deleteAll();
+        fieldEvidenceRecordRepository.deleteAll();
+        operationalReferenceProfileRepository.deleteAll();
+        inspectionReturnArtifactRepository.deleteAll();
         jobTimelineRepository.deleteAll();
         assignmentRepository.deleteAll();
         jobRepository.deleteAll();
@@ -140,6 +155,8 @@ class InspectionSubmissionIntegrationTest {
 
         assertThat(inspectionRepository.count()).isEqualTo(1);
         assertThat(inspectionSubmissionRepository.count()).isEqualTo(1);
+        assertThat(inspectionReturnArtifactRepository.count()).isEqualTo(1);
+        assertThat(fieldEvidenceRecordRepository.count()).isGreaterThanOrEqualTo(1);
         assertThat(jobRepository.findById(jobId)).isPresent();
         assertThat(jobRepository.findById(jobId).orElseThrow().getStatus()).isEqualTo(JobStatus.SUBMITTED);
         assertThat(jobTimelineRepository.findByJobIdOrderByOccurredAtAsc(jobId)).hasSize(5);
@@ -186,6 +203,8 @@ class InspectionSubmissionIntegrationTest {
         assertThat(secondBody.get("status").asText()).isEqualTo("SUBMITTED");
         assertThat(inspectionRepository.count()).isEqualTo(1);
         assertThat(inspectionSubmissionRepository.count()).isEqualTo(1);
+        assertThat(inspectionReturnArtifactRepository.count()).isEqualTo(1);
+        assertThat(fieldEvidenceRecordRepository.count()).isGreaterThanOrEqualTo(1);
     }
 
     @Test
@@ -235,6 +254,7 @@ class InspectionSubmissionIntegrationTest {
         assertThat(body.get("details").asText()).isEqualTo("idempotencyKey=idem-003");
         assertThat(inspectionRepository.count()).isEqualTo(1);
         assertThat(inspectionSubmissionRepository.count()).isEqualTo(1);
+        assertThat(inspectionReturnArtifactRepository.count()).isEqualTo(1);
     }
 
     @Test
@@ -273,6 +293,7 @@ class InspectionSubmissionIntegrationTest {
         assertThat(body.get("details").asText()).isEqualTo("header: X-Request-Nonce");
         assertThat(inspectionRepository.count()).isEqualTo(1);
         assertThat(inspectionSubmissionRepository.count()).isEqualTo(1);
+        assertThat(inspectionReturnArtifactRepository.count()).isEqualTo(1);
     }
 
     @Test
@@ -331,6 +352,65 @@ class InspectionSubmissionIntegrationTest {
         assertThat(inspectionSubmissionRepository.count()).isZero();
         assertThat(jobRepository.findById(jobId)).isPresent();
         assertThat(jobRepository.findById(jobId).orElseThrow().getStatus()).isEqualTo(JobStatus.ACCEPTED);
+    }
+
+    @Test
+    void shouldIngestOperationalReferenceFeedbackFromSubmittedInspection() throws Exception {
+        String payload = """
+                {
+                  "exportedAt": "2026-04-17T12:00:00Z",
+                  "job": {"id": "%s", "titulo": "Job Mobile"},
+                  "step1": {
+                    "assetType": "Urbano",
+                    "assetSubtype": "Apartamento",
+                    "refinedAssetSubtype": "Apartamento padrao",
+                    "propertyStandard": "Padrao",
+                    "candidateAssetSubtypes": ["Apartamento", "Apartamento padrao", "Duplex"]
+                  },
+                  "step2": {},
+                  "step2Config": {},
+                  "review": {
+                    "reviewedCaptures": [
+                      {
+                        "subjectContext": "Area interna",
+                        "targetItem": "Cozinha 2",
+                        "targetItemBase": "Cozinha",
+                        "targetQualifier": "Janela",
+                        "materialAttribute": "Aluminio",
+                        "conditionState": "Bom"
+                      },
+                      {
+                        "subjectContext": "Area interna",
+                        "targetItem": "Sala de estar",
+                        "targetItemBase": "Sala de estar",
+                        "targetQualifier": "Porta",
+                        "materialAttribute": "Madeira",
+                        "conditionState": "Regular"
+                      }
+                    ]
+                  }
+                }
+                """.formatted(jobId);
+
+        var result = mockMvc.perform(post("/api/mobile/inspections/finalized")
+                        .header("X-Tenant-Id", TENANT_ID)
+                        .header("X-Correlation-Id", CORRELATION_ID)
+                        .header("X-Actor-Id", String.valueOf(operatorUserId))
+                        .header("X-Idempotency-Key", "idem-feedback-001")
+                        .header("X-Request-Timestamp", freshTimestamp())
+                        .header("X-Request-Nonce", "nonce-feedback-001")
+                        .header("X-Api-Version", "v1")
+                        .contentType("application/json")
+                        .content(payload))
+                .andReturn();
+
+        assertThat(result.getResponse().getStatus()).isEqualTo(202);
+        assertThat(operationalReferenceProfileRepository.findAllByOrderByPriorityWeightDescIdAsc())
+                .anyMatch(item -> item.getScopeType().name().equals("HISTORICAL_REFERENCE")
+                        && TENANT_ID.equals(item.getTenantId())
+                        && "Apartamento".equals(item.getAssetSubtype())
+                        && item.getFeedbackCount() >= 1
+                        && item.getPhotoLocationsJson().contains("Cozinha"));
     }
 
     private String payloadFor(Long jobId) {

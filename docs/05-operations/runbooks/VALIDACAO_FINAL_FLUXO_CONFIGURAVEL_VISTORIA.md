@@ -17,6 +17,13 @@ Executar a validacao ponta a ponta do fluxo configuravel de vistoria no ambiente
 3. `check-in etapa 2` nao pode bloquear a camera quando `bloqueiaCaptura = false`
 4. a revisao deve bloquear `Finalizar vistoria` enquanto a pendencia obrigatoria de `step2` estiver aberta
 
+## Variante A - Modo guiado
+
+O comportamento original continua valido:
+- a camera segue o fluxo configuravel
+- a arvore operacional vem do backend
+- a revisao bloqueia a entrega quando houver pendencia obrigatoria prevista pela policy
+
 ## Pre-condicoes
 
 1. stack docker local saudavel
@@ -121,6 +128,55 @@ O fluxo so pode ser considerado validado quando as duas afirmacoes forem verdade
 
 1. a camera abre com `step2` ainda incompleta
 2. a entrega continua bloqueada na revisao enquanto a pendencia obrigatoria nao for resolvida
+
+## Variante B - Modo de captura livre
+
+### Regra funcional esperada
+
+1. `check-in etapa 1` continua obrigatorio
+2. o `modo de captura livre` e ativado em `Configuracoes`
+3. no `check-in`, o app mostra aviso informativo e registra ciencia do vistoriador
+4. a camera abre sem exigir classificacao no mobile
+5. obrigatoriedades deixam de bloquear a finalizacao no mobile
+6. a cobranca migra para a web em `/backoffice/inspections`
+
+### Validacao no app
+
+1. habilitar `Modo de captura livre` em `Configuracoes`
+2. iniciar uma vistoria
+3. preencher o `check-in etapa 1`
+4. confirmar a mensagem de ciencia do modo livre
+5. abrir a camera
+6. capturar imagens sem usar menu/arvore
+7. finalizar e enviar a vistoria
+
+Resultado esperado:
+- a camera abre em modo livre
+- o app nao exige classificacao das fotos
+- a revisao/finalizacao nao bloqueiam por obrigatoriedade
+
+### Validacao na web
+
+1. abrir `/backoffice/inspections`
+2. localizar a inspection recebida
+3. abrir `Detalhe`
+4. confirmar que a classificacao manual esta pendente
+5. classificar as imagens
+6. revisar a matriz de obrigatoriedade
+7. preencher `etapa 2` quando exigida
+
+Resultado esperado:
+- a web exige a classificacao manual posterior
+- as obrigatoriedades continuam valendo
+- `etapa 2` continua sendo exigida quando habilitada no fluxo
+
+### Criterio de encerramento da variante livre
+
+O fluxo so pode ser considerado validado quando as tres afirmacoes forem verdadeiras ao mesmo tempo:
+
+1. o mobile permite capturar e enviar sem classificar
+2. a inspection aparece na web aguardando classificacao manual
+3. a web exige obrigatoriedades e `etapa 2` quando a policy determinar
 
 ## Risco residual conhecido
 

@@ -102,7 +102,12 @@ void main() {
     expect(find.text('Ferramentas do desenvolvedor'), findsOneWidget);
     expect(find.text('Habilitar ferramenta do desenvolvedor'), findsOneWidget);
 
-    await tester.tap(find.byType(Switch).first);
+    await tester.tap(
+      find.widgetWithText(
+        SwitchListTile,
+        'Habilitar ferramenta do desenvolvedor',
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Ferramentas do desenvolvedor'), findsNothing);

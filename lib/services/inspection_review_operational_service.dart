@@ -1,6 +1,7 @@
 ﻿import '../models/inspection_review_models.dart';
 import '../models/inspection_review_operational_models.dart';
 import '../models/inspection_technical_summary.dart';
+import '../models/technical_pending_matrix.dart';
 import '../models/technical_rule_result.dart';
 
 class InspectionReviewOperationalService {
@@ -15,13 +16,26 @@ class InspectionReviewOperationalService {
     required InspectionTechnicalSummary technicalSummary,
     required bool justificationMissing,
     required int photoCountPolicyPending,
+    bool freeCaptureMode = false,
   }) {
     final pendings = _buildPendings(
       items: items,
-      checkinStatuses: checkinStatuses,
-      technicalSummary: technicalSummary,
-      justificationMissing: justificationMissing,
-      photoCountPolicyPending: photoCountPolicyPending,
+      checkinStatuses:
+          freeCaptureMode ? const <InspectionReviewRequirementStatus>[] : checkinStatuses,
+      technicalSummary: freeCaptureMode
+          ? const InspectionTechnicalSummary(
+              tipoImovel: '',
+              totalSubtipos: 0,
+              subtiposComCobertura: 0,
+              totalFotos: 0,
+              completionPercent: 0,
+              pendingMatrix: TechnicalPendingMatrix(items: []),
+              audits: [],
+            )
+          : technicalSummary,
+      justificationMissing: freeCaptureMode ? false : justificationMissing,
+      photoCountPolicyPending: freeCaptureMode ? 0 : photoCountPolicyPending,
+      freeCaptureMode: freeCaptureMode,
     );
 
     return InspectionReviewOperationalData(
@@ -111,6 +125,7 @@ class InspectionReviewOperationalService {
     required InspectionTechnicalSummary technicalSummary,
     required bool justificationMissing,
     required int photoCountPolicyPending,
+    required bool freeCaptureMode,
   }) {
     final pendings = <InspectionReviewPendingEntry>[];
 
@@ -130,23 +145,25 @@ class InspectionReviewOperationalService {
       );
     }
 
-    for (final item in items.where(
-      (entry) => entry.status != InspectionReviewPhotoStatus.classified,
-    )) {
-      pendings.add(
-        InspectionReviewPendingEntry(
-          id: 'item-${item.filePath}',
-          title: _occurrenceTitle(item),
-          reason: 'Falta preenchimento',
-          ctaLabel: 'Preencher',
-          target: InspectionReviewPendingActionTarget.fill,
-          source: InspectionReviewPendingSource.captureTree,
-          subjectContext: item.macroLocal,
-          targetItem: item.ambiente,
-          targetQualifier: item.elemento,
-          filePath: item.filePath,
-        ),
-      );
+    if (!freeCaptureMode) {
+      for (final item in items.where(
+        (entry) => entry.status != InspectionReviewPhotoStatus.classified,
+      )) {
+        pendings.add(
+          InspectionReviewPendingEntry(
+            id: 'item-${item.filePath}',
+            title: _occurrenceTitle(item),
+            reason: 'Falta preenchimento',
+            ctaLabel: 'Preencher',
+            target: InspectionReviewPendingActionTarget.fill,
+            source: InspectionReviewPendingSource.captureTree,
+            subjectContext: item.macroLocal,
+            targetItem: item.ambiente,
+            targetQualifier: item.elemento,
+            filePath: item.filePath,
+          ),
+        );
+      }
     }
 
     for (final rule in technicalSummary.pendingMatrix.items.where(

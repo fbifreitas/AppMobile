@@ -42,6 +42,12 @@ class CheckinStep1QuestionFlow extends StatelessWidget {
   onLevelVoiceTap;
   final Future<void> Function() onClientePresenteYes;
   final Future<void> Function() onClientePresenteNo;
+  final TextEditingController absentResponderController;
+  final bool hasAbsentEvidence;
+  final String? absentEvidenceLabel;
+  final ValueChanged<String> onAbsentResponderChanged;
+  final Future<void> Function() onCaptureAbsentEvidence;
+  final Future<void> Function() onSubmitClientAbsent;
   final Future<void> Function(String tipo) onTipoSelected;
   final Future<void> Function(String subtipo) onSubtipoSelected;
   final Future<void> Function(ConfigLevelDefinition level, String option)
@@ -80,6 +86,12 @@ class CheckinStep1QuestionFlow extends StatelessWidget {
     required this.onLevelVoiceTap,
     required this.onClientePresenteYes,
     required this.onClientePresenteNo,
+    required this.absentResponderController,
+    required this.hasAbsentEvidence,
+    required this.absentEvidenceLabel,
+    required this.onAbsentResponderChanged,
+    required this.onCaptureAbsentEvidence,
+    required this.onSubmitClientAbsent,
     required this.onTipoSelected,
     required this.onSubtipoSelected,
     required this.onLevelSelected,
@@ -127,6 +139,7 @@ class CheckinStep1QuestionFlow extends StatelessWidget {
           onVoiceTap: onClienteVoiceTap,
           child: Wrap(
             spacing: 8,
+            runSpacing: 8,
             children: [
               ChoiceChip(
                 label: Text(strings.tr('Sim', 'Yes')),
@@ -140,6 +153,95 @@ class CheckinStep1QuestionFlow extends StatelessWidget {
                 onSelected:
                     submittingClientAbsent ? null : (_) => onClientePresenteNo(),
               ),
+              if (clientePresente == false)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.warning),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        strings.tr(
+                          'Informe quem atendeu no local e capture uma foto de comprovacao para reagendamento.',
+                          'Provide who answered at the location and capture one proof photo before requesting rescheduling.',
+                        ),
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: absentResponderController,
+                        textInputAction: TextInputAction.done,
+                        enabled: !submittingClientAbsent,
+                        decoration: InputDecoration(
+                          labelText: strings.tr(
+                            'Nome de quem atendeu',
+                            'Responder name',
+                          ),
+                          border: const OutlineInputBorder(),
+                        ),
+                        onChanged: onAbsentResponderChanged,
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: submittingClientAbsent
+                                  ? null
+                                  : onCaptureAbsentEvidence,
+                              icon: const Icon(Icons.photo_camera_outlined),
+                              label: Text(
+                                hasAbsentEvidence
+                                    ? strings.tr('Refazer evidencia', 'Retake evidence')
+                                    : strings.tr('Capturar evidencia', 'Capture evidence'),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (hasAbsentEvidence) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          absentEvidenceLabel ??
+                              strings.tr(
+                                'Evidencia registrada com geolocalizacao.',
+                                'Evidence captured with geolocation.',
+                              ),
+                          style: const TextStyle(
+                            color: AppColors.success,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: submittingClientAbsent
+                              ? null
+                              : onSubmitClientAbsent,
+                          icon: const Icon(Icons.event_busy_outlined),
+                          label: Text(
+                            strings.tr(
+                              'Solicitar reagendamento',
+                              'Request rescheduling',
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
         ),

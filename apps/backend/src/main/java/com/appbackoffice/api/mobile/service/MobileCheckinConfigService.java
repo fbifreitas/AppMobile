@@ -5,6 +5,8 @@ import com.appbackoffice.api.config.dto.ConfigCheckinSectionRuleDto;
 import com.appbackoffice.api.config.dto.ConfigPackageResponse;
 import com.appbackoffice.api.config.dto.ConfigResolveResponse;
 import com.appbackoffice.api.config.dto.ConfigRulesDto;
+import com.appbackoffice.api.intelligence.service.CaptureGatePolicyService;
+import com.appbackoffice.api.intelligence.service.NormativeMatrixService;
 import com.appbackoffice.api.mobile.dto.CheckinConfigResponse;
 import com.appbackoffice.api.mobile.entity.CheckinSectionEntity;
 import com.appbackoffice.api.mobile.repository.CheckinSectionRepository;
@@ -25,13 +27,19 @@ public class MobileCheckinConfigService {
     private final ConfigPackageService configPackageService;
     private final CheckinSectionRepository checkinSectionRepository;
     private final ObjectMapper objectMapper;
+    private final CaptureGatePolicyService captureGatePolicyService;
+    private final NormativeMatrixService normativeMatrixService;
 
     public MobileCheckinConfigService(ConfigPackageService configPackageService,
                                       CheckinSectionRepository checkinSectionRepository,
-                                      ObjectMapper objectMapper) {
+                                      ObjectMapper objectMapper,
+                                      CaptureGatePolicyService captureGatePolicyService,
+                                      NormativeMatrixService normativeMatrixService) {
         this.configPackageService = configPackageService;
         this.checkinSectionRepository = checkinSectionRepository;
         this.objectMapper = objectMapper;
+        this.captureGatePolicyService = captureGatePolicyService;
+        this.normativeMatrixService = normativeMatrixService;
     }
 
     public CheckinConfigResponse resolve(String tenantId, String actorId, String assetType) {
@@ -39,8 +47,8 @@ public class MobileCheckinConfigService {
         ConfigRulesDto effective = resolveResponse.result().effective();
 
         List<CheckinConfigResponse.CheckinSectionDto> sections = resolveSections(tenantId, assetType, effective);
-        Map<String, Object> step1 = buildStep1(effective, assetType);
-        Map<String, Object> step2 = buildStep2(effective, sections);
+        Map<String, Object> step1 = buildStep1(tenantId, effective, assetType);
+        Map<String, Object> step2 = buildStep2(tenantId, effective, sections);
         Map<String, Object> camera = buildCamera(effective);
         Instant publishedAt = resolvePublishedAt(resolveResponse.result().appliedPackages(), tenantId, sections.isEmpty());
         Instant publishedAtForResponse = publishedAt.equals(Instant.EPOCH) ? Instant.now() : publishedAt;
@@ -57,7 +65,7 @@ public class MobileCheckinConfigService {
         );
     }
 
-    private Map<String, Object> buildStep1(ConfigRulesDto effective, String assetType) {
+    private Map<String, Object> buildStep1(String tenantId, ConfigRulesDto effective, String assetType) {
         Map<String, Object> step1 = mutableCopy(effective != null ? effective.step1() : null);
         if (step1.isEmpty()) {
             step1.put("tipos", List.of("Urbano", "Rural", "Comercial", "Industrial"));
@@ -72,6 +80,7 @@ public class MobileCheckinConfigService {
         }
         normalizeStep1ContextLevel(step1);
         aliasStep1Fields(step1);
+        step1.put("captureGatePolicy", captureGatePolicyService.resolve(tenantId));
         if (assetType != null && !assetType.isBlank()) {
             step1.put("requestedTipoImovel", assetType);
             step1.put("requestedAssetType", assetType);
@@ -152,6 +161,7 @@ public class MobileCheckinConfigService {
     }
 
     private Map<String, Object> buildStep2(
+            String tenantId,
             ConfigRulesDto effective,
             List<CheckinConfigResponse.CheckinSectionDto> sections
     ) {
@@ -180,6 +190,7 @@ public class MobileCheckinConfigService {
         step2.putIfAbsent("gruposOpcoes", new ArrayList<>());
         step2.putIfAbsent("photoFields", step2.get("camposFotos"));
         step2.putIfAbsent("optionGroups", step2.get("gruposOpcoes"));
+        step2.put("normativeMatrix", normativeMatrixService.resolve(tenantId));
         return step2;
     }
 

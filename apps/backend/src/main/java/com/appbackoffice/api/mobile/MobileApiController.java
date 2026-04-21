@@ -8,7 +8,10 @@ import com.appbackoffice.api.contract.ApiContractException;
 import com.appbackoffice.api.contract.CanonicalErrorResponse;
 import com.appbackoffice.api.contract.ErrorSeverity;
 import com.appbackoffice.api.contract.RequestContextValidator;
+import com.appbackoffice.api.intelligence.dto.ExecutionPlanResponse;
+import com.appbackoffice.api.intelligence.service.IntelligenceBackofficeService;
 import com.appbackoffice.api.job.dto.JobSummaryResponse;
+import com.appbackoffice.api.job.service.JobClientAbsentEvidenceService.ClientAbsentEvidenceCommand;
 import com.appbackoffice.api.job.service.JobService;
 import com.appbackoffice.api.mobile.dto.CheckinConfigResponse;
 import com.appbackoffice.api.mobile.dto.InspectionFinalizedRequest;
@@ -18,6 +21,7 @@ import com.appbackoffice.api.config.dto.ConfigPackageApplicationStatusRequest;
 import com.appbackoffice.api.config.dto.ConfigPackageApplicationStatusResponse;
 import com.appbackoffice.api.mobile.service.InspectionSubmissionService;
 import com.appbackoffice.api.mobile.service.MobileCheckinConfigService;
+import com.appbackoffice.api.mobile.service.MobileJobQueryService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -52,6 +56,8 @@ public class MobileApiController {
     private final MobileCheckinConfigService mobileCheckinConfigService;
     private final ConfigPayloadSignatureService configPayloadSignatureService;
     private final ConfigPackageService configPackageService;
+    private final IntelligenceBackofficeService intelligenceBackofficeService;
+    private final MobileJobQueryService mobileJobQueryService;
     private final ObjectMapper objectMapper;
 
     public MobileApiController(AuthService authService,
@@ -60,6 +66,8 @@ public class MobileApiController {
                                MobileCheckinConfigService mobileCheckinConfigService,
                                ConfigPayloadSignatureService configPayloadSignatureService,
                                ConfigPackageService configPackageService,
+                               IntelligenceBackofficeService intelligenceBackofficeService,
+                               MobileJobQueryService mobileJobQueryService,
                                ObjectMapper objectMapper) {
         this.authService = authService;
         this.jobService = jobService;
@@ -67,6 +75,8 @@ public class MobileApiController {
         this.mobileCheckinConfigService = mobileCheckinConfigService;
         this.configPayloadSignatureService = configPayloadSignatureService;
         this.configPackageService = configPackageService;
+        this.intelligenceBackofficeService = intelligenceBackofficeService;
+        this.mobileJobQueryService = mobileJobQueryService;
         this.objectMapper = objectMapper;
     }
 
@@ -217,7 +227,7 @@ public class MobileApiController {
         RequestContextValidator.requireFullContext(tenantId, correlationId, actorId);
         Long userId = parseUserId(actorId);
         validateMobileBearer(authorizationHeader, tenantId, userId);
-        return ResponseEntity.ok(jobService.getMobileJobsForUser(tenantId, userId, status));
+        return ResponseEntity.ok(mobileJobQueryService.listJobs(tenantId, userId, status));
     }
 
     @PostMapping("/jobs/{jobId}/client-absent")
@@ -258,9 +268,49 @@ public class MobileApiController {
         validateMobileBearer(authorizationHeader, tenantId, userId);
 
         String reason = request != null ? request.reason() : null;
+        String responderName = request != null ? request.responderName() : null;
+        ClientAbsentEvidenceCommand evidence = request != null && request.evidence() != null
+                ? new ClientAbsentEvidenceCommand(
+                request.evidence().fileName(),
+                request.evidence().contentType(),
+                request.evidence().imageBase64(),
+                request.evidence().capturedAt(),
+                request.evidence().latitude(),
+                request.evidence().longitude(),
+                request.evidence().accuracy()
+        )
+                : null;
         return ResponseEntity.ok(
-                jobService.requestSchedulingAfterClientAbsent(tenantId, jobId, actorId, reason)
+                jobService.requestSchedulingAfterClientAbsent(tenantId, jobId, actorId, reason, responderName, evidence)
         );
+    }
+
+    @GetMapping("/jobs/{jobId}/execution-plan")
+    @Operation(
+            summary = "Retorna o ultimo execution plan publicado para o job (v1)",
+            description = "Canal inicial para o smart app consumir hints operacionais gerados pela plataforma.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Execution plan retornado com sucesso"),
+                    @ApiResponse(
+                            responseCode = "404",
+                            description = "Execution plan nao encontrado",
+                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = CanonicalErrorResponse.class))
+                    )
+            }
+    )
+    public ResponseEntity<ExecutionPlanResponse> getExecutionPlanForJob(
+            @RequestHeader("X-Tenant-Id") String tenantId,
+            @RequestHeader("X-Correlation-Id") String correlationId,
+            @RequestHeader("X-Actor-Id") String actorId,
+            @RequestHeader("X-Api-Version") String apiVersion,
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+            @PathVariable Long jobId
+    ) {
+        RequestContextValidator.requireApiVersion(apiVersion);
+        RequestContextValidator.requireFullContext(tenantId, correlationId, actorId);
+        Long userId = parseUserId(actorId);
+        validateMobileBearer(authorizationHeader, tenantId, userId);
+        return ResponseEntity.ok(intelligenceBackofficeService.getLatestExecutionPlanForJob(tenantId, jobId));
     }
 
     private void validateMobileBearerIfPresent(String authorizationHeader, String tenantId, String actorId) {

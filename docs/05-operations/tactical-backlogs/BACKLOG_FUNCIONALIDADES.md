@@ -18,6 +18,20 @@ Para planejamento do sistema web de backoffice (APIs, painÃ©is e configuraÃ§
 ## Backlog complementar de integraÃ§Ã£o web-mobile
 Para seguranÃ§a, contratos e comunicaÃ§Ã£o bidirecional entre app e backoffice, consultar `docs/05-operations/tactical-backlogs/BACKLOG_INTEGRACAO_WEB_MOBILE.md`.
 
+## Adendo 2026-04-20 - Modo de captura livre
+
+- o app mobile passou a suportar `modo de captura livre` como variante operacional incremental
+- regras consolidadas:
+  - `check-in etapa 1` continua obrigatorio
+  - ativacao real em `Configuracoes`
+  - no `check-in`, existe aviso e ciencia, sem novo toggle local
+  - a camera captura sem classificar no app
+  - a revisao/finalizacao do mobile nao bloqueiam por obrigatoriedade nesse modo
+  - a cobranca migra para a web em `/backoffice/inspections`
+- follow-up funcional correto:
+  - estabilizar smoke ponta a ponta
+  - validar classificacao manual posterior e obrigatoriedades na web
+
 ## Plano de execucao (proximos 30 dias)
 Para transformar backlog em entrega com marcos semanais, ownership e criterios de aceite, consultar `docs/05-operations/runbooks/PLANO_EXECUCAO_30_DIAS_WEB_MOBILE.md`.
 
@@ -1016,4 +1030,3 @@ Ao pegar um item para implementar:
   - compatibilidade com payloads/JSON existentes;
   - `flutter analyze --no-pub`;
   - documentacao do checkpoint no resumo executivo continuo.
-

@@ -20,7 +20,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
       - name: Validate app version bump
         shell: bash
@@ -69,6 +69,10 @@ jobs:
       - name: Validate UTF-8 encoding
         shell: pwsh
         run: ./scripts/check_utf8.ps1
+
+      - name: Validate source language (English only)
+        shell: pwsh
+        run: ./scripts/check_english_only.ps1
 
       - name: Analyze
         run: flutter analyze

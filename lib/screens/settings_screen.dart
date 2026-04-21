@@ -171,6 +171,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ],
           const SizedBox(height: 12),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(
+              strings.tr(
+                'Modo de captura livre',
+                'Free capture mode',
+              ),
+            ),
+            subtitle: Text(
+              strings.tr(
+                'Permite capturar fotos no app sem classificar as evidencias. A classificacao e as obrigatoriedades serao tratadas depois na web.',
+                'Allows capturing photos in the app without classifying evidence. Classification and mandatory rules will be handled later on the web.',
+              ),
+            ),
+            value: appState.freeCaptureModeEnabled,
+            onChanged: (value) async {
+              await appState.setFreeCaptureModeEnabled(value);
+            },
+          ),
+          const SizedBox(height: 12),
           OutlinedButton.icon(
             onPressed: () {
               Navigator.of(context).push<void>(

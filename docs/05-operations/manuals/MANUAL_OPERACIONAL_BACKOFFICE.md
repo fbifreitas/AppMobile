@@ -27,6 +27,10 @@ Fluxo principal atual:
    - reports
    - operations
 
+Observacao:
+- nem toda vistoria chega mais totalmente classificada pelo mobile
+- quando o app operar em `modo de captura livre`, a consolidacao classificatoria passa a acontecer na web
+
 ## Regra Importante De Identidade
 
 Hoje existem dois modelos distintos de entrada de usuario:
@@ -126,6 +130,28 @@ Uso basico:
    - `idempotencyKey`
    - payload completo
 
+### Operacao adicional - Captura livre
+
+Quando a inspection vier do app em `modo de captura livre`, esta tela passa a ter papel operacional ativo, e nao apenas de consulta.
+
+Uso basico adicional:
+1. abrir `Detalhe`
+2. verificar se a vistoria chegou marcada para classificacao manual posterior
+3. classificar cada imagem recebida, preenchendo:
+   - `macroLocal`
+   - `ambiente`
+   - `elemento`
+   - `material`
+   - `estado`
+4. revisar a matriz de obrigatoriedade apresentada pela tela
+5. preencher a `etapa 2` quando o fluxo a exigir
+6. salvar a classificacao manual
+
+Resultado esperado:
+- a vistoria deixa de ficar pendente de classificacao manual
+- as obrigatoriedades seguem a policy cadastrada
+- a `etapa 2` continua sendo exigida na web quando habilitada
+
 ## Fluxo 5 - Valuation Intake
 
 Rota:
@@ -188,6 +214,14 @@ Uso basico:
 
 1. `/backoffice/inspections`
 2. `/backoffice/valuation`
+
+Observacao:
+- se a vistoria tiver sido enviada em `modo de captura livre`, a ordem correta passa a ser:
+1. `/backoffice/inspections`
+2. classificacao manual
+3. validacao de obrigatoriedades
+4. `etapa 2` quando aplicavel
+5. `/backoffice/valuation`
 
 ### Cenario D - Avancar o ciclo tecnico
 

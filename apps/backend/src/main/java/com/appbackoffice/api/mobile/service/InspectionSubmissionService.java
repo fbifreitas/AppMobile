@@ -2,6 +2,8 @@ package com.appbackoffice.api.mobile.service;
 
 import com.appbackoffice.api.contract.ApiContractException;
 import com.appbackoffice.api.contract.ErrorSeverity;
+import com.appbackoffice.api.intelligence.service.OperationalReferenceFeedbackIngestionService;
+import com.appbackoffice.api.intelligence.service.StoreMobileExecutionReturnUseCase;
 import com.appbackoffice.api.job.service.JobService;
 import com.appbackoffice.api.mobile.dto.InspectionFinalizedRequest;
 import com.appbackoffice.api.mobile.dto.InspectionFinalizedResponse;
@@ -36,19 +38,25 @@ public class InspectionSubmissionService {
     private final ObjectMapper objectMapper;
     private final ValuationBackofficeService valuationBackofficeService;
     private final OperationalEventRecorder operationalEventRecorder;
+    private final StoreMobileExecutionReturnUseCase storeMobileExecutionReturnUseCase;
+    private final OperationalReferenceFeedbackIngestionService operationalReferenceFeedbackIngestionService;
 
     public InspectionSubmissionService(InspectionSubmissionRepository inspectionSubmissionRepository,
                                        InspectionRepository inspectionRepository,
                                        JobService jobService,
                                        ObjectMapper objectMapper,
                                        ValuationBackofficeService valuationBackofficeService,
-                                       OperationalEventRecorder operationalEventRecorder) {
+                                       OperationalEventRecorder operationalEventRecorder,
+                                       StoreMobileExecutionReturnUseCase storeMobileExecutionReturnUseCase,
+                                       OperationalReferenceFeedbackIngestionService operationalReferenceFeedbackIngestionService) {
         this.inspectionSubmissionRepository = inspectionSubmissionRepository;
         this.inspectionRepository = inspectionRepository;
         this.jobService = jobService;
         this.objectMapper = objectMapper;
         this.valuationBackofficeService = valuationBackofficeService;
         this.operationalEventRecorder = operationalEventRecorder;
+        this.storeMobileExecutionReturnUseCase = storeMobileExecutionReturnUseCase;
+        this.operationalReferenceFeedbackIngestionService = operationalReferenceFeedbackIngestionService;
     }
 
     @Transactional
@@ -135,6 +143,8 @@ public class InspectionSubmissionService {
         inspection.setPayloadJson(payloadJson);
         inspection.setSubmittedAt(entity.getSubmittedAt());
         inspection = inspectionRepository.save(inspection);
+        Long caseId = storeMobileExecutionReturnUseCase.store(tenantId, entity, inspection, request);
+        operationalReferenceFeedbackIngestionService.ingest(tenantId, caseId, request);
         var process = valuationBackofficeService.ensureProcessForInspection(tenantId, inspection.getId());
 
         jobService.submitInspectionFromMobile(tenantId, jobId, actorId);

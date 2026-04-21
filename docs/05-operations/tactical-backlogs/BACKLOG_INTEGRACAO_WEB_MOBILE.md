@@ -140,6 +140,7 @@ Motivo:
 | 30 | INT-030 | Configuracao de segredo de assinatura por ambiente (homolog/producao) | Critica | Em andamento (validator e gate operacional entregues em 2026-04-08; pendente provisionamento definitivo por ambiente) | integration.config-signing.hmac-key provisionado por ambiente via secret manager/Actions secrets, com checklist de release e evidencias de validacao |
 | 31 | INT-031 | Contrato de primeiro acesso e OTP white label | Critica | Em andamento (slice Compass local entregue em 2026-04-10) | Compass ativa usuario provisionado via lookup seguro + OTP + criacao de senha; Kaptur valida cadastro aberto via OTP sem enumerar usuarios |
 | 32 | INT-032 | Pendencias de onboarding por usuario/app | Alta | Em andamento (baseline local entregue em 2026-04-10) | Backend informa etapas pendentes por marca para o mobile retomar onboarding sem hardcode local |
+| 33 | INT-033 | Canonicalizacao do payload mobile English-first | Critica | Em andamento (bug de contrato hibrido identificado em 2026-04-16) | App emite payload externo canonico apenas em ingles; backend aceita legado por janela controlada; aliases em portugues deixam de existir na saida |
 
 ---
 
@@ -238,8 +239,24 @@ Motivo:
 - Fonte funcional: `docs/03-architecture/09_WHITE_LABEL_ONBOARDING_STRATEGY.md`.
 - INT-031: o contrato de primeiro acesso deve separar lookup de autenticacao final. CPF + data de nascimento + identificador adicional localizam cadastro, mas a ativacao exige OTP para contato ja cadastrado e criacao de senha.
 - INT-031: Compass usa primeiro acesso para usuario provisionado; Kaptur usa cadastro aberto com OTP para contato informado, politicas anti-enumeracao e rate limit.
+
+## Adendo 2026-04-16 - Bug de contrato hibrido no payload mobile
+- Bug registrado: o app estava emitindo chaves canonicas em ingles e aliases legados em portugues no mesmo payload (`captures/capturas`, `technicalJustification/justificativaTecnica`, `photoFields/camposFotos`, `optionGroups/gruposOpcoes`).
+- Impacto observado: consumidores novos liam apenas parte do contrato e deixavam de reconhecer evidencias validas, como ocorreu no fluxo de `inspection return` com `captures`.
+- Decisao: manter English-first como contrato externo canonico, remover aliases da saida do app e aceitar legado apenas na leitura do backend durante janela de transicao controlada.
+- Evidencia tecnica principal: `lib/services/inspection_review_export_payload_service.dart` e `lib/services/checkin_dynamic_config_service.dart` eram os pontos de emissao duplicada.
 - INT-032: o mobile deve receber pendencias de onboarding por usuario/app, incluindo selfie, termos, treinamento, permissoes e aguardando aprovacao, evitando que cada flavor mantenha regras hardcoded divergentes.
 - Criterio de pronto: mensagens de erro neutras, cooldown/reenvio de OTP, limite de tentativas, auditoria por tenant/ator/correlationId e testes de contrato para sucesso, expirado, invalido e cadastro nao encontrado.
+
+## Adendo 2026-04-20 - Captura livre ponta a ponta
+- INT-006: o uplink de vistoria passou a suportar `freeCaptureMode` e `manualClassificationRequired` no payload final do mobile.
+- INT-006: o backend foi endurecido para aceitar capturas com classificacao nula em `modo de captura livre`, corrigindo `500` em `/api/mobile/inspections/finalized`.
+- INT-007: a reconciliacao da vistoria deixa de pressupor classificacao completa na primeira escrita; o artefato pode ser consolidado posteriormente.
+- INT-018: o percurso operacional passa a incluir `/backoffice/inspections` como ponto de classificacao manual posterior e validacao de obrigatoriedades.
+- Evidencia tecnica principal:
+  - mobile: `inspection_review_export_payload_service.dart`, `inspection_review_operational_service.dart`, `overlay_camera_screen.dart`
+  - backend: `InspectionFinalizedRequest.java`, `MobileExecutionReturnNormalizationService.java`, `InspectionManualClassificationService.java`
+  - web: `apps/web-backoffice/app/backoffice/inspections/page.tsx`
 
 ## Adendo 2026-04-10 - Slice Compass de primeiro acesso
 - INT-031: backend exposto em `/auth/first-access/start` e `/auth/first-access/complete`, separando lookup de autenticacao final e exigindo OTP antes da criacao de senha.

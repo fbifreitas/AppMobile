@@ -1,6 +1,9 @@
+import 'package:appmobile/models/flow_selection.dart';
 import 'package:appmobile/models/inspection_recovery_draft.dart';
 import 'package:appmobile/models/job.dart';
 import 'package:appmobile/repositories/job_repository.dart';
+import 'package:appmobile/services/inspection_recovery_route_service.dart';
+import 'package:appmobile/services/inspection_recovery_stage_service.dart';
 import 'package:appmobile/state/app_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -135,6 +138,52 @@ void main() {
       );
     },
   );
+
+  test('camera stage snapshot keeps step1 payload for resume', () async {
+    final appState = AppState(_ImmediateJobRepository());
+    final job = Job(
+      id: 'job-1',
+      titulo: 'Vistoria A',
+      endereco: 'Rua A, 1',
+      nomeCliente: 'Cliente A',
+    );
+
+    appState.selecionarJob(job);
+    await appState.persistStep1Draft(
+      clientePresente: true,
+      tipoImovel: 'Urbano',
+      subtipoImovel: 'Apartamento',
+      porOndeComecar: 'Rua',
+      niveis: const <String, String>{'contexto': 'Rua'},
+    );
+
+    await appState.setInspectionRecoverySnapshot(
+      InspectionRecoveryStageService.instance.camera(
+        jobId: job.id,
+        inspectionRecoveryPayload: appState.inspectionRecoveryPayload,
+        cameraStagePayload: InspectionRecoveryRouteService.instance
+            .buildCameraStagePayload(
+              title: 'COLETA',
+              tipoImovel: 'Urbano',
+              subtipoImovel: 'Apartamento',
+              singleCaptureMode: false,
+              cameFromCheckinStep1: true,
+              freeCaptureMode: false,
+              selection: appState.step1Payload['porOndeComecar'] == 'Rua'
+                  ? const FlowSelection(subjectContext: 'Rua')
+                  : FlowSelection.empty,
+            ),
+        step1Payload: appState.step1Payload,
+        step2Payload: appState.step2Payload,
+      ),
+    );
+
+    expect(appState.inspectionRecoveryDraft, isNotNull);
+    expect(appState.inspectionRecoveryDraft!.stageKey, 'camera');
+    expect(appState.step1Payload['tipoImovel'], 'Urbano');
+    expect(appState.step1Payload['subtipoImovel'], 'Apartamento');
+    expect(appState.step1Payload['porOndeComecar'], 'Rua');
+  });
 
   test('atualizarReferenciasExternasJob updates finalized job by id', () {
     final appState = AppState(_ImmediateJobRepository());

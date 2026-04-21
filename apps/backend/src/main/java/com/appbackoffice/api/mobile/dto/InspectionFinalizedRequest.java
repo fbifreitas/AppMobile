@@ -12,7 +12,9 @@ public record InspectionFinalizedRequest(
         @NotNull Map<String, Object> step1,
         @NotNull Map<String, Object> step2,
         @NotNull Map<String, Object> step2Config,
-        @NotNull Map<String, Object> review
+        @NotNull Map<String, Object> review,
+        boolean freeCaptureMode,
+        boolean manualClassificationRequired
 ) {
     public record JobRef(@NotBlank String id, String titulo) {
     }

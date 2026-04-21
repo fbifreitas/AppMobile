@@ -3,6 +3,8 @@ package com.appbackoffice.api.observability;
 import com.appbackoffice.api.config.ConfigPackageRepository;
 import com.appbackoffice.api.config.ConfigPackageStatus;
 import com.appbackoffice.api.identity.service.TenantGuardService;
+import com.appbackoffice.api.intelligence.dto.IntelligenceAnalyticsReadinessResponse;
+import com.appbackoffice.api.intelligence.service.IntelligenceAnalyticsReadinessQueryService;
 import com.appbackoffice.api.observability.dto.OperationsControlTowerResponse;
 import com.appbackoffice.api.valuation.entity.ReportStatus;
 import com.appbackoffice.api.valuation.entity.ValuationProcessStatus;
@@ -30,6 +32,7 @@ public class OperationsControlTowerService {
     private final ReportRepository reportRepository;
     private final ConfigPackageRepository configPackageRepository;
     private final OperationsRetentionService retentionService;
+    private final IntelligenceAnalyticsReadinessQueryService intelligenceAnalyticsReadinessQueryService;
 
     public OperationsControlTowerService(TenantGuardService tenantGuardService,
                                          IntegrationOperationEventRepository eventRepository,
@@ -37,7 +40,8 @@ public class OperationsControlTowerService {
                                          ValuationProcessRepository valuationProcessRepository,
                                          ReportRepository reportRepository,
                                          ConfigPackageRepository configPackageRepository,
-                                         OperationsRetentionService retentionService) {
+                                         OperationsRetentionService retentionService,
+                                         IntelligenceAnalyticsReadinessQueryService intelligenceAnalyticsReadinessQueryService) {
         this.tenantGuardService = tenantGuardService;
         this.eventRepository = eventRepository;
         this.inspectionRepository = inspectionRepository;
@@ -45,6 +49,7 @@ public class OperationsControlTowerService {
         this.reportRepository = reportRepository;
         this.configPackageRepository = configPackageRepository;
         this.retentionService = retentionService;
+        this.intelligenceAnalyticsReadinessQueryService = intelligenceAnalyticsReadinessQueryService;
     }
 
     @Transactional(readOnly = true)
@@ -80,6 +85,7 @@ public class OperationsControlTowerService {
                 .filter(item -> item.getStatus() == ConfigPackageStatus.PENDING_APPROVAL)
                 .count();
         long operationalBacklog = pendingIntake + processingValuations + pendingConfigApprovals;
+        IntelligenceAnalyticsReadinessResponse intelligence = intelligenceAnalyticsReadinessQueryService.get(tenantId);
 
         List<OperationsControlTowerResponse.EndpointMetric> endpointMetrics = buildEndpointMetrics(requestEvents);
         List<OperationsControlTowerResponse.AlertItem> alerts = buildAlerts(
@@ -163,6 +169,18 @@ public class OperationsControlTowerService {
         return new OperationsControlTowerResponse(
                 now,
                 overview,
+                new OperationsControlTowerResponse.IntelligenceSummary(
+                        intelligence.enrichmentRuns(),
+                        intelligence.reviewRequiredRuns(),
+                        intelligence.failedRuns(),
+                        intelligence.executionPlans(),
+                        intelligence.publishedExecutionPlans(),
+                        intelligence.reviewRequiredExecutionPlans(),
+                        intelligence.inspectionReturnArtifacts(),
+                        intelligence.fieldEvidenceRecords(),
+                        intelligence.manualResolutionCases(),
+                        intelligence.reportBasisCases()
+                ),
                 endpointMetrics,
                 alerts,
                 recentEvents,

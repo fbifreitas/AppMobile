@@ -13,6 +13,7 @@ import '../models/overlay_camera_capture_result.dart';
 import '../state/app_state.dart';
 import '../models/technical_check_requirement_input.dart';
 import '../models/technical_evidence_input.dart';
+import '../models/technical_pending_matrix.dart';
 import '../models/technical_rule_result.dart';
 import '../services/inspection_technical_summary_service.dart';
 import '../services/inspection_flow_coordinator.dart';
@@ -117,6 +118,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   bool _reviewSectionExpanded = false;
   bool _closingSectionExpanded = false;
   bool _checkinAccordionExpanded = false;
+  bool _finalizing = false;
   bool _capturedAccordionExpanded = false;
   bool _technicalCheckinExpanded = false;
   bool _technicalCaptureExpanded = false;
@@ -382,15 +384,28 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(context);
+    final appState = Provider.of<AppState>(context);
+    final freeCaptureMode = appState.currentInspectionFreeCaptureEnabled;
     final checkinStatuses = _buildCheckinRequirements();
-    final technicalSummary = _technicalSummaryService.build(
-      tipoImovel: _resolvedTipoImovel().label,
-      evidences: _buildTechnicalEvidenceInputs(),
-      requirements: _buildTechnicalRequirementInputs(checkinStatuses),
-      coverageRequirements: _buildTechnicalCoverageRequirements(),
-    );
+    final technicalSummary = freeCaptureMode
+        ? const InspectionTechnicalSummary(
+            tipoImovel: '',
+            totalSubtipos: 0,
+            subtiposComCobertura: 0,
+            totalFotos: 0,
+            completionPercent: 0,
+            pendingMatrix: TechnicalPendingMatrix(items: []),
+            audits: [],
+          )
+        : _technicalSummaryService.build(
+            tipoImovel: _resolvedTipoImovel().label,
+            evidences: _buildTechnicalEvidenceInputs(),
+            requirements: _buildTechnicalRequirementInputs(checkinStatuses),
+            coverageRequirements: _buildTechnicalCoverageRequirements(),
+          );
     final photoCountPolicyPending = _buildPhotoCountPolicyPending();
     final justificationMissing =
+        !freeCaptureMode &&
         technicalSummary.requiresJustification &&
         _technicalJustificationController.text.trim().isEmpty;
     final summary = _buildSummary(checkinStatuses);
@@ -400,6 +415,7 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
       technicalSummary: technicalSummary,
       justificationMissing: justificationMissing,
       photoCountPolicyPending: photoCountPolicyPending,
+      freeCaptureMode: freeCaptureMode,
     );
 
     return PopScope(
@@ -426,13 +442,22 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
               SizedBox(
                 height: 54,
                 child: FilledButton.icon(
-                  onPressed: operationalData.canFinalize
+                  onPressed: operationalData.canFinalize && !_finalizing
                       ? () => _finishInspection(context, 0)
                       : null,
-                  icon: const Icon(Icons.flag_outlined, size: 18),
-                  label: const Text(
-                    'Finalizar vistoria',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                  icon: _finalizing
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.4,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.flag_outlined, size: 18),
+                  label: Text(
+                    _finalizing ? 'Enviando avaliacao...' : 'Finalizar vistoria',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
                   ),
                 ),
               ),
@@ -1025,6 +1050,17 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   InspectionReviewSummaryData _buildSummary(
     List<InspectionReviewRequirementStatus> checkinStatuses,
   ) {
+    final appState = Provider.of<AppState>(context, listen: false);
+    if (appState.currentInspectionFreeCaptureEnabled) {
+      return _reviewPresentationService.buildSummary(
+        itemStatuses: List<InspectionReviewItemStatusData>.filled(
+          _items.length,
+          InspectionReviewItemStatusData.classified,
+        ),
+        missingCheckin: 0,
+        photoCountPolicyPending: 0,
+      );
+    }
     return _reviewPresentationService.buildSummary(
       itemStatuses:
           _items
@@ -1046,6 +1082,9 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
 
   int _buildPhotoCountPolicyPending() {
     final appState = Provider.of<AppState>(context, listen: false);
+    if (appState.currentInspectionFreeCaptureEnabled) {
+      return 0;
+    }
     final tipo = _resolvedTipoImovel();
     final config = _resolveStep2ConfigForTipo(tipo, appState);
     if (!_shouldEnforceStep2Requirements(config)) {
@@ -1111,6 +1150,9 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
 
   List<InspectionReviewRequirementStatus> _buildCheckinRequirements() {
     final appState = Provider.of<AppState>(context, listen: false);
+    if (appState.currentInspectionFreeCaptureEnabled) {
+      return const <InspectionReviewRequirementStatus>[];
+    }
     final tipo = _resolvedTipoImovel();
     final persistedStep2Model = _dynamicConfigService.restoreStep2Model(
       tipo: tipo,
@@ -1844,58 +1886,76 @@ class _InspectionReviewScreenState extends State<InspectionReviewScreen> {
   }
 
   Future<void> _finishInspection(BuildContext context, int pendingCount) async {
+    if (_finalizing) return;
     final strings = AppStrings.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     final appState = Provider.of<AppState>(context, listen: false);
+    final freeCaptureMode = appState.currentInspectionFreeCaptureEnabled;
+    final checkinStatuses = _buildCheckinRequirements();
+    final technicalSummary = freeCaptureMode
+        ? const InspectionTechnicalSummary(
+            tipoImovel: '',
+            totalSubtipos: 0,
+            subtiposComCobertura: 0,
+            totalFotos: 0,
+            completionPercent: 0,
+            pendingMatrix: TechnicalPendingMatrix(items: []),
+            audits: [],
+          )
+        : _technicalSummaryService.build(
+            tipoImovel: _resolvedTipoImovel().label,
+            evidences: _buildTechnicalEvidenceInputs(),
+            requirements: _buildTechnicalRequirementInputs(checkinStatuses),
+            coverageRequirements: _buildTechnicalCoverageRequirements(),
+          );
+    final summary = _buildSummary(checkinStatuses);
+    final blockingMessage = _reviewTechnicalPresentationService
+        .closingBlockingMessage(
+          technicalSummary: technicalSummary,
+          justificationText: _technicalJustificationController.text,
+        );
 
-    final shouldContinue =
-        pendingCount == 0
-            ? true
-            : await showDialog<bool>(
-                  context: context,
-                  builder:
-                      (dialogContext) => AlertDialog(
-                        title: Text(strings.thereArePendingItems),
-                        content: Text(
-                          strings.pendingItemsDialog(pendingCount),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed:
-                                () => Navigator.pop(dialogContext, false),
-                            child: Text(strings.back),
-                          ),
-                          FilledButton(
-                            onPressed: () => Navigator.pop(dialogContext, true),
-                            child: Text(strings.completeAnyway),
-                          ),
-                        ],
-                      ),
-                ) ??
-                false;
-
-    if (!shouldContinue) return;
-    if (!mounted) return;
-
-    final payload = _reviewExportPayloadService.build(
-      appState: appState,
-      assetType: widget.assetType,
-      step2Config: _resolveStep2ConfigForTipo(_resolvedTipoImovel(), appState),
-      captures: _capturesCurrent,
-      reviewedItems: _items,
-      note: _noteController.text,
-      technicalJustification: _technicalJustificationController.text,
-    );
-    final result = await _finalizeUseCase.execute(
-      appState: appState,
-      payload: payload,
-    );
+    if (summary.totalPending > 0 || blockingMessage != null) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            blockingMessage ??
+                strings.pendingItemsDialog(summary.totalPending),
+          ),
+        ),
+      );
+      return;
+    }
 
     if (!mounted) return;
-    messenger.showSnackBar(SnackBar(content: Text(result.message)));
-    if (result.shouldExitFlow) {
-      navigator.popUntil((route) => route.isFirst);
+
+    setState(() => _finalizing = true);
+    try {
+      final payload = _reviewExportPayloadService.build(
+        appState: appState,
+        assetType: widget.assetType,
+        step2Config: _resolveStep2ConfigForTipo(_resolvedTipoImovel(), appState),
+        captures: _capturesCurrent,
+        reviewedItems: _items,
+        note: _noteController.text,
+        technicalJustification: _technicalJustificationController.text,
+        freeCaptureMode: freeCaptureMode,
+      );
+      final result = await _finalizeUseCase.execute(
+        appState: appState,
+        payload: payload,
+      );
+
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(result.message)));
+      if (result.shouldExitFlow) {
+        navigator.popUntil((route) => route.isFirst);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _finalizing = false);
+      }
     }
   }
 

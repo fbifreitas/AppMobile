@@ -14,6 +14,21 @@ function makeJsonResponse(status: number, body: unknown): Response {
   });
 }
 
+function sessionCookie(tenantId = "tenant-alpha"): string {
+  return `backoffice_auth_session=${Buffer.from(JSON.stringify({
+    accessToken: "access-token",
+    refreshToken: "refresh-token",
+    tokenType: "Bearer",
+    tenantId,
+    userId: 77,
+    email: "operator@compass.com",
+    userStatus: "APPROVED",
+    membershipRole: "TENANT_ADMIN",
+    membershipStatus: "ACTIVE",
+    permissions: ["operations:*"]
+  }), "utf8").toString("base64url")}`;
+}
+
 test("control tower route forwards tenant filter to backend", async () => {
   const originalFetch = globalThis.fetch;
   let capturedUrl = "";
@@ -27,7 +42,11 @@ test("control tower route forwards tenant filter to backend", async () => {
   };
 
   try {
-    const request = new NextRequest("http://localhost/api/operations/control-tower?tenantId=tenant-alpha");
+    const request = new NextRequest("http://localhost/api/operations/control-tower?tenantId=tenant-alpha", {
+      headers: {
+        cookie: sessionCookie()
+      }
+    });
     const response = await controlTowerGet(request);
     const payload = (await response.json()) as { overview: { totalRequests24h: number } };
 
@@ -55,7 +74,7 @@ test("control tower retention route proxies POST to backend", async () => {
     const request = new NextRequest("http://localhost/api/operations/control-tower/retention/run?tenantId=tenant-alpha", {
       method: "POST",
       headers: {
-        "X-Actor-Id": "9001"
+        cookie: sessionCookie()
       }
     });
     const response = await retentionPost(request);

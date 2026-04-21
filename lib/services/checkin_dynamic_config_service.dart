@@ -629,14 +629,11 @@ class CheckinDynamicConfigService {
   Map<String, dynamic> serializeStep2Config(CheckinStep2Config config) {
     return {
       'assetType': config.assetType.name,
-      'tipoImovel': config.tipoImovel.name,
       'screenTitle': config.screenTitle,
-      'tituloTela': config.tituloTela,
       'screenSubtitle': config.screenSubtitle,
-      'subtituloTela': config.subtituloTela,
       'ui': {
-        'screenLabel': config.tituloTela,
-        'subtitleLabel': config.subtituloTela,
+        'screenLabel': config.screenTitle,
+        'subtitleLabel': config.screenSubtitle,
         'photoSectionLabel': config.secaoFotosLabel,
         'photoSectionVisible': config.secaoFotosVisivel,
         'photoSectionRequired': config.secaoFotosObrigatoria,
@@ -645,15 +642,11 @@ class CheckinDynamicConfigService {
         'optionSectionRequired': config.secaoOpcoesObrigatoria,
         'confirmButtonLabel': config.botaoConfirmarLabel,
       },
-      'minFotos': config.minFotos,
-      'maxFotos': config.maxFotos,
+      'minPhotos': config.minFotos,
+      'maxPhotos': config.maxFotos,
       'visible': config.flowVisible,
-      'visivel': config.visivelNoFluxo,
       'requiredForSubmission': config.requiredForSubmission,
-      'obrigatoriaParaEntrega': config.obrigatoriaParaEntrega,
-      'obrigatoria': config.obrigatoriaParaEntrega,
       'blocksCapture': config.blocksCapture,
-      'bloqueiaCaptura': config.bloqueiaCaptura,
       'photoFields':
           config.camposFotos
               .map(
@@ -668,20 +661,6 @@ class CheckinDynamicConfigService {
                 },
               )
               .toList(),
-      'camposFotos':
-          config.camposFotos
-              .map(
-                (field) => {
-                  'id': field.id,
-                  'titulo': field.titulo,
-                  'icon': _iconToName(field.icon),
-                  'obrigatorio': field.obrigatorio,
-                  'cameraMacroLocal': field.cameraMacroLocal,
-                  'cameraAmbiente': field.cameraAmbiente,
-                  'cameraElementoInicial': field.cameraElementoInicial,
-                },
-              )
-              .toList(),
       'optionGroups':
           config.gruposOpcoes
               .map(
@@ -693,28 +672,6 @@ class CheckinDynamicConfigService {
                   'multiSelect': group.multiplaEscolha,
                   'allowsNote': group.permiteObservacao,
                   'options':
-                      group.opcoes
-                          .map(
-                            (option) => {
-                              'id': option.id,
-                              'label': option.label,
-                            },
-                          )
-                          .toList(),
-                },
-              )
-              .toList(),
-      'gruposOpcoes':
-          config.gruposOpcoes
-              .map(
-                (group) => {
-                  'id': group.id,
-                  'titulo': group.titulo,
-                  'visivel': group.visivel,
-                  'obrigatorio': group.obrigatorio,
-                  'multiplaEscolha': group.multiplaEscolha,
-                  'permiteObservacao': group.permiteObservacao,
-                  'opcoes':
                       group.opcoes
                           .map(
                             (option) => {

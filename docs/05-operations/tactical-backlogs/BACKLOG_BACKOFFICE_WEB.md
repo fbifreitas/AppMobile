@@ -18,6 +18,18 @@ Atualizado em: 2026-04-08
 > - DecisÃµes V2: `docs/06-analysis-design/01_DECISION_LOG_V2.md`
 > - PortfÃ³lio e roadmap corporativo: `docs/02-product/01_PORTFOLIO_VIEW.md` e `docs/02-product/02_ROADMAP_CORPORATE_AND_DOMAINS.md`
 
+## Adendo 2026-04-20 - Consolidacao de captura livre no backoffice
+
+- a rota `/backoffice/inspections` deixa de ser apenas painel de leitura para alguns casos e passa a suportar operacao ativa de classificacao manual posterior
+- quando a inspection vier do mobile com:
+  - `freeCaptureMode = true`
+  - `manualClassificationRequired = true`
+  a tela deve permitir:
+  1. classificar imagem por imagem
+  2. validar a matriz de obrigatoriedade
+  3. exigir `etapa 2` quando o fluxo determinar
+- essa entrega fecha o deslocamento controlado da cobranca operacional do mobile para a web no `modo de captura livre`
+
 ## Cabecalho executavel (padrao)
 
 Usar este cabecalho nos itens priorizados:

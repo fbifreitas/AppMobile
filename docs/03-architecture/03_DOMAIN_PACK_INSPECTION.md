@@ -80,3 +80,20 @@ O App Mobile continua importante, mas como canal operacional do dominio:
 - devolve evidencias estruturadas para a plataforma
 
 Logo, `inspection` continua dono da semantica do fluxo, enquanto a inteligencia operacional passa a ser preparada primariamente pelo backend/plataforma.
+
+## Adendo 2026-04-20 - Dual capture mode
+
+O dominio `inspection` passa a admitir duas variantes operacionais de captura:
+
+1. `guided capture`
+- a camera segue a arvore operacional publicada pela plataforma
+- a classificacao acontece no campo
+
+2. `free capture`
+- a camera coleta imagens sem classificacao no mobile
+- a consolidacao classificatoria acontece depois na web
+
+Regras:
+- `check-in etapa 1` continua obrigatorio nos dois modos
+- `free capture` nao elimina obrigatoriedades do dominio
+- ele apenas desloca a cobranca operacional do mobile para o backoffice web

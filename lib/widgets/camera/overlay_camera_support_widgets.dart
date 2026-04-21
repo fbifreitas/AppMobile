@@ -240,6 +240,7 @@ class OverlayCameraCarouselCard extends StatelessWidget {
     required this.selected,
     required this.onSelect,
     this.onVoiceTap,
+    this.compact = false,
   });
 
   final String title;
@@ -247,6 +248,7 @@ class OverlayCameraCarouselCard extends StatelessWidget {
   final String? selected;
   final ValueChanged<String> onSelect;
   final VoidCallback? onVoiceTap;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -255,7 +257,7 @@ class OverlayCameraCarouselCard extends StatelessWidget {
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: EdgeInsets.symmetric(vertical: compact ? 6 : 8),
         decoration: BoxDecoration(
           color: Colors.black.withValues(alpha: 0.45),
           borderRadius: BorderRadius.circular(16),
@@ -296,9 +298,9 @@ class OverlayCameraCarouselCard extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: compact ? 6 : 8),
             SizedBox(
-              height: 38,
+              height: compact ? 34 : 38,
               child: ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 scrollDirection: Axis.horizontal,
@@ -311,9 +313,9 @@ class OverlayCameraCarouselCard extends StatelessWidget {
                     onTap: () => onSelect(value),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 160),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: compact ? 10 : 12,
+                        vertical: compact ? 6 : 8,
                       ),
                       decoration: BoxDecoration(
                         color: active
@@ -353,6 +355,7 @@ class OverlayCameraAmbienteSelectorCard extends StatelessWidget {
     required this.onChange,
     required this.onDuplicate,
     required this.duplicateLabel,
+    this.compact = false,
   });
 
   final String title;
@@ -362,6 +365,7 @@ class OverlayCameraAmbienteSelectorCard extends StatelessWidget {
   final VoidCallback? onChange;
   final VoidCallback? onDuplicate;
   final String duplicateLabel;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -370,7 +374,7 @@ class OverlayCameraAmbienteSelectorCard extends StatelessWidget {
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: EdgeInsets.symmetric(vertical: compact ? 6 : 8),
         decoration: BoxDecoration(
           color: Colors.black.withValues(alpha: 0.45),
           borderRadius: BorderRadius.circular(16),
@@ -400,9 +404,9 @@ class OverlayCameraAmbienteSelectorCard extends StatelessWidget {
                         foregroundColor: Colors.black87,
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: compact ? 10 : 12,
+                          vertical: compact ? 6 : 8,
                         ),
                         textStyle: const TextStyle(
                           fontWeight: FontWeight.w700,
@@ -419,9 +423,9 @@ class OverlayCameraAmbienteSelectorCard extends StatelessWidget {
                         side: const BorderSide(color: Colors.white70),
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: compact ? 10 : 12,
+                          vertical: compact ? 6 : 8,
                         ),
                         textStyle: const TextStyle(
                           fontWeight: FontWeight.w700,
@@ -434,9 +438,9 @@ class OverlayCameraAmbienteSelectorCard extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: compact ? 6 : 8),
             SizedBox(
-              height: 38,
+              height: compact ? 34 : 38,
               child: ListView.separated(
                 key: const ValueKey('camera_ambiente_selector_list'),
                 padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -450,9 +454,9 @@ class OverlayCameraAmbienteSelectorCard extends StatelessWidget {
                     onTap: () => onSelect(value),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 160),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: compact ? 10 : 12,
+                        vertical: compact ? 6 : 8,
                       ),
                       decoration: BoxDecoration(
                         color: active

@@ -1,4 +1,4 @@
-class InspectionCameraPresentationData {
+﻿class InspectionCameraPresentationData {
   final String batchSummary;
   final bool canOpenChecklist;
   final bool showContextSuggestion;
@@ -37,13 +37,28 @@ class InspectionCameraPresentationService {
     required String? predictionSummary,
     required List<String> recentAmbientes,
     required List<String> recentElementos,
+    int requiredEvidenceCount = 0,
   }) {
     final hasAnyCaptures = capturesCount > 0 || hasPreviousPhotos;
     final trimmedResumo = resumo?.trim() ?? '';
+    final evidenceTarget =
+        requiredEvidenceCount > 0 ? requiredEvidenceCount : null;
+    final normalizedCapturesCount = capturesCount < 0 ? 0 : capturesCount;
+    final progressSummary =
+        evidenceTarget == null
+            ? '$capturesCount'
+            : '$normalizedCapturesCount/$evidenceTarget';
+    final batchSummary = StringBuffer('Capturas no lote: $progressSummary');
+    if (trimmedResumo.isNotEmpty) {
+      batchSummary.write(' • $trimmedResumo');
+    }
+    final finalizeSubtitle =
+        evidenceTarget == null
+            ? (capturesCount > 0 ? '$capturesCount nova(s)' : 'fotos anteriores')
+            : '$normalizedCapturesCount de $evidenceTarget evidência(s)';
 
     return InspectionCameraPresentationData(
-      batchSummary:
-          'Capturas no lote: $capturesCount${trimmedResumo.isEmpty ? '' : ' • $trimmedResumo'}',
+      batchSummary: batchSummary.toString(),
       canOpenChecklist: !singleCaptureMode && hasAnyCaptures,
       showContextSuggestion:
           contextSuggestionSummary != null &&
@@ -54,8 +69,7 @@ class InspectionCameraPresentationService {
           hasSelectorAmbiente && recentAmbientes.isNotEmpty && hasMacroLocal,
       showRecentElementos:
           hasSelectorElemento && recentElementos.isNotEmpty && hasAmbiente,
-      finalizeSubtitle:
-          capturesCount > 0 ? '$capturesCount nova(s)' : 'fotos anteriores',
+      finalizeSubtitle: finalizeSubtitle,
     );
   }
 }

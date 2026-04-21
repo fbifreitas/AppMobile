@@ -96,3 +96,20 @@ Payload minimo de compatibilidade esperado:
 ## Regra de transformacao
 
 A plataforma pode manter artefatos ricos internamente, mas deve conseguir projetar uma visao simplificada para canais que ainda nao consumam o contrato completo.
+
+## Adendo 2026-04-20 - Excecao controlada para captura livre
+
+A regra central continua valida: o app deve ser governado por contrato e nao virar centro de inteligencia.
+
+Porem, existe agora uma excecao operacional controlada:
+
+- quando `freeCaptureMode = true`
+- o app deixa de usar o `Execution Plan` para dirigir a classificacao da camera
+- e passa a usa-lo apenas como contexto de rastreabilidade e consolidacao posterior
+
+Leitura correta:
+- `guided capture` -> o plano governa a coleta
+- `free capture` -> o plano continua existindo, mas a classificacao migra para a web
+
+Isso nao cria uma segunda semantica paralela.
+Cria apenas uma segunda estrategia operacional dentro do mesmo contrato de retorno.

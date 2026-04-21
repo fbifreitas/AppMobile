@@ -39,7 +39,33 @@ type InspectionDetail = {
   status: string;
   submittedAt: string;
   updatedAt: string;
-  payload: unknown;
+  payload: Record<string, unknown>;
+  returnArtifact?: {
+    executionPlanSnapshotId?: number | null;
+    rawStorageKey?: string | null;
+    normalizedStorageKey?: string | null;
+    summary?: Record<string, unknown> | null;
+  } | null;
+  fieldEvidence: Array<{
+    sourceSection: string;
+    macroLocation?: string | null;
+    environmentName?: string | null;
+    elementName?: string | null;
+    required: boolean;
+    minPhotos?: number | null;
+    capturedPhotos?: number | null;
+    status: string;
+    evidence?: Record<string, unknown> | null;
+  }>;
+};
+
+type ManualCaptureForm = {
+  filePath: string;
+  macroLocation: string;
+  environmentName: string;
+  elementName: string;
+  material: string;
+  state: string;
 };
 
 async function extractErrorMessage(response: Response, fallback: string): Promise<string> {
@@ -49,6 +75,39 @@ async function extractErrorMessage(response: Response, fallback: string): Promis
   } catch {
     return fallback;
   }
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+  return value as Record<string, unknown>;
+}
+
+function asArray<T = Record<string, unknown>>(value: unknown): T[] {
+  return Array.isArray(value) ? value as T[] : [];
+}
+
+function asText(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
+function isFreeCaptureInspection(detail: InspectionDetail | null): boolean {
+  if (!detail) return false;
+  return detail.payload?.['freeCaptureMode'] === true || detail.payload?.['manualClassificationRequired'] === true;
+}
+
+function buildManualCaptureForms(detail: InspectionDetail): ManualCaptureForm[] {
+  const review = asRecord(detail.payload['review']);
+  const captures = asArray<Record<string, unknown>>(review['captures']);
+  return captures.map((capture, index) => ({
+    filePath: asText(capture.filePath) || `capture-${index + 1}`,
+    macroLocation: asText(capture.macroLocal),
+    environmentName: asText(capture.ambiente),
+    elementName: asText(capture.elemento),
+    material: asText(capture.material),
+    state: asText(capture.estado)
+  }));
 }
 
 export default function BackofficeInspectionsPage() {
@@ -71,6 +130,9 @@ export default function BackofficeInspectionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<InspectionDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState<boolean>(false);
+  const [manualCaptures, setManualCaptures] = useState<ManualCaptureForm[]>([]);
+  const [manualStep2Json, setManualStep2Json] = useState<string>('{}');
+  const [manualClassificationSaving, setManualClassificationSaving] = useState<boolean>(false);
 
   const loadInspections = useCallback(async () => {
     setLoading(true);
@@ -129,6 +191,13 @@ export default function BackofficeInspectionsPage() {
       }
       const data: InspectionDetail = await response.json();
       setSelected(data);
+      if (isFreeCaptureInspection(data)) {
+        setManualCaptures(buildManualCaptureForms(data));
+        setManualStep2Json(JSON.stringify(asRecord(data.payload['step2']), null, 2));
+      } else {
+        setManualCaptures([]);
+        setManualStep2Json('{}');
+      }
     } catch (requestError) {
       setError(
         requestError instanceof Error
@@ -139,6 +208,66 @@ export default function BackofficeInspectionsPage() {
       setDetailLoading(false);
     }
   }, [uiLanguage]);
+
+  const updateManualCapture = useCallback((index: number, field: keyof ManualCaptureForm, value: string) => {
+    setManualCaptures((current) =>
+      current.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, [field]: value } : item
+      )
+    );
+  }, []);
+
+  const saveManualClassification = useCallback(async () => {
+    if (!selected) {
+      return;
+    }
+    setManualClassificationSaving(true);
+    setError(null);
+    try {
+      const parsedStep2 = JSON.parse(manualStep2Json) as Record<string, unknown>;
+      const response = await fetch(`/api/inspections/${selected.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          captures: manualCaptures.map((item) => ({
+            filePath: item.filePath,
+            macroLocation: item.macroLocation,
+            environmentName: item.environmentName,
+            elementName: item.elementName || null,
+            material: item.material || null,
+            state: item.state || null
+          })),
+          step2: parsedStep2
+        })
+      });
+      if (!response.ok) {
+        throw new Error(
+          await extractErrorMessage(
+            response,
+            uiLanguage === 'en'
+              ? `Failed to save manual classification (${response.status})`
+              : `Falha ao salvar classificacao manual (${response.status})`
+          )
+        );
+      }
+      const payload: InspectionDetail = await response.json();
+      setSelected(payload);
+      setManualCaptures(buildManualCaptureForms(payload));
+      setManualStep2Json(JSON.stringify(asRecord(payload.payload['step2']), null, 2));
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : (uiLanguage === 'en'
+              ? 'Unexpected error while saving manual classification'
+              : 'Erro inesperado ao salvar classificacao manual')
+      );
+    } finally {
+      setManualClassificationSaving(false);
+    }
+  }, [manualCaptures, manualStep2Json, selected, uiLanguage]);
 
   useEffect(() => {
     loadInspections();
@@ -162,6 +291,15 @@ export default function BackofficeInspectionsPage() {
   }, [size, total]);
 
   const pageLabel = useMemo(() => `${page + 1} / ${totalPages}`, [page, totalPages]);
+  const freeCaptureSelected = useMemo(() => isFreeCaptureInspection(selected), [selected]);
+  const selectedStep2Config = useMemo(() => asRecord(selected?.payload?.['step2Config']), [selected]);
+  const selectedStep2Required = useMemo(
+    () =>
+      selectedStep2Config['visivelNoFluxo'] === true ||
+      selectedStep2Config['flowVisible'] === true ||
+      selectedStep2Config['mandatory'] === true,
+    [selectedStep2Config]
+  );
 
   return (
     <main className="inspections-shell">
@@ -282,6 +420,118 @@ export default function BackofficeInspectionsPage() {
                 <dt>{t(uiLanguage, 'status')}</dt><dd>{selected.status}</dd>
                 <dt>Idempotency</dt><dd>{selected.idempotencyKey}</dd>
               </dl>
+              {freeCaptureSelected ? (
+                <section className="manual-box">
+                  <h3>{uiLanguage === 'en' ? 'Manual classification required' : 'Classificacao manual obrigatoria'}</h3>
+                  <p>
+                    {uiLanguage === 'en'
+                      ? 'This inspection was captured in free capture mode. Classify the images here and satisfy the registered mandatory rules before completing the workflow.'
+                      : 'Esta vistoria foi capturada em modo livre. Classifique as imagens aqui e atenda as obrigatoriedades cadastradas antes de concluir o fluxo.'}
+                  </p>
+
+                  <div className="manual-grid">
+                    {manualCaptures.map((capture, index) => (
+                      <article key={capture.filePath} className="manual-capture-card">
+                        <h4>{uiLanguage === 'en' ? `Capture ${index + 1}` : `Captura ${index + 1}`}</h4>
+                        <p className="capture-path">{capture.filePath}</p>
+                        <label>
+                          {uiLanguage === 'en' ? 'Photo area' : 'Area da foto'}
+                          <input
+                            value={capture.macroLocation}
+                            onChange={(event) => updateManualCapture(index, 'macroLocation', event.target.value)}
+                          />
+                        </label>
+                        <label>
+                          {uiLanguage === 'en' ? 'Photo location' : 'Local da foto'}
+                          <input
+                            value={capture.environmentName}
+                            onChange={(event) => updateManualCapture(index, 'environmentName', event.target.value)}
+                          />
+                        </label>
+                        <label>
+                          {uiLanguage === 'en' ? 'Element' : 'Elemento'}
+                          <input
+                            value={capture.elementName}
+                            onChange={(event) => updateManualCapture(index, 'elementName', event.target.value)}
+                          />
+                        </label>
+                        <label>
+                          {uiLanguage === 'en' ? 'Material' : 'Material'}
+                          <input
+                            value={capture.material}
+                            onChange={(event) => updateManualCapture(index, 'material', event.target.value)}
+                          />
+                        </label>
+                        <label>
+                          {uiLanguage === 'en' ? 'State' : 'Estado'}
+                          <input
+                            value={capture.state}
+                            onChange={(event) => updateManualCapture(index, 'state', event.target.value)}
+                          />
+                        </label>
+                      </article>
+                    ))}
+                  </div>
+
+                  <div className="evidence-box">
+                    <h4>{uiLanguage === 'en' ? 'Mandatory evidence status' : 'Status das obrigatoriedades'}</h4>
+                    {selected.fieldEvidence.length === 0 ? (
+                      <p>{uiLanguage === 'en' ? 'No evidence matrix available.' : 'Nenhuma matriz de evidencia disponivel.'}</p>
+                    ) : (
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>{uiLanguage === 'en' ? 'Area' : 'Area'}</th>
+                            <th>{uiLanguage === 'en' ? 'Location' : 'Local'}</th>
+                            <th>{uiLanguage === 'en' ? 'Element' : 'Elemento'}</th>
+                            <th>{uiLanguage === 'en' ? 'Required' : 'Obrigatorio'}</th>
+                            <th>{uiLanguage === 'en' ? 'Min photos' : 'Min fotos'}</th>
+                            <th>{uiLanguage === 'en' ? 'Captured' : 'Capturadas'}</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selected.fieldEvidence.map((item, index) => (
+                            <tr key={`${item.sourceSection}-${item.environmentName ?? 'empty'}-${index}`}>
+                              <td>{item.macroLocation || '-'}</td>
+                              <td>{item.environmentName || '-'}</td>
+                              <td>{item.elementName || '-'}</td>
+                              <td>{item.required ? 'Yes' : 'No'}</td>
+                              <td>{item.minPhotos ?? 0}</td>
+                              <td>{item.capturedPhotos ?? 0}</td>
+                              <td>{item.status}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+
+                  {selectedStep2Required ? (
+                    <div className="step2-box">
+                      <h4>{uiLanguage === 'en' ? 'Step 2 required' : 'Etapa 2 obrigatoria'}</h4>
+                      <p>
+                        {uiLanguage === 'en'
+                          ? 'Provide the Step 2 payload in JSON format before saving manual classification.'
+                          : 'Preencha o payload da Etapa 2 em JSON antes de salvar a classificacao manual.'}
+                      </p>
+                      <textarea
+                        value={manualStep2Json}
+                        onChange={(event) => setManualStep2Json(event.target.value)}
+                        rows={8}
+                      />
+                    </div>
+                  ) : null}
+
+                  <div className="manual-actions">
+                    <button type="button" onClick={saveManualClassification} disabled={manualClassificationSaving}>
+                      {manualClassificationSaving
+                        ? (uiLanguage === 'en' ? 'Saving...' : 'Salvando...')
+                        : (uiLanguage === 'en' ? 'Save manual classification' : 'Salvar classificacao manual')}
+                    </button>
+                  </div>
+                </section>
+              ) : null}
               <pre>{JSON.stringify(selected.payload, null, 2)}</pre>
             </>
           ) : null}
@@ -489,6 +739,71 @@ export default function BackofficeInspectionsPage() {
           margin: 0;
         }
 
+        .manual-box,
+        .evidence-box,
+        .step2-box {
+          margin: 16px 0;
+        }
+
+        .manual-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+          margin: 12px 0 16px;
+        }
+
+        .manual-capture-card {
+          border: 1px solid #d8deea;
+          border-radius: 12px;
+          padding: 12px;
+          background: #f8fbff;
+        }
+
+        .manual-capture-card h4 {
+          margin: 0 0 8px;
+        }
+
+        .capture-path {
+          margin: 0 0 10px;
+          font-size: 0.8rem;
+          color: #4f5d75;
+          word-break: break-all;
+        }
+
+        .manual-capture-card label,
+        .step2-box {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          font-weight: 600;
+          color: #2a3550;
+        }
+
+        .manual-capture-card input,
+        .step2-box textarea {
+          border: 1px solid #cdd6e6;
+          border-radius: 10px;
+          padding: 10px;
+          font: inherit;
+          background: #fff;
+        }
+
+        .manual-actions {
+          display: flex;
+          justify-content: flex-end;
+        }
+
+        .manual-actions button {
+          border: none;
+          border-radius: 10px;
+          padding: 10px 14px;
+          font: inherit;
+          font-weight: 700;
+          color: #fff;
+          cursor: pointer;
+          background: linear-gradient(90deg, #0f8f62, #007ca0);
+        }
+
         @media (max-width: 1080px) {
           .filters {
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -500,6 +815,10 @@ export default function BackofficeInspectionsPage() {
 
           .stats-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .manual-grid {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>

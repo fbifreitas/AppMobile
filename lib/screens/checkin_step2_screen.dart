@@ -861,4 +861,3 @@ class _PhotoCaptureCard extends StatelessWidget {
     );
   }
 }
-

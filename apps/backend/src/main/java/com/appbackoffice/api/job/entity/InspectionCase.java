@@ -88,4 +88,6 @@ public class InspectionCase {
 
     public void setDemandId(Long demandId) { this.demandId = demandId; }
     public void setStatus(CaseStatus status) { this.status = status; }
+    public void setPropertyLatitude(Double propertyLatitude) { this.propertyLatitude = propertyLatitude; }
+    public void setPropertyLongitude(Double propertyLongitude) { this.propertyLongitude = propertyLongitude; }
 }

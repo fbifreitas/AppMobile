@@ -144,6 +144,24 @@ public class OperationalEventRecorder {
         if (requestUri.startsWith("/api/backoffice/operations/control-tower")) {
             return "backoffice.operations.control-tower";
         }
+        if (requestUri.contains("/api/backoffice/intelligence/cases/") && requestUri.endsWith("/enrichment/trigger")) {
+            return "backoffice.intelligence.enrichment";
+        }
+        if (requestUri.contains("/api/backoffice/intelligence/cases/") && requestUri.endsWith("/enrichment-runs/latest")) {
+            return "backoffice.intelligence.enrichment-run";
+        }
+        if (requestUri.contains("/api/backoffice/intelligence/cases/") && requestUri.endsWith("/execution-plan/latest")) {
+            return "backoffice.intelligence.execution-plan";
+        }
+        if ("/api/backoffice/intelligence/manual-resolution-queue".equals(requestUri)) {
+            return "backoffice.intelligence.manual-resolution-queue";
+        }
+        if (requestUri.contains("/api/backoffice/intelligence/cases/") && requestUri.endsWith("/report-basis")) {
+            return "backoffice.intelligence.report-basis";
+        }
+        if (requestUri.contains("/api/mobile/jobs/") && requestUri.endsWith("/execution-plan")) {
+            return "mobile.execution-plan";
+        }
         return null;
     }
 

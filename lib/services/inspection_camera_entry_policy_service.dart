@@ -32,15 +32,19 @@ class InspectionCameraEntryPolicyService {
     required List<OverlayCameraCaptureResult> currentCaptures,
     required Map<String, dynamic> inspectionRecoveryPayload,
   }) {
+    final freeCaptureMode = step1Payload['freeCaptureModeEnabled'] == true;
+    final explicitSelectionHasValue = explicitSelection?.hasAnyValue == true;
     final initialSelection =
-        explicitSelection?.hasAnyValue == true
+        freeCaptureMode
+            ? FlowSelection.empty
+            : explicitSelectionHasValue
             ? explicitSelection!
             : resolveFallbackSelection(
               step1Payload: step1Payload,
               inspectionRecoveryPayload: inspectionRecoveryPayload,
             );
     final resumeSelection =
-        _shouldUseResumeSelection(source)
+        !freeCaptureMode && _shouldUseResumeSelection(source)
             ? recoveryAdapter.resolveResumeSelection(
               currentCaptures: currentCaptures,
               inspectionRecoveryPayload: inspectionRecoveryPayload,
@@ -53,8 +57,14 @@ class InspectionCameraEntryPolicyService {
       subtipoImovel: subtipoImovel,
       singleCaptureMode: _singleCaptureMode(source),
       cameFromCheckinStep1: _cameFromCheckinStep1(source),
+      freeCaptureMode: freeCaptureMode,
       initialSelection: initialSelection,
-      preferInitialSelection: initialSelection.hasAnyValue,
+      preferInitialSelection:
+          freeCaptureMode
+              ? false
+              : source == InspectionCameraEntrySource.step1
+              ? explicitSelectionHasValue
+              : (initialSelection.hasAnyValue && resumeSelection == null),
       resumeSelection: resumeSelection,
     );
   }
