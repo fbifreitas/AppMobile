@@ -11,7 +11,7 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
   });
 
-  test('preserves duplicated environment instances after menu reload', () async {
+  test('keeps current environment instance without mixing prior context items', () async {
     final menuService = InspectionMenuService.instance;
     await menuService.ensureLoaded();
     final resolver = InspectionCameraMenuResolver(menuService: menuService);
@@ -36,8 +36,8 @@ void main() {
       ),
     );
 
-    expect(viewState.ambientes, contains('Quarto 2'));
     expect(viewState.ambientes, contains('Quarto 3'));
+    expect(viewState.ambientes, isNot(contains('Quarto 2')));
     expect(viewState.currentSelection.targetItem, 'Quarto 3');
   });
 }

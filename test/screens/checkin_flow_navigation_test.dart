@@ -712,10 +712,6 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ChoiceChip, 'Apartamento'));
     await tester.pumpAndSettle();
-    await tester.drag(find.byType(ListView), const Offset(0, -300));
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Rua'));
-    await tester.pumpAndSettle();
 
     final confirmButton = find.byType(ElevatedButton);
     await tester.scrollUntilVisible(
