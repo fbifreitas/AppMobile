@@ -1,4 +1,5 @@
 import 'job_status.dart';
+import 'smart_execution_plan.dart';
 
 class Job {
   String id;
@@ -21,6 +22,7 @@ class Job {
   double? distanciaKm;
   String? idExterno;
   String? protocoloExterno;
+  SmartExecutionPlan? smartExecutionPlan;
 
   Job({
     required this.id,
@@ -43,6 +45,7 @@ class Job {
     this.distanciaKm,
     this.idExterno,
     this.protocoloExterno,
+    this.smartExecutionPlan,
   }) : checklist = checklist ?? [],
        fotos = fotos ?? [];
 

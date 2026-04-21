@@ -177,6 +177,12 @@ Gate:
 5. report e gerado
 6. operacao acompanha pela control tower
 
+Observacao incremental:
+- o fluxo operacional ponta a ponta passa a admitir tambem `modo de captura livre`
+- nesse modo, o app Compass pode capturar e enviar imagens sem classifica-las no campo
+- a consolidacao classificatoria passa a acontecer em `/backoffice/inspections`
+- as obrigatoriedades e a `etapa 2`, quando habilitada, continuam sendo exigidas na web
+
 ### Bloco 6 - Go-live e producao
 
 Sem isso, o produto ate funciona, mas nao entra em producao de verdade.
@@ -258,6 +264,16 @@ Objetivo:
 
 Criterio de pronto:
 - app Compass possui entrypoint, nome, icone, splash, application id/bundle id e referencia de distribuicao proprios
+
+## Adendo 2026-04-20 - Compass e captura livre operacional
+
+- o caminho critico Compass passa a cobrir dois modos validos de operacao de vistoria:
+  - `modo guiado`
+  - `modo de captura livre`
+- a existencia de `modo de captura livre` nao reduz a exigencia de conformidade operacional; ela apenas desloca a classificacao e a cobranca de obrigatoriedades para a web
+- para go-live, o smoke funcional Compass deve incluir ao menos:
+  1. uma vistoria guiada ponta a ponta
+  2. uma vistoria em captura livre com classificacao manual posterior em `/backoffice/inspections`
 - app Kaptu continua operando com o mesmo core sem fork do dominio
 
 ## Pacotes grandes executaveis por frente

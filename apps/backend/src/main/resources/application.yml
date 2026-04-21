@@ -55,6 +55,13 @@ integration:
   config-signing:
     hmac-key: ${INTEGRATION_CONFIG_SIGNING_HMAC_KEY:}
     require-secret: ${INTEGRATION_CONFIG_SIGNING_REQUIRE_SECRET:false}
+  ai-gateway:
+    enabled: ${AI_GATEWAY_ENABLED:false}
+    base-url: ${AI_GATEWAY_BASE_URL:}
+    api-key: ${AI_GATEWAY_API_KEY:}
+    model: ${AI_GATEWAY_MODEL:gemini-2.5-flash}
+    research-path: ${AI_GATEWAY_RESEARCH_PATH:/v1/research/cases}
+    require-secret: ${AI_GATEWAY_REQUIRE_SECRET:true}
 
 operations:
   control-tower:

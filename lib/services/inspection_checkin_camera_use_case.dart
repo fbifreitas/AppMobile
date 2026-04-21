@@ -24,6 +24,11 @@ class InspectionCheckinCameraUseCase {
     required String subtipoImovel,
     required FlowSelection initialSelection,
   }) async {
+    final currentJobPlan = appState.jobAtual?.smartExecutionPlan;
+    if (appState.currentExecutionPlan == null && currentJobPlan != null) {
+      appState.currentExecutionPlan = currentJobPlan;
+    }
+
     await flowCoordinator.openOverlayCamera(
       context,
       request: cameraEntryPolicy.buildRequest(

@@ -6,11 +6,13 @@ import '../models/inspection_recovery_stage.dart';
 import '../models/inspection_recovery_draft.dart';
 import '../models/job.dart';
 import '../models/job_status.dart';
+import '../models/smart_execution_plan.dart';
 import '../repositories/job_repository.dart';
 import '../repositories/mock_job_repository_controller.dart';
 import '../repositories/preferences_repository.dart';
 import '../services/inspection_radius_service.dart';
 import '../services/location_service.dart';
+import '../services/smart_execution_plan_decoder.dart';
 
 class AppState extends ChangeNotifier {
   AppState(
@@ -30,6 +32,7 @@ class AppState extends ChangeNotifier {
   static const _devModeKey = 'developer_mode_enabled';
   static const _devToolsUnlockedKey = 'developer_tools_unlocked';
   static const _allowFarStartKey = 'developer_allow_far_start';
+  static const _freeCaptureModeKey = 'free_capture_mode_enabled_v1';
   static const _inspectionRecoveryKey = 'inspection_recovery_snapshot_v2';
   static const _legacyInspectionRecoveryKey = 'inspection_recovery_draft';
   static const _userPhotoKey = 'user_photo_path';
@@ -39,6 +42,8 @@ class AppState extends ChangeNotifier {
   final LocationService locationService;
   final InspectionRadiusService inspectionRadiusService =
       const InspectionRadiusService();
+  static const SmartExecutionPlanDecoder _executionPlanDecoder =
+      SmartExecutionPlanDecoder.instance;
 
   List<Job> jobs = [];
   Job? jobAtual;
@@ -55,6 +60,7 @@ class AppState extends ChangeNotifier {
   DateTime? ultimoCheckin;
 
   bool permitirIniciarLonge = false;
+  bool freeCaptureModeEnabled = false;
   bool developerModeEnabled = false;
   bool developerToolsUnlocked = false;
 
@@ -62,6 +68,7 @@ class AppState extends ChangeNotifier {
   String? jobsLoadError;
 
   InspectionRecoveryDraft? inspectionRecoveryDraft;
+  SmartExecutionPlan? currentExecutionPlan;
 
   // BL-035
   String? userPhotoPath;
@@ -82,6 +89,8 @@ class AppState extends ChangeNotifier {
     }
     permitirIniciarLonge =
         await preferencesRepository.getBool(_allowFarStartKey) ?? false;
+    freeCaptureModeEnabled =
+        await preferencesRepository.getBool(_freeCaptureModeKey) ?? false;
 
     userPhotoPath = await preferencesRepository.getString(_userPhotoKey);
 
@@ -92,6 +101,9 @@ class AppState extends ChangeNotifier {
       try {
         inspectionRecoveryDraft = InspectionRecoveryDraft.fromJson(
           recoveryJson,
+        );
+        currentExecutionPlan = _restoreExecutionPlanFromPayload(
+          inspectionRecoveryDraft?.payload,
         );
         await _saveInspectionRecoveryDraft();
         await preferencesRepository.remove(_legacyInspectionRecoveryKey);
@@ -118,6 +130,10 @@ class AppState extends ChangeNotifier {
     await preferencesRepository.setBool(_allowFarStartKey, value);
   }
 
+  Future<void> _saveFreeCaptureMode(bool value) async {
+    await preferencesRepository.setBool(_freeCaptureModeKey, value);
+  }
+
   Future<void> _saveInspectionRecoveryDraft() async {
     if (inspectionRecoveryDraft == null) {
       await preferencesRepository.remove(_inspectionRecoveryKey);
@@ -142,7 +158,7 @@ class AppState extends ChangeNotifier {
       final result = await repository.getJobs().timeout(
         const Duration(seconds: 5),
       );
-      jobs = List<Job>.from(result);
+      jobs = _mergeLocalJobState(List<Job>.from(result));
       prioritizeRecoveryJob();
       _rebuildOperationalFeedsFromJobs();
     } catch (_) {
@@ -155,6 +171,31 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> loadJobs() => carregarJobs();
+
+  List<Job> _mergeLocalJobState(List<Job> remoteJobs) {
+    final localById = {
+      for (final job in jobs) job.id: job,
+      if (jobAtual != null) jobAtual!.id: jobAtual!,
+    };
+
+    for (final remoteJob in remoteJobs) {
+      final localJob = localById[remoteJob.id];
+      if (localJob == null) continue;
+
+      if (localJob.status == JobStatus.aguardandoSincronizacao) {
+        remoteJob.status = JobStatus.aguardandoSincronizacao;
+      }
+
+      if ((localJob.idExterno ?? '').trim().isNotEmpty) {
+        remoteJob.idExterno = localJob.idExterno;
+      }
+      if ((localJob.protocoloExterno ?? '').trim().isNotEmpty) {
+        remoteJob.protocoloExterno = localJob.protocoloExterno;
+      }
+    }
+
+    return remoteJobs;
+  }
 
   String get primeiroNome {
     final nome = usuarioNomeCompleto.trim();
@@ -175,6 +216,9 @@ class AppState extends ChangeNotifier {
 
   void selecionarJob(Job job) {
     jobAtual = job;
+    currentExecutionPlan =
+        job.smartExecutionPlan ??
+        _restoreExecutionPlanFromPayloadForJob(job.id, inspectionRecoveryDraft?.payload);
     notifyListeners();
   }
 
@@ -182,6 +226,9 @@ class AppState extends ChangeNotifier {
 
   void iniciarJob(Job job) {
     jobAtual = job;
+    currentExecutionPlan =
+        job.smartExecutionPlan ??
+        _restoreExecutionPlanFromPayloadForJob(job.id, inspectionRecoveryDraft?.payload);
     notifyListeners();
   }
 
@@ -395,6 +442,16 @@ class AppState extends ChangeNotifier {
 
   Future<void> finalizeJob() => finalizarJob();
 
+  Future<void> marcarJobAguardandoSincronizacao() async {
+    final currentJob = jobAtual;
+    if (currentJob == null) return;
+    currentJob.status = JobStatus.aguardandoSincronizacao;
+    _rebuildOperationalFeedsFromJobs();
+    await clearInspectionRecovery();
+    jobAtual = null;
+    notifyListeners();
+  }
+
   bool get supportsMockJobControl => repository is MockJobRepositoryController;
 
   Future<void> resetMockJobsToDefault() async {
@@ -426,6 +483,12 @@ class AppState extends ChangeNotifier {
     permitirIniciarLonge = value;
     notifyListeners();
     await _saveAllowFarStart(value);
+  }
+
+  Future<void> setFreeCaptureModeEnabled(bool value) async {
+    freeCaptureModeEnabled = value;
+    notifyListeners();
+    await _saveFreeCaptureMode(value);
   }
 
   Future<void> setDeveloperModeEnabled(bool value) async {
@@ -634,7 +697,12 @@ class AppState extends ChangeNotifier {
   Future<void> setInspectionRecoverySnapshot(
     InspectionRecoveryStageSnapshot snapshot,
   ) async {
-    final nextDraft = snapshot.toDraft();
+    final nextPayload = _attachExecutionPlanSnapshot(snapshot.payload);
+    final nextDraft = InspectionRecoveryStageSnapshot(
+      jobId: snapshot.jobId,
+      stage: snapshot.stage,
+      payload: nextPayload,
+    ).toDraft();
     final currentDraft = inspectionRecoveryDraft;
     if (currentDraft != null &&
         currentDraft.jobId == nextDraft.jobId &&
@@ -646,6 +714,7 @@ class AppState extends ChangeNotifier {
     }
 
     inspectionRecoveryDraft = nextDraft;
+    currentExecutionPlan = _restoreExecutionPlanFromPayload(nextDraft.payload) ?? currentExecutionPlan;
     await _saveInspectionRecoveryDraft();
     prioritizeRecoveryJob();
     notifyListeners();
@@ -690,6 +759,10 @@ class AppState extends ChangeNotifier {
     String? subtipoImovel,
     String? porOndeComecar,
     Map<String, String>? niveis,
+    bool? freeCaptureModeEnabled,
+    bool? freeCaptureAcknowledged,
+    String? clientAbsentResponderName,
+    Map<String, dynamic>? clientAbsentEvidence,
   }) async {
     final currentJob = jobAtual;
     if (currentJob == null) return;
@@ -704,7 +777,13 @@ class AppState extends ChangeNotifier {
       'subtipoImovel': subtipoImovel,
       'entryPoint': porOndeComecar,
       'porOndeComecar': porOndeComecar,
+      'freeCaptureModeEnabled':
+          freeCaptureModeEnabled ?? this.freeCaptureModeEnabled,
+      'freeCaptureAcknowledged': freeCaptureAcknowledged ?? false,
       if (niveis != null) 'niveis': Map<String, String>.from(niveis),
+      'clientAbsentResponderName': clientAbsentResponderName,
+      if (clientAbsentEvidence != null)
+        'clientAbsentEvidence': Map<String, dynamic>.from(clientAbsentEvidence),
     };
 
     await setInspectionRecoveryStage(
@@ -767,7 +846,19 @@ class AppState extends ChangeNotifier {
       'subtipoImovel': raw['subtipoImovel'] ?? raw['assetSubtype'],
       'entryPoint': raw['entryPoint'] ?? raw['porOndeComecar'],
       'porOndeComecar': raw['porOndeComecar'] ?? raw['entryPoint'],
+      'freeCaptureModeEnabled':
+          raw['freeCaptureModeEnabled'] ?? freeCaptureModeEnabled,
+      'freeCaptureAcknowledged':
+          raw['freeCaptureAcknowledged'] ?? false,
     };
+  }
+
+  bool get currentInspectionFreeCaptureEnabled {
+    final raw = step1Payload['freeCaptureModeEnabled'];
+    if (raw is bool) {
+      return raw;
+    }
+    return freeCaptureModeEnabled;
   }
 
   Map<String, dynamic> get step2Payload =>
@@ -777,6 +868,43 @@ class AppState extends ChangeNotifier {
     inspectionRecoveryDraft = null;
     await _saveInspectionRecoveryDraft();
     notifyListeners();
+  }
+
+  Map<String, dynamic> _attachExecutionPlanSnapshot(Map<String, dynamic> payload) {
+    final nextPayload = Map<String, dynamic>.from(payload);
+    final plan = currentExecutionPlan;
+    if (plan == null) {
+      return nextPayload;
+    }
+    nextPayload['executionPlan'] = plan.toEnvelopeMap();
+    return nextPayload;
+  }
+
+  SmartExecutionPlan? _restoreExecutionPlanFromPayload(
+    Map<String, dynamic>? payload,
+  ) {
+    if (payload == null) {
+      return null;
+    }
+    final raw = payload['executionPlan'];
+    if (raw is! Map) {
+      return null;
+    }
+    final envelope = Map<String, dynamic>.from(
+      raw.map((key, value) => MapEntry('$key', value)),
+    );
+    return _executionPlanDecoder.decodeEnvelope(envelope);
+  }
+
+  SmartExecutionPlan? _restoreExecutionPlanFromPayloadForJob(
+    String jobId,
+    Map<String, dynamic>? payload,
+  ) {
+    final restored = _restoreExecutionPlanFromPayload(payload);
+    if (restored == null) {
+      return null;
+    }
+    return restored.jobId == jobId ? restored : null;
   }
 
   Future<void> resetSessionAfterLogout() async {
@@ -894,6 +1022,8 @@ class AppState extends ChangeNotifier {
         return AgendaItemStatus.agendado;
       case JobStatus.aguardandoAgendamento:
         return AgendaItemStatus.cancelado;
+      case JobStatus.aguardandoSincronizacao:
+        return AgendaItemStatus.confirmado;
       case JobStatus.emAndamento:
         return AgendaItemStatus.confirmado;
       case JobStatus.finalizado:
@@ -928,21 +1058,23 @@ class AppState extends ChangeNotifier {
   String _messageTitleFromJob(Job job) {
     switch (job.status) {
       case JobStatus.aceito:
-        return 'Job agendado';
+        return 'Scheduled job';
       case JobStatus.aguardandoAgendamento:
-        return 'Aguardando reagendamento';
+        return 'Awaiting rescheduling';
+      case JobStatus.aguardandoSincronizacao:
+        return 'Awaiting synchronization';
       case JobStatus.emPreparacao:
-        return 'Job em preparacao';
+        return 'Job in preparation';
       case JobStatus.emAndamento:
-        return 'Vistoria em andamento';
+        return 'Inspection in progress';
       case JobStatus.finalizado:
       case JobStatus.encerrado:
-        return 'Vistoria concluida';
+        return 'Inspection completed';
       case JobStatus.recusado:
       case JobStatus.cancelado:
-        return 'Job cancelado';
+        return 'Job canceled';
       case JobStatus.novo:
-        return 'Novo job disponivel';
+        return 'New job available';
     }
   }
 
@@ -957,17 +1089,19 @@ class AppState extends ChangeNotifier {
       case JobStatus.aceito:
       case JobStatus.novo:
       case JobStatus.emPreparacao:
-        return '${job.titulo} agendado para $scheduleText em ${job.endereco}.';
+        return '${job.titulo} scheduled for $scheduleText at ${job.endereco}.';
       case JobStatus.aguardandoAgendamento:
-        return '${job.titulo} aguarda reagendamento pelo backoffice apos cliente ausente no check-in.';
+        return '${job.titulo} is awaiting backoffice rescheduling after client absence at check-in.';
+      case JobStatus.aguardandoSincronizacao:
+        return '${job.titulo} was saved locally and is awaiting server synchronization.';
       case JobStatus.emAndamento:
-        return '${job.titulo} esta em andamento. Local: ${job.endereco}.';
+        return '${job.titulo} is in progress. Location: ${job.endereco}.';
       case JobStatus.finalizado:
       case JobStatus.encerrado:
-        return '${job.titulo} foi concluido e saiu da fila ativa.';
+        return '${job.titulo} was completed and left the active queue.';
       case JobStatus.recusado:
       case JobStatus.cancelado:
-        return '${job.titulo} foi marcado como cancelado.';
+        return '${job.titulo} was marked as canceled.';
     }
   }
 }

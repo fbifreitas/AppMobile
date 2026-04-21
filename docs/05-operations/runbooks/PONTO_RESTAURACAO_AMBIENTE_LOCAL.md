@@ -261,6 +261,58 @@ Use este prompt no inicio de uma nova sessao/agente:
 
 ---
 
+## 10. Adendo 2026-04-20 - Modo de captura livre e restauracao operacional
+
+### Estado funcional novo
+
+- o app mobile passou a suportar `modo de captura livre`
+- nesse modo:
+  - `check-in etapa 1` continua obrigatorio
+  - a camera nao exige classificacao no campo
+  - o payload final segue marcado para classificacao manual posterior
+- a consolidacao da vistoria passa a acontecer em `/backoffice/inspections`
+
+### Correcao operacional critica aplicada no backend
+
+Foi identificado erro real no envio de vistoria em `modo de captura livre`.
+
+Sintoma:
+- o app mostrava mensagem de fila local/pending sync
+- o backend respondia `500` em `POST /api/mobile/inspections/finalized`
+
+Causa:
+- `MobileExecutionReturnNormalizationService.extractCaptureList(...)`
+- uso de `Collectors.toMap(...)` em mapas de captura com valores `null`
+- as capturas livres chegam legitimamente com campos de classificacao nulos
+
+Correcao:
+- a normalizacao passou a montar `LinkedHashMap` manualmente
+- o backend agora preserva valores `null` sem quebrar o sync
+
+### Observacao importante de runtime
+
+No ambiente local atual, o `infra-api-1` pode marcar `unhealthy` durante o boot e depois ficar `healthy`.
+
+Leitura correta:
+- nem todo `unhealthy` inicial significa crash
+- o healthcheck atual pode ser mais agressivo do que o tempo real de subida do backend
+
+Validacao recomendada:
+```powershell
+docker inspect infra-api-1 --format "{{json .State.Health}}"
+```
+
+### Smoke novo a executar apos restaurar o ambiente
+
+1. subir stack local
+2. confirmar `api`, `web` e `proxy`
+3. executar uma vistoria em `modo de captura livre`
+4. confirmar envio sem `500`
+5. validar a inspection em `/backoffice/inspections`
+6. executar classificacao manual na web
+
+---
+
 ## 10. Contexto de Negocio (Resumo Executivo para Continuidade)
 
 ### 10.1 Proposito do produto

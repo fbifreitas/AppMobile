@@ -87,7 +87,13 @@ class JobsSection extends StatelessWidget {
     );
 
     final activeJobs =
-        appState.jobs.where((job) => job.status != JobStatus.finalizado).toList();
+        appState.jobs
+            .where(
+              (job) =>
+                  job.status != JobStatus.finalizado &&
+                  job.status != JobStatus.encerrado,
+            )
+            .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -306,6 +312,7 @@ class _RichJobCard extends StatelessWidget {
         );
     final radiusMeters = appState.resolveInspectionRadiusMeters(job);
     final isRecoverable = appState.hasRecoverableInspectionForJob(job.id);
+    final isPendingSync = job.status == JobStatus.aguardandoSincronizacao;
     final recoveryStageLabel = appState.recoveryStageLabelForJob(job.id);
 
     return Container(
@@ -315,8 +322,10 @@ class _RichJobCard extends StatelessWidget {
         color: BrandTokens.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isRecoverable ? tokens.primary : BrandTokens.border,
-          width: isRecoverable ? 1.5 : 1,
+          color: isPendingSync
+              ? BrandTokens.warning
+              : (isRecoverable ? tokens.primary : BrandTokens.border),
+          width: (isRecoverable || isPendingSync) ? 1.5 : 1,
         ),
         boxShadow: const [
           BoxShadow(
@@ -335,13 +344,20 @@ class _RichJobCard extends StatelessWidget {
                 width: 8,
                 height: 8,
                 decoration: BoxDecoration(
-                  color: isRecoverable ? BrandTokens.warning : tokens.primary,
+                  color: isPendingSync
+                      ? BrandTokens.warning
+                      : (isRecoverable ? BrandTokens.warning : tokens.primary),
                   shape: BoxShape.circle,
                 ),
               ),
               const SizedBox(width: 6),
               Text(
-                isRecoverable
+                isPendingSync
+                    ? strings.tr(
+                        'AGUARDANDO SINCRONIZACAO',
+                        'PENDING SYNC',
+                      )
+                    : isRecoverable
                     ? strings.branded(
                         config,
                         key: 'job_status_recoverable_label',
@@ -355,7 +371,9 @@ class _RichJobCard extends StatelessWidget {
                         english: 'IN PROGRESS',
                       ),
                 style: TextStyle(
-                  color: isRecoverable ? BrandTokens.warning : tokens.primary,
+                  color: isPendingSync
+                      ? BrandTokens.warning
+                      : (isRecoverable ? BrandTokens.warning : tokens.primary),
                   fontWeight: FontWeight.w800,
                   fontSize: 11,
                 ),
@@ -449,7 +467,27 @@ class _RichJobCard extends StatelessWidget {
               ],
             ),
           const SizedBox(height: 8),
-          if (isRecoverable)
+          if (isPendingSync)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: BrandTokens.warningLight,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                strings.tr(
+                  'Envio com falha transitória. A vistoria foi salva localmente e aguarda sincronização.',
+                  'Transient send failure. The inspection was saved locally and is waiting for synchronization.',
+                ),
+                style: const TextStyle(
+                  color: BrandTokens.warning,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            )
+          else if (isRecoverable)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(10),
@@ -505,13 +543,17 @@ class _RichJobCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: (canStart || showDevStart)
+                  onPressed: isPendingSync
+                      ? null
+                      : (canStart || showDevStart)
                       ? () async {
                           await onStartInspection();
                         }
                       : null,
                   child: Text(
-                    isRecoverable
+                    isPendingSync
+                        ? strings.tr('PENDENTE DE ENVIO', 'PENDING SYNC')
+                        : isRecoverable
                         ? (resumeLabel ?? strings.tr('RETOMAR VISTORIA', 'RESUME INSPECTION'))
                         : showDevStart
                             ? devStartLabel

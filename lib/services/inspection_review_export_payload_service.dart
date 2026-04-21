@@ -24,6 +24,7 @@ class InspectionReviewExportPayloadService {
     required List<InspectionReviewEditableCapture> reviewedItems,
     required String note,
     required String technicalJustification,
+    bool freeCaptureMode = false,
   }) {
     final job = appState.jobAtual;
     return {
@@ -31,25 +32,31 @@ class InspectionReviewExportPayloadService {
       'job': {
         'id': job?.id ?? '',
         'title': job?.title ?? '',
-        'titulo': job?.titulo ?? '',
         'status': job?.status.label,
         'externalId': job?.externalId,
-        'idExterno': job?.idExterno,
         'externalProtocol': job?.externalProtocol,
-        'protocoloExterno': job?.protocoloExterno,
       },
       'step1': Map<String, dynamic>.from(appState.step1Payload),
       'step2': Map<String, dynamic>.from(appState.step2Payload),
       'step2Config': dynamicConfigService.serializeStep2Config(step2Config),
+      'freeCaptureMode': freeCaptureMode,
+      'manualClassificationRequired': freeCaptureMode,
       'review': {
         'assetType': assetType,
-        'tipoImovel': assetType,
         'note': note.trim(),
-        'observacao': note.trim(),
         'technicalJustification': technicalJustification.trim(),
-        'justificativaTecnica': technicalJustification.trim(),
-        'captures': captures.map((capture) => capture.toMap()).toList(),
-        'capturas': captures.map((capture) => capture.toMap()).toList(),
+        'captures': captures
+            .map(
+              (capture) => {
+                ...capture.toMap(),
+                'classificationStatus': freeCaptureMode
+                    ? 'pending_manual_classification'
+                    : (capture.classificationConfirmed
+                        ? 'classified'
+                        : 'pending'),
+              },
+            )
+            .toList(),
         'reviewedCaptures': reviewedItems
             .map(
               (item) => {
@@ -58,21 +65,9 @@ class InspectionReviewExportPayloadService {
                 'targetQualifier': item.targetQualifier,
                 'material': item.materialAttribute,
                 'conditionState': item.conditionState,
-                'isComplete':
-                    item.status == InspectionReviewPhotoStatus.classified,
-              },
-            )
-            .toList(),
-        'capturasRevisadas': reviewedItems
-            .map(
-              (item) => {
-                'filePath': item.filePath,
-                'ambiente': item.ambiente,
-                'elemento': item.elemento,
-                'material': item.material,
-                'estado': item.estado,
-                'isComplete':
-                    item.status == InspectionReviewPhotoStatus.classified,
+                'isComplete': freeCaptureMode
+                    ? false
+                    : item.status == InspectionReviewPhotoStatus.classified,
               },
             )
             .toList(),

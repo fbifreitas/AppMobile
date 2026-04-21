@@ -1,5 +1,5 @@
 param(
-  [string[]]$Roots = @("lib", "test", "docs", ".github", "scripts"),
+  [string[]]$Roots = @("lib", "test", "apps/backend", "apps/web-backoffice", "docs", ".github", "scripts"),
   [string[]]$Extensions = @(
     ".dart",
     ".md",

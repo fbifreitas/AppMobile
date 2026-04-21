@@ -47,6 +47,10 @@ Campos de referencia:
 - `receivedAt`
 - `appMetadata`
 
+Campos incrementais relevantes:
+- `freeCaptureMode`
+- `manualClassificationRequired`
+
 ### 4. Field Evidence
 Representa evidencia estruturada do campo.
 
@@ -63,6 +67,10 @@ Campos de referencia:
 - `source`
 - `fileReferences`
 - `classificationLevels`
+
+Observacao:
+- em `modo de captura livre`, a evidencia pode chegar inicialmente sem todos os niveis de classificacao preenchidos
+- nesse caso, a classificacao posterior acontece na web e complementa o artefato
 
 ### 5. Report Basis Snapshot
 Representa a base progressiva do report.
@@ -82,6 +90,8 @@ Campos de referencia:
 - rastreabilidade minima por `caseId`, `correlationId` e `source`
 - retorno do app sempre precisa referenciar a versao do plano consumido
 - nenhum payload do canal substitui o modelo reconciliado do backend
+- o `modo de captura livre` nao invalida o contrato; ele muda apenas o momento da classificacao
+- o backend deve aceitar `field evidence` com classificacao parcial ou nula quando `freeCaptureMode = true`
 
 ## Relacao com o app atual
 
@@ -93,3 +103,47 @@ No recorte de `inspection`, os artefatos acima precisam continuar dialogando com
 - `finalization`
 
 Sem criar outro contrato paralelo de semantica de captura.
+
+## Adendo 2026-04-20 - Captura livre e classificacao posterior
+
+### Regra incremental
+
+O ecossistema agora suporta duas formas de retorno do mobile:
+
+1. `guided capture return`
+- a classificacao ja sai preenchida do app
+
+2. `free capture return`
+- o app envia apenas a coleta bruta
+- a web complementa a classificacao depois
+
+### Campos canonicos adicionais no payload final do mobile
+
+- `freeCaptureMode: boolean`
+- `manualClassificationRequired: boolean`
+
+Quando `freeCaptureMode = true`, cada captura pode sair com:
+- `classificationStatus = pending_manual_classification`
+- `macroLocation` nulo
+- `environmentName` nulo ou placeholder operacional
+- `element/material/state` nulos
+
+### Regra de responsabilidade por canal
+
+- mobile:
+  - coleta
+  - sincroniza
+  - nao bloqueia por classificacao em modo livre
+
+- web:
+  - classifica manualmente
+  - aplica obrigatoriedades
+  - exige `step2` quando configurado
+
+### Implicacao canonica
+
+O contrato externo deixa de pressupor que toda `Field Evidence` chega completa na primeira escrita.
+O backend passa a tratar o artefato como progressivo, preservando:
+- retorno bruto do campo
+- reconciliacao posterior
+- rastreabilidade de quem classificou depois

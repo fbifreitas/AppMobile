@@ -63,6 +63,44 @@ void main() {
             'title': 'Vistoria Compass',
             'status': 'ACCEPTED',
             'assignedTo': 77,
+            'executionPlan': {
+              'snapshotId': 7,
+              'caseId': 654,
+              'status': 'PUBLISHED',
+              'plan': {
+                'assetType': 'RESIDENTIAL',
+                'assetSubtype': 'Apartamento',
+                'requiresManualReview': false,
+                'propertyProfile': {
+                  'taxonomy': 'RESIDENTIAL_VERTICAL',
+                  'canonicalAssetType': 'Urbano',
+                  'canonicalAssetSubtype': 'Apartamento',
+                },
+                'step1Config': {
+                  'initialAssetType': 'Urbano',
+                  'initialAssetSubtype': 'Apartamento',
+                  'initialContext': 'Rua',
+                },
+                'step2Config': {
+                  'requiredEvidence': ['front_elevation'],
+                },
+                'cameraConfig': {
+                  'mode': 'guided',
+                  'suggestedPhotoLocations': ['Cozinha', 'Sala de estar'],
+                  'capturePlan': [
+                    {
+                      'macroLocal': 'Rua',
+                      'environment': 'Fachada',
+                      'element': 'Porta',
+                      'material': 'Concrete',
+                      'condition': 'Good',
+                      'required': true,
+                      'minPhotos': 2,
+                    },
+                  ],
+                },
+              },
+            },
           },
         ]),
       );
@@ -80,6 +118,16 @@ void main() {
     expect(jobs.single.idExterno, '654');
     expect(jobs.single.titulo, 'Vistoria Compass');
     expect(jobs.single.status, JobStatus.aceito);
+    expect(jobs.single.tipoImovel, 'Urbano');
+    expect(jobs.single.subtipoImovel, 'Apartamento');
+    expect(jobs.single.smartExecutionPlan, isNotNull);
+    expect(jobs.single.smartExecutionPlan!.firstEnvironment, 'Fachada');
+    expect(
+      jobs.single.smartExecutionPlan!.suggestedPhotoLocations,
+      contains('Cozinha'),
+    );
+    expect(jobs.single.smartExecutionPlan!.capturePlan, hasLength(1));
+    expect(jobs.single.smartExecutionPlan!.capturePlan.single.minPhotos, 2);
   });
 
   test('throws when backend returns non-success status', () async {

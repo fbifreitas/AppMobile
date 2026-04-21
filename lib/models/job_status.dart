@@ -2,6 +2,7 @@ enum JobStatus {
   novo,
   aceito,
   aguardandoAgendamento,
+  aguardandoSincronizacao,
   emPreparacao,
   emAndamento,
   finalizado,
@@ -14,23 +15,25 @@ extension JobStatusExtension on JobStatus {
   String get label {
     switch (this) {
       case JobStatus.novo:
-        return 'Novo';
+        return 'New';
       case JobStatus.aceito:
-        return 'Aceito';
+        return 'Accepted';
       case JobStatus.aguardandoAgendamento:
-        return 'Aguardando Agendamento';
+        return 'Awaiting scheduling';
+      case JobStatus.aguardandoSincronizacao:
+        return 'Awaiting synchronization';
       case JobStatus.emPreparacao:
-        return 'Em Preparação';
+        return 'In preparation';
       case JobStatus.emAndamento:
-        return 'Em Andamento';
+        return 'In progress';
       case JobStatus.finalizado:
-        return 'Finalizado';
+        return 'Completed';
       case JobStatus.encerrado:
-        return 'Encerrado';
+        return 'Closed';
       case JobStatus.recusado:
-        return 'Recusado';
+        return 'Rejected';
       case JobStatus.cancelado:
-        return 'Cancelado';
+        return 'Canceled';
     }
   }
 }

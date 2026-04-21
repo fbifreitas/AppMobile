@@ -2,7 +2,9 @@ param(
     [object]$Detach = $true,
     [string]$PostgresSecretName = 'AppMobile/PostgresPassword',
     [string]$RedisSecretName = 'AppMobile/RedisPassword',
-    [string]$PlatformAdminPasswordSecretName = 'AppMobile/PlatformBootstrapAdminPassword'
+    [string]$PlatformAdminPasswordSecretName = 'AppMobile/PlatformBootstrapAdminPassword',
+    [string]$AiGatewayApiKeySecretName = 'AppMobile/AiGatewayApiKey',
+    [string]$GeminiApiKeySecretName = 'AppMobile/GeminiApiKey'
 )
 
 Set-StrictMode -Version Latest
@@ -264,6 +266,29 @@ $redisPassword = Resolve-SecretValue -EnvName 'REDIS_PASSWORD' -SecretName $Redi
 [Environment]::SetEnvironmentVariable('POSTGRES_PASSWORD', $postgresPassword, 'Process')
 [Environment]::SetEnvironmentVariable('REDIS_PASSWORD', $redisPassword, 'Process')
 
+$aiGatewayEnabled = Convert-ToBoolean -Value ([Environment]::GetEnvironmentVariable('AI_GATEWAY_ENABLED', 'Process')) -DefaultValue $false
+$aiGatewayRequireSecret = Convert-ToBoolean -Value ([Environment]::GetEnvironmentVariable('AI_GATEWAY_REQUIRE_SECRET', 'Process')) -DefaultValue $true
+if ($aiGatewayEnabled -and $aiGatewayRequireSecret) {
+    $aiGatewayApiKey = Resolve-SecretValue -EnvName 'AI_GATEWAY_API_KEY' -SecretName $AiGatewayApiKeySecretName -PromptLabel 'Digite a chave do AI Gateway para o ambiente local'
+    [Environment]::SetEnvironmentVariable('AI_GATEWAY_API_KEY', $aiGatewayApiKey, 'Process')
+
+    $geminiApiKey = Resolve-SecretValue -EnvName 'GEMINI_API_KEY' -SecretName $GeminiApiKeySecretName -PromptLabel 'Digite a chave do Gemini para o ambiente local'
+    [Environment]::SetEnvironmentVariable('GEMINI_API_KEY', $geminiApiKey, 'Process')
+}
+else {
+    $currentAiGatewayApiKey = [Environment]::GetEnvironmentVariable('AI_GATEWAY_API_KEY', 'Process')
+    if ($null -eq $currentAiGatewayApiKey) {
+        $currentAiGatewayApiKey = ''
+    }
+    [Environment]::SetEnvironmentVariable('AI_GATEWAY_API_KEY', $currentAiGatewayApiKey, 'Process')
+
+    $currentGeminiApiKey = [Environment]::GetEnvironmentVariable('GEMINI_API_KEY', 'Process')
+    if ($null -eq $currentGeminiApiKey) {
+        $currentGeminiApiKey = ''
+    }
+    [Environment]::SetEnvironmentVariable('GEMINI_API_KEY', $currentGeminiApiKey, 'Process')
+}
+
 $platformBootstrapEnabled = Convert-ToBoolean -Value ([Environment]::GetEnvironmentVariable('PLATFORM_BOOTSTRAP_ENABLED', 'Process')) -DefaultValue $false
 if ($platformBootstrapEnabled) {
     $platformTenantId = [Environment]::GetEnvironmentVariable('PLATFORM_BOOTSTRAP_TENANT_ID', 'Process')
@@ -333,6 +358,18 @@ $composeUpArgs += '--force-recreate'
 $composeOverrides = @{
     POSTGRES_PASSWORD = $postgresPassword
     REDIS_PASSWORD = $redisPassword
+    AI_GATEWAY_ENABLED = [Environment]::GetEnvironmentVariable('AI_GATEWAY_ENABLED', 'Process')
+    AI_GATEWAY_BASE_URL = [Environment]::GetEnvironmentVariable('AI_GATEWAY_BASE_URL', 'Process')
+    AI_GATEWAY_API_KEY = [Environment]::GetEnvironmentVariable('AI_GATEWAY_API_KEY', 'Process')
+    AI_GATEWAY_MODEL = [Environment]::GetEnvironmentVariable('AI_GATEWAY_MODEL', 'Process')
+    AI_GATEWAY_RESEARCH_PATH = [Environment]::GetEnvironmentVariable('AI_GATEWAY_RESEARCH_PATH', 'Process')
+    AI_GATEWAY_REQUIRE_SECRET = [Environment]::GetEnvironmentVariable('AI_GATEWAY_REQUIRE_SECRET', 'Process')
+    GEMINI_API_KEY = [Environment]::GetEnvironmentVariable('GEMINI_API_KEY', 'Process')
+    GEMINI_MODEL = [Environment]::GetEnvironmentVariable('GEMINI_MODEL', 'Process')
+    GEMINI_ENABLED = [Environment]::GetEnvironmentVariable('GEMINI_ENABLED', 'Process')
+    GEMINI_GROUNDING_ENABLED = [Environment]::GetEnvironmentVariable('GEMINI_GROUNDING_ENABLED', 'Process')
+    GEMINI_TIMEOUT_MS = [Environment]::GetEnvironmentVariable('GEMINI_TIMEOUT_MS', 'Process')
+    GEMINI_BASE_URL = [Environment]::GetEnvironmentVariable('GEMINI_BASE_URL', 'Process')
     COMPOSE_PLATFORM_BOOTSTRAP_ENABLED = [Environment]::GetEnvironmentVariable('COMPOSE_PLATFORM_BOOTSTRAP_ENABLED', 'Process')
     COMPOSE_PLATFORM_BOOTSTRAP_TENANT_ID = [Environment]::GetEnvironmentVariable('COMPOSE_PLATFORM_BOOTSTRAP_TENANT_ID', 'Process')
     COMPOSE_PLATFORM_BOOTSTRAP_TENANT_SLUG = [Environment]::GetEnvironmentVariable('COMPOSE_PLATFORM_BOOTSTRAP_TENANT_SLUG', 'Process')
@@ -344,7 +381,7 @@ $composeOverrides = @{
 }
 New-ComposeEnvFile -BaseEnvFile $envFile -OutputPath $composeEnvFile -Overrides $composeOverrides
 
-Invoke-DockerCompose -DockerCli $dockerCli -InfraRoot $infraRoot -EnvFilePath $composeEnvFile -Arguments @('up', '-d', '--force-recreate', 'db', 'cache', 'web')
+Invoke-DockerCompose -DockerCli $dockerCli -InfraRoot $infraRoot -EnvFilePath $composeEnvFile -Arguments @('up', '-d', '--force-recreate', 'db', 'cache', 'ai-gateway', 'web')
 Wait-ForComposeServiceHealth -DockerCli $dockerCli -InfraRoot $infraRoot -ServiceName 'db'
 Sync-PostgresUserPassword -DockerCli $dockerCli -InfraRoot $infraRoot -PostgresUser ([Environment]::GetEnvironmentVariable('POSTGRES_USER', 'Process')) -PostgresPassword $postgresPassword
 Invoke-DockerCompose -DockerCli $dockerCli -InfraRoot $infraRoot -EnvFilePath $composeEnvFile -Arguments @('up', '-d', '--force-recreate', 'api', 'proxy')

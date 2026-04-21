@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { NextRequest } from "next/server";
 import { GET as inspectionsGet } from "../app/api/inspections/route";
-import { GET as inspectionDetailGet } from "../app/api/inspections/[inspectionId]/route";
+import { GET as inspectionDetailGet, POST as inspectionDetailPost } from "../app/api/inspections/[inspectionId]/route";
 
 function makeJsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -118,6 +118,49 @@ test("inspection detail route propaga detalhe do backend", async () => {
     assert.equal(payload.id, 9);
     assert.match(capturedUrl, /\/9\?/);
     assert.match(capturedUrl, /tenantId=tenant-alpha/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("inspection detail post propaga classificacao manual para o backend", async () => {
+  const originalFetch = globalThis.fetch;
+  let capturedUrl = "";
+  let capturedBody = "";
+  let capturedHeaders: Headers | undefined;
+
+  globalThis.fetch = async (input, init) => {
+    capturedUrl = String(input);
+    capturedBody = String(init?.body ?? "");
+    capturedHeaders = new Headers(init?.headers);
+    return makeJsonResponse(200, {
+      id: 9,
+      protocolId: "INS-009",
+      status: "SUBMITTED"
+    });
+  };
+
+  try {
+    const request = new NextRequest("http://localhost/api/inspections/9", {
+      method: "POST",
+      headers: {
+        cookie: sessionCookie()
+      },
+      body: JSON.stringify({
+        captures: [{ filePath: "capture-1.jpg", macroLocation: "Rua", environmentName: "Fachada" }],
+        step2: { ownerPresent: true }
+      })
+    });
+    const response = await inspectionDetailPost(request, {
+      params: { inspectionId: "9" }
+    });
+    const payload = (await response.json()) as { id: number };
+
+    assert.equal(response.status, 200);
+    assert.equal(payload.id, 9);
+    assert.match(capturedUrl, /\/9\/manual-classification\?/);
+    assert.match(capturedBody, /capture-1\.jpg/);
+    assert.equal(capturedHeaders?.get("Authorization"), "Bearer access-token");
   } finally {
     globalThis.fetch = originalFetch;
   }

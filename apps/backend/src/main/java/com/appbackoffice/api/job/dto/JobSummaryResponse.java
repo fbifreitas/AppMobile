@@ -1,5 +1,7 @@
 package com.appbackoffice.api.job.dto;
 
+import com.appbackoffice.api.intelligence.dto.ExecutionPlanResponse;
+
 import java.time.Instant;
 
 public record JobSummaryResponse(
@@ -14,6 +16,7 @@ public record JobSummaryResponse(
         Double propertyLongitude,
         String inspectionType,
         Instant deadlineAt,
-        Instant createdAt
+        Instant createdAt,
+        ExecutionPlanResponse executionPlan
 ) {
 }

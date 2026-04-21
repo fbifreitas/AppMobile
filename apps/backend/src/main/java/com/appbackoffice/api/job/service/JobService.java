@@ -13,6 +13,8 @@ import com.appbackoffice.api.job.entity.InspectionCase;
 import com.appbackoffice.api.job.entity.Job;
 import com.appbackoffice.api.job.entity.JobStatus;
 import com.appbackoffice.api.job.entity.JobTimelineEntry;
+import com.appbackoffice.api.job.service.JobClientAbsentEvidenceService.ClientAbsentEvidenceCommand;
+import com.appbackoffice.api.job.service.JobClientAbsentEvidenceService.StoredClientAbsentEvidence;
 import com.appbackoffice.api.job.repository.AssignmentRepository;
 import com.appbackoffice.api.job.repository.CaseRepository;
 import com.appbackoffice.api.job.repository.JobRepository;
@@ -43,6 +45,7 @@ public class JobService {
     private final TenantApplicationRepository tenantApplicationRepository;
     private final UserRepository userRepository;
     private final TenantGuardService tenantGuardService;
+    private final JobClientAbsentEvidenceService jobClientAbsentEvidenceService;
 
     public JobService(JobRepository jobRepository,
                       AssignmentRepository assignmentRepository,
@@ -51,7 +54,8 @@ public class JobService {
                       CaseRepository caseRepository,
                       TenantApplicationRepository tenantApplicationRepository,
                       UserRepository userRepository,
-                      TenantGuardService tenantGuardService) {
+                      TenantGuardService tenantGuardService,
+                      JobClientAbsentEvidenceService jobClientAbsentEvidenceService) {
         this.jobRepository = jobRepository;
         this.assignmentRepository = assignmentRepository;
         this.timelineRepository = timelineRepository;
@@ -60,6 +64,7 @@ public class JobService {
         this.tenantApplicationRepository = tenantApplicationRepository;
         this.userRepository = userRepository;
         this.tenantGuardService = tenantGuardService;
+        this.jobClientAbsentEvidenceService = jobClientAbsentEvidenceService;
     }
 
     public Page<JobSummaryResponse> listJobs(String tenantId, String status, Pageable pageable) {
@@ -152,11 +157,22 @@ public class JobService {
             String tenantId,
             Long jobId,
             String actorId,
-            String reason
+            String reason,
+            String responderName,
+            ClientAbsentEvidenceCommand evidence
     ) {
         tenantGuardService.requireActiveTenant(tenantId);
         Job job = requireJobInTenant(tenantId, jobId);
         requireAssignedActor(job, actorId);
+
+        StoredClientAbsentEvidence storedEvidence = jobClientAbsentEvidenceService.store(
+                tenantId,
+                jobId,
+                actorId,
+                responderName,
+                reason,
+                evidence
+        );
 
         if (job.getStatus() == JobStatus.AWAITING_SCHEDULING) {
             return toSummary(job);
@@ -174,7 +190,7 @@ public class JobService {
                 from,
                 JobStatus.AWAITING_SCHEDULING,
                 actorId,
-                normalizeSchedulingReason(reason)
+                normalizeSchedulingReason(reason, responderName, storedEvidence)
         );
         return toSummary(job);
     }
@@ -353,7 +369,8 @@ public class JobService {
                 inspectionCase != null ? inspectionCase.getPropertyLongitude() : null,
                 inspectionCase != null ? inspectionCase.getInspectionType() : null,
                 job.getDeadlineAt(),
-                job.getCreatedAt()
+                job.getCreatedAt(),
+                null
         );
     }
 
@@ -391,12 +408,29 @@ public class JobService {
         return null;
     }
 
-    private String normalizeSchedulingReason(String reason) {
+    private String normalizeSchedulingReason(String reason,
+                                            String responderName,
+                                            StoredClientAbsentEvidence evidence) {
         String normalized = reason == null ? "" : reason.trim();
-        if (!normalized.isEmpty()) {
-            return normalized;
+        String base = !normalized.isEmpty()
+                ? normalized
+                : "Client not present during step 1 check-in. Awaiting scheduling treatment.";
+        StringBuilder builder = new StringBuilder(base);
+        if (responderName != null && !responderName.trim().isEmpty()) {
+            builder.append(" Responder: ").append(responderName.trim()).append('.');
         }
-        return "Client not present during step 1 check-in. Awaiting scheduling treatment.";
+        if (evidence != null) {
+            builder.append(" Evidence captured at ").append(evidence.capturedAt()).append('.');
+            if (evidence.latitude() != null && evidence.longitude() != null) {
+                builder.append(" Geo=(")
+                        .append(evidence.latitude())
+                        .append(", ")
+                        .append(evidence.longitude())
+                        .append(").");
+            }
+            builder.append(" Storage=").append(evidence.storageKey()).append('.');
+        }
+        return builder.toString();
     }
 
     private String normalize(String value) {

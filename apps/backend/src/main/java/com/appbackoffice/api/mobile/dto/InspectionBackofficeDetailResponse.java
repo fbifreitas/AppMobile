@@ -15,9 +15,32 @@ public record InspectionBackofficeDetailResponse(
         String status,
         Instant submittedAt,
         Instant updatedAt,
-        JsonNode payload
+        JsonNode payload,
+        ReturnArtifact returnArtifact,
+        java.util.List<FieldEvidence> fieldEvidence
 ) {
     public Long vistoriadorId() {
         return fieldAgentId;
+    }
+
+    public record ReturnArtifact(
+            Long executionPlanSnapshotId,
+            String rawStorageKey,
+            String normalizedStorageKey,
+            JsonNode summary
+    ) {
+    }
+
+    public record FieldEvidence(
+            String sourceSection,
+            String macroLocation,
+            String environmentName,
+            String elementName,
+            boolean required,
+            Integer minPhotos,
+            Integer capturedPhotos,
+            String status,
+            JsonNode evidence
+    ) {
     }
 }

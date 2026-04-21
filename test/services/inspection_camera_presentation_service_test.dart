@@ -1,4 +1,4 @@
-import 'package:appmobile/services/inspection_camera_presentation_service.dart';
+﻿import 'package:appmobile/services/inspection_camera_presentation_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -18,6 +18,7 @@ void main() {
       predictionSummary: 'Janela • Madeira • Bom',
       recentAmbientes: const <String>['Quarto'],
       recentElementos: const <String>['Janela'],
+      requiredEvidenceCount: 5,
     );
 
     expect(data.canOpenChecklist, isTrue);
@@ -25,7 +26,8 @@ void main() {
     expect(data.showPredictionSuggestion, isTrue);
     expect(data.showRecentAmbientes, isTrue);
     expect(data.showRecentElementos, isTrue);
+    expect(data.batchSummary, contains('2/5'));
     expect(data.batchSummary, contains('Quarto 2'));
-    expect(data.finalizeSubtitle, '2 nova(s)');
+    expect(data.finalizeSubtitle, '2 de 5 evidência(s)');
   });
 }

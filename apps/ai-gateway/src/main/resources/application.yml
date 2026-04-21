@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: ai-gateway
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+server:
+  port: 8091
+
+app:
+  gateway:
+    api-key: ${GATEWAY_API_KEY:}
+    require-secret: ${GATEWAY_REQUIRE_SECRET:true}
+  ai:
+    gemini:
+      api-key: ${GEMINI_API_KEY:}
+      model: ${GEMINI_MODEL:gemini-2.5-flash}
+      enabled: ${GEMINI_ENABLED:true}
+      grounding-enabled: ${GEMINI_GROUNDING_ENABLED:false}
+      timeout-ms: ${GEMINI_TIMEOUT_MS:30000}
+      base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com}

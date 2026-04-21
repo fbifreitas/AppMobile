@@ -1,5 +1,27 @@
 services:
 
+  ai-gateway:
+    build:
+      context: ../apps/ai-gateway
+    ports:
+      - "${AI_GATEWAY_HOST_PORT:-8091}:8091"
+    env_file: .env
+    environment:
+      - GATEWAY_API_KEY=${AI_GATEWAY_API_KEY:-}
+      - GATEWAY_REQUIRE_SECRET=${AI_GATEWAY_ENABLED:-false}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+      - GEMINI_ENABLED=${GEMINI_ENABLED:-false}
+      - GEMINI_GROUNDING_ENABLED=${GEMINI_GROUNDING_ENABLED:-false}
+      - GEMINI_TIMEOUT_MS=${GEMINI_TIMEOUT_MS:-30000}
+      - GEMINI_BASE_URL=${GEMINI_BASE_URL:-https://generativelanguage.googleapis.com}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8091/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
   proxy:
     image: nginx:1.27-alpine
     ports:
@@ -45,6 +67,12 @@ services:
       - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD}
       - STORAGE_ADAPTER=${STORAGE_ADAPTER:-local}
       - STORAGE_LOCAL_PATH=/data/uploads
+      - AI_GATEWAY_ENABLED=${AI_GATEWAY_ENABLED:-false}
+      - AI_GATEWAY_BASE_URL=${AI_GATEWAY_BASE_URL:-http://ai-gateway:8091}
+      - AI_GATEWAY_API_KEY=${AI_GATEWAY_API_KEY:-}
+      - AI_GATEWAY_MODEL=${AI_GATEWAY_MODEL:-gemini-2.5-flash}
+      - AI_GATEWAY_RESEARCH_PATH=${AI_GATEWAY_RESEARCH_PATH:-/v1/research/cases}
+      - AI_GATEWAY_REQUIRE_SECRET=${AI_GATEWAY_REQUIRE_SECRET:-true}
       - PLATFORM_BOOTSTRAP_ENABLED=${COMPOSE_PLATFORM_BOOTSTRAP_ENABLED:-false}
       - PLATFORM_BOOTSTRAP_TENANT_ID=${COMPOSE_PLATFORM_BOOTSTRAP_TENANT_ID:-}
       - PLATFORM_BOOTSTRAP_TENANT_SLUG=${COMPOSE_PLATFORM_BOOTSTRAP_TENANT_SLUG:-}
@@ -56,6 +84,8 @@ services:
     volumes:
       - uploads:/data/uploads
     depends_on:
+      ai-gateway:
+        condition: service_healthy
       db:
         condition: service_healthy
       cache:

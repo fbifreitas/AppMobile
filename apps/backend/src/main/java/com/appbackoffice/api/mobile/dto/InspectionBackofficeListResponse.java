@@ -24,6 +24,9 @@ public record InspectionBackofficeListResponse(
             Long fieldAgentId,
             String protocolId,
             String status,
+            boolean hasExecutionArtifacts,
+            Long executionPlanSnapshotId,
+            int evidenceCount,
             Instant submittedAt,
             Instant updatedAt
     ) {

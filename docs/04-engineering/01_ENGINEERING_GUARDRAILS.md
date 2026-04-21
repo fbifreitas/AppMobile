@@ -50,3 +50,60 @@ Toda capacidade nova que persista dados deve responder explicitamente:
 ## Documentation rule
 
 Mudancas de arquitetura, backlog, nomenclatura ou ownership exigem atualizacao documental no mesmo ciclo.
+
+## Project quality ruler
+
+O `Display` consolidado deve representar o projeto inteiro:
+- app mobile
+- web/backoffice
+- api/backend
+- ai-gateway
+- contratos e integracoes entre camadas
+
+### Weighted dimensions
+
+- `Clean Architecture` — 25%
+  - fronteiras de modulo e dependencia corretas
+  - orquestracao concentrada na plataforma, nao no canal
+  - persistencia, dominio e entrega separados com clareza
+- `SOLID` — 20%
+  - responsabilidade unica
+  - composicao por servicos especializados
+  - extensao sem degradar contratos existentes
+- `Clean Code` — 20%
+  - legibilidade
+  - nomes canonicos
+  - ausencia de duplicacao acidental
+  - baixo acoplamento incidental
+- `Cross-layer contract health` — 15%
+  - contratos claros e versionaveis entre mobile/web/backend/gateway
+  - consistencia English-first
+  - mapeamentos e fallback explicitos
+- `Testability and coverage health` — 10%
+  - testes unit, integration, contract ou widget onde fizer sentido
+  - cobertura dos fluxos operacionais criticos
+- `Operational resilience` — 10%
+  - retries
+  - observabilidade
+  - degradacao controlada
+  - reprocesso sem recriar job
+
+### Display calculation
+
+- `Milestone atual`
+  - definido pela trilha principal do backlog/roadmap em execucao
+- `Clean Architecture`
+  - nota consolidada da dimensao de arquitetura no projeto inteiro
+- `SOLID`
+  - nota consolidada da dimensao SOLID no projeto inteiro
+- `Clean Code`
+  - nota consolidada da dimensao de codigo no projeto inteiro
+- `Nota Geral`
+  - media ponderada das dimensoes acima considerando todas as camadas e integrações
+
+### Evaluation rule
+
+- a nota nao deve refletir apenas a feature mexida no turno
+- a nota deve considerar o estado consolidado do ecossistema AppMobile
+- regressao relevante em qualquer camada pode reduzir a nota global
+- melhoria estrutural transversal pode elevar a nota global mesmo quando a entrega funcional for pequena

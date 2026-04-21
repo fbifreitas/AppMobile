@@ -178,6 +178,37 @@ class AppStrings {
       isPortuguese
           ? 'Lat $latitude • Lng $longitude'
           : 'Lat $latitude • Lng $longitude';
+  String get smartGuidanceTitle => isPortuguese
+      ? 'Plano inteligente da vistoria'
+      : 'Smart inspection plan';
+  String smartGuidanceStartPoint(String context) => isPortuguese
+      ? 'Inicie a vistoria por $context.'
+      : 'Start the inspection from $context.';
+  String smartGuidanceEnvironment(String environment) => isPortuguese
+      ? 'Priorize o ambiente $environment.'
+      : 'Prioritize the $environment environment.';
+  String smartGuidanceStartPointWithEnvironment(
+    String context,
+    String environment,
+  ) =>
+      isPortuguese
+          ? 'Inicie por $context e priorize o ambiente $environment.'
+          : 'Start from $context and prioritize the $environment environment.';
+  String smartGuidanceEvidenceCount(int count) => isPortuguese
+      ? 'Registre pelo menos $count evidência(s) neste fluxo.'
+      : 'Capture at least $count evidence item(s) in this flow.';
+  String smartGuidanceMinimumPhotos(int count) => isPortuguese
+      ? 'Mínimo de $count foto(s) para esta evidência.'
+      : 'Minimum of $count photo(s) for this evidence.';
+  String smartCaptureHintRoute(String route) => isPortuguese
+      ? 'Próxima evidência sugerida: $route.'
+      : 'Next suggested evidence: $route.';
+  String smartCaptureSequenceProgress(int done, int total) => isPortuguese
+      ? 'Roteiro $done/$total concluído.'
+      : 'Plan progress $done/$total completed.';
+  String get smartGuidanceManualReview => isPortuguese
+      ? 'Este job exige revisão manual ao longo do fluxo.'
+      : 'This job requires manual review during the flow.';
 }
 
 class AppStringsDelegate extends LocalizationsDelegate<AppStrings> {

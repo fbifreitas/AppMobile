@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import '../models/checkin_step2_model.dart';
 import 'integration_context_service.dart';
 
 class MobileJobActionResult {
@@ -42,6 +43,8 @@ class MobileJobActionService {
 
   Future<MobileJobActionResult> requestSchedulingAfterClientAbsent({
     required String jobId,
+    required String responderName,
+    required CheckinStep2PhotoAnswer evidence,
     String? reason,
   }) async {
     if (!isConfigured) {
@@ -50,9 +53,29 @@ class MobileJobActionService {
         message: 'API nao configurada para tratativa operacional.',
       );
     }
+    if (responderName.trim().isEmpty) {
+      return const MobileJobActionResult(
+        success: false,
+        message: 'Informe o nome de quem atendeu no local.',
+      );
+    }
+    if (!evidence.hasImage || evidence.imagePath == null || evidence.geoPoint == null) {
+      return const MobileJobActionResult(
+        success: false,
+        message: 'Capture a foto de evidencia com geolocalizacao antes de continuar.',
+      );
+    }
 
     try {
       final context = await const IntegrationContextService().buildContext();
+      final imageFile = File(evidence.imagePath!);
+      if (!await imageFile.exists()) {
+        return const MobileJobActionResult(
+          success: false,
+          message: 'A foto de evidencia nao foi encontrada no dispositivo.',
+        );
+      }
+      final imageBytes = await imageFile.readAsBytes();
       final client = (_httpClientFactory ?? HttpClient.new)();
       try {
         final request = await client.postUrl(_buildUri(jobId));
@@ -76,6 +99,20 @@ class MobileJobActionService {
                   (reason ?? '').trim().isEmpty
                       ? 'Cliente ausente confirmado no check-in etapa 1. Aguardando reagendamento.'
                       : reason!.trim(),
+              'responderName': responderName.trim(),
+              'evidence': {
+                'fileName': imageFile.uri.pathSegments.isEmpty
+                    ? 'cliente-ausente.jpg'
+                    : imageFile.uri.pathSegments.last,
+                'contentType': _resolveContentType(imageFile.path),
+                'imageBase64': base64Encode(imageBytes),
+                'capturedAt': (evidence.capturedAt ?? evidence.geoPoint!.capturedAt)
+                    .toUtc()
+                    .toIso8601String(),
+                'latitude': evidence.geoPoint!.latitude,
+                'longitude': evidence.geoPoint!.longitude,
+                'accuracy': evidence.geoPoint!.accuracy,
+              },
             }),
           ),
         );
@@ -139,5 +176,16 @@ class MobileJobActionService {
     }
 
     return 'Nao foi possivel registrar a ausencia do cliente (HTTP $statusCode).';
+  }
+
+  String _resolveContentType(String path) {
+    final normalized = path.toLowerCase();
+    if (normalized.endsWith('.png')) {
+      return 'image/png';
+    }
+    if (normalized.endsWith('.webp')) {
+      return 'image/webp';
+    }
+    return 'image/jpeg';
   }
 }

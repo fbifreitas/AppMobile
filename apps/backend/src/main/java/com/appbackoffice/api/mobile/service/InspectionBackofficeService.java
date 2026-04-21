@@ -1,11 +1,13 @@
 package com.appbackoffice.api.mobile.service;
 
+import com.appbackoffice.api.intelligence.entity.FieldEvidenceRecordEntity;
+import com.appbackoffice.api.intelligence.entity.InspectionReturnArtifactEntity;
+import com.appbackoffice.api.intelligence.repository.FieldEvidenceRecordRepository;
+import com.appbackoffice.api.intelligence.repository.InspectionReturnArtifactRepository;
 import com.appbackoffice.api.mobile.dto.InspectionBackofficeDetailResponse;
 import com.appbackoffice.api.mobile.dto.InspectionBackofficeListResponse;
 import com.appbackoffice.api.mobile.entity.InspectionEntity;
 import com.appbackoffice.api.mobile.repository.InspectionRepository;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,11 +26,18 @@ import java.time.ZoneOffset;
 public class InspectionBackofficeService {
 
     private final InspectionRepository inspectionRepository;
-    private final ObjectMapper objectMapper;
+    private final InspectionReturnArtifactRepository inspectionReturnArtifactRepository;
+    private final FieldEvidenceRecordRepository fieldEvidenceRecordRepository;
+    private final InspectionArtifactProjectionService inspectionArtifactProjectionService;
 
-    public InspectionBackofficeService(InspectionRepository inspectionRepository, ObjectMapper objectMapper) {
+    public InspectionBackofficeService(InspectionRepository inspectionRepository,
+                                       InspectionReturnArtifactRepository inspectionReturnArtifactRepository,
+                                       FieldEvidenceRecordRepository fieldEvidenceRecordRepository,
+                                       InspectionArtifactProjectionService inspectionArtifactProjectionService) {
         this.inspectionRepository = inspectionRepository;
-        this.objectMapper = objectMapper;
+        this.inspectionReturnArtifactRepository = inspectionReturnArtifactRepository;
+        this.fieldEvidenceRecordRepository = fieldEvidenceRecordRepository;
+        this.inspectionArtifactProjectionService = inspectionArtifactProjectionService;
     }
 
     @Transactional(readOnly = true)
@@ -80,28 +89,34 @@ public class InspectionBackofficeService {
                 inspection.getStatus(),
                 inspection.getSubmittedAt(),
                 inspection.getUpdatedAt(),
-                toPayload(inspection.getPayloadJson())
+                inspectionArtifactProjectionService.toPayload(inspection.getPayloadJson()),
+                inspectionReturnArtifactRepository.findTopByInspectionIdOrderByCreatedAtDesc(inspection.getId())
+                        .map(inspectionArtifactProjectionService::toReturnArtifact)
+                        .orElse(null),
+                fieldEvidenceRecordRepository.findByInspectionIdOrderByCreatedAtAsc(inspection.getId())
+                        .stream()
+                        .map(inspectionArtifactProjectionService::toFieldEvidence)
+                        .toList()
         );
     }
 
     private InspectionBackofficeListResponse.Item toItem(InspectionEntity entity) {
+        InspectionReturnArtifactEntity returnArtifact = inspectionReturnArtifactRepository
+                .findTopByInspectionIdOrderByCreatedAtDesc(entity.getId())
+                .orElse(null);
+        int evidenceCount = fieldEvidenceRecordRepository.findByInspectionIdOrderByCreatedAtAsc(entity.getId()).size();
         return new InspectionBackofficeListResponse.Item(
                 entity.getId(),
                 entity.getJobId(),
                 entity.getFieldAgentId(),
                 entity.getProtocolId(),
                 entity.getStatus(),
+                returnArtifact != null,
+                returnArtifact != null ? returnArtifact.getExecutionPlanSnapshotId() : null,
+                evidenceCount,
                 entity.getSubmittedAt(),
                 entity.getUpdatedAt()
         );
-    }
-
-    private JsonNode toPayload(String payloadJson) {
-        try {
-            return objectMapper.readTree(payloadJson);
-        } catch (Exception exception) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Falha ao desserializar payload da inspection");
-        }
     }
 
     private Specification<InspectionEntity> byTenant(String tenantId) {

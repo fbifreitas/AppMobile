@@ -76,6 +76,7 @@ class OverlayCameraSelectorPanel extends StatelessWidget {
               duplicateLabel:
                   section.duplicateLabel ??
                   strings.tr('Novo ambiente', 'New environment'),
+              compact: true,
             ),
           );
           break;
@@ -93,6 +94,7 @@ class OverlayCameraSelectorPanel extends StatelessWidget {
                 selected: section.selected,
                 onSelect: (value) async => onSelectTargetQualifier(value),
               ),
+              compact: true,
             ),
           );
           break;
@@ -110,6 +112,7 @@ class OverlayCameraSelectorPanel extends StatelessWidget {
                 selected: section.selected,
                 onSelect: (value) async => onSelectMaterial(value),
               ),
+              compact: true,
             ),
           );
           break;
@@ -127,6 +130,7 @@ class OverlayCameraSelectorPanel extends StatelessWidget {
                 selected: section.selected,
                 onSelect: (value) async => onSelectTargetCondition(value),
               ),
+              compact: true,
             ),
           );
           break;

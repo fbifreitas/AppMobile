@@ -272,9 +272,11 @@ void main() {
 
     final serialized = service.serializeStep2Config(fallback);
 
-    expect(serialized['minFotos'], fallback.minFotos);
-    expect(serialized['maxFotos'], fallback.maxFotos);
-    expect(serialized['bloqueiaCaptura'], isFalse);
+    expect(serialized['minPhotos'], fallback.minFotos);
+    expect(serialized['maxPhotos'], fallback.maxFotos);
+    expect(serialized['blocksCapture'], isFalse);
+    expect(serialized.containsKey('camposFotos'), isFalse);
+    expect(serialized.containsKey('gruposOpcoes'), isFalse);
   });
 
   test('parseStep2ConfigMap parses visible and required step2 policy', () {

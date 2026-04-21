@@ -78,6 +78,21 @@ Hoje, o caminho feliz operacional esta distribuido assim:
 - cria ou recupera o valuation process
 - expoe o fluxo no backoffice
 
+## Variantes Operacionais Da Vistoria
+
+Hoje o fluxo ponta a ponta admite duas variantes validas:
+
+1. `modo guiado`
+- a camera segue a arvore/classificacao operacional publicada pelo backend
+- obrigatoriedades podem ser cobradas ainda no mobile, conforme a policy do fluxo
+
+2. `modo de captura livre`
+- o `check-in etapa 1` continua obrigatorio
+- a ativacao real acontece em `Configuracoes`
+- no `check-in`, o vistoriador recebe mensagem informativa e registra ciencia
+- a camera captura fotos sem classifica-las no app
+- a classificacao, as obrigatoriedades e a `etapa 2` passam a ser cobradas na web
+
 ## Pre-Requisitos Obrigatorios
 
 Antes de executar o roteiro, valide:
@@ -398,6 +413,54 @@ Verificar:
 Verificar:
 - filtro de tenant
 - paginacao
+
+## Cenario Adicional - Validar Captura Livre Ponta A Ponta
+
+Use este cenario quando o objetivo for provar que o app pode coletar imagens sem classifica-las no campo e transferir a consolidacao para a web.
+
+### Preparacao
+
+1. no app, abrir `Configuracoes`
+2. habilitar `Modo de captura livre`
+3. garantir que o tenant usado no teste possui acesso ao backoffice web
+
+### Execucao no mobile
+
+1. iniciar a vistoria normalmente
+2. preencher o `check-in etapa 1`
+3. confirmar a mensagem informativa de que o modo livre esta ativo
+4. abrir a camera
+5. capturar imagens sem classifica-las
+6. finalizar a vistoria
+
+Resultado esperado:
+- a camera nao exige selecao de arvore/classificacao
+- a revisao/finalizacao no app nao bloqueiam por obrigatoriedade
+- o envio conclui e a inspection chega ao backoffice
+
+### Validacao no backoffice
+
+1. abrir `/backoffice/inspections`
+2. localizar a inspection recem-enviada
+3. abrir `Detalhe`
+4. confirmar que a vistoria foi recebida como pendente de classificacao manual
+5. classificar as imagens manualmente
+6. validar a matriz de obrigatoriedade
+7. preencher a `etapa 2` quando o fluxo exigir
+
+Resultado esperado:
+- a web passa a ser o local de consolidacao da vistoria
+- a classificacao manual e obrigatoria
+- obrigatoriedades continuam sendo respeitadas
+- `etapa 2` continua sendo respeitada quando habilitada
+
+### Evidencias Minimas Adicionais Para O Modo Livre
+
+Registrar:
+- screenshot do aviso de `modo de captura livre` no check-in
+- screenshot da camera aberta sem arvore de classificacao
+- screenshot da inspection na web aguardando classificacao manual
+- screenshot da tela web de classificacao manual com a matriz de obrigatoriedade visivel
 - status selecionado
 
 ## Cenario 4 - Aceite E Execucao No Mobile

@@ -1,5 +1,6 @@
 import '../models/flow_selection.dart';
 import '../models/inspection_camera_flow_request.dart';
+import '../models/overlay_camera_capture_result.dart';
 
 class CameraRecoveryState {
   const CameraRecoveryState({
@@ -8,6 +9,7 @@ class CameraRecoveryState {
     required this.subtipoImovel,
     required this.singleCaptureMode,
     required this.cameFromCheckinStep1,
+    required this.freeCaptureMode,
     required this.selection,
   });
 
@@ -16,6 +18,7 @@ class CameraRecoveryState {
   final String subtipoImovel;
   final bool singleCaptureMode;
   final bool cameFromCheckinStep1;
+  final bool freeCaptureMode;
   final FlowSelection selection;
 }
 
@@ -31,7 +34,9 @@ class InspectionRecoveryRouteService {
     required String subtipoImovel,
     required bool singleCaptureMode,
     required bool cameFromCheckinStep1,
+    required bool freeCaptureMode,
     required FlowSelection selection,
+    List<OverlayCameraCaptureResult> captures = const <OverlayCameraCaptureResult>[],
   }) {
     return <String, dynamic>{
       'title': title,
@@ -39,7 +44,9 @@ class InspectionRecoveryRouteService {
       'subtipoImovel': subtipoImovel,
       'singleCaptureMode': singleCaptureMode,
       'cameFromCheckinStep1': cameFromCheckinStep1,
+      'freeCaptureMode': freeCaptureMode,
       'selection': selection.toMap(includeCanonical: true, includeLegacy: true),
+      'captures': captures.map((capture) => capture.toMap()).toList(),
     };
   }
 
@@ -71,6 +78,7 @@ class InspectionRecoveryRouteService {
       subtipoImovel: subtipoImovel,
       singleCaptureMode: map['singleCaptureMode'] == true,
       cameFromCheckinStep1: map['cameFromCheckinStep1'] == true,
+      freeCaptureMode: map['freeCaptureMode'] == true,
       selection: selection,
     );
   }
@@ -87,6 +95,7 @@ class InspectionRecoveryRouteService {
       subtipoImovel: state.subtipoImovel,
       singleCaptureMode: state.singleCaptureMode,
       cameFromCheckinStep1: state.cameFromCheckinStep1,
+      freeCaptureMode: state.freeCaptureMode,
       initialSelection: state.selection,
       preferInitialSelection: true,
     );

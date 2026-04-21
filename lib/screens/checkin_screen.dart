@@ -6,7 +6,9 @@ import '../config/checkin_step2_config.dart';
 import '../config/inspection_menu_package.dart';
 import '../l10n/app_strings.dart';
 import '../models/checkin_step2_model.dart';
+import '../models/smart_execution_plan.dart';
 import '../services/checkin_dynamic_config_service.dart';
+import '../services/checkin_photo_capture_service.dart';
 import '../services/inspection_checkin_camera_use_case.dart';
 import '../services/inspection_checkin_step1_state_service.dart';
 import '../services/inspection_capture_context_resolver.dart';
@@ -15,6 +17,7 @@ import '../services/inspection_recovery_stage_service.dart';
 import '../services/mobile_job_action_service.dart';
 import '../services/inspection_semantic_field_service.dart';
 import '../services/location_service.dart';
+import '../services/smart_execution_plan_step1_hydrator.dart';
 import '../services/voice_input_service.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
@@ -82,9 +85,16 @@ class _CheckinScreenState extends State<CheckinScreen> {
       InspectionCheckinStep1StateService.instance;
   final InspectionRecoveryStageService _recoveryStageService =
       InspectionRecoveryStageService.instance;
+  final SmartExecutionPlanStep1Hydrator _step1Hydrator =
+      SmartExecutionPlanStep1Hydrator.instance;
+  final CheckinPhotoCaptureService _checkinPhotoCaptureService =
+      CheckinPhotoCaptureService();
+  final TextEditingController _clientAbsentResponderController =
+      TextEditingController();
 
   List<String> _tipos = const <String>[];
   Map<String, List<String>> _subtiposPorTipo = const {};
+  List<String> _candidateSubtipos = const <String>[];
   List<String> _contextos = const <String>[];
   List<ConfigLevelDefinition> _step1Levels = const [];
   Map<String, List<ConfigLevelDefinition>> _step1LevelsByTipoSubtipo = const {};
@@ -96,8 +106,11 @@ class _CheckinScreenState extends State<CheckinScreen> {
   bool _loadingStep2Policy = false;
   bool _submittingClientAbsent = false;
   bool _step1SectionExpanded = true;
+  bool _freeCaptureAcknowledged = false;
   String? _expandedQuestionId = _questionClienteId;
+  int? _lastAppliedExecutionPlanSnapshotId;
   CheckinStep2Config? _step2RuntimeConfig;
+  CheckinStep2PhotoAnswer? _clientAbsentEvidence;
 
   @override
   void initState() {
@@ -125,13 +138,16 @@ class _CheckinScreenState extends State<CheckinScreen> {
       if (tipoImovel != null && !_tipos.contains(tipoImovel)) {
         tipoImovel = null;
         subtipoImovel = null;
+        _candidateSubtipos = const <String>[];
       }
 
       final allowedSubtipos =
           tipoImovel == null
               ? const <String>[]
               : (_subtiposPorTipo[tipoImovel] ?? const <String>[]);
-      if (subtipoImovel != null && !allowedSubtipos.contains(subtipoImovel)) {
+      if (subtipoImovel != null &&
+          !allowedSubtipos.contains(subtipoImovel) &&
+          !_candidateSubtipos.contains(subtipoImovel)) {
         subtipoImovel = null;
       }
 
@@ -144,12 +160,17 @@ class _CheckinScreenState extends State<CheckinScreen> {
       _loadingDynamicConfig = false;
     });
 
-    await _persistStep1();
+    _applyExecutionPlanContract(context.read<AppState>());
+
+    if (_hasMeaningfulStep1Data()) {
+      await _persistStep1();
+    }
     await _loadStep2RuntimeConfigForSelection();
   }
 
   @override
   void dispose() {
+    _clientAbsentResponderController.dispose();
     _voiceService.dispose();
     super.dispose();
   }
@@ -170,6 +191,17 @@ class _CheckinScreenState extends State<CheckinScreen> {
         payload['subtipoImovel'] as String?;
     porOndeComecar =
         payload['entryPoint'] as String? ?? payload['porOndeComecar'] as String?;
+    _freeCaptureAcknowledged = payload['freeCaptureAcknowledged'] == true;
+    _clientAbsentResponderController.text =
+        payload['clientAbsentResponderName'] as String? ?? '';
+    final rawClientAbsentEvidence = payload['clientAbsentEvidence'];
+    if (rawClientAbsentEvidence is Map) {
+      _clientAbsentEvidence = CheckinStep2PhotoAnswer.fromMap(
+        Map<String, dynamic>.from(
+          rawClientAbsentEvidence.map((key, value) => MapEntry('$key', value)),
+        ),
+      );
+    }
 
     final rawLevels = payload['niveis'];
     if (rawLevels is Map) {
@@ -197,6 +229,169 @@ class _CheckinScreenState extends State<CheckinScreen> {
         ),
       );
     });
+  }
+
+  bool _hasMeaningfulStep1Data() {
+    return clientePresente != null ||
+        (tipoImovel?.trim().isNotEmpty ?? false) ||
+        (subtipoImovel?.trim().isNotEmpty ?? false) ||
+        (porOndeComecar?.trim().isNotEmpty ?? false) ||
+        _niveisSelecionados.isNotEmpty;
+  }
+
+  SmartExecutionPlan? _effectiveExecutionPlan(AppState appState) {
+    return appState.currentExecutionPlan ?? appState.jobAtual?.smartExecutionPlan;
+  }
+
+  List<String> _resolvePlanAssetTypes(AppState appState) {
+    final effectivePlan = _effectiveExecutionPlan(appState);
+    final hydration = _step1Hydrator.resolve(
+      plan: effectivePlan,
+      availableAssetTypes: _tipos,
+      availableSubtypesByType: _subtiposPorTipo,
+      availableContexts: _contextos,
+      fallbackAssetType: tipoImovel,
+      fallbackAssetSubtype: subtipoImovel,
+      fallbackContext: porOndeComecar,
+    );
+    final hydratedAssetType = hydration?.assetType?.trim();
+    if (hydratedAssetType == null || hydratedAssetType.isEmpty) {
+      return List<String>.from(_tipos);
+    }
+    return <String>[hydratedAssetType];
+  }
+
+  void _applyExecutionPlanContract(AppState appState) {
+    final effectivePlan = _effectiveExecutionPlan(appState);
+    final hydration = _step1Hydrator.resolve(
+      plan: effectivePlan,
+      availableAssetTypes: _tipos,
+      availableSubtypesByType: _subtiposPorTipo,
+      availableContexts: _contextos,
+      fallbackAssetType: tipoImovel,
+      fallbackAssetSubtype: subtipoImovel,
+      fallbackContext: porOndeComecar,
+    );
+
+    final plan = effectivePlan;
+    if (hydration == null && plan == null) {
+      return;
+    }
+
+    final nextTipos = _resolvePlanAssetTypes(appState);
+    final rawContexts =
+        plan != null && plan.availableContexts.isNotEmpty
+            ? plan.availableContexts
+            : _contextos;
+    final normalizedContexts = <String>[];
+    for (final item in rawContexts) {
+      final trimmed = item.trim();
+      if (trimmed.isEmpty || normalizedContexts.contains(trimmed)) {
+        continue;
+      }
+      normalizedContexts.add(trimmed);
+    }
+
+    final nextCandidateSubtypes =
+        hydration?.candidateAssetSubtypes ?? const <String>[];
+    final contextStillValid =
+        porOndeComecar == null || normalizedContexts.contains(porOndeComecar);
+
+    if (!mounted) {
+      _contextos = normalizedContexts;
+      _candidateSubtipos = List<String>.from(nextCandidateSubtypes);
+      if (!contextStillValid) {
+        porOndeComecar = null;
+      }
+      _sanitizeSelectedLevels();
+      return;
+    }
+
+    setState(() {
+      _tipos = nextTipos;
+      _contextos = normalizedContexts;
+      _candidateSubtipos = List<String>.from(nextCandidateSubtypes);
+      if (!contextStillValid) {
+        porOndeComecar = null;
+      }
+      _sanitizeSelectedLevels();
+    });
+  }
+
+  List<String> _resolvePlanCandidateSubtypes(
+    AppState appState, {
+    String? selectedAssetType,
+  }) {
+    final effectivePlan = _effectiveExecutionPlan(appState);
+    final hydration = _step1Hydrator.resolve(
+      plan: effectivePlan,
+      availableAssetTypes: _tipos,
+      availableSubtypesByType: _subtiposPorTipo,
+      availableContexts: _contextos,
+      fallbackAssetType: selectedAssetType ?? tipoImovel,
+      fallbackAssetSubtype: subtipoImovel,
+      fallbackContext: porOndeComecar,
+    );
+    if (hydration == null) {
+      return const <String>[];
+    }
+
+    final resolvedAssetType = hydration.assetType;
+    final normalizedSelected = selectedAssetType?.trim();
+    if (normalizedSelected != null &&
+        normalizedSelected.isNotEmpty &&
+        resolvedAssetType != null &&
+        resolvedAssetType.trim().toLowerCase() !=
+            normalizedSelected.toLowerCase()) {
+      return const <String>[];
+    }
+
+    return List<String>.from(hydration.candidateAssetSubtypes);
+  }
+
+  void _syncExecutionPlanContractIfNeeded(AppState appState) {
+    if (_loadingDynamicConfig) {
+      return;
+    }
+
+    final currentSnapshotId = _effectiveExecutionPlan(appState)?.snapshotId;
+    if (_lastAppliedExecutionPlanSnapshotId == currentSnapshotId) {
+      return;
+    }
+    _lastAppliedExecutionPlanSnapshotId = currentSnapshotId;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _applyExecutionPlanContract(appState);
+    });
+  }
+
+  // ignore: unused_element
+  String? _resolvedContextFromExecutionPlan(String? rawContext) {
+    final normalized = rawContext?.trim();
+    if (normalized == null || normalized.isEmpty) return null;
+
+    final directMatch = _contextos.cast<String?>().firstWhere(
+      (value) => value?.trim().toLowerCase() == normalized.toLowerCase(),
+      orElse: () => null,
+    );
+    if (directMatch != null) {
+      return directMatch;
+    }
+
+    switch (normalized.toLowerCase()) {
+      case 'street':
+        return _contextos.contains('Rua') ? 'Rua' : null;
+      case 'external area':
+        return _contextos.contains('Area externa')
+            ? 'Area externa'
+            : (_contextos.contains('Área externa') ? 'Área externa' : null);
+      case 'internal area':
+        return _contextos.contains('Area interna')
+            ? 'Area interna'
+            : (_contextos.contains('Área interna') ? 'Área interna' : null);
+    }
+    return null;
   }
 
   Future<void> _loadStep2RuntimeConfigForSelection() async {
@@ -239,6 +434,9 @@ class _CheckinScreenState extends State<CheckinScreen> {
   }
 
   bool _shouldShowStep2Action() {
+    if (context.read<AppState>().currentInspectionFreeCaptureEnabled) {
+      return false;
+    }
     if (_loadingStep2Policy) {
       return false;
     }
@@ -253,10 +451,39 @@ class _CheckinScreenState extends State<CheckinScreen> {
       subtipoImovel: subtipoImovel,
       porOndeComecar: porOndeComecar,
       niveis: _niveisSelecionados,
+      freeCaptureModeEnabled: appState.freeCaptureModeEnabled,
+      freeCaptureAcknowledged: _freeCaptureAcknowledged,
+      clientAbsentResponderName: _clientAbsentResponderController.text.trim(),
+      clientAbsentEvidence: _clientAbsentEvidence?.toMap(),
     );
   }
 
   List<ConfigLevelDefinition> _resolveActiveStep1Levels() {
+    List<ConfigLevelDefinition> withoutContextLevel(
+      List<ConfigLevelDefinition> levels,
+    ) {
+      return levels.where((level) {
+        final isContextLevel =
+            level.id == _contextLevelId ||
+            level.semanticKey == InspectionSemanticFieldKeys.captureContext;
+        return !isContextLevel;
+      }).toList(growable: false);
+    }
+
+    if (_step1Levels.isNotEmpty) {
+      if (tipoImovel == null || subtipoImovel == null) {
+        return withoutContextLevel(_bindPlanContextsToLevels(_step1Levels));
+      }
+
+      final typedKey =
+          '${tipoImovel!.trim().toLowerCase()}::${subtipoImovel!.trim().toLowerCase()}';
+      final bySubtype = _step1LevelsByTipoSubtipo[typedKey];
+      if (bySubtype != null && bySubtype.isNotEmpty) {
+        return withoutContextLevel(_bindPlanContextsToLevels(bySubtype));
+      }
+      return withoutContextLevel(_bindPlanContextsToLevels(_step1Levels));
+    }
+
     if (_step1Levels.isEmpty) {
       return <ConfigLevelDefinition>[
         ConfigLevelDefinition(
@@ -280,16 +507,40 @@ class _CheckinScreenState extends State<CheckinScreen> {
     }
 
     if (tipoImovel == null || subtipoImovel == null) {
-      return _step1Levels;
+      return _bindPlanContextsToLevels(_step1Levels);
     }
 
     final typedKey =
         '${tipoImovel!.trim().toLowerCase()}::${subtipoImovel!.trim().toLowerCase()}';
     final bySubtype = _step1LevelsByTipoSubtipo[typedKey];
     if (bySubtype != null && bySubtype.isNotEmpty) {
-      return bySubtype;
+      return _bindPlanContextsToLevels(bySubtype);
     }
-    return _step1Levels;
+    return _bindPlanContextsToLevels(_step1Levels);
+  }
+
+  List<ConfigLevelDefinition> _bindPlanContextsToLevels(
+    List<ConfigLevelDefinition> levels,
+  ) {
+    return levels.map((level) {
+      final isContextLevel =
+          level.id == _contextLevelId ||
+          level.semanticKey == InspectionSemanticFieldKeys.captureContext;
+      if (!isContextLevel) {
+        return level;
+      }
+
+      return ConfigLevelDefinition(
+        id: level.id,
+        label: level.label,
+        required: level.required,
+        dependsOn: level.dependsOn,
+        options: List<String>.from(_contextos),
+        semanticKey: level.semanticKey,
+        aliases: level.aliases,
+        labelsBySurface: level.labelsBySurface,
+      );
+    }).toList();
   }
 
   List<String> _optionsForLevel(ConfigLevelDefinition level) {
@@ -314,7 +565,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
       contextLevelId: _contextLevelId,
       fallbackContextos: _contextos,
     );
-    porOndeComecar = _niveisSelecionados[_contextLevelId] ?? porOndeComecar;
+    porOndeComecar = _niveisSelecionados[_contextLevelId];
   }
 
   bool _hasRequiredLevelsSelected() {
@@ -339,7 +590,6 @@ class _CheckinScreenState extends State<CheckinScreen> {
     final appState = context.watch<AppState>();
     final strings = AppStrings.of(context);
     final job = appState.jobAtual;
-
     if (job == null) {
       return Scaffold(
         appBar: AppBar(title: Text(strings.tr('Check-in Vistoria', 'Inspection check-in'))),
@@ -348,11 +598,11 @@ class _CheckinScreenState extends State<CheckinScreen> {
     }
 
     _hydrateFromDraft(appState);
-
+    _syncExecutionPlanContractIfNeeded(appState);
     final subtipos =
         tipoImovel == null
             ? const <String>[]
-            : (_subtiposPorTipo[tipoImovel] ?? const <String>[]);
+            : _resolvedSubtiposParaTipo(tipoImovel!);
 
     return Scaffold(
       appBar: AppBar(title: Text(strings.tr('Check-in Vistoria', 'Inspection check-in'))),
@@ -420,6 +670,63 @@ class _CheckinScreenState extends State<CheckinScreen> {
               },
             ),
             const SizedBox(height: 16),
+            if (appState.currentInspectionFreeCaptureEnabled) ...[
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.warningLight,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.warning),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      strings.tr(
+                        'Modo de captura livre habilitado',
+                        'Free capture mode enabled',
+                      ),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      strings.tr(
+                        'Nesta vistoria, as fotos poderao ser capturadas sem classificacao no app. A classificacao, as obrigatoriedades e a etapa 2, quando aplicavel, serao tratadas depois na web.',
+                        'In this inspection, photos may be captured without classification in the app. Classification, mandatory rules, and step 2 when applicable will be handled later on the web.',
+                      ),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    CheckboxListTile(
+                      value: _freeCaptureAcknowledged,
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: Text(
+                        strings.tr(
+                          'Estou ciente e desejo seguir neste modo.',
+                          'I acknowledge and want to proceed in this mode.',
+                        ),
+                      ),
+                      onChanged: (value) async {
+                        setState(() {
+                          _freeCaptureAcknowledged = value == true;
+                        });
+                        await _persistStep1();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             Row(
               children: [
                 Expanded(
@@ -506,18 +813,34 @@ class _CheckinScreenState extends State<CheckinScreen> {
               onTipoVoiceTap: _selectTipoByVoice,
               onSubtipoVoiceTap: _selectSubtipoByVoice,
               onLevelVoiceTap: _selectLevelByVoice,
+              absentResponderController: _clientAbsentResponderController,
+              hasAbsentEvidence:
+                  _clientAbsentEvidence != null && _clientAbsentEvidence!.hasImage,
+              absentEvidenceLabel: _clientAbsentEvidenceLabel(context),
+              onAbsentResponderChanged: (_) {
+                _persistStep1();
+              },
+              onCaptureAbsentEvidence: _captureClientAbsentEvidence,
+              onSubmitClientAbsent: _submitClientAbsentFlow,
               onClientePresenteYes: () async {
                 setState(() {
                   clientePresente = true;
+                  _clientAbsentResponderController.clear();
+                  _clientAbsentEvidence = null;
                   _expandedQuestionId = _questionTipoId;
                 });
                 await _persistStep1();
               },
               onClientePresenteNo: _handleClienteAusenteSelection,
               onTipoSelected: (tipo) async {
+                final appStateRead = context.read<AppState>();
                 setState(() {
                   tipoImovel = tipo;
                   subtipoImovel = null;
+                  _candidateSubtipos = _resolvePlanCandidateSubtypes(
+                    appStateRead,
+                    selectedAssetType: tipo,
+                  );
                   _sanitizeSelectedLevels();
                   _expandedQuestionId = _questionSubtipoId;
                 });
@@ -604,6 +927,14 @@ class _CheckinScreenState extends State<CheckinScreen> {
         ),
       ),
     );
+  }
+
+  List<String> _resolvedSubtiposParaTipo(String tipo) {
+    final base = List<String>.from(_subtiposPorTipo[tipo] ?? const <String>[]);
+    if (_candidateSubtipos.isEmpty) {
+      return base;
+    }
+    return List<String>.from(_candidateSubtipos);
   }
 
   // ignore: unused_element
@@ -758,9 +1089,14 @@ class _CheckinScreenState extends State<CheckinScreen> {
                       label: Text(tipo),
                       selected: tipoImovel == tipo,
                       onSelected: (_) async {
+                        final appStateRead = context.read<AppState>();
                         setState(() {
                           tipoImovel = tipo;
                           subtipoImovel = null;
+                          _candidateSubtipos = _resolvePlanCandidateSubtypes(
+                            appStateRead,
+                            selectedAssetType: tipo,
+                          );
                           _sanitizeSelectedLevels();
                           _expandedQuestionId = _questionSubtipoId;
                         });
@@ -999,6 +1335,8 @@ class _CheckinScreenState extends State<CheckinScreen> {
     if (selected == strings.tr('Sim', 'Yes')) {
       setState(() {
         clientePresente = true;
+        _clientAbsentResponderController.clear();
+        _clientAbsentEvidence = null;
         _expandedQuestionId = _questionTipoId;
       });
       await _persistStep1();
@@ -1010,33 +1348,63 @@ class _CheckinScreenState extends State<CheckinScreen> {
 
   Future<void> _handleClienteAusenteSelection() async {
     if (_submittingClientAbsent) return;
+    setState(() {
+      clientePresente = false;
+      _expandedQuestionId = _questionClienteId;
+    });
+    await _persistStep1();
+  }
+
+  Future<void> _captureClientAbsentEvidence() async {
     final strings = AppStrings.of(context);
+    try {
+      final result = await _checkinPhotoCaptureService.captureFromCamera();
+      if (!mounted) return;
+      setState(() {
+        _clientAbsentEvidence = CheckinStep2PhotoAnswer(
+          fieldId: 'client_absent_evidence',
+          titulo: 'Comprovacao de visita',
+          imagePath: result.path,
+          capturedAt: result.geoPoint.capturedAt,
+          geoPoint: result.geoPoint,
+        );
+      });
+      await _persistStep1();
+    } on CheckinPhotoCaptureException catch (error) {
+      _mostrarInfo(error.message);
+    } catch (error) {
+      _mostrarInfo(
+        strings.tr(
+          'Nao foi possivel registrar a evidencia: $error',
+          'Unable to capture evidence: $error',
+        ),
+      );
+    }
+  }
 
-    final confirmed =
-        await showDialog<bool>(
-          context: context,
-          builder:
-              (dialogContext) => AlertDialog(
-                title: Text(strings.tr('Confirmar ausencia do cliente', 'Confirm client absence')),
-                content: Text(
-                  strings.tr('Essa acao vai avisar o backoffice para reagendar a vistoria e retirar este job da sua fila ativa. Deseja continuar?', 'This action will notify the back office to reschedule the inspection and remove this job from your active queue. Do you want to continue?'),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(dialogContext, false),
-                    child: Text(strings.tr('Cancelar', 'Cancel')),
-                  ),
-                  FilledButton(
-                    onPressed: () => Navigator.pop(dialogContext, true),
-                    child: Text(strings.tr('Confirmar', 'Confirm')),
-                  ),
-                ],
-              ),
-        ) ??
-        false;
-
-    if (!confirmed || !mounted) return;
-
+  Future<void> _submitClientAbsentFlow() async {
+    if (_submittingClientAbsent) return;
+    final strings = AppStrings.of(context);
+    final responderName = _clientAbsentResponderController.text.trim();
+    if (responderName.isEmpty) {
+      _mostrarInfo(
+        strings.tr(
+          'Informe o nome de quem atendeu no local.',
+          'Provide the name of the person who answered at the location.',
+        ),
+      );
+      return;
+    }
+    final evidence = _clientAbsentEvidence;
+    if (evidence == null || !evidence.hasImage || evidence.geoPoint == null) {
+      _mostrarInfo(
+        strings.tr(
+          'Capture uma foto de evidencia com geolocalizacao antes de solicitar o reagendamento.',
+          'Capture one geotagged evidence photo before requesting rescheduling.',
+        ),
+      );
+      return;
+    }
     final appState = context.read<AppState>();
     final currentJob = appState.jobAtual;
     if (currentJob == null) return;
@@ -1044,6 +1412,8 @@ class _CheckinScreenState extends State<CheckinScreen> {
     setState(() => _submittingClientAbsent = true);
     final result = await widget.jobActionService.requestSchedulingAfterClientAbsent(
       jobId: currentJob.id,
+      responderName: responderName,
+      evidence: evidence,
     );
 
     if (!mounted) return;
@@ -1068,6 +1438,20 @@ class _CheckinScreenState extends State<CheckinScreen> {
     Navigator.of(context).maybePop();
   }
 
+  String? _clientAbsentEvidenceLabel(BuildContext context) {
+    final evidence = _clientAbsentEvidence;
+    final geoPoint = evidence?.geoPoint;
+    if (evidence == null || geoPoint == null) {
+      return null;
+    }
+    final strings = AppStrings.of(context);
+    final timestamp = evidence.capturedAt ?? geoPoint.capturedAt;
+    return strings.tr(
+      'Evidencia registrada em ${timestamp.day.toString().padLeft(2, '0')}/${timestamp.month.toString().padLeft(2, '0')} ${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')} com GPS ativo.',
+      'Evidence captured on ${timestamp.day.toString().padLeft(2, '0')}/${timestamp.month.toString().padLeft(2, '0')} ${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')} with GPS active.',
+    );
+  }
+
   Future<void> _selectTipoByVoice() async {
     final strings = AppStrings.of(context);
     final selected = await VoiceSelectorSheet.open(
@@ -1078,10 +1462,18 @@ class _CheckinScreenState extends State<CheckinScreen> {
       currentValue: tipoImovel,
     );
     if (selected == null || !mounted) return;
+    final appStateRead = context.read<AppState>();
     setState(() {
       tipoImovel = selected;
       subtipoImovel = null;
+      _candidateSubtipos = _resolvePlanCandidateSubtypes(
+        appStateRead,
+        selectedAssetType: selected,
+      );
+      _sanitizeSelectedLevels();
+      _expandedQuestionId = _questionSubtipoId;
     });
+    await _loadStep2RuntimeConfigForSelection();
     await _persistStep1();
   }
 
@@ -1090,7 +1482,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
     final subtipos =
         tipoImovel == null
             ? const <String>[]
-            : (_subtiposPorTipo[tipoImovel] ?? const <String>[]);
+            : _resolvedSubtiposParaTipo(tipoImovel!);
     if (subtipos.isEmpty) {
       _mostrarInfo(strings.tr('Selecione o tipo de imovel antes do subtipo.', 'Select the property type before the subtype.'));
       return;
@@ -1104,7 +1496,16 @@ class _CheckinScreenState extends State<CheckinScreen> {
       currentValue: subtipoImovel,
     );
     if (selected == null || !mounted) return;
-    setState(() => subtipoImovel = selected);
+    final activeLevels =
+        clientePresente == true
+            ? _resolveActiveStep1Levels()
+            : const <ConfigLevelDefinition>[];
+    setState(() {
+      subtipoImovel = selected;
+      _sanitizeSelectedLevels();
+      _expandedQuestionId =
+          activeLevels.isEmpty ? null : _levelQuestionId(activeLevels.first.id);
+    });
     await _persistStep1();
   }
 
@@ -1138,7 +1539,9 @@ class _CheckinScreenState extends State<CheckinScreen> {
 
   Future<void> _handleConfirm() async {
     final strings = AppStrings.of(context);
-    if (_loadingStep2Policy) {
+    final appState = context.read<AppState>();
+    final freeCaptureMode = appState.currentInspectionFreeCaptureEnabled;
+    if (_loadingStep2Policy && !freeCaptureMode) {
       _mostrarInfo(
         strings.tr('Aguarde a configuracao operacional da Etapa 2 carregar para continuar.', 'Wait for the operational Step 2 configuration to load before continuing.'),
       );
@@ -1155,11 +1558,21 @@ class _CheckinScreenState extends State<CheckinScreen> {
       return;
     }
 
+    if (freeCaptureMode && !_freeCaptureAcknowledged) {
+      _mostrarInfo(
+        strings.tr(
+          'Confirme a ciencia do modo de captura livre antes de continuar.',
+          'Confirm awareness of free capture mode before continuing.',
+        ),
+      );
+      return;
+    }
+
     await _persistStep1();
     if (!mounted) return;
 
-    final step2Config = _resolveCurrentStep2Config();
-    if (step2Config == null) {
+    final step2Config = freeCaptureMode ? null : _resolveCurrentStep2Config();
+    if (!freeCaptureMode && step2Config == null) {
       _mostrarInfo(
         strings.tr('Selecione o tipo do imovel para carregar a configuracao operacional antes de continuar.', 'Select the property type to load the operational configuration before continuing.'),
       );
@@ -1171,7 +1584,6 @@ class _CheckinScreenState extends State<CheckinScreen> {
     );
 
     if (!mounted) return;
-    final appState = context.read<AppState>();
     await _checkinCameraUseCase.openFromStep1(
       context,
       flowCoordinator: widget.flowCoordinator,
@@ -1219,4 +1631,3 @@ class _CheckinScreenState extends State<CheckinScreen> {
     );
   }
 }
-

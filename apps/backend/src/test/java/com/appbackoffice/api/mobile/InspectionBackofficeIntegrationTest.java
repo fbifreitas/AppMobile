@@ -12,6 +12,8 @@ import com.appbackoffice.api.job.repository.JobRepository;
 import com.appbackoffice.api.job.repository.JobTimelineRepository;
 import com.appbackoffice.api.job.service.CaseService;
 import com.appbackoffice.api.job.service.JobService;
+import com.appbackoffice.api.intelligence.repository.FieldEvidenceRecordRepository;
+import com.appbackoffice.api.intelligence.repository.InspectionReturnArtifactRepository;
 import com.appbackoffice.api.mobile.repository.InspectionRepository;
 import com.appbackoffice.api.mobile.repository.InspectionSubmissionRepository;
 import com.appbackoffice.api.platform.repository.TenantApplicationRepository;
@@ -48,6 +50,8 @@ class InspectionBackofficeIntegrationTest {
     @Autowired private ObjectMapper objectMapper;
     @Autowired private InspectionRepository inspectionRepository;
     @Autowired private InspectionSubmissionRepository inspectionSubmissionRepository;
+    @Autowired private InspectionReturnArtifactRepository inspectionReturnArtifactRepository;
+    @Autowired private FieldEvidenceRecordRepository fieldEvidenceRecordRepository;
     @Autowired private JobTimelineRepository jobTimelineRepository;
     @Autowired private AssignmentRepository assignmentRepository;
     @Autowired private JobRepository jobRepository;
@@ -67,6 +71,8 @@ class InspectionBackofficeIntegrationTest {
     void setUp() throws Exception {
         inspectionRepository.deleteAll();
         inspectionSubmissionRepository.deleteAll();
+        fieldEvidenceRecordRepository.deleteAll();
+        inspectionReturnArtifactRepository.deleteAll();
         jobTimelineRepository.deleteAll();
         assignmentRepository.deleteAll();
         jobRepository.deleteAll();
@@ -93,6 +99,8 @@ class InspectionBackofficeIntegrationTest {
     void tearDown() {
         inspectionRepository.deleteAll();
         inspectionSubmissionRepository.deleteAll();
+        fieldEvidenceRecordRepository.deleteAll();
+        inspectionReturnArtifactRepository.deleteAll();
         jobTimelineRepository.deleteAll();
         assignmentRepository.deleteAll();
         jobRepository.deleteAll();
@@ -121,6 +129,8 @@ class InspectionBackofficeIntegrationTest {
         assertThat(body.get("size").asInt()).isEqualTo(1);
         assertThat(body.withArray("items").size()).isEqualTo(1);
         assertThat(body.at("/items/0/status").asText()).isEqualTo("SUBMITTED");
+        assertThat(body.at("/items/0/hasExecutionArtifacts").asBoolean()).isTrue();
+        assertThat(body.at("/items/0/evidenceCount").asInt()).isGreaterThanOrEqualTo(1);
     }
 
     @Test
@@ -139,6 +149,11 @@ class InspectionBackofficeIntegrationTest {
         assertThat(body.get("tenantId").asText()).isEqualTo(TENANT_ID);
         assertThat(body.get("status").asText()).isEqualTo("SUBMITTED");
         assertThat(body.at("/payload/job/id").asText()).isNotBlank();
+        assertThat(body.at("/returnArtifact/rawStorageKey").asText()).isNotBlank();
+        assertThat(body.at("/returnArtifact/normalizedStorageKey").asText()).isNotBlank();
+        assertThat(body.at("/returnArtifact/summary/reviewPhotoCount").asInt()).isEqualTo(2);
+        assertThat(body.withArray("fieldEvidence").size()).isGreaterThanOrEqualTo(1);
+        assertThat(body.at("/fieldEvidence/0/status").asText()).isNotBlank();
     }
 
     private Long createAcceptedJob(String caseNumber, String title) {

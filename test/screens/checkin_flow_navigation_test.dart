@@ -11,6 +11,7 @@ import 'package:appmobile/models/job.dart';
 import 'package:appmobile/models/inspection_camera_flow_request.dart';
 import 'package:appmobile/models/inspection_session_model.dart';
 import 'package:appmobile/models/overlay_camera_capture_result.dart';
+import 'package:appmobile/models/smart_execution_plan.dart';
 import 'package:appmobile/repositories/job_repository.dart';
 import 'package:appmobile/services/checkin_dynamic_config_service.dart';
 import 'package:appmobile/services/inspection_camera_entry_policy_service.dart';
@@ -130,6 +131,8 @@ class _FakeMobileJobActionService extends MobileJobActionService {
   @override
   Future<MobileJobActionResult> requestSchedulingAfterClientAbsent({
     required String jobId,
+    required String responderName,
+    required CheckinStep2PhotoAnswer evidence,
     String? reason,
   }) async {
     called = true;
@@ -186,14 +189,14 @@ void main() {
     expect(find.text('Comercial'), findsOneWidget);
     expect(find.text('Industrial'), findsOneWidget);
 
-    // Scroll down to bring Urbano into view
+    // Scroll down to bring the urban option into view.
     await tester.drag(find.byType(ListView), const Offset(0, -200));
     await tester.pumpAndSettle();
 
     await tester.tap(find.widgetWithText(ChoiceChip, 'Urbano'));
     await tester.pumpAndSettle();
 
-    // Scroll down to bring Subtipo into view
+    // Scroll down to bring the subtype section into view.
     await tester.drag(find.byType(ListView), const Offset(0, -200));
     await tester.pumpAndSettle();
 
@@ -206,6 +209,52 @@ void main() {
     await tester.tap(find.widgetWithText(ChoiceChip, 'Apartamento'));
     await tester.pumpAndSettle();
   });
+
+  testWidgets(
+    'check-in etapa 1 hydrates smart execution plan hints when no draft exists',
+    (tester) async {
+      final appState = AppState(_ImmediateJobRepository());
+      appState.selecionarJob(
+        Job(
+          id: 'job-smart-1',
+          titulo: 'Vistoria Smart',
+          endereco: 'Rua Inteligente, 10',
+          nomeCliente: 'Cliente Smart',
+          smartExecutionPlan: const SmartExecutionPlan(
+            snapshotId: 11,
+            caseId: 55,
+            status: 'PUBLISHED',
+            jobId: 'job-smart-1',
+            propertyTaxonomy: 'RESIDENTIAL_VERTICAL',
+            initialAssetType: 'RESIDENTIAL',
+            candidateAssetSubtypes: ['Apartamento', 'Duplex'],
+            initialContext: 'Street',
+            cameraMode: 'guided',
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider<AppState>.value(
+            value: appState,
+            child: const CheckinScreen(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(appState.currentExecutionPlan, isNotNull);
+      expect(find.text('Plano inteligente da vistoria'), findsNothing);
+      expect(find.text('Inicie a vistoria por Rua.'), findsNothing);
+      expect(find.text('Duplex'), findsNothing);
+      expect(appState.step1Payload['tipoImovel'], isNull);
+      expect(appState.step1Payload['subtipoImovel'], isNull);
+      expect(appState.step1Payload['porOndeComecar'], isNull);
+      expect(appState.step1Payload['clientePresente'], isNull);
+    },
+  );
 
   testWidgets(
     'check-in etapa 1 confirms client absent and sends job to awaiting scheduling',
@@ -233,11 +282,11 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 600));
 
-      await tester.tap(find.widgetWithText(ChoiceChip, 'NÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o'));
+      await tester.tap(find.widgetWithText(ChoiceChip, 'NÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
-      expect(find.text('Confirmar ausÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªncia do cliente'), findsOneWidget);
+      expect(find.text('Confirmar ausÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âªncia do cliente'), findsOneWidget);
 
       await tester.tap(find.widgetWithText(FilledButton, 'Confirmar'));
       await tester.pump();
@@ -258,7 +307,7 @@ void main() {
   );
 
   testWidgets(
-    'check-in etapa 1 confirms client absent and sends job to awaiting scheduling with stable selector',
+    'check-in etapa 1 opens inline client absent requirements when responder is not present',
     (tester) async {
       final appState = AppState(_ImmediateJobRepository());
       final job = Job(
@@ -290,22 +339,11 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
-      expect(find.textContaining('Confirmar aus'), findsOneWidget);
-
-      await tester.tap(find.widgetWithText(FilledButton, 'Confirmar'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 600));
-
-      expect(actionService.called, isTrue);
-      expect(actionService.lastJobId, 'job-absent-2');
-      expect(appState.jobAtual, isNull);
-      expect(appState.jobs, isEmpty);
-      expect(
-        appState.mensagens.any(
-          (message) => message.titulo == 'Aguardando agendamento',
-        ),
-        isTrue,
-      );
+      expect(find.textContaining('Nome de quem atendeu'), findsOneWidget);
+      expect(find.textContaining('Capturar evidencia'), findsOneWidget);
+      expect(find.textContaining('Solicitar reagendamento'), findsOneWidget);
+      expect(actionService.called, isFalse);
+      expect(appState.jobAtual?.id, 'job-absent-2');
     },
   );
 
@@ -327,7 +365,7 @@ void main() {
       documentJson: jsonEncode({
         'step1': {
           'tipos': ['Urbano'],
-          'contextos': ['Rua', 'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Ârea interna'],
+          'contextos': ['Rua', 'ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Ârea interna'],
           'subtiposPorTipo': {
             'Urbano': ['Apartamento'],
           },
@@ -343,13 +381,13 @@ void main() {
               'label': 'Piso',
               'required': true,
               'dependsOn': 'torre',
-              'options': ['TÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rreo', '1ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âº'],
+              'options': ['TÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©rreo', '1ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âº'],
             },
             {
               'id': 'contexto',
-              'label': 'Por onde deseja comeÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ar?',
+              'label': 'Por onde deseja comeÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ar?',
               'required': true,
-              'options': ['Rua', 'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Ârea interna'],
+              'options': ['Rua', 'ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Ârea interna'],
             },
           ],
           'levelsBySubtipo': {
@@ -373,14 +411,14 @@ void main() {
     await tester.tap(find.widgetWithText(ChoiceChip, 'Sim'));
     await tester.pumpAndSettle();
 
-    // Scroll down to bring Urbano into view
+    // Scroll down to bring the urban option into view.
     await tester.drag(find.byType(ListView), const Offset(0, -200));
     await tester.pumpAndSettle();
 
     await tester.tap(find.widgetWithText(ChoiceChip, 'Urbano'));
     await tester.pumpAndSettle();
 
-    // Scroll down to bring Subtipo into view
+    // Scroll down to bring the subtype section into view.
     await tester.drag(find.byType(ListView), const Offset(0, -200));
     await tester.pumpAndSettle();
 
@@ -393,7 +431,7 @@ void main() {
 
     expect(find.text('Torre'), findsOneWidget);
     expect(find.widgetWithText(ChoiceChip, 'Torre A'), findsOneWidget);
-    expect(find.widgetWithText(ChoiceChip, '1ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âº'), findsNothing);
+    expect(find.widgetWithText(ChoiceChip, '1ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âº'), findsNothing);
 
     // Select Torre first (Piso depends on Torre)
     await tester.tap(find.widgetWithText(ChoiceChip, 'Torre A'));
@@ -429,7 +467,7 @@ void main() {
           'levels': [
             {
               'id': 'area_foto',
-              'label': 'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Ârea da foto',
+              'label': 'ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Ârea da foto',
               'required': true,
               'options': ['Rua'],
             },
@@ -443,7 +481,7 @@ void main() {
               'id': 'elemento',
               'label': 'Elemento',
               'required': true,
-              'options': ['PortÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o'],
+              'options': ['PortÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o'],
             },
             {
               'id': 'material',
@@ -476,21 +514,21 @@ void main() {
     await tester.tap(find.widgetWithText(ChoiceChip, 'Sim'));
     await tester.pumpAndSettle();
 
-    // Scroll down to bring Urbano into view
+    // Scroll down to bring the urban option into view.
     await tester.drag(find.byType(ListView), const Offset(0, -200));
     await tester.pumpAndSettle();
 
     await tester.tap(find.widgetWithText(ChoiceChip, 'Urbano'));
     await tester.pumpAndSettle();
 
-    // Scroll down to bring Subtipo into view
+    // Scroll down to bring the subtype section into view.
     await tester.drag(find.byType(ListView), const Offset(0, -200));
     await tester.pumpAndSettle();
 
     await tester.tap(find.widgetWithText(ChoiceChip, 'Apartamento'));
     await tester.pumpAndSettle();
 
-    // Scroll down to bring ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Ârea da foto into view
+    // Scroll down to bring the photo area section into view.
     await tester.drag(find.byType(ListView), const Offset(0, -300));
     await tester.pumpAndSettle();
 
@@ -498,7 +536,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ChoiceChip, 'Fachada'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ChoiceChip, 'PortÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o'));
+    await tester.tap(find.widgetWithText(ChoiceChip, 'PortÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o'));
     await tester.pumpAndSettle();
     
     // Scroll down to bring Material options and Estado into view
@@ -531,7 +569,7 @@ void main() {
     final initial = request!.selectionState.initialSuggestedSelection;
     expect(initial.subjectContext, 'Rua');
     expect(initial.targetItem, 'Fachada');
-    expect(initial.targetQualifier, 'PortÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o');
+    expect(initial.targetQualifier, 'PortÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o');
     expect(initial.attributeText('inspection.material'), 'Metal');
     expect(initial.targetCondition, 'Bom');
   });
@@ -678,21 +716,6 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ChoiceChip, 'Rua'));
     await tester.pumpAndSettle();
-    /*
-
-    final confirmButton = find.byType(ElevatedButton);
-    await tester.scrollUntilVisible(
-      confirmButton,
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(confirmButton);
-    await tester.pumpAndSettle();
-
-    expect(find.text('AtenÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o'), findsOneWidget);
-    */
 
     final confirmButton = find.byType(ElevatedButton);
     await tester.scrollUntilVisible(
@@ -724,11 +747,24 @@ void main() {
           titulo: 'Vistoria A',
           endereco: 'Rua A, 1',
           nomeCliente: 'Cliente A',
+          smartExecutionPlan: const SmartExecutionPlan(
+            snapshotId: 21,
+            caseId: 31,
+            status: 'PUBLISHED',
+            jobId: 'job-1',
+            initialContext: 'Street',
+            firstEnvironment: 'Fachada',
+            requiredEvidenceCount: 4,
+            requiresManualReview: true,
+          ),
         ),
       );
 
       await tester.pumpWidget(
         MaterialApp(
+          locale: const Locale('pt'),
+          localizationsDelegates: AppStrings.localizationsDelegates,
+          supportedLocales: AppStrings.supportedLocales,
           home: ChangeNotifierProvider<AppState>.value(
             value: appState,
             child: const CheckinStep2Screen(tipoImovel: 'Urbano'),
@@ -737,7 +773,7 @@ void main() {
       );
 
       await tester.pumpAndSettle();
-
+      expect(find.text('Plano inteligente da vistoria'), findsNothing);
       expect(find.textContaining('REGISTROS FOTOGR'), findsOneWidget);
 
       await tester.tap(find.textContaining('REGISTROS FOTOGR'));
@@ -841,7 +877,7 @@ void main() {
 
       await appState.setInspectionRecoveryStage(
         stageKey: 'inspection_review',
-        stageLabel: 'RevisÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o final',
+        stageLabel: 'RevisÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o final',
         routeName: '/inspection_review',
         payload: {
           'step1': {
@@ -852,7 +888,7 @@ void main() {
           },
           'step2': step2Payload,
           'review': {
-            'tipoImovel': 'Urbano ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ Apartamento',
+            'tipoImovel': 'Urbano ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ Apartamento',
             'captures': const <Map<String, dynamic>>[],
           },
         },
@@ -934,7 +970,7 @@ void main() {
 
       await appState.setInspectionRecoveryStage(
         stageKey: 'inspection_review',
-        stageLabel: 'RevisÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o final',
+        stageLabel: 'RevisÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o final',
         routeName: '/inspection_review',
         payload: {
           'step1': {
@@ -945,7 +981,7 @@ void main() {
           },
           'step2': step2Payload,
           'review': {
-            'tipoImovel': 'Urbano ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ Apartamento',
+            'tipoImovel': 'Urbano ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ Apartamento',
             'captures': const <Map<String, dynamic>>[],
           },
         },
@@ -968,7 +1004,7 @@ void main() {
       await tester.pump();
 
       expect(flowCoordinator.didRestoreReviewRecoveryFlow, isTrue);
-      expect(flowCoordinator.restoredTipoImovel, 'Urbano ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ Apartamento');
+      expect(flowCoordinator.restoredTipoImovel, 'Urbano ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ Apartamento');
       expect(
         flowCoordinator.restoredInitialData?.isPhotoCaptured('fachada'),
         isTrue,

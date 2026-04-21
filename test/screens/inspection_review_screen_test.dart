@@ -2,6 +2,7 @@
 import 'package:appmobile/models/inspection_camera_flow_request.dart';
 import 'package:appmobile/models/inspection_session_model.dart';
 import 'package:appmobile/models/overlay_camera_capture_result.dart';
+import 'package:appmobile/models/smart_execution_plan.dart';
 import 'package:appmobile/repositories/job_repository.dart';
 import 'package:appmobile/l10n/app_strings.dart';
 import 'package:appmobile/services/inspection_flow_coordinator.dart';
@@ -147,6 +148,7 @@ Future<void> _pumpReview(
   String tipoImovel = 'Urbano',
   Map<String, dynamic>? persistedStep2Payload,
   Map<String, dynamic>? persistedRecoveryPayload,
+  SmartExecutionPlan? smartExecutionPlan,
   InspectionFlowCoordinator flowCoordinator =
       const DefaultInspectionFlowCoordinator(),
 }) async {
@@ -161,6 +163,7 @@ Future<void> _pumpReview(
         titulo: 'Vistoria A',
         endereco: 'Rua A, 1',
         nomeCliente: 'Cliente A',
+        smartExecutionPlan: smartExecutionPlan,
       ),
     );
     await appState.persistStep2Draft(persistedStep2Payload);
@@ -172,6 +175,7 @@ Future<void> _pumpReview(
         titulo: 'Vistoria A',
         endereco: 'Rua A, 1',
         nomeCliente: 'Cliente A',
+        smartExecutionPlan: smartExecutionPlan,
       ),
     );
     await appState.setInspectionRecoveryStage(
@@ -182,8 +186,21 @@ Future<void> _pumpReview(
     );
   }
 
+  if (persistedStep2Payload == null && persistedRecoveryPayload == null) {
+    appState.selecionarJob(
+      Job(
+        id: 'job-1',
+        titulo: 'Vistoria A',
+        endereco: 'Rua A, 1',
+        nomeCliente: 'Cliente A',
+        smartExecutionPlan: smartExecutionPlan,
+      ),
+    );
+  }
+
   await tester.pumpWidget(
     MaterialApp(
+      locale: const Locale('pt'),
       localizationsDelegates: AppStrings.localizationsDelegates,
       supportedLocales: AppStrings.supportedLocales,
       home: ChangeNotifierProvider<AppState>.value(
@@ -257,6 +274,37 @@ void main() {
     expect(find.textContaining('Compos'), findsOneWidget);
     expect(find.textContaining('Evid'), findsOneWidget);
     expect(find.textContaining('Pend'), findsOneWidget);
+  });
+
+  testWidgets('shows smart execution guidance during review', (tester) async {
+    await _pumpReview(
+      tester,
+      captures: [
+        _capture(
+          filePath: '/tmp/a.jpg',
+          ambiente: 'Fachada',
+          elemento: 'Frontal',
+        ),
+      ],
+      smartExecutionPlan: const SmartExecutionPlan(
+        snapshotId: 7,
+        caseId: 99,
+        status: 'PUBLISHED',
+        jobId: 'job-1',
+        initialContext: 'Street',
+        firstEnvironment: 'Fachada',
+        requiredEvidenceCount: 5,
+        requiresManualReview: true,
+      ),
+    );
+
+    expect(find.text('Plano inteligente da vistoria'), findsNothing);
+    expect(find.text('Inicie por Rua e priorize o ambiente Fachada.'), findsNothing);
+    expect(find.text('Registre pelo menos 5 evidência(s) neste fluxo.'), findsNothing);
+    expect(
+      find.text('Este job exige revisão manual ao longo do fluxo.'),
+      findsNothing,
+    );
   });
 
   testWidgets('does not render optional voice commands section', (

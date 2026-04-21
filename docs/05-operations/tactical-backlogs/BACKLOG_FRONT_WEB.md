@@ -103,6 +103,17 @@ Controlar o backlog de experiencia web (UI, navegacao, telas operacionais e usab
 - Os proxies Next.js de inspections passam a exigir cookie de login web e resolvem `tenantId` pela sessao.
 - Os filtros operacionais (`status`, janela de data, `vistoriadorId`, paginacao) permanecem aceitos, mas o tenant deixa de ser confiado do cliente.
 
+## Adendo 2026-04-20 - Inspections como superficie de classificacao manual
+
+- `/backoffice/inspections` passa a ter dupla funcao:
+  1. consulta tecnica da inspection recebida
+  2. classificacao manual posterior para vistorias em `modo de captura livre`
+- a tela de detalhe passa a suportar:
+  - classificacao imagem a imagem
+  - visualizacao da matriz de obrigatoriedade
+  - preenchimento de `etapa 2` quando exigida
+- isso aproxima a experiencia web do fechamento operacional completo da vistoria, em vez de tratar `inspections` apenas como painel passivo
+
 ## Adendo 2026-04-10 - Valuation e reports com sessao real
 
 - Os proxies Next.js de valuation e reports passam a exigir cookie de login web e derivam tenant/ator da sessao autenticada.

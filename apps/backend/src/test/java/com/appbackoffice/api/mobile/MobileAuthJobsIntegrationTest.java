@@ -135,6 +135,7 @@ class MobileAuthJobsIntegrationTest {
         assertThat(body.get(0).get("tenantId").asText()).isEqualTo(TENANT_ID);
         assertThat(body.get(0).get("assignedTo").asLong()).isEqualTo(operator.getId());
         assertThat(body.get(0).get("status").asText()).isEqualTo("ACCEPTED");
+        assertThat(body.get(0).get("executionPlan").isNull()).isTrue();
     }
 
     @Test
@@ -152,7 +153,17 @@ class MobileAuthJobsIntegrationTest {
                         .header("Authorization", "Bearer " + accessToken)
                         .content("""
                                 {
-                                  "reason": "Cliente ausente confirmado no check-in etapa 1"
+                                  "reason": "Cliente ausente confirmado no check-in etapa 1",
+                                  "responderName": "Porteiro Carlos",
+                                  "evidence": {
+                                    "fileName": "cliente-ausente.jpg",
+                                    "contentType": "image/jpeg",
+                                    "imageBase64": "dGVzdGU=",
+                                    "capturedAt": "2026-04-17T12:00:00Z",
+                                    "latitude": -23.551,
+                                    "longitude": -46.611,
+                                    "accuracy": 8.5
+                                  }
                                 }
                                 """))
                 .andReturn();

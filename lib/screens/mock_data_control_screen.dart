@@ -148,7 +148,7 @@ class _MockDataControlScreenState extends State<MockDataControlScreen> {
         'levels': [
           {'id': 'macroLocal', 'label': 'Area da foto'},
           {'id': 'ambiente', 'label': 'Local da foto'},
-          {'id': 'elemento', 'label': 'Elemento'},
+          {'id': 'elemento', 'label': 'Elemento fotografado'},
           {'id': 'material', 'label': 'Material'},
           {'id': 'estado', 'label': 'Estado'},
         ],
@@ -157,25 +157,10 @@ class _MockDataControlScreenState extends State<MockDataControlScreen> {
             'levels': [
               {'id': 'macroLocal', 'label': 'Area da foto'},
               {'id': 'ambiente', 'label': 'Local da foto'},
-              {'id': 'elemento', 'label': 'Elemento'},
+              {'id': 'elemento', 'label': 'Elemento fotografado'},
               {'id': 'material', 'label': 'Material'},
               {'id': 'estado', 'label': 'Estado'},
             ],
-            'levelsBySubtipo': {
-              'Apartamento': [
-                {'id': 'torre', 'label': 'Torre', 'required': false},
-                {
-                  'id': 'piso',
-                  'label': 'Piso',
-                  'required': true,
-                  'dependsOn': 'torre',
-                },
-                {'id': 'ambiente', 'label': 'Local da foto'},
-                {'id': 'elemento', 'label': 'Elemento'},
-                {'id': 'material', 'label': 'Material'},
-                {'id': 'estado', 'label': 'Estado'},
-              ],
-            },
             'macroLocals': [
               {
                 'label': 'Rua',
@@ -213,6 +198,25 @@ class _MockDataControlScreenState extends State<MockDataControlScreen> {
                     ],
                   },
                   {
+                    'label': 'Garagem',
+                    'baseScore': 88,
+                    'elements': [
+                      {
+                        'label': 'Portao da garagem',
+                        'baseScore': 100,
+                        'materials': [
+                          {'label': 'Metal', 'baseScore': 100},
+                          {'label': 'Aluminio', 'baseScore': 90},
+                        ],
+                        'states': [
+                          {'label': 'Bom', 'baseScore': 100},
+                          {'label': 'Regular', 'baseScore': 80},
+                          {'label': 'Ruim', 'baseScore': 65},
+                        ],
+                      },
+                    ],
+                  },
+                  {
                     'label': 'Acesso ao imovel',
                     'baseScore': 92,
                     'elements': [
@@ -227,6 +231,142 @@ class _MockDataControlScreenState extends State<MockDataControlScreen> {
                           {'label': 'Novo', 'baseScore': 100},
                           {'label': 'Bom', 'baseScore': 90},
                           {'label': 'Regular', 'baseScore': 75},
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                'label': 'Area interna',
+                'baseScore': 98,
+                'ambientes': [
+                  {
+                    'label': 'Sala de estar',
+                    'baseScore': 100,
+                    'pinnedTop': true,
+                    'elements': [
+                      {
+                        'label': 'Visao geral',
+                        'baseScore': 100,
+                        'states': [
+                          {'label': 'Novo', 'baseScore': 100},
+                          {'label': 'Bom', 'baseScore': 92},
+                          {'label': 'Regular', 'baseScore': 76},
+                        ],
+                      },
+                      {
+                        'label': 'Parede',
+                        'baseScore': 94,
+                        'materials': [
+                          {'label': 'Pintura', 'baseScore': 100},
+                          {'label': 'Textura', 'baseScore': 82},
+                        ],
+                        'states': [
+                          {'label': 'Bom', 'baseScore': 100},
+                          {'label': 'Regular', 'baseScore': 82},
+                          {'label': 'Ruim', 'baseScore': 62},
+                        ],
+                      },
+                      {
+                        'label': 'Piso',
+                        'baseScore': 92,
+                        'materials': [
+                          {'label': 'Porcelanato', 'baseScore': 100},
+                          {'label': 'Ceramica', 'baseScore': 85},
+                          {'label': 'Madeira', 'baseScore': 75},
+                        ],
+                        'states': [
+                          {'label': 'Novo', 'baseScore': 100},
+                          {'label': 'Bom', 'baseScore': 90},
+                          {'label': 'Regular', 'baseScore': 74},
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    'label': 'Cozinha',
+                    'baseScore': 97,
+                    'elements': [
+                      {
+                        'label': 'Pia',
+                        'baseScore': 100,
+                        'materials': [
+                          {'label': 'Inox', 'baseScore': 100},
+                          {'label': 'Granito', 'baseScore': 88},
+                        ],
+                        'states': [
+                          {'label': 'Bom', 'baseScore': 100},
+                          {'label': 'Regular', 'baseScore': 78},
+                          {'label': 'Ruim', 'baseScore': 60},
+                        ],
+                      },
+                      {
+                        'label': 'Bancada',
+                        'baseScore': 95,
+                        'materials': [
+                          {'label': 'Granito', 'baseScore': 100},
+                          {'label': 'Marmore', 'baseScore': 90},
+                        ],
+                        'states': [
+                          {'label': 'Novo', 'baseScore': 100},
+                          {'label': 'Bom', 'baseScore': 90},
+                          {'label': 'Regular', 'baseScore': 76},
+                        ],
+                      },
+                      {
+                        'label': 'Azulejo',
+                        'baseScore': 90,
+                        'materials': [
+                          {'label': 'Ceramica', 'baseScore': 100},
+                        ],
+                        'states': [
+                          {'label': 'Bom', 'baseScore': 100},
+                          {'label': 'Regular', 'baseScore': 82},
+                          {'label': 'Ruim', 'baseScore': 64},
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    'label': 'Banheiro',
+                    'baseScore': 96,
+                    'elements': [
+                      {
+                        'label': 'Box',
+                        'baseScore': 100,
+                        'materials': [
+                          {'label': 'Vidro', 'baseScore': 100},
+                          {'label': 'Aluminio', 'baseScore': 88},
+                        ],
+                        'states': [
+                          {'label': 'Bom', 'baseScore': 100},
+                          {'label': 'Regular', 'baseScore': 80},
+                          {'label': 'Ruim', 'baseScore': 62},
+                        ],
+                      },
+                      {
+                        'label': 'Vaso sanitario',
+                        'baseScore': 92,
+                        'materials': [
+                          {'label': 'Louca', 'baseScore': 100},
+                        ],
+                        'states': [
+                          {'label': 'Bom', 'baseScore': 100},
+                          {'label': 'Regular', 'baseScore': 80},
+                        ],
+                      },
+                      {
+                        'label': 'Chuveiro',
+                        'baseScore': 90,
+                        'materials': [
+                          {'label': 'Metal', 'baseScore': 100},
+                          {'label': 'Inox', 'baseScore': 90},
+                        ],
+                        'states': [
+                          {'label': 'Bom', 'baseScore': 100},
+                          {'label': 'Regular', 'baseScore': 82},
+                          {'label': 'Ruim', 'baseScore': 64},
                         ],
                       },
                     ],
@@ -323,6 +463,15 @@ class _MockDataControlScreenState extends State<MockDataControlScreen> {
 
     setState(() => _busy = true);
     try {
+      await _checkinConfigService.configureDeveloperMock(
+        enabled: _checkinConfigMockEnabled,
+        documentJson: _checkinConfigController.text,
+      );
+      await _inspectionMenuService.reload();
+      await _syncService.configureDeveloperMock(
+        enabled: _syncMockEnabled,
+        responseJson: _syncResponseController.text,
+      );
       await appState.generateMockJobs(
         activeCount: active,
         completedCount: completed,

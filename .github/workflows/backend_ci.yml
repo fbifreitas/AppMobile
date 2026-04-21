@@ -29,6 +29,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Validate UTF-8 encoding
+        shell: pwsh
+        working-directory: ${{ github.workspace }}
+        run: ./scripts/check_utf8.ps1
+
+      - name: Validate source language (English only)
+        shell: pwsh
+        working-directory: ${{ github.workspace }}
+        run: ./scripts/check_english_only.ps1
 
       - name: Setup Java 21
         uses: actions/setup-java@v5

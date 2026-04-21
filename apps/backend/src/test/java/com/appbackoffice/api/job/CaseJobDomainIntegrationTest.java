@@ -10,6 +10,7 @@ import com.appbackoffice.api.job.dto.CreateCaseResponse;
 import com.appbackoffice.api.job.dto.JobDetailResponse;
 import com.appbackoffice.api.job.dto.JobSummaryResponse;
 import com.appbackoffice.api.job.dto.JobTimelineResponse;
+import com.appbackoffice.api.job.service.JobClientAbsentEvidenceService.ClientAbsentEvidenceCommand;
 import com.appbackoffice.api.job.entity.JobStatus;
 import com.appbackoffice.api.job.repository.AssignmentRepository;
 import com.appbackoffice.api.job.repository.CaseRepository;
@@ -147,7 +148,17 @@ class CaseJobDomainIntegrationTest {
                 TENANT_ID,
                 caseResp.jobId(),
                 String.valueOf(operatorUserId),
-                "Cliente ausente confirmado no check-in etapa 1"
+                "Cliente ausente confirmado no check-in etapa 1",
+                "Porteiro Carlos",
+                new ClientAbsentEvidenceCommand(
+                        "cliente-ausente.jpg",
+                        "image/jpeg",
+                        "dGVzdGU=",
+                        "2026-04-17T12:00:00Z",
+                        -23.551,
+                        -46.611,
+                        8.5
+                )
         );
 
         assertThat(awaitingScheduling.status()).isEqualTo(JobStatus.AWAITING_SCHEDULING.name());
