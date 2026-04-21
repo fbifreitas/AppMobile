@@ -1,7 +1,11 @@
 package com.appbackoffice.api.intelligence;
 
+import com.appbackoffice.api.auth.repository.IdentityBindingRepository;
+import com.appbackoffice.api.auth.repository.SessionRepository;
+import com.appbackoffice.api.auth.repository.UserCredentialRepository;
 import com.appbackoffice.api.identity.entity.Tenant;
 import com.appbackoffice.api.identity.entity.TenantStatus;
+import com.appbackoffice.api.identity.repository.MembershipRepository;
 import com.appbackoffice.api.identity.repository.TenantRepository;
 import com.appbackoffice.api.intelligence.entity.CaseEnrichmentRunEntity;
 import com.appbackoffice.api.intelligence.entity.FieldEvidenceRecordEntity;
@@ -25,6 +29,8 @@ import com.appbackoffice.api.mobile.entity.InspectionEntity;
 import com.appbackoffice.api.mobile.entity.InspectionSubmissionEntity;
 import com.appbackoffice.api.mobile.repository.InspectionRepository;
 import com.appbackoffice.api.mobile.repository.InspectionSubmissionRepository;
+import com.appbackoffice.api.user.repository.UserLifecycleRepository;
+import com.appbackoffice.api.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -67,6 +73,24 @@ class IntelligenceBackofficeIntegrationTest {
     private TenantRepository tenantRepository;
 
     @Autowired
+    private MembershipRepository membershipRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private UserLifecycleRepository userLifecycleRepository;
+
+    @Autowired
+    private UserCredentialRepository userCredentialRepository;
+
+    @Autowired
+    private IdentityBindingRepository identityBindingRepository;
+
+    @Autowired
+    private SessionRepository sessionRepository;
+
+    @Autowired
     private CaseRepository caseRepository;
 
     @Autowired
@@ -103,6 +127,12 @@ class IntelligenceBackofficeIntegrationTest {
         runRepository.deleteAll();
         jobRepository.deleteAll();
         caseRepository.deleteAll();
+        sessionRepository.deleteAll();
+        identityBindingRepository.deleteAll();
+        userCredentialRepository.deleteAll();
+        membershipRepository.deleteAll();
+        userLifecycleRepository.deleteAll();
+        userRepository.deleteAll();
         tenantRepository.deleteAll();
         tenantRepository.save(new Tenant(TENANT_ID, TENANT_ID, "Tenant Intelligence", TenantStatus.ACTIVE));
     }

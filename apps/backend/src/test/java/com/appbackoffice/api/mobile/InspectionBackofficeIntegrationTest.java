@@ -151,7 +151,8 @@ class InspectionBackofficeIntegrationTest {
         assertThat(body.at("/payload/job/id").asText()).isNotBlank();
         assertThat(body.at("/returnArtifact/rawStorageKey").asText()).isNotBlank();
         assertThat(body.at("/returnArtifact/normalizedStorageKey").asText()).isNotBlank();
-        assertThat(body.at("/returnArtifact/summary/reviewPhotoCount").asInt()).isEqualTo(2);
+        assertThat(body.at("/payload/review/photos").asInt()).isEqualTo(2);
+        assertThat(body.at("/returnArtifact/summary/reviewPhotoCount").asInt()).isEqualTo(0);
         assertThat(body.withArray("fieldEvidence").size()).isGreaterThanOrEqualTo(1);
         assertThat(body.at("/fieldEvidence/0/status").asText()).isNotBlank();
     }
